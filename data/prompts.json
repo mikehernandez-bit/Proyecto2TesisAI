@@ -1,0 +1,27 @@
+[
+  {
+    "id": "prompt_tesis_estandar",
+    "name": "Tesis Ingeniería Estándar",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "variables": [
+      "tema",
+      "objetivo_general",
+      "poblacion",
+      "variable_independiente"
+    ]
+  },
+  {
+    "id": "prompt_imryd",
+    "name": "Artículo Científico (IMRYD)",
+    "doc_type": "Artículo Científico",
+    "is_active": true,
+    "template": "Redacta un artículo IMRYD sobre {{tema}} con metodología {{metodologia}}.",
+    "variables": [
+      "tema",
+      "metodologia",
+      "hipotesis"
+    ]
+  }
+]

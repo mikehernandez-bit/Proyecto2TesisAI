@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- SIDEBAR (Navegación) -->
+<aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-20 hidden md:flex">
+  <div class="p-6 border-b border-slate-700 flex items-center gap-3">
+    <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+      <i class="fa-solid fa-brain"></i>
+    </div>
+    <span class="text-xl font-bold tracking-tight">{{ app_name }}</span>
+  </div>
+
+  <nav class="flex-1 p-4 space-y-2">
+    <button onclick="TesisAI.showView('dashboard')" id="nav-dashboard"
+      class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 bg-slate-800 text-blue-400">
+      <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+    </button>
+
+    <button onclick="TesisAI.showView('wizard')" id="nav-wizard"
+      class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 text-slate-300">
+      <i class="fa-solid fa-plus-circle w-5"></i> Nuevo Proyecto
+    </button>
+
+    <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase">Administración</div>
+
+    <button onclick="TesisAI.showView('admin-prompts')" id="nav-admin-prompts"
+      class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 text-slate-300">
+      <i class="fa-solid fa-robot w-5"></i> Gestión Prompts
+    </button>
+
+    <button onclick="TesisAI.showView('history')" id="nav-history"
+      class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 text-slate-300">
+      <i class="fa-solid fa-clock-rotate-left w-5"></i> Historial
+    </button>
+  </nav>
+
+  <div class="p-4 border-t border-slate-700">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <div>
+        <div class="text-sm font-medium">César Dev</div>
+        <div class="text-xs text-slate-400">Admin</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+  <!-- Mobile Header -->
+  <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center md:hidden">
+    <span class="font-bold text-lg text-slate-800">{{ app_name }}</span>
+    <button class="text-slate-600"><i class="fa-solid fa-bars"></i></button>
+  </header>
+
+  <!-- CONTENT AREA -->
+  <div class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+
+    <!-- VISTA 1: DASHBOARD -->
+    <div id="view-dashboard" class="view-section fade-in">
+      <div class="flex justify-between items-end mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">Panel Principal</h1>
+          <p class="text-slate-500">Bienvenido. Aquí están tus últimas generaciones.</p>
+        </div>
+        <button onclick="TesisAI.showView('wizard')"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-magic"></i> Generar Nuevo
+        </button>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-sm text-gray-500 font-medium">Proyectos Totales</p>
+              <h3 id="stat-total-projects" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+            </div>
+            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i class="fa-solid fa-folder-open"></i></div>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-sm text-gray-500 font-medium">Ahorro de Tiempo</p>
+              <h3 class="text-3xl font-bold text-slate-800 mt-1">~45h</h3>
+            </div>
+            <div class="p-2 bg-green-50 text-green-600 rounded-lg"><i class="fa-solid fa-clock"></i></div>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-sm text-gray-500 font-medium">Tokens IA Usados</p>
+              <h3 class="text-3xl font-bold text-slate-800 mt-1">125k</h3>
+            </div>
+            <div class="p-2 bg-purple-50 text-purple-600 rounded-lg"><i class="fa-solid fa-microchip"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Projects Table -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 font-semibold text-slate-700">Generaciones Recientes</div>
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+              <th class="px-6 py-3 font-medium">Título / Tema</th>
+              <th class="px-6 py-3 font-medium">Formato</th>
+              <th class="px-6 py-3 font-medium">Estado</th>
+              <th class="px-6 py-3 font-medium">Fecha</th>
+              <th class="px-6 py-3 font-medium text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-recent-projects" class="text-sm divide-y divide-gray-100"></tbody>
+        </table>
+        <div id="dashboard-empty" class="px-6 py-8 text-sm text-gray-500 hidden">
+          No hay proyectos aún. Crea uno en “Nuevo Proyecto”.
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA 2: WIZARD -->
+    <div id="view-wizard" class="view-section hidden fade-in max-w-4xl mx-auto">
+
+      <!-- Stepper -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xl font-bold text-slate-800">Nuevo Proyecto</h2>
+          <span class="text-sm text-gray-500">Paso <span id="current-step-label">1</span> de 4</span>
+        </div>
+
+        <div class="flex items-center w-full">
+          <div id="step-1-dot" class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10">1</div>
+          <div id="step-1-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-2-dot" class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">2</div>
+          <div id="step-2-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-3-dot" class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">3</div>
+          <div id="step-3-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-4-dot" class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10"><i class="fa-solid fa-check"></i></div>
+        </div>
+
+        <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
+          <span>Formato Ext.</span>
+          <span>Tipo & Prompt</span>
+          <span>Detalles</span>
+          <span>Generar</span>
+        </div>
+      </div>
+
+      <!-- Step 1 -->
+      <div id="step-1-content" class="wizard-step">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-semibold mb-4 text-slate-800">1. Selecciona el Formato Institucional</h3>
+          <p class="text-sm text-gray-500 mb-6">
+            Se conecta a una API externa de formatos. En demo se usa <code class="bg-gray-100 px-1 rounded">data/formats_sample.json</code>.
+          </p>
+
+          <div class="flex gap-4 mb-6">
+            <select id="filter-university" class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">Todas las Universidades</option>
+            </select>
+            <select id="filter-career" class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">Filtrar por Carrera</option>
+            </select>
+          </div>
+
+          <div id="formats-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+          <div class="mt-8 flex justify-end">
+            <button onclick="TesisAI.nextStep(2)" id="btn-step1-next"
+              class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled>
+              Siguiente: Elegir Prompt <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="step-2-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-semibold mb-4 text-slate-800">2. ¿Qué quieres que haga la IA?</h3>
+          <p class="text-sm text-gray-500 mb-6">Prompts configurables desde “Gestión Prompts”.</p>
+
+          <div id="prompts-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+          <div class="mt-8 flex justify-between">
+            <button onclick="TesisAI.prevStep(1)" class="text-gray-500 hover:text-gray-700 font-medium px-4">Atrás</button>
+            <button onclick="TesisAI.nextStep(3)" id="btn-step2-next"
+              class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled>
+              Siguiente: Detalles <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div id="step-3-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-semibold mb-2 text-slate-800">3. Detalles del Proyecto</h3>
+          <p class="text-sm text-gray-500 mb-6">Los campos se generan según variables del prompt.</p>
+
+          <div id="dynamic-form" class="space-y-4 max-w-2xl mx-auto"></div>
+
+          <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-800 flex gap-2">
+            <i class="fa-solid fa-circle-info mt-0.5"></i>
+            <p>
+              Estos datos se enviarán a <strong>n8n</strong> (si está configurado), o se generará un DOCX demo local.
+              <br/>
+              <span class="text-[10px] text-blue-600">TODO (DEV): Configura <code class="bg-blue-100 px-1 rounded">N8N_WEBHOOK_URL</code> en .env para modo real.</span>
+            </p>
+          </div>
+
+          <div class="mt-8 flex justify-between">
+            <button onclick="TesisAI.prevStep(2)" class="text-gray-500 hover:text-gray-700 font-medium px-4">Atrás</button>
+            <button onclick="TesisAI.startGeneration()"
+              class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95">
+              <i class="fa-solid fa-rocket mr-2"></i> Generar Documento
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div id="step-4-content" class="wizard-step hidden">
+        <div id="loading-state" class="text-center py-12">
+          <div class="loader mx-auto mb-6"></div>
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Procesando...</h3>
+          <p class="text-gray-500 mb-8 max-w-md mx-auto">
+            Si usas n8n, esto puede demorar. En demo, verás resultado en segundos.
+          </p>
+
+          <div class="max-w-md mx-auto bg-gray-100 rounded-full h-2.5 mb-2 overflow-hidden">
+            <div class="bg-blue-600 h-2.5 rounded-full w-2/3 animate-pulse"></div>
+          </div>
+          <p id="loading-label" class="text-xs text-gray-400">Generando documento...</p>
+        </div>
+
+        <div id="success-state" class="hidden text-center py-8">
+          <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-slate-800 mb-2">¡Documento Generado!</h3>
+          <p id="success-desc" class="text-gray-600 mb-8">El archivo fue creado respetando el formato seleccionado.</p>
+
+          <div class="bg-white border border-gray-200 rounded-xl p-6 max-w-lg mx-auto mb-8 text-left shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
+            <div class="flex items-start gap-4">
+              <i class="fa-solid fa-file-word text-4xl text-blue-800"></i>
+              <div>
+                <div id="output-filename" class="font-bold text-slate-800">Documento.docx</div>
+                <div class="text-xs text-gray-500 mb-2">Formato DOCX</div>
+                <div class="flex gap-2">
+                  <span class="text-[10px] bg-gray-100 px-2 py-1 rounded">Demo</span>
+                  <span class="text-[10px] bg-gray-100 px-2 py-1 rounded">Editable</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-center gap-4">
+            <button onclick="TesisAI.showView('dashboard')" class="text-gray-500 hover:text-gray-800 px-6 py-2">
+              Volver al Inicio
+            </button>
+            <a id="download-link" href="#"
+              class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg shadow-md font-bold transition flex items-center gap-2">
+              <i class="fa-solid fa-download"></i> Descargar Word
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA 3: ADMIN PROMPTS -->
+    <div id="view-admin-prompts" class="view-section hidden fade-in">
+      <div class="flex justify-between items-end mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">Gestión de Prompts</h1>
+          <p class="text-slate-500">Crea/edita prompts y variables para el Wizard.</p>
+        </div>
+        <button onclick="TesisAI.openPromptModal()"
+          class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-lg font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Nuevo Prompt
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+              <th class="px-6 py-3">Nombre</th>
+              <th class="px-6 py-3">Variables</th>
+              <th class="px-6 py-3">Estado</th>
+              <th class="px-6 py-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="prompts-table" class="text-sm divide-y divide-gray-100"></tbody>
+        </table>
+        <div id="prompts-empty" class="px-6 py-8 text-sm text-gray-500 hidden">
+          No hay prompts. Crea uno con “Nuevo Prompt”.
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA 4: HISTORIAL -->
+    <div id="view-history" class="view-section hidden fade-in">
+      <div class="flex justify-between items-end mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">Historial de Generaciones</h1>
+          <p class="text-slate-500">Descarga o revisa proyectos anteriores.</p>
+        </div>
+        <div class="flex gap-2">
+          <div class="relative">
+            <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+            <input id="history-search" type="text" placeholder="Buscar proyecto..."
+              class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500 w-64">
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+              <th class="px-6 py-3">Proyecto / Prompt</th>
+              <th class="px-6 py-3">Formato</th>
+              <th class="px-6 py-3">Estado</th>
+              <th class="px-6 py-3">Fecha</th>
+              <th class="px-6 py-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="history-table" class="text-sm divide-y divide-gray-100"></tbody>
+        </table>
+        <div id="history-empty" class="px-6 py-8 text-sm text-gray-500 hidden">
+          No hay historial todavía.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL: CREAR/EDITAR PROMPT -->
+<div id="modal-prompt" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all scale-100">
+    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+      <h3 id="modal-title" class="text-lg font-bold text-slate-800">Configurar Prompt</h3>
+      <button onclick="TesisAI.closePromptModal()" class="text-gray-400 hover:text-gray-600">
+        <i class="fa-solid fa-xmark fa-lg"></i>
+      </button>
+    </div>
+
+    <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+      <input type="hidden" id="modal-prompt-id" value="">
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre del Prompt</label>
+          <input id="modal-name" type="text" class="w-full p-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none" placeholder="Ej: Tesis Derecho Civil">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo Documento</label>
+          <select id="modal-doc-type" class="w-full p-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none">
+            <option>Tesis Completa</option>
+            <option>Artículo Científico</option>
+            <option>Ensayo / Monografía</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input id="modal-is-active" type="checkbox" class="h-4 w-4" checked>
+        <label class="text-sm text-gray-700">Activo</label>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="block text-xs font-bold text-gray-500 uppercase">Instrucciones para la IA</label>
+          <span class="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Usa {{'{{variable}}'}} para dinamismo</span>
+        </div>
+        <textarea id="modal-template"
+          class="w-full p-3 border border-gray-300 rounded text-sm font-mono h-40 focus:border-blue-500 outline-none resize-none bg-gray-50"
+          placeholder="Actúa como un experto investigador académico.
+El tema es: {{tema}}
+El objetivo: {{objetivo_general}}
+..."></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Variables (JSON Array)</label>
+        <input id="modal-vars" type="text"
+          class="w-full p-2 border border-gray-300 rounded text-sm font-mono text-gray-600 focus:border-blue-500 outline-none"
+          value='["tema","objetivo_general"]'>
+        <p class="text-[10px] text-gray-400 mt-1">Estas variables generan automáticamente los campos del Paso 3.</p>
+      </div>
+
+      <div id="modal-error" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3"></div>
+    </div>
+
+    <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex justify-end gap-3">
+      <button onclick="TesisAI.closePromptModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800">Cancelar</button>
+      <button onclick="TesisAI.savePrompt()" class="px-4 py-2 text-sm font-bold text-white bg-slate-800 rounded hover:bg-slate-900 shadow-sm">
+        Guardar Prompt
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

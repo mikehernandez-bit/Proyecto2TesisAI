@@ -1,0 +1,29 @@
+[
+  {
+    "id": "fmt_unt_sistemas_2025_1",
+    "university": "Universidad Nacional de Trujillo",
+    "short": "UNT",
+    "career": "Ing. Sistemas",
+    "name": "Tesis Pregrado - Sistemas",
+    "version": "2025.1",
+    "includes": [
+      "Carátula",
+      "Índice",
+      "Cap 1-4",
+      "Ref. APA 7"
+    ]
+  },
+  {
+    "id": "fmt_upn_ing_2024_b",
+    "university": "Universidad Privada del Norte",
+    "short": "UPN",
+    "career": "Ing. Industrial",
+    "name": "Tesis Ingeniería",
+    "version": "2024.B",
+    "includes": [
+      "Resumen Ejecutivo",
+      "Realidad Problemática",
+      "Marco Teórico"
+    ]
+  }
+]
