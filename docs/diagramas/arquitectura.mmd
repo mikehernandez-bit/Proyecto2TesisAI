@@ -1,0 +1,75 @@
+%% Arquitectura GicaGen - Diagrama Mermaid
+%% Usar en: https://mermaid.live o integrado en Markdown
+
+graph TB
+    subgraph "UI Layer"
+        BROWSER[Browser]
+        JS[app.js - SPA]
+        TEMPLATES[Jinja Templates]
+    end
+    
+    subgraph "API Layer - Ports"
+        API[FastAPI Routers]
+        MODELS[Pydantic Models]
+    end
+    
+    subgraph "Core Domain"
+        direction TB
+        subgraph "Services"
+            PROMPT_SVC[PromptService]
+            PROJECT_SVC[ProjectService]
+            GEN_SVC[GenerationService]
+        end
+        subgraph "Ports - Interfaces"
+            I_STORE[IDataStore]
+            I_DOCGEN[IDocumentGenerator]
+            I_FORMAT[IFormatProvider]
+            I_WORKFLOW[IWorkflowEngine]
+        end
+    end
+    
+    subgraph "Adapters Layer"
+        JSON_ADAPTER[JsonStoreAdapter]
+        DOCX_ADAPTER[DocxAdapter]
+        FORMAT_ADAPTER[ExternalFormatAdapter]
+        N8N_ADAPTER[N8NAdapter]
+    end
+    
+    subgraph "Infra Layer"
+        CONFIG[Settings]
+        FS[Filesystem]
+        HTTP[HTTP Client]
+    end
+    
+    subgraph "External Systems"
+        EXT_API[API Formatos]
+        N8N[n8n Workflow]
+        GICATESIS[GicaTesis - futuro]
+    end
+    
+    BROWSER --> JS
+    JS --> API
+    API --> MODELS
+    API --> PROMPT_SVC
+    API --> PROJECT_SVC
+    API --> GEN_SVC
+    
+    PROMPT_SVC --> I_STORE
+    PROJECT_SVC --> I_STORE
+    GEN_SVC --> I_DOCGEN
+    GEN_SVC --> I_FORMAT
+    GEN_SVC --> I_WORKFLOW
+    
+    I_STORE -.->|implements| JSON_ADAPTER
+    I_DOCGEN -.->|implements| DOCX_ADAPTER
+    I_FORMAT -.->|implements| FORMAT_ADAPTER
+    I_WORKFLOW -.->|implements| N8N_ADAPTER
+    
+    JSON_ADAPTER --> FS
+    DOCX_ADAPTER --> FS
+    FORMAT_ADAPTER --> HTTP
+    FORMAT_ADAPTER --> EXT_API
+    N8N_ADAPTER --> HTTP
+    N8N_ADAPTER --> N8N
+    
+    FORMAT_ADAPTER -.->|futuro| GICATESIS
