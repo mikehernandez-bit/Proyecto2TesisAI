@@ -1,0 +1,226 @@
+{
+  "catalogVersion": "1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02",
+  "catalogEtag": "\"1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02\"",
+  "formats": [
+    {
+      "id": "unac-informe-cual",
+      "title": "Informe de Tesis UNAC - Enfoque Cualitativo",
+      "university": "unac",
+      "category": "Informe de Tesis",
+      "documentType": "cual",
+      "version": "c5fe33e5ec221278"
+    },
+    {
+      "id": "unac-informe-cuant",
+      "title": "Informe de Tesis UNAC - Enfoque Cuantitativo",
+      "university": "unac",
+      "category": "Informe de Tesis",
+      "documentType": "cuant",
+      "version": "cdd4d7fc67cc16b9"
+    },
+    {
+      "id": "unac-maestria-cual",
+      "title": "Tesis de Maestría UNAC - Enfoque Cualitativo",
+      "university": "unac",
+      "category": "Tesis de Postgrado",
+      "documentType": "cual",
+      "version": "a5be1f2cbefb723a"
+    },
+    {
+      "id": "unac-maestria-cuant",
+      "title": "Tesis de Maestría UNAC - Enfoque Cuantitativo",
+      "university": "unac",
+      "category": "Tesis de Postgrado",
+      "documentType": "cuant",
+      "version": "4a366be37e6d7ec6"
+    },
+    {
+      "id": "unac-proyecto-cual",
+      "title": "Proyecto de Tesis UNAC - Enfoque Cualitativo",
+      "university": "unac",
+      "category": "Proyecto de Tesis",
+      "documentType": "cual",
+      "version": "801dc2b68744ba61"
+    },
+    {
+      "id": "unac-proyecto-cuant",
+      "title": "Proyecto de Tesis UNAC - Enfoque Cuantitativo",
+      "university": "unac",
+      "category": "Proyecto de Tesis",
+      "documentType": "cuant",
+      "version": "fd2302e176b14a7e"
+    },
+    {
+      "id": "uni-informe-apa",
+      "title": "Informe de Tesis UNI - Formato APA",
+      "university": "uni",
+      "category": "Informe de Tesis",
+      "documentType": "apa",
+      "version": "d9b5ca24a923ed4f"
+    },
+    {
+      "id": "uni-posgrado-standard",
+      "title": "Tesis de Posgrado UNI - Formato Estándar",
+      "university": "uni",
+      "category": "Tesis de Postgrado",
+      "documentType": "standard",
+      "version": "5c8e2a739f49ba29"
+    },
+    {
+      "id": "uni-proyecto-standard",
+      "title": "Plan de Trabajo de Tesis UNI - Formato Estándar",
+      "university": "uni",
+      "category": "Proyecto de Tesis",
+      "documentType": "standard",
+      "version": "f6fdac861a06c7ab"
+    }
+  ],
+  "detailsById": {
+    "unac-informe-cual": {
+      "id": "unac-informe-cual",
+      "title": "Informe Cual",
+      "university": "unac",
+      "category": "informe",
+      "documentType": "cual",
+      "version": "ce7ea813db7ed315",
+      "templateRef": null,
+      "fields": [
+        {
+          "name": "universidad",
+          "label": "Universidad",
+          "type": "text",
+          "required": false,
+          "default": "UNIVERSIDAD NACIONAL DEL CALLAO",
+          "options": null,
+          "validation": null,
+          "order": 1,
+          "section": null
+        },
+        {
+          "name": "facultad",
+          "label": "Facultad",
+          "type": "text",
+          "required": false,
+          "default": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "options": null,
+          "validation": null,
+          "order": 2,
+          "section": null
+        },
+        {
+          "name": "escuela",
+          "label": "Escuela",
+          "type": "text",
+          "required": false,
+          "default": "ESCUELA PROFESIONAL DE [NOMBRE DE LA ESCUELA]",
+          "options": null,
+          "validation": null,
+          "order": 3,
+          "section": null
+        },
+        {
+          "name": "tipo_documento",
+          "label": "Tipo Documento",
+          "type": "text",
+          "required": false,
+          "default": "INFORME DE TESIS",
+          "options": null,
+          "validation": null,
+          "order": 4,
+          "section": null
+        },
+        {
+          "name": "titulo_placeholder",
+          "label": "Titulo Placeholder",
+          "type": "text",
+          "required": false,
+          "default": "\"[ESCRIBA AQUÍ EL TÍTULO DE LA TESIS]\"",
+          "options": null,
+          "validation": null,
+          "order": 5,
+          "section": null
+        },
+        {
+          "name": "frase_grado",
+          "label": "Frase Grado",
+          "type": "text",
+          "required": false,
+          "default": "PARA OPTAR EL TÍTULO PROFESIONAL DE:",
+          "options": null,
+          "validation": null,
+          "order": 6,
+          "section": null
+        },
+        {
+          "name": "grado_objetivo",
+          "label": "Grado Objetivo",
+          "type": "text",
+          "required": false,
+          "default": "[INGENIERO DE ...]",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "label_autor",
+          "label": "Label Autor",
+          "type": "text",
+          "required": false,
+          "default": "AUTOR: [NOMBRES Y APELLIDOS]",
+          "options": null,
+          "validation": null,
+          "order": 8,
+          "section": null
+        },
+        {
+          "name": "label_asesor",
+          "label": "Label Asesor",
+          "type": "text",
+          "required": false,
+          "default": "ASESOR: [NOMBRES Y APELLIDOS]",
+          "options": null,
+          "validation": null,
+          "order": 9,
+          "section": null
+        },
+        {
+          "name": "label_linea",
+          "label": "Label Linea",
+          "type": "text",
+          "required": false,
+          "default": "LÍNEA DE INVESTIGACIÓN: [NOMBRE DE LA LÍNEA]",
+          "options": null,
+          "validation": null,
+          "order": 10,
+          "section": null
+        },
+        {
+          "name": "fecha",
+          "label": "Fecha",
+          "type": "date",
+          "required": false,
+          "default": "Callao, 2026",
+          "options": null,
+          "validation": null,
+          "order": 11,
+          "section": null
+        },
+        {
+          "name": "pais",
+          "label": "Pais",
+          "type": "text",
+          "required": false,
+          "default": "PERÚ",
+          "options": null,
+          "validation": null,
+          "order": 12,
+          "section": null
+        }
+      ],
+      "assets": [],
+      "rules": null
+    }
+  },
+  "lastSyncAt": "2026-02-05T16:20:18.120382"
+}

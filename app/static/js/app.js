@@ -188,21 +188,53 @@ const TesisAI = (() => {
   }
 
   async function loadFormats() {
-    const items = await apiGet("/api/formats");
+    // New API returns {formats: [...], stale: boolean, cachedAt: string}
+    const response = await apiGet("/api/formats");
+    const items = response.formats || response; // Support both old and new format
 
+    // Show stale warning if data is from cache while GicaTesis is down
+    if (response.stale) {
+      console.warn("⚠️ Using stale cache - GicaTesis may be unavailable");
+    }
+
+    // Category label mapping for better UX
+    const categoryLabels = {
+      "proyecto": "Proyecto de Tesis",
+      "informe": "Informe de Tesis",
+      "maestria": "Tesis de Postgrado",
+      "posgrado": "Tesis de Postgrado",
+      "general": "Documentos Generales"
+    };
+
+    // Extract unique universities
     const unis = Array.from(new Set(items.map(x => x.university))).filter(Boolean).sort();
-    const careers = Array.from(new Set(items.map(x => x.career))).filter(Boolean).sort();
+
+    // Extract unique LABELS (merging categories that map to the same name)
+    const uniqueLabels = Array.from(new Set(items.map(x => categoryLabels[x.category] || x.category)))
+      .filter(l => l) // Filter out empty
+      .sort();
 
     const uniSel = $("filter-university");
-    const carSel = $("filter-career");
+    const carSel = $("filter-career"); // Note: HTML still uses "career" id but we filter by category
 
-    uniSel.innerHTML = '<option value="">Todas las Universidades</option>' + unis.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join("");
-    carSel.innerHTML = '<option value="">Filtrar por Carrera</option>' + careers.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    uniSel.innerHTML = '<option value="">Todas las Universidades</option>' + unis.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u.toUpperCase())}</option>`).join("");
+    // Use the labels as values for the dropdown
+    carSel.innerHTML = '<option value="">Tipo de Documento</option>' + uniqueLabels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("");
 
     async function render() {
       const u = uniSel.value || "";
-      const c = carSel.value || "";
-      const filtered = items.filter(x => (!u || x.university === u) && (!c || x.career === c));
+      const selectedLabel = carSel.value || "";
+
+      const filtered = items.filter(x => {
+        // HIDE GENERAL CONFIGS (like References Config)
+        if (x.category === "general") return false;
+
+        const matchesUni = !u || x.university === u;
+        // Map the item's category to its label for comparison
+        const itemLabel = categoryLabels[x.category] || x.category;
+        const matchesCategory = !selectedLabel || itemLabel === selectedLabel;
+        return matchesUni && matchesCategory;
+      });
 
       const grid = $("formats-grid");
       grid.innerHTML = "";
@@ -214,25 +246,41 @@ const TesisAI = (() => {
 
       filtered.forEach((f) => {
         const card = document.createElement("div");
-        card.className = "format-card border-2 border-gray-100 hover:border-blue-400 p-4 rounded-lg cursor-pointer transition group relative";
+        card.className = "format-card border-2 border-gray-100 hover:border-blue-400 p-4 rounded-lg cursor-pointer transition group relative bg-white";
         card.onclick = () => selectFormat(f, card);
 
-        const includes = (f.includes || []).slice(0, 5).join(", ");
+        const docType = f.documentType ? ` (${f.documentType})` : "";
+        const uniCode = f.university?.toLowerCase() || "uni";
+
+        // Try to verify if we have a logo URL logic (future BFF proxy: /api/assets/logos/unac.png)
+        // For now we render a nice fallback if image fails, or just use the text logic if no proxy
+        // But since user asked for LOGO, let's setup the structure.
+
+        // MVP: Use text for now but cleaner, UNLESS we assume GicaTesis has logos at specific paths
+        // Let's stick to the request: "CAMBIAMOS EL LOGO POR EL DE LA UNIVERSIDAD"
+        // I will use a generic map for now to public URLs if available, or just colors.
+        // Actually, let's use the initials but style them like a logo.
+
+        const logoUrl = `/api/assets/logos/${uniCode}.png`;
+        // We will need to implement this proxy in router.py for it to work perfectly.
+
         card.innerHTML = `
           <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-blue-500">
             <i class="fa-solid fa-circle-check fa-lg"></i>
           </div>
-          <div class="flex items-center gap-3 mb-2">
-            <div class="w-10 h-10 bg-blue-100 rounded flex items-center justify-center text-blue-700 font-bold">${escapeHtml(f.short || "UNI")}</div>
+          <div class="flex items-center gap-4 mb-3">
+            <div class="w-12 h-12 shrink-0 flex items-center justify-center p-1 border rounded bg-gray-50">
+               <img src="${logoUrl}" alt="${uniCode}" class="w-full h-full object-contain" onerror="this.onerror=null;this.parentNode.innerHTML='<span class=\'text-blue-700 font-bold\'>${escapeHtml(uniCode.toUpperCase())}</span>'">
+            </div>
             <div>
-              <div class="font-bold text-sm text-slate-800">${escapeHtml(f.name)}</div>
-              <div class="text-xs text-gray-500">${escapeHtml(f.version || "")}</div>
+              <div class="font-bold text-sm text-slate-800 leading-tight">${escapeHtml(f.title || f.name)}</div>
+              <div class="text-xs text-gray-400 mt-1">v${escapeHtml(f.version?.substring(0, 8) || "")}</div>
             </div>
           </div>
-          <div class="mt-2 text-xs text-slate-500 bg-slate-50 p-2 rounded">
-            <i class="fa-solid fa-list-ul mr-1"></i> Incluye: ${escapeHtml(includes)}
+          <div class="mt-2 text-xs text-slate-500 bg-slate-50 p-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-tag text-blue-400"></i> 
+            <span>${escapeHtml(categoryLabels[f.category] || f.category)}${escapeHtml(docType)}</span>
           </div>
-          <div class="mt-2 text-[11px] text-gray-500">${escapeHtml(f.university)} • ${escapeHtml(f.career || "")}</div>
         `;
         grid.appendChild(card);
       });
@@ -242,6 +290,7 @@ const TesisAI = (() => {
     carSel.onchange = render;
     await render();
   }
+
 
   function selectFormat(formatObj, cardEl) {
     document.querySelectorAll(".format-card").forEach(c => c.classList.remove("border-blue-500", "bg-blue-50"));
@@ -368,15 +417,15 @@ const TesisAI = (() => {
           clearInterval(pollTimer);
           pollTimer = null;
           showSuccess(p);
-          refreshDashboard().catch(() => {});
-          refreshHistory().catch(() => {});
+          refreshDashboard().catch(() => { });
+          refreshHistory().catch(() => { });
         }
         if (p.status === "failed") {
           clearInterval(pollTimer);
           pollTimer = null;
           $("loading-label").innerText = "Falló: " + (p.error || "Error");
         }
-      } catch (_) {}
+      } catch (_) { }
     }, 1200);
   }
 
@@ -394,7 +443,7 @@ const TesisAI = (() => {
     d4.classList.add("bg-green-500", "text-white");
   }
 
-  function openPromptModal(promptObj=null) {
+  function openPromptModal(promptObj = null) {
     $("modal-error").classList.add("hidden");
     $("modal-error").innerText = "";
 
@@ -540,7 +589,7 @@ const TesisAI = (() => {
   function wireHistorySearch() {
     const input = $("history-search");
     if (!input) return;
-    input.oninput = () => refreshHistory().catch(() => {});
+    input.oninput = () => refreshHistory().catch(() => { });
   }
 
   return {
