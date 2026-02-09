@@ -4,18 +4,18 @@
 
 ## Estado
 
-**Propuesto** - Pendiente de implementación
+**Parcialmente Implementado** - La integración GicaTesis fue completada con patrón BFF.
 
 ## Resumen de Problemas
 
-| # | Problema | Archivo | Líneas |
+| # | Problema | Archivo | Estado |
 |---|----------|---------|--------|
-| 1 | Servicios instanciados como globals | `app/modules/api/router.py` | 19-22 |
-| 2 | PromptService importa JsonStore directamente | `app/core/services/prompt_service.py` | 4 |
-| 3 | ProjectService importa JsonStore directamente | `app/core/services/project_service.py` | 7 |
-| 4 | FormatService mezcla HTTP + fallback local | `app/core/services/format_api.py` | 22-49 |
-| 5 | DocxBuilder usa python-docx directamente | `app/core/services/docx_builder.py` | 5 |
-| 6 | N8NClient en core (debería ser adapter) | `app/core/services/n8n_client.py` | 1-20 |
+| 1 | Servicios instanciados como globals | `app/modules/api/router.py` | Pendiente |
+| 2 | PromptService importa JsonStore directamente | `app/core/services/prompt_service.py` | Pendiente |
+| 3 | ProjectService importa JsonStore directamente | `app/core/services/project_service.py` | Pendiente |
+| 4 | FormatService mezcla HTTP + fallback local | ~~`format_api.py`~~ -> `format_service.py` | ✅ **Implementado** |
+| 5 | DocxBuilder usa python-docx directamente | `app/core/services/docx_builder.py` | Pendiente |
+| 6 | N8NClient en core (debería ser adapter) | `app/core/services/n8n_client.py` | Pendiente |
 
 ## Cambios Propuestos
 
@@ -80,16 +80,16 @@ class IDataStore(Protocol):
 **Reestructura:**
 ```
 app/
-├── adapters/           # NUEVO
-│   ├── __init__.py
-│   ├── storage/
-│   │   └── json_store_adapter.py  # Mover de core/storage/
-│   ├── documents/
-│   │   └── docx_adapter.py        # Mover de core/services/docx_builder.py
-│   ├── formats/
-│   │   └── external_adapter.py    # Mover de core/services/format_api.py
-│   └── workflows/
-│       └── n8n_adapter.py         # Mover de core/services/n8n_client.py
++-- adapters/           # NUEVO
+|   +-- __init__.py
+|   +-- storage/
+|   |   `-- json_store_adapter.py  # Mover de core/storage/
+|   +-- documents/
+|   |   `-- docx_adapter.py        # Mover de core/services/docx_builder.py
+|   +-- formats/
+|   |   `-- external_adapter.py    # Mover de core/services/format_api.py
+|   `-- workflows/
+|       `-- n8n_adapter.py         # Mover de core/services/n8n_client.py
 ```
 
 ---

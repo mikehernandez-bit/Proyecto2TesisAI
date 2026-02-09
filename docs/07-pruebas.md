@@ -33,8 +33,9 @@ pytest tests/ -v
 
 **Flujos a testear:**
 - POST `/api/prompts` → GET `/api/prompts` → verificar prompt creado
-- POST `/api/projects/generate` → GET `/api/projects/{id}` → verificar status
-- Generación completa de DOCX demo
+- POST `/api/projects/draft` → GET `/api/integrations/n8n/spec` → verificar guia
+- POST `/api/sim/n8n/run` → verificar `runId`, `aiResult`, `artifacts`
+- Descarga simulada DOCX/PDF via `/api/sim/download/*`
 
 ### 3. Pruebas E2E (Manual)
 
@@ -46,6 +47,7 @@ pytest tests/ -v
 - [ ] Editar un prompt existente
 - [ ] Eliminar un prompt
 - [ ] Completar wizard (pasos 1-4)
+- [ ] Ejecutar "Simular ejecucion n8n" en paso 4
 - [ ] Descargar DOCX generado
 - [ ] Verificar que aparece en historial
 
@@ -84,18 +86,18 @@ pytest tests/ -v
 
 ```
 tests/
-├── conftest.py              # Fixtures compartidas
-├── unit/
-│   ├── test_prompt_service.py
-│   ├── test_project_service.py
-│   ├── test_json_store.py
-│   └── test_id_generator.py
-├── integration/
-│   ├── test_api_prompts.py
-│   ├── test_api_projects.py
-│   └── test_generation_flow.py
-└── e2e/
-    └── test_wizard_flow.py  # Playwright/Selenium
++-- conftest.py              # Fixtures compartidas
++-- unit/
+|   +-- test_prompt_service.py
+|   +-- test_project_service.py
+|   +-- test_json_store.py
+|   `-- test_id_generator.py
++-- integration/
+|   +-- test_api_prompts.py
+|   +-- test_api_projects.py
+|   `-- test_generation_flow.py
+`-- e2e/
+    `-- test_wizard_flow.py  # Playwright/Selenium
 ```
 
 ---
@@ -123,6 +125,13 @@ curl -X POST http://localhost:8000/api/projects/generate \
 # 5. Verificar DOCX creado
 ls outputs/
 # Esperado: proj_xxx.docx
+```
+
+## Validacion de Encoding / Mojibake
+
+```bash
+python scripts/check_encoding.py
+python scripts/check_mojibake.py
 ```
 
 ---

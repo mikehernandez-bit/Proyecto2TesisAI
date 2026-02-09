@@ -1,126 +1,79 @@
 # Desarrollo Local
 
-> Guía para configurar y ejecutar GicaGen en tu máquina local.
-
 ## Requisitos
+- Python 3.10 a 3.13 recomendado
+- Git
+- GicaTesis disponible en `http://localhost:8000` para integracion completa
 
-- **Python 3.10-3.13** (⚠️ Python 3.14 puede tener problemas de compatibilidad)
-- **Git** para clonar el repositorio
-- **Editor de código** (VS Code recomendado)
-
-## Instalación
-
-### 1. Clonar repositorio
-
+## Instalacion
 ```bash
-git clone <url-del-repo>
-cd gicagen_tesis-main
-```
-
-### 2. Crear entorno virtual
-
-```bash
-# Windows
 python -m venv .venv
 .venv\Scripts\activate
-
-# Mac/Linux
-python -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Instalar dependencias
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configurar variables de entorno (opcional)
+## Variables de entorno
+```env
+APP_NAME=TesisAI Gen
+APP_ENV=dev
 
+GICATESIS_BASE_URL=http://localhost:8000/api/v1
+GICAGEN_PORT=8001
+GICAGEN_BASE_URL=http://localhost:8001
+GICATESIS_TIMEOUT=8
+GICAGEN_DEMO_MODE=false
+
+N8N_WEBHOOK_URL=
+N8N_SHARED_SECRET=
+```
+
+## Ejecutar local
 ```bash
-# Copiar ejemplo
-cp .env.example .env
-
-# Editar .env con tus valores
+python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-### 5. Ejecutar servidor
-
-```bash
-python -m uvicorn app.main:app --reload
+## Verificaciones rapidas
+```powershell
+Invoke-RestMethod http://127.0.0.1:8001/healthz
+Invoke-RestMethod http://127.0.0.1:8001/api/_meta/build
+Invoke-RestMethod http://127.0.0.1:8001/api/formats
+Invoke-RestMethod http://127.0.0.1:8001/api/projects
 ```
 
-### 6. Abrir aplicación
+## Flujo Wizard 1-5
+1. Paso 1 selecciona formato desde `GET /api/formats`.
+2. Paso 2 selecciona prompt desde `GET /api/prompts`.
+3. Paso 3 crea o actualiza draft con `POST/PUT /api/projects`.
+4. Paso 4 consume `GET /api/integrations/n8n/spec` y muestra guia de simulacion.
+5. Paso 4 permite ejecutar `POST /api/sim/n8n/run` para obtener output simulado y artifacts.
+6. Paso 5 descarga placeholders con `GET /api/sim/download/docx|pdf`.
 
-Navegar a: **http://127.0.0.1:8000/**
+## Endpoints principales
+- `GET /api/formats/version`
+- `GET /api/formats`
+- `GET /api/formats/{id}`
+- `POST /api/projects/draft`
+- `GET /api/projects/{project_id}`
+- `PUT /api/projects/{project_id}`
+- `GET /api/integrations/n8n/spec`
+- `POST /api/integrations/n8n/callback`
+- `POST /api/sim/n8n/run`
+- `GET /api/sim/download/docx`
+- `GET /api/sim/download/pdf`
+- `GET /api/_meta/build`
 
----
+## Validar instancia activa
+Si existe una instancia vieja en `:8001`, revisa:
 
-## Variables de Entorno
-
-| Variable | Descripción | Default | Requerida |
-|----------|-------------|---------|-----------|
-| `APP_NAME` | Nombre de la aplicación | `TesisAI Gen` | No |
-| `APP_ENV` | Ambiente (dev/prod) | `dev` | No |
-| `FORMAT_API_BASE_URL` | URL de API externa de formatos | (vacío) | No |
-| `FORMAT_API_KEY` | API key para formatos | (vacío) | No |
-| `N8N_WEBHOOK_URL` | URL del webhook n8n | (vacío) | No |
-
-**Archivo de referencia:** [`.env.example`](../.env.example)
-
----
-
-## Estructura del Proyecto
-
-```
-gicagen_tesis-main/
-├── app/                    # Código fuente
-│   ├── main.py             # Entrypoint
-│   ├── core/               # Lógica de negocio
-│   └── modules/            # API y UI
-├── data/                   # Datos JSON
-├── docs/                   # Documentación
-├── outputs/                # DOCX generados (creado automáticamente)
-└── requirements.txt        # Dependencias
+```powershell
+Invoke-RestMethod http://127.0.0.1:8001/api/_meta/build
 ```
 
----
+Debe apuntar al `cwd` correcto del repo actual.
 
-## Comandos Útiles
-
-| Comando | Descripción |
-|---------|-------------|
-| `uvicorn app.main:app --reload` | Servidor con hot-reload |
-| `uvicorn app.main:app --host 0.0.0.0 --port 8080` | Servidor en puerto específico |
-| `pip freeze > requirements.txt` | Exportar dependencias |
-| `pip install -r requirements.txt --upgrade` | Actualizar dependencias |
-
----
-
-## Endpoints Principales
-
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/` | GET | Página principal (UI) |
-| `/api/formats` | GET | Lista formatos |
-| `/api/prompts` | GET/POST | Listar/crear prompts |
-| `/api/prompts/{id}` | PUT/DELETE | Actualizar/eliminar prompt |
-| `/api/projects` | GET | Lista proyectos |
-| `/api/projects/generate` | POST | Iniciar generación |
-| `/api/download/{id}` | GET | Descargar DOCX |
-| `/healthz` | GET | Health check |
-
----
-
-## Cómo Validar
-
-1. Servidor inicia sin errores
-2. `curl http://localhost:8000/healthz` retorna `{"ok": true, ...}`
-3. UI carga en browser
-4. Wizard completo funciona (crear proyecto demo)
-
----
-
-## Problemas Comunes
-
-Ver [09-troubleshooting.md](09-troubleshooting.md)
+## Reglas de encoding
+- Guardar archivos en UTF-8.
+- No usar caracteres de box drawing en docs o código.
+- No usar emojis en documentación.
+- Ejecutar `python scripts/check_encoding.py` antes de commit.
+- Ejecutar `python scripts/check_mojibake.py` antes de commit.

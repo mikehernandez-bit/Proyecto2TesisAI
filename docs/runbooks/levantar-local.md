@@ -1,76 +1,90 @@
-# Runbook: Levantar Proyecto Local
+# Runbook: Levantar Local
 
-> Pasos para ejecutar GicaGen en tu máquina.
+## Objetivo
+Levantar GicaTesis y GicaGen, y validar el flujo de simulacion n8n end-to-end.
 
-## Pre-requisitos
-
-- Python 3.10-3.13 instalado
-- Git instalado
-- Terminal/PowerShell
-
-## Pasos
-
-### 1. Clonar repositorio
-
-```bash
-git clone <url>
-cd gicagen_tesis-main
-```
-
-### 2. Crear entorno virtual
-
-**Windows:**
+## 1) Levantar GicaTesis
 ```powershell
-py -3.12 -m venv .venv
+cd C:\Users\jhoan\Documents\gicateca_tesis
 .venv\Scripts\activate
+python -m uvicorn app.main:app --port 8000 --reload
 ```
 
-**Linux/Mac:**
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
+Validar:
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/healthz
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/formats
 ```
 
-### 3. Instalar dependencias
-
-```bash
-pip install -r requirements.txt
+## 2) Levantar GicaGen
+```powershell
+cd C:\Users\jhoan\Documents\gicagen_tesis-main
+.venv\Scripts\activate
+python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-### 4. Verificar archivos de datos
-
-```bash
-# Verificar que existen (o crearlos vacíos)
-cat data/prompts.json     # Debe ser [] o lista de prompts
-cat data/projects.json    # Debe ser [] o lista de proyectos
+Validar:
+```powershell
+Invoke-RestMethod http://127.0.0.1:8001/healthz
+Invoke-RestMethod http://127.0.0.1:8001/api/_meta/build
 ```
 
-### 5. Ejecutar servidor
+## 3) Verificar OpenAPI
+Debe exponer:
+- `POST /api/projects/draft`
+- `GET /api/integrations/n8n/spec`
+- `POST /api/integrations/n8n/callback`
+- `POST /api/sim/n8n/run`
+- `GET /api/sim/download/docx`
+- `GET /api/sim/download/pdf`
+- `GET /api/_meta/build`
 
-```bash
-python -m uvicorn app.main:app --reload
+Comando:
+```powershell
+Invoke-RestMethod http://127.0.0.1:8001/openapi.json
 ```
 
-### 6. Verificar funcionamiento
-
-```bash
-# En otra terminal
-curl http://localhost:8000/healthz
-# Esperado: {"ok":true,"app":"TesisAI Gen","env":"dev"}
+## 4) Pruebas HTTP de flujo simulado
+Crear draft:
+```powershell
+$draft = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8001/api/projects/draft" -ContentType "application/json" -Body '{"title":"QA draft","formatId":"demo-format","promptId":"prompt_tesis_estandar","values":{"tema":"QA"}}'
+$projectId = $draft.projectId
+$projectId
 ```
 
-### 7. Abrir UI
+Obtener spec:
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8001/api/integrations/n8n/spec?projectId=$projectId" | ConvertTo-Json -Depth 50
+```
 
-Navegar a: **http://127.0.0.1:8000/**
+Ejecutar simulacion:
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8001/api/sim/n8n/run?projectId=$projectId" | ConvertTo-Json -Depth 50
+```
 
-## Validación
+Descargar simulados:
+```powershell
+Invoke-WebRequest -Uri "http://127.0.0.1:8001/api/sim/download/docx?projectId=$projectId" -OutFile ".\\simulated.docx"
+Invoke-WebRequest -Uri "http://127.0.0.1:8001/api/sim/download/pdf?projectId=$projectId" -OutFile ".\\simulated.pdf"
+```
 
-| Check | Comando/Acción | Resultado Esperado |
-|-------|----------------|-------------------|
-| Health check | `curl /healthz` | `{"ok": true}` |
-| UI carga | Abrir browser | Página con sidebar |
-| API responde | `curl /api/prompts` | Array de prompts |
+## 5) Verificacion UI
+1. Abrir `http://127.0.0.1:8001/`.
+2. Completar wizard paso 1 a paso 3.
+3. Click `Ir a guia n8n`.
+4. Confirmar secciones A-F + G-H y paneles `formatDefinition`, `promptDetail`, `simulationOutput`.
+5. Click `Simular ejecucion n8n` y confirmar estado `simulated`.
+5. Continuar a paso 5 y descargar DOCX/PDF simulados.
 
-## Troubleshooting
+## 6) Si hay instancia vieja en :8001
+Revisar:
+```powershell
+Invoke-RestMethod http://127.0.0.1:8001/api/_meta/build
+```
+Si el `cwd` no coincide con este repo, cerrar ese proceso antes de seguir.
 
-Ver [09-troubleshooting.md](../09-troubleshooting.md)
+## 7) Check de encoding antes de commit
+```powershell
+python scripts/check_encoding.py
+python scripts/check_mojibake.py
+```

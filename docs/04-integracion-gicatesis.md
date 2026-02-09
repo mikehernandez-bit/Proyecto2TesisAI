@@ -1,103 +1,197 @@
-# Integración GicaTesis - Guía Rápida
+# Integracion GicaTesis y Simulacion n8n
 
 ## Resumen
+GicaGen consume formatos de GicaTesis usando un BFF. El frontend solo llama a `http://localhost:8001/api/*`.
 
-GicaGen ahora se integra con la **Formats API v1** de GicaTesis usando patrón BFF (Backend-For-Frontend).
+- Upstream formatos: `http://localhost:8000/api/v1`
+- BFF GicaGen: `http://localhost:8001/api`
 
-## Arquitectura
+## Endpoints BFF de formatos
+- `GET /api/formats/version`
+- `GET /api/formats`
+- `GET /api/formats/{id}`
+- `GET /api/assets/{path}`
 
-```
-┌─────────────────────────────────────────────────┐
-│ Browser → GicaGen (:8001) → GicaTesis (:8000)   │
-└─────────────────────────────────────────────────┘
-```
+## Endpoints de proyecto e integracion
+- `POST /api/projects/draft`
+- `GET /api/projects/{project_id}`
+- `PUT /api/projects/{project_id}`
+- `GET /api/integrations/n8n/spec?projectId=...`
+- `POST /api/integrations/n8n/callback`
+- `POST /api/sim/n8n/run?projectId=...`
+- `GET /api/sim/download/docx?projectId=...`
+- `GET /api/sim/download/pdf?projectId=...`
+- `GET /api/_meta/build`
 
-**Principio:** El frontend de GicaGen NO llama directamente a GicaTesis. 
-Todas las llamadas van a través de los endpoints BFF en `:8001`.
+## Contrato de `POST /api/projects/draft`
+Body opcional:
 
-## Endpoints BFF
-
-| Endpoint | Descripción |
-|----------|-------------|
-| `GET /api/formats/version` | Check de versión del catálogo |
-| `GET /api/formats` | Lista formatos (con cache ETag) |
-| `GET /api/formats/{id}` | Detalle de formato |
-
-## Archivos Nuevos
-
-```
-app/integrations/gicatesis/
-├── __init__.py
-├── types.py          # DTOs: FormatSummary, FormatDetail, etc.
-├── client.py         # HTTP client con ETag
-├── errors.py         # Excepciones personalizadas
-└── cache/
-    ├── __init__.py
-    └── format_cache.py  # Persistencia JSON
-```
-
-## Archivos Modificados
-
-| Archivo | Cambio |
-|---------|--------|
-| `app/core/config.py` | Agregadas variables GICATESIS_* |
-| `app/core/services/format_service.py` | Nuevo (reemplaza format_api.py) |
-| `app/modules/api/router.py` | Endpoints BFF agregados |
-| `app/main.py` | Logs de startup |
-| `.env.example` | Variables de configuración |
-
-## Configuración
-
-**.env o variables de entorno:**
-
-```bash
-GICATESIS_BASE_URL=http://localhost:8000/api/v1
-GICAGEN_PORT=8001
-GICATESIS_TIMEOUT=8
+```json
+{
+  "title": "opcional",
+  "formatId": "opcional",
+  "promptId": "opcional",
+  "values": {
+    "campo": "valor"
+  }
+}
 ```
 
-## Cómo Correr
+Respuesta:
 
-**Terminal 1 - GicaTesis:**
-```bash
-cd C:\Users\jhoan\Documents\gicateca_tesis
-.venv\Scripts\activate
-uvicorn app.main:app --port 8000 --reload
+```json
+{
+  "id": "proj_xxx",
+  "projectId": "proj_xxx",
+  "status": "draft"
+}
 ```
 
-**Terminal 2 - GicaGen:**
-```bash
-cd C:\Users\jhoan\Documents\gicagen_tesis-main
-.venv\Scripts\activate
-uvicorn app.main:app --port 8001 --reload
+## Contrato de `GET /api/integrations/n8n/spec`
+Devuelve modo simulacion y bloques para Step 4:
+
+- `mode`
+- `summary`
+- `envCheck`
+- `request`
+- `formatDetail`
+- `formatDefinition`
+- `promptDetail`
+- `expectedResponse`
+- `simulationOutput`
+- `checklist` (8 pasos)
+- `markdown`
+
+Estructura esperada:
+
+```json
+{
+  "mode": "simulation",
+  "summary": {
+    "projectId": "proj_xxx",
+    "status": "draft",
+    "format": {
+      "id": "unac-informe-cual",
+      "version": "abc123",
+      "university": "unac",
+      "category": "informe",
+      "documentType": "cual",
+      "title": "Informe Cual"
+    },
+    "prompt": {
+      "id": "prompt_tesis_estandar",
+      "name": "Tesis Ingenieria Estandar",
+      "preview": "..."
+    }
+  },
+  "envCheck": {
+    "GICATESIS_BASE_URL": { "ok": true, "value": "http://localhost:8000/api/v1" },
+    "N8N_WEBHOOK_URL": { "ok": false, "value": "" },
+    "N8N_SHARED_SECRET": { "ok": false, "value": "" }
+  },
+  "request": {
+    "webhookUrl": "<configure N8N_WEBHOOK_URL>",
+    "headers": { "X-GICAGEN-SECRET": "<configure N8N_SHARED_SECRET>" },
+    "payload": {
+      "projectId": "proj_xxx",
+      "format": {
+        "id": "unac-informe-cual",
+        "version": "abc123",
+        "university": "unac",
+        "category": "informe",
+        "documentType": "cual"
+      },
+      "prompt": {
+        "id": "prompt_tesis_estandar",
+        "text": "prompt completo"
+      },
+      "values": {
+        "tema": "..."
+      },
+      "runtime": {
+        "gicatesisBaseUrl": "http://localhost:8000/api/v1",
+        "callbackUrl": "http://localhost:8001/api/integrations/n8n/callback"
+      }
+    }
+  },
+  "formatDetail": {},
+  "formatDefinition": {},
+  "promptDetail": {
+    "id": "prompt_tesis_estandar",
+    "name": "Tesis Ingenieria Estandar",
+    "text": "prompt completo",
+    "variables": ["tema", "objetivo_general"]
+  },
+  "expectedResponse": {
+    "callbackUrl": "http://localhost:8001/api/integrations/n8n/callback",
+    "headers": { "X-N8N-SECRET": "<configure N8N_SHARED_SECRET>" },
+    "bodyExample": {
+      "projectId": "proj_xxx",
+      "runId": "sim-20260206...",
+      "status": "success",
+      "aiResult": {
+        "sections": [
+          { "title": "Introduccion", "content": "..." }
+        ]
+      },
+      "artifacts": [
+        { "type": "docx", "name": "simulated.docx", "downloadUrl": "http://localhost:8001/api/sim/download/docx?projectId=proj_xxx" },
+        { "type": "pdf", "name": "simulated.pdf", "downloadUrl": "http://localhost:8001/api/sim/download/pdf?projectId=proj_xxx" }
+      ]
+    }
+  },
+  "simulationOutput": {
+    "projectId": "proj_xxx",
+    "runId": "sim-20260206...",
+    "status": "success",
+    "aiResult": {
+      "sections": [
+        { "title": "Resumen ejecutivo", "content": "..." }
+      ]
+    },
+    "artifacts": [
+      { "type": "docx", "name": "simulated.docx", "downloadUrl": "http://localhost:8001/api/sim/download/docx?projectId=proj_xxx&runId=sim-20260206..." },
+      { "type": "pdf", "name": "simulated.pdf", "downloadUrl": "http://localhost:8001/api/sim/download/pdf?projectId=proj_xxx&runId=sim-20260206..." }
+    ]
+  },
+  "checklist": [
+    { "step": 1, "title": "Webhook Trigger", "detail": "..." }
+  ],
+  "markdown": "# Guia operativa n8n (simulacion)"
+}
 ```
 
-## Cache
+## Callback stub de simulacion
+`POST /api/integrations/n8n/callback`
 
-El cache se guarda en `data/gicatesis_cache.json`:
-- Versión del catálogo
-- ETag para requests 304
-- Lista de formatos
-- Detalles por ID
-- Timestamp de última sincronización
+- Si `N8N_SHARED_SECRET` esta configurado, valida `X-N8N-SECRET`.
+- Guarda `aiResult`, `runId`, `artifacts`.
+- Marca proyecto con estado `ai_received`.
 
-**Comportamiento:**
-- Primera llamada: Descarga todo el catálogo
-- Llamadas siguientes: Usa ETag, si 304 → usa cache
-- Si GicaTesis cae: Usa cache existente con flag `stale: true`
+## Descargas simuladas
+- `GET /api/sim/download/docx?projectId=...`
+- `GET /api/sim/download/pdf?projectId=...`
 
-## Verificación
+Generan archivos placeholder sin depender de IA real ni de n8n.
 
-```powershell
-# Health check
-Invoke-RestMethod http://localhost:8001/healthz
+## Simulacion manual de n8n
+`POST /api/sim/n8n/run?projectId=...`
 
-# Version
-Invoke-RestMethod http://localhost:8001/api/formats/version
+- Genera `runId` de simulacion.
+- Persiste `ai_result` y `artifacts` en el proyecto.
+- Marca el proyecto con estado `simulated`.
+- Devuelve JSON listo para mostrar en Paso 4 (seccion H) y para habilitar descargas.
 
-# Lista
-Invoke-RestMethod http://localhost:8001/api/formats
+## Build info para validar instancia activa
+`GET /api/_meta/build`
 
-# Detalle
-Invoke-RestMethod http://localhost:8001/api/formats/unac-informe-cual
+Respuesta:
+
+```json
+{
+  "service": "gicagen",
+  "cwd": "c:\\Users\\jhoan\\Documents\\gicagen_tesis-main",
+  "started_at": "2026-02-06T18:31:46.523432+00:00",
+  "git_commit": "db75975"
+}
 ```
