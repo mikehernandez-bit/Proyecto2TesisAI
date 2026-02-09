@@ -54,6 +54,7 @@ class FormatDetail(FormatSummary):
     fields: List[FormatField] = []
     assets: List[AssetRef] = []
     rules: Optional[dict] = None
+    definition: Optional[dict] = None
 
 
 class CatalogVersionResponse(BaseModel):

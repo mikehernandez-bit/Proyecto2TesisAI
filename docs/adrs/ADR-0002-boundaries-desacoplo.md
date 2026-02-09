@@ -23,8 +23,8 @@ Durante el análisis del proyecto se identificaron acoplamientos que dificultan:
 
 ```
 core/
-├── services/       # Lógica de negocio
-└── ports/          # Interfaces (Protocols)
++-- services/       # Lógica de negocio
+`-- ports/          # Interfaces (Protocols)
 adapters/           # Implementaciones concretas
 infra/              # Config, utils técnicos
 ```

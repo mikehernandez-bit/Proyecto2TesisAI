@@ -12,9 +12,13 @@ Responsibilities:
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 
+from app.core.config import settings
 from app.integrations.gicatesis.client import GicaTesisClient
 from app.integrations.gicatesis.cache.format_cache import FormatCache
 from app.integrations.gicatesis.types import FormatSummary, FormatDetail
@@ -38,6 +42,44 @@ class FormatService:
     def __init__(self):
         self.client = GicaTesisClient()
         self.cache = FormatCache()
+        self._demo_sample_path = Path("data/formats_sample.json")
+
+    def _load_demo_formats(self) -> List[Dict[str, Any]]:
+        """
+        Load demo formats from local sample file.
+
+        Used only when `GICAGEN_DEMO_MODE=true` and upstream/cache are unavailable.
+        """
+        if not self._demo_sample_path.exists():
+            return []
+        try:
+            raw = json.loads(self._demo_sample_path.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+        if not isinstance(raw, list):
+            return []
+
+        normalized: List[Dict[str, Any]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            normalized.append(
+                {
+                    "id": item.get("id") or "",
+                    "title": item.get("title") or item.get("name") or item.get("id") or "Formato",
+                    "university": item.get("university") or item.get("short") or "demo",
+                    "category": item.get("category") or item.get("career") or "general",
+                    "documentType": item.get("documentType") or item.get("doc_type"),
+                    "version": item.get("version") or hashlib.sha256(
+                        str(item.get("id", "demo")).encode("utf-8")
+                    ).hexdigest()[:16],
+                }
+            )
+        return normalized
+
+    def _demo_catalog_version(self, formats: List[Dict[str, Any]]) -> str:
+        payload = json.dumps(formats, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
     
     async def check_version(self) -> Dict[str, Any]:
         """
@@ -70,6 +112,17 @@ class FormatService:
                     "changed": False,
                     "error": str(e),
                     "stale": True
+                }
+            if settings.GICAGEN_DEMO_MODE:
+                demo_formats = self._load_demo_formats()
+                demo_version = self._demo_catalog_version(demo_formats)
+                return {
+                    "current": demo_version,
+                    "cached": None,
+                    "changed": True,
+                    "generatedAt": None,
+                    "stale": True,
+                    "source": "demo"
                 }
             raise
     
@@ -108,7 +161,7 @@ class FormatService:
                 logger.info("Catalog not modified (304), cache is valid")
                 return
             
-            if status == 200 and formats:
+            if status == 200 and formats is not None:
                 # Get version for cache metadata
                 try:
                     version_resp = await self.client.get_catalog_version()
@@ -144,10 +197,17 @@ class FormatService:
         try:
             await self.sync_catalog_if_needed()
         except GicaTesisError:
+            if not self.cache.has_cache() and not settings.GICAGEN_DEMO_MODE:
+                raise
             stale = True
         
         formats = self.cache.get_formats()
-        
+        source = "cache"
+
+        if not formats and stale and settings.GICAGEN_DEMO_MODE:
+            formats = self._load_demo_formats()
+            source = "demo"
+
         # Filter in memory
         if university:
             formats = [
@@ -168,7 +228,8 @@ class FormatService:
         return {
             "formats": formats,
             "stale": stale,
-            "cachedAt": self.cache.last_sync_at
+            "cachedAt": self.cache.last_sync_at,
+            "source": source
         }
     
     async def get_format_detail(self, format_id: str) -> Optional[FormatDetail]:
@@ -181,9 +242,11 @@ class FormatService:
         """
         # Check cache first
         cached = self.cache.get_detail(format_id)
-        if cached:
+        if cached and isinstance(cached.get("definition"), dict):
             logger.debug(f"Format detail cache hit: {format_id}")
             return FormatDetail(**cached)
+        if cached:
+            logger.info(f"Format detail cache refresh required (missing definition): {format_id}")
         
         # Fetch from GicaTesis
         try:
@@ -194,4 +257,20 @@ class FormatService:
             return detail
         except GicaTesisError as e:
             logger.warning(f"Cannot fetch format detail {format_id}: {e}")
+            if settings.GICAGEN_DEMO_MODE:
+                for item in self._load_demo_formats():
+                    if item.get("id") != format_id:
+                        continue
+                    return FormatDetail(
+                        id=item["id"],
+                        title=item["title"],
+                        university=item["university"],
+                        category=item["category"],
+                        documentType=item.get("documentType"),
+                        version=item["version"],
+                        fields=[],
+                        assets=[],
+                        rules=None,
+                        templateRef=None,
+                    )
             return None

@@ -64,22 +64,22 @@ graph TB
 
 ```
 gicagen_tesis-main/
-├── 📄 README.md, AGENTS.md         # Documentación raíz
-├── 📄 requirements.txt             # Dependencias Python
-├── 📂 app/                         # Código fuente (🔴 Crítico)
-│   ├── main.py                     # Entrypoint FastAPI
-│   ├── 📂 core/                    # Lógica de negocio
-│   │   ├── config.py               # Settings
-│   │   ├── 📂 services/            # 5 servicios principales
-│   │   ├── 📂 storage/             # JsonStore
-│   │   └── 📂 utils/               # ID generator
-│   ├── 📂 modules/                 # API y UI
-│   │   ├── 📂 api/                 # REST endpoints
-│   │   └── 📂 ui/                  # Jinja router
-│   ├── 📂 static/js/               # Frontend SPA
-│   └── 📂 templates/               # HTML Jinja2
-├── 📂 data/                        # JSON de datos (🟡 Importante)
-└── 📂 docs/                        # Esta documentación (🟢 Opcional)
++-- 📄 README.md, AGENTS.md         # Documentación raíz
++-- 📄 requirements.txt             # Dependencias Python
++-- 📂 app/                         # Código fuente (🔴 Crítico)
+|   +-- main.py                     # Entrypoint FastAPI
+|   +-- 📂 core/                    # Lógica de negocio
+|   |   +-- config.py               # Settings
+|   |   +-- 📂 services/            # 5 servicios principales
+|   |   +-- 📂 storage/             # JsonStore
+|   |   `-- 📂 utils/               # ID generator
+|   +-- 📂 modules/                 # API y UI
+|   |   +-- 📂 api/                 # REST endpoints
+|   |   `-- 📂 ui/                  # Jinja router
+|   +-- 📂 static/js/               # Frontend SPA
+|   `-- 📂 templates/               # HTML Jinja2
++-- 📂 data/                        # JSON de datos (🟡 Importante)
+`-- 📂 docs/                        # Esta documentación (🟢 Opcional)
 ```
 
 ## Estadísticas del Repositorio

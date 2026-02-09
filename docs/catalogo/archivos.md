@@ -139,45 +139,45 @@ Los archivos `.pyc` en carpetas `__pycache__/` son cache de bytecode Python. Se 
 ```
 requirements.txt                    # Dependencias
 app/
-├── __init__.py
-├── main.py                         # Entrypoint
-├── core/
-│   ├── __init__.py
-│   ├── config.py                   # Settings
-│   ├── templates.py                # Jinja config
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── format_api.py
-│   │   ├── prompt_service.py
-│   │   ├── project_service.py
-│   │   ├── docx_builder.py
-│   │   └── n8n_client.py
-│   ├── storage/
-│   │   ├── __init__.py
-│   │   └── json_store.py
-│   └── utils/
-│       ├── __init__.py
-│       └── id.py
-├── modules/
-│   ├── __init__.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── router.py
-│   │   └── models.py
-│   └── ui/
-│       ├── __init__.py
-│       └── router.py
-├── static/
-│   └── js/
-│       └── app.js
-└── templates/
-    ├── base.html
-    └── pages/
-        └── app.html
++-- __init__.py
++-- main.py                         # Entrypoint
++-- core/
+|   +-- __init__.py
+|   +-- config.py                   # Settings
+|   +-- templates.py                # Jinja config
+|   +-- services/
+|   |   +-- __init__.py
+|   |   +-- format_api.py
+|   |   +-- prompt_service.py
+|   |   +-- project_service.py
+|   |   +-- docx_builder.py
+|   |   `-- n8n_client.py
+|   +-- storage/
+|   |   +-- __init__.py
+|   |   `-- json_store.py
+|   `-- utils/
+|       +-- __init__.py
+|       `-- id.py
++-- modules/
+|   +-- __init__.py
+|   +-- api/
+|   |   +-- __init__.py
+|   |   +-- router.py
+|   |   `-- models.py
+|   `-- ui/
+|       +-- __init__.py
+|       `-- router.py
++-- static/
+|   `-- js/
+|       `-- app.js
+`-- templates/
+    +-- base.html
+    `-- pages/
+        `-- app.html
 data/
-├── formats_sample.json             # Puede estar vacío: []
-├── prompts.json                    # Puede estar vacío: []
-└── projects.json                   # Puede estar vacío: []
++-- formats_sample.json             # Puede estar vacío: []
++-- prompts.json                    # Puede estar vacío: []
+`-- projects.json                   # Puede estar vacío: []
 ```
 
 ### Archivos Opcionales/Eliminables

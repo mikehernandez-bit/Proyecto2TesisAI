@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 from fastapi import FastAPI
@@ -26,10 +26,10 @@ app.include_router(api_router, prefix="/api")
 @app.on_event("startup")
 async def startup():
     """Log configuration on startup."""
-    logger.info(f"🚀 {settings.APP_NAME} starting...")
-    logger.info(f"📍 GicaGen should run on port: {settings.GICAGEN_PORT}")
-    logger.info(f"🔗 Using GicaTesis base URL: {settings.GICATESIS_BASE_URL}")
-    logger.info(f"⏱️  GicaTesis timeout: {settings.GICATESIS_TIMEOUT}s")
+    logger.info(f"{settings.APP_NAME} starting")
+    logger.info(f"GicaGen port: {settings.GICAGEN_PORT}")
+    logger.info(f"GicaTesis base URL: {settings.GICATESIS_BASE_URL}")
+    logger.info(f"GicaTesis timeout: {settings.GICATESIS_TIMEOUT}s")
 
 
 @app.get("/healthz")

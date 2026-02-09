@@ -22,17 +22,17 @@ Abrir: http://127.0.0.1:8000/
 
 ```
 app/
-├── main.py              # Entrypoint FastAPI
-├── core/                # Lógica de negocio
-│   ├── config.py        # Settings desde env vars
-│   ├── services/        # FormatService, PromptService, ProjectService, DocxBuilder, N8NClient
-│   ├── storage/         # JsonStore (persistencia JSON)
-│   └── utils/           # Generador de IDs
-├── modules/
-│   ├── api/             # Router API REST
-│   └── ui/              # Router UI (Jinja)
-├── static/js/           # Frontend SPA
-└── templates/           # HTML Jinja2
++-- main.py              # Entrypoint FastAPI
++-- core/                # Lógica de negocio
+|   +-- config.py        # Settings desde env vars
+|   +-- services/        # FormatService, PromptService, ProjectService, DocxBuilder, N8NClient
+|   +-- storage/         # JsonStore (persistencia JSON)
+|   `-- utils/           # Generador de IDs
++-- modules/
+|   +-- api/             # Router API REST
+|   `-- ui/              # Router UI (Jinja)
++-- static/js/           # Frontend SPA
+`-- templates/           # HTML Jinja2
 data/                    # JSON de datos (formatos, prompts, proyectos)
 docs/                    # Documentación completa
 ```

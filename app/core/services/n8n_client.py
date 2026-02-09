@@ -13,7 +13,11 @@ class N8NClient:
         if not settings.N8N_WEBHOOK_URL:
             return {"ok": False, "reason": "N8N_WEBHOOK_URL not configured"}
 
+        headers = {}
+        if settings.N8N_SHARED_SECRET:
+            headers["X-GICAGEN-SECRET"] = settings.N8N_SHARED_SECRET
+
         async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.post(settings.N8N_WEBHOOK_URL, json=payload)
+            r = await client.post(settings.N8N_WEBHOOK_URL, json=payload, headers=headers)
             r.raise_for_status()
             return {"ok": True, "data": r.json()}
