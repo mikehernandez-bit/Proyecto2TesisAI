@@ -26,10 +26,7 @@ from app.core.services.n8n_client import N8NClient
 from app.core.services.n8n_integration_service import N8NIntegrationService
 from app.core.services.project_service import ProjectService
 from app.core.services.prompt_service import PromptService
-from app.core.services.simulation_artifact_service import (
-    build_simulated_docx,
-    build_simulated_pdf,
-)
+from app.core.services.definition_compiler import compile_definition_to_section_index
 from app.integrations.gicatesis.errors import (
     GicaTesisError,
     UpstreamUnavailable,
@@ -62,45 +59,48 @@ def _git_commit() -> str:
         return "unknown"
 
 
+def _extract_upstream_detail(response: httpx.Response, default_message: str) -> str:
+    """Extract useful detail from an upstream HTTP response body."""
+    try:
+        payload = response.json()
+    except Exception:
+        payload = None
+
+    if isinstance(payload, dict):
+        detail = payload.get("detail")
+        if isinstance(detail, str) and detail.strip():
+            return detail.strip()
+
+    raw = response.text.strip() if isinstance(response.text, str) else ""
+    if raw:
+        return raw[:500]
+    return default_message
+
+
 def _build_sim_sections(
-    values: Dict[str, Any],
-    prompt_text: str,
-    format_definition: Dict[str, Any],
+    section_index: list[Dict[str, Any]],
 ) -> list[Dict[str, str]]:
     sections: list[Dict[str, str]] = []
-
-    topic = str(values.get("tema") or values.get("titulo") or values.get("title") or "Proyecto")
-    sections.append(
-        {
-            "title": "Resumen ejecutivo",
-            "content": f"Simulacion de salida para {topic}. Prompt base: {prompt_text[:140]}",
-        }
-    )
-
-    if values:
-        details = ", ".join(f"{k}={v}" for k, v in list(values.items())[:5])
+    for idx, section in enumerate(section_index, start=1):
+        path = str(section.get("path") or "").strip()
+        if not path:
+            continue
+        section_id = str(section.get("sectionId") or f"sec-{idx:04d}")
         sections.append(
             {
-                "title": "Variables de entrada",
-                "content": f"Valores aplicados en la ejecucion simulada: {details}",
+                "sectionId": section_id,
+                "path": path,
+                "content": f"Contenido IA simulado para: {path}",
             }
         )
-
-    if format_definition:
-        keys = ", ".join(list(format_definition.keys())[:8])
+    if not sections:
         sections.append(
             {
-                "title": "Cobertura del formato",
-                "content": f"La simulacion contempla la estructura definida en: {keys}",
+                "sectionId": "sec-0001",
+                "path": "Documento/Seccion principal",
+                "content": "Contenido IA simulado para: Documento/Seccion principal",
             }
         )
-
-    sections.append(
-        {
-            "title": "Plan de redaccion",
-            "content": "Generar cada seccion conforme al formato institucional y validar coherencia antes del callback.",
-        }
-    )
     return sections
 
 
@@ -252,13 +252,22 @@ def n8n_callback_contract(
 
 @router.post("/sim/n8n/run")
 async def run_n8n_simulation(projectId: str = Query(..., description="Project id to simulate")):
-    """Execute local n8n simulation and persist ai_result/artifacts."""
+    """
+    Execute n8n simulation contract output (no local document generation).
+
+    n8n simulated output only returns aiResult by path/sectionId.
+    Artifact rendering remains proxied to GicaTesis at download time.
+    """
     project = projects.get_project(projectId)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    format_detail_payload: Optional[Dict[str, Any]] = None
     format_id = project.get("format_id")
+    if not format_id:
+        raise HTTPException(status_code=400, detail="Project has no format_id")
+
+    # Build section index from real format definition
+    format_detail_payload: Optional[Dict[str, Any]] = None
     if format_id:
         detail = await formats.get_format_detail(format_id)
         if detail is not None:
@@ -274,34 +283,38 @@ async def run_n8n_simulation(projectId: str = Query(..., description="Project id
         prompt=prompt,
     )
 
-    run_id = f"sim-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    output = n8n_specs.build_simulated_output(project_id=projectId, run_id=run_id)
-    payload_values = spec.get("request", {}).get("payload", {}).get("values", {})
-    prompt_text = spec.get("promptDetail", {}).get("text", "")
-    format_definition = spec.get("formatDefinition", {})
-    output["aiResult"]["sections"] = _build_sim_sections(
-        values=payload_values if isinstance(payload_values, dict) else {},
-        prompt_text=str(prompt_text or ""),
-        format_definition=format_definition if isinstance(format_definition, dict) else {},
+    section_index = spec.get("sectionIndex")
+    if not isinstance(section_index, list):
+        raw_definition = spec.get("formatDefinition")
+        if isinstance(raw_definition, dict):
+            section_index = compile_definition_to_section_index(raw_definition)
+        else:
+            section_index = []
+
+    sim_sections = _build_sim_sections(
+        section_index=section_index,
     )
 
+    ai_result = {
+        "sections": sim_sections
+    }
+
+    run_id = f"sim-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
     updated = projects.mark_simulated(
         project_id=projectId,
-        ai_result=output["aiResult"],
+        ai_result=ai_result,
         run_id=run_id,
-        artifacts=output["artifacts"],
+        artifacts=[],
     )
-    if not updated:
-        raise HTTPException(status_code=404, detail="Project not found")
 
     return {
         "ok": True,
         "mode": "simulation",
+        "source": "n8n_contract",
         "projectId": projectId,
         "runId": run_id,
         "status": "simulated",
-        "aiResult": output["aiResult"],
-        "artifacts": output["artifacts"],
+        "aiResult": ai_result,
         "project": updated,
     }
 
@@ -428,30 +441,106 @@ def download(project_id: str):
 
 
 @router.get("/sim/download/docx")
-def sim_download_docx(projectId: str, runId: Optional[str] = None):
+async def sim_download_docx(projectId: str, runId: Optional[str] = None):
+    """
+    Download DOCX artifact.
+
+    Always proxied to GicaTesis render/docx. GicaGen does not generate local docs.
+    """
     project = projects.get_project(projectId)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    file_path = build_simulated_docx(project, run_id=runId)
+
+    format_id = project.get("format_id")
+    if not format_id:
+        raise HTTPException(status_code=400, detail="Project has no format_id")
+
+    values = project.get("values") if isinstance(project.get("values"), dict) else {}
+    ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
+
+    url = f"{settings.GICATESIS_BASE_URL.rstrip('/')}/render/docx"
+    payload = {
+        "formatId": format_id,
+        "values": values,
+        "mode": "simulation",
+        "aiResult": ai_result,
+    }
+
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        try:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            upstream_detail = _extract_upstream_detail(exc.response, "GicaTesis render/docx failed")
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail=upstream_detail,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Failed to reach GicaTesis: {exc}")
+
     projects.update_project(projectId, {"status": "completed"})
-    return FileResponse(
-        path=str(file_path),
-        filename=file_path.name,
+    response_run_id = runId or str(project.get("run_id") or "")
+    return Response(
+        content=response.content,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="generated-{projectId}.docx"',
+            "X-Generated-By": "gicatesis",
+            "X-Simulation-RunId": response_run_id,
+        },
     )
 
 
 @router.get("/sim/download/pdf")
-def sim_download_pdf(projectId: str, runId: Optional[str] = None):
+async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
+    """
+    Download PDF artifact.
+
+    Always proxied to GicaTesis render/pdf. GicaGen does not generate local docs.
+    """
     project = projects.get_project(projectId)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    file_path = build_simulated_pdf(project, run_id=runId)
+
+    format_id = project.get("format_id")
+    if not format_id:
+        raise HTTPException(status_code=400, detail="Project has no format_id")
+
+    values = project.get("values") if isinstance(project.get("values"), dict) else {}
+    ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
+
+    url = f"{settings.GICATESIS_BASE_URL.rstrip('/')}/render/pdf"
+    payload = {
+        "formatId": format_id,
+        "values": values,
+        "mode": "simulation",
+        "aiResult": ai_result,
+    }
+
+    async with httpx.AsyncClient(timeout=240.0) as client:
+        try:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            upstream_detail = _extract_upstream_detail(exc.response, "GicaTesis render/pdf failed")
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail=upstream_detail,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Failed to reach GicaTesis: {exc}")
+
     projects.update_project(projectId, {"status": "completed"})
-    return FileResponse(
-        path=str(file_path),
-        filename=file_path.name,
+    response_run_id = runId or str(project.get("run_id") or "")
+    return Response(
+        content=response.content,
         media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="generated-{projectId}.pdf"',
+            "X-Generated-By": "gicatesis",
+            "X-Simulation-RunId": response_run_id,
+        },
     )
 
 
@@ -543,3 +632,123 @@ def legacy_n8n_callback(project_id: str, body: Dict[str, Any]):
         return {"ok": True, "project": updated}
 
     raise HTTPException(status_code=400, detail="Invalid status")
+
+
+# =============================================================================
+# RENDER PROXY ENDPOINTS - Forward to GicaTesis Real Generators
+# =============================================================================
+# These endpoints proxy to GicaTesis /api/v1/render/* which uses the REAL
+# generator scripts. This ensures DOCX/PDF are VISUALLY IDENTICAL to those
+# generated by GicaTesis UI (same logos, fonts, margins, styles).
+
+@router.post("/render/docx")
+async def render_docx(projectId: str = Query(..., description="Project ID")):
+    """
+    Render DOCX using GicaTesis REAL generator pipeline.
+    
+    This proxies to GicaTesis /api/v1/render/docx which calls the same
+    generator scripts as the GicaTesis UI. The resulting DOCX is visually
+    identical to downloading from GicaTesis directly.
+    """
+    project = projects.get_project(projectId)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    format_id = project.get("format_id")
+    if not format_id:
+        raise HTTPException(status_code=400, detail="Project has no format_id")
+    
+    values = project.get("values", {})
+    ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
+    
+    # Proxy to GicaTesis render endpoint
+    url = f"{settings.GICATESIS_BASE_URL}/render/docx"
+    payload = {
+        "formatId": format_id,
+        "values": values,
+        "mode": "simulation",
+        "aiResult": ai_result,
+    }
+    
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        try:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+            
+            # Stream the binary response back to client
+            content_disposition = response.headers.get(
+                "content-disposition", 
+                f'attachment; filename="gicatesis-{format_id}.docx"'
+            )
+            
+            return Response(
+                content=response.content,
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                headers={
+                    "Content-Disposition": content_disposition,
+                    "X-Rendered-By": "gicatesis-real-generator",
+                    "X-Proxy-Source": "gicatesis",
+                },
+            )
+        except httpx.HTTPStatusError as exc:
+            upstream_detail = _extract_upstream_detail(exc.response, "GicaTesis render failed")
+            raise HTTPException(status_code=exc.response.status_code, detail=upstream_detail)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Failed to reach GicaTesis: {exc}")
+
+
+@router.post("/render/pdf")
+async def render_pdf(projectId: str = Query(..., description="Project ID")):
+    """
+    Render PDF using GicaTesis REAL generator pipeline.
+    
+    This proxies to GicaTesis /api/v1/render/pdf which:
+    1. Generates DOCX using real generator scripts
+    2. Converts to PDF using Word COM
+    
+    The resulting PDF is visually identical to GicaTesis UI output.
+    """
+    project = projects.get_project(projectId)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    format_id = project.get("format_id")
+    if not format_id:
+        raise HTTPException(status_code=400, detail="Project has no format_id")
+    
+    values = project.get("values", {})
+    ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
+    
+    # Proxy to GicaTesis render endpoint
+    url = f"{settings.GICATESIS_BASE_URL}/render/pdf"
+    payload = {
+        "formatId": format_id,
+        "values": values,
+        "mode": "simulation",
+        "aiResult": ai_result,
+    }
+    
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        try:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+            
+            content_disposition = response.headers.get(
+                "content-disposition",
+                f'attachment; filename="gicatesis-{format_id}.pdf"'
+            )
+            
+            return Response(
+                content=response.content,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": content_disposition,
+                    "X-Rendered-By": "gicatesis-real-generator",
+                    "X-Proxy-Source": "gicatesis",
+                },
+            )
+        except httpx.HTTPStatusError as exc:
+            upstream_detail = _extract_upstream_detail(exc.response, "GicaTesis render failed")
+            raise HTTPException(status_code=exc.response.status_code, detail=upstream_detail)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Failed to reach GicaTesis: {exc}")
