@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
+from app.core.services.definition_compiler import compile_definition_to_section_index
 
 
 class N8NIntegrationService:
@@ -29,6 +30,7 @@ class N8NIntegrationService:
             if isinstance(format_detail, dict) and isinstance(format_detail.get("definition"), dict)
             else {}
         )
+        section_index = compile_definition_to_section_index(format_definition)
 
         webhook_url = settings.N8N_WEBHOOK_URL or "<configure N8N_WEBHOOK_URL>"
         secret = settings.N8N_SHARED_SECRET or "<configure N8N_SHARED_SECRET>"
@@ -42,6 +44,7 @@ class N8NIntegrationService:
                 "category": format_obj["category"],
                 "documentType": format_obj["documentType"],
             },
+            "sectionIndex": section_index,
             "prompt": {
                 "id": prompt_obj["id"],
                 "text": prompt_obj["text"],
@@ -53,7 +56,11 @@ class N8NIntegrationService:
             },
         }
 
-        expected_body = self.build_simulated_output(project_id=project_id, run_id=run_id)
+        expected_body = self.build_simulated_output(
+            project_id=project_id,
+            run_id=run_id,
+            section_index=section_index,
+        )
 
         spec = {
             "mode": "simulation",
@@ -114,6 +121,7 @@ class N8NIntegrationService:
                 "variables": prompt_obj["variables"],
             },
             "promptText": prompt_obj["text"],
+            "sectionIndex": section_index,
             "expectedResponse": {
                 "callbackUrl": callback_url,
                 "headers": {
@@ -127,36 +135,43 @@ class N8NIntegrationService:
         spec["markdown"] = self._build_markdown(spec)
         return spec
 
-    def build_simulated_output(self, project_id: str, run_id: str) -> Dict[str, Any]:
+    def build_simulated_output(
+        self,
+        project_id: str,
+        run_id: str,
+        section_index: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        section_index = section_index or []
+        ai_sections: List[Dict[str, str]] = []
+        for idx, section in enumerate(section_index, start=1):
+            path = str(section.get("path") or "").strip()
+            if not path:
+                continue
+            section_id = str(section.get("sectionId") or f"sec-{idx:04d}")
+            ai_sections.append(
+                {
+                    "sectionId": section_id,
+                    "path": path,
+                    "content": f"Contenido IA simulado para: {path}",
+                }
+            )
+
+        if not ai_sections:
+            ai_sections = [
+                {
+                    "sectionId": "sec-0001",
+                    "path": "Documento/Seccion principal",
+                    "content": "Contenido IA simulado para: Documento/Seccion principal",
+                }
+            ]
+
         return {
             "projectId": project_id,
             "runId": run_id,
             "status": "success",
             "aiResult": {
-                "sections": [
-                    {"title": "Introduccion", "content": "Texto generado por simulacion."},
-                    {"title": "Marco teorico", "content": "Contexto y antecedentes de ejemplo."},
-                    {"title": "Metodologia", "content": "Detalle metodologico de ejemplo."},
-                ]
+                "sections": ai_sections
             },
-            "artifacts": [
-                {
-                    "type": "docx",
-                    "name": "simulated.docx",
-                    "downloadUrl": (
-                        f"{settings.GICAGEN_BASE_URL.rstrip('/')}/api/sim/download/docx"
-                        f"?projectId={project_id}&runId={run_id}"
-                    ),
-                },
-                {
-                    "type": "pdf",
-                    "name": "simulated.pdf",
-                    "downloadUrl": (
-                        f"{settings.GICAGEN_BASE_URL.rstrip('/')}/api/sim/download/pdf"
-                        f"?projectId={project_id}&runId={run_id}"
-                    ),
-                },
-            ],
         }
 
     def _latest_or_example_output(
@@ -166,7 +181,6 @@ class N8NIntegrationService:
     ) -> Dict[str, Any]:
         current_run = project.get("run_id")
         ai_result = project.get("ai_result")
-        artifacts = project.get("artifacts")
 
         if isinstance(ai_result, dict):
             return {
@@ -174,7 +188,6 @@ class N8NIntegrationService:
                 "runId": str(current_run or example_output["runId"]),
                 "status": "success",
                 "aiResult": ai_result,
-                "artifacts": artifacts if isinstance(artifacts, list) else example_output["artifacts"],
             }
         return example_output
 
@@ -184,8 +197,8 @@ class N8NIntegrationService:
             {"step": 2, "title": "Secret compartido", "detail": "Configurar X-GICAGEN-SECRET en entrada y X-N8N-SECRET en callback."},
             {"step": 3, "title": "GET format", "detail": "Consumir formato desde request.runtime.gicatesisBaseUrl + /formats/{id}."},
             {"step": 4, "title": "Prompt final", "detail": "Combinar prompt.text con values para construir el prompt de ejecucion."},
-            {"step": 5, "title": "IA a JSON", "detail": "Ejecutar IA y producir JSON estable en aiResult."},
-            {"step": 6, "title": "Validacion", "detail": "Validar estructura antes de callback (projectId, status, aiResult, artifacts)."},
+            {"step": 5, "title": "IA a JSON", "detail": "Ejecutar IA y producir JSON estable en aiResult.sections por path/sectionId."},
+            {"step": 6, "title": "Validacion", "detail": "Validar estructura antes de callback (projectId, status, aiResult)."},
             {"step": 7, "title": "Callback", "detail": "Enviar POST al callbackUrl con header X-N8N-SECRET."},
             {"step": 8, "title": "Responder al webhook", "detail": "Responder 200 al trigger inicial y guardar trazabilidad de runId."},
         ]
