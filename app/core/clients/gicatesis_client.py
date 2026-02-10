@@ -100,9 +100,13 @@ class GicaTesisClient:
 
         logger.info("Calling GicaTesis generate: %s", url)
 
+        headers = {}
+        if settings.GICATESIS_API_KEY:
+            headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+
         async with httpx.AsyncClient(timeout=GENERATION_TIMEOUT) as client:
             try:
-                response = await client.post(url, json=payload)
+                response = await client.post(url, json=payload, headers=headers)
                 response.raise_for_status()
                 data = response.json()
                 
@@ -167,8 +171,12 @@ class GicaTesisClient:
         
         logger.info("Streaming artifact from GicaTesis: %s", url)
         
+        headers = {}
+        if settings.GICATESIS_API_KEY:
+            headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+
         client = httpx.AsyncClient(timeout=DOWNLOAD_TIMEOUT)
-        response = await client.get(url)
+        response = await client.get(url, headers=headers)
         response.raise_for_status()
         return response
 

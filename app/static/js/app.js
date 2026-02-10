@@ -203,13 +203,12 @@ const TesisAI = (() => {
 
     if ($("btn-step1-next")) $("btn-step1-next").disabled = true;
     if ($("btn-step2-next")) $("btn-step2-next").disabled = true;
-    if ($("btn-step3-guide")) $("btn-step3-guide").disabled = false;
+    if ($("btn-step3-generate")) {
+      $("btn-step3-generate").classList.remove("hidden");
+    }
+    if ($("step3-loading")) $("step3-loading").classList.add("hidden");
 
     setStep3Error("");
-    if ($("n8n-guide-empty")) $("n8n-guide-empty").classList.remove("hidden");
-    if ($("n8n-guide-content")) $("n8n-guide-content").classList.add("hidden");
-    if ($("sim-run-status")) $("sim-run-status").textContent = "";
-    if ($("btn-run-sim")) $("btn-run-sim").disabled = false;
 
     if ($("sim-project-id")) $("sim-project-id").textContent = "-";
     if ($("sim-download-docx")) $("sim-download-docx").setAttribute("href", "#");
@@ -515,18 +514,104 @@ const TesisAI = (() => {
     if (exportButton) exportButton.disabled = !n8nSpec.markdown;
   }
 
-  async function prepareN8nGuide() {
+  // =========================================================================
+  // Generation flow (Step 4 progress panel)
+  // =========================================================================
+  const GEN_POLL_INTERVAL = 3000;   // ms between polls
+  const GEN_POLL_TIMEOUT = 120;    // seconds max
+
+  let _genCancelled = false;
+  let _genTimerHandle = null;
+  let _genElapsed = 0;
+
+  function _setPhase(phaseId, state) {
+    // state: "pending" | "active" | "ok" | "fail"
+    const el = $(phaseId);
+    if (!el) return;
+    const icon = el.querySelector(".phase-icon");
+    const label = el.querySelector(".phase-label");
+    if (!icon || !label) return;
+
+    el.className = "flex items-center gap-3 text-sm";
+    switch (state) {
+      case "pending":
+        el.classList.add("text-gray-400");
+        icon.textContent = "\u25cb"; break;
+      case "active":
+        el.classList.add("text-blue-600");
+        icon.textContent = "\u23f3"; break;
+      case "ok":
+        el.classList.add("text-green-600");
+        icon.textContent = "\u2705"; break;
+      case "fail":
+        el.classList.add("text-red-600");
+        icon.textContent = "\u274c"; break;
+    }
+  }
+
+  function _setPhaseLabel(phaseId, text) {
+    const el = $(phaseId);
+    if (!el) return;
+    const label = el.querySelector(".phase-label");
+    if (label) label.textContent = text;
+  }
+
+  function _resetGenUI() {
+    _setPhase("gen-phase-health", "active");
+    _setPhaseLabel("gen-phase-health", "Verificando conexion a n8n...");
+    _setPhase("gen-phase-send", "pending");
+    _setPhaseLabel("gen-phase-send", "Enviando solicitud");
+    _setPhase("gen-phase-wait", "pending");
+    _setPhaseLabel("gen-phase-wait", "Esperando respuesta de n8n");
+
+    if ($("gen-timer")) $("gen-timer").classList.add("hidden");
+    if ($("gen-timer-value")) $("gen-timer-value").textContent = "0s";
+    if ($("gen-error")) { $("gen-error").classList.add("hidden"); $("gen-error").textContent = ""; }
+    if ($("gen-success")) $("gen-success").classList.add("hidden");
+    if ($("btn-gen-retry")) $("btn-gen-retry").classList.add("hidden");
+    if ($("btn-gen-downloads")) $("btn-gen-downloads").classList.add("hidden");
+    if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.remove("hidden");
+  }
+
+  function _showGenError(msg) {
+    const el = $("gen-error");
+    if (el) { el.textContent = msg; el.classList.remove("hidden"); }
+    if ($("btn-gen-retry")) $("btn-gen-retry").classList.remove("hidden");
+    if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.add("hidden");
+  }
+
+  function _startGenTimer() {
+    _genElapsed = 0;
+    if ($("gen-timer")) $("gen-timer").classList.remove("hidden");
+    _genTimerHandle = setInterval(() => {
+      _genElapsed++;
+      if ($("gen-timer-value")) $("gen-timer-value").textContent = `${_genElapsed}s`;
+    }, 1000);
+  }
+
+  function _stopGenTimer() {
+    if (_genTimerHandle) { clearInterval(_genTimerHandle); _genTimerHandle = null; }
+  }
+
+  async function triggerGeneration() {
     if (!selectedFormat || !selectedPrompt || isPreparingGuide) return;
 
-    const actionButton = $("btn-step3-guide");
     isPreparingGuide = true;
-    if (actionButton) actionButton.disabled = true;
+    _genCancelled = false;
     setStep3Error("");
 
-    try {
-      const wizard = collectWizardPayload();
+    // Hide Step 3 button, show Step 4 progress
+    const btn = $("btn-step3-generate");
+    const loader = $("step3-loading");
+    if (btn) btn.classList.add("hidden");
+    if (loader) loader.classList.remove("hidden");
 
-      if (!currentProject?.id) {
+    try {
+      // --- 0. Save draft ---
+      const wizard = collectWizardPayload();
+      let projectId = currentProject?.id;
+
+      if (!projectId) {
         const draft = await apiSend("/api/projects/draft", "POST", {
           title: wizard.title,
           formatId: selectedFormat.id,
@@ -535,11 +620,10 @@ const TesisAI = (() => {
           promptId: selectedPrompt.id,
           values: wizard.values,
         });
-        const draftId = draft?.id || draft?.projectId;
-        if (!draftId) throw new Error("No se pudo obtener projectId del borrador.");
-        currentProject = { ...(draft || {}), id: draftId };
+        projectId = draft?.id || draft?.projectId;
+        currentProject = { ...(draft || {}), id: projectId };
       } else {
-        await apiSend(`/api/projects/${encodeURIComponent(currentProject.id)}`, "PUT", {
+        await apiSend(`/api/projects/${encodeURIComponent(projectId)}`, "PUT", {
           title: wizard.title,
           formatId: selectedFormat.id,
           formatName: selectedFormat.title || selectedFormat.name || selectedFormat.id,
@@ -550,19 +634,162 @@ const TesisAI = (() => {
         });
       }
 
-      n8nSpec = await apiGet(`/api/integrations/n8n/spec?projectId=${encodeURIComponent(currentProject.id)}`);
+      if (!projectId) throw new Error("No se pudo obtener projectId.");
+
+      // --- Navigate to Step 4 & reset UI ---
+      _resetGenUI();
       nextStep(4);
-      renderN8nGuide();
-      refreshDashboard().catch(() => {});
-      refreshHistory().catch(() => {});
+
+      // --- 1. Health check ---
+      _setPhase("gen-phase-health", "active");
+      let health;
+      try {
+        health = await apiGet("/api/integrations/n8n/health");
+      } catch (e) {
+        health = { configured: false, reachable: false, message: "No se pudo consultar health." };
+      }
+
+      if (_genCancelled) return;
+
+      if (health.reachable) {
+        _setPhase("gen-phase-health", "ok");
+        _setPhaseLabel("gen-phase-health", health.message || "Conectado a n8n");
+      } else if (health.configured) {
+        _setPhase("gen-phase-health", "fail");
+        _setPhaseLabel("gen-phase-health", health.message || "No se pudo conectar a n8n");
+        _showGenError(health.message || "n8n no alcanzable. Verifica que este activo.");
+        return;
+      } else {
+        // n8n not configured => demo mode, show info
+        _setPhase("gen-phase-health", "ok");
+        _setPhaseLabel("gen-phase-health", "Modo demo (n8n no configurado)");
+      }
+
+      if (_genCancelled) return;
+
+      // --- 2. Send generation request ---
+      _setPhase("gen-phase-send", "active");
+      _setPhaseLabel("gen-phase-send", "Enviando solicitud...");
+
+      let genResult;
+      try {
+        genResult = await apiSend(
+          `/api/projects/${encodeURIComponent(projectId)}/generate`, "POST", {}
+        );
+      } catch (e) {
+        _setPhase("gen-phase-send", "fail");
+        const detail = e?.message || "Error al enviar solicitud";
+        _setPhaseLabel("gen-phase-send", detail);
+        _showGenError(detail);
+        return;
+      }
+
+      if (_genCancelled) return;
+
+      _setPhase("gen-phase-send", "ok");
+      const isDemoMode = genResult?.mode === "demo";
+
+      if (isDemoMode) {
+        _setPhaseLabel("gen-phase-send", "Solicitud enviada (modo demo)");
+        _setPhaseLabel("gen-phase-wait", "Esperando generacion local...");
+      } else {
+        _setPhaseLabel("gen-phase-send", `ACK de n8n recibido (runId: ${genResult?.runId || "-"})`);
+      }
+
+      // --- 3. Poll for completion ---
+      _setPhase("gen-phase-wait", "active");
+      _startGenTimer();
+
+      const successStatuses = ["completed", "ai_received", "simulated"];
+      const failStatuses = ["failed", "n8n_failed", "timeout"];
+
+      while (_genElapsed < GEN_POLL_TIMEOUT) {
+        if (_genCancelled) { _stopGenTimer(); return; }
+
+        await new Promise(r => setTimeout(r, GEN_POLL_INTERVAL));
+        if (_genCancelled) { _stopGenTimer(); return; }
+
+        let check;
+        try {
+          check = await apiGet(`/api/projects/${encodeURIComponent(projectId)}`);
+        } catch { continue; }
+
+        if (successStatuses.includes(check.status)) {
+          _stopGenTimer();
+          currentProject = check;
+
+          simRunResult = {
+            projectId: check.id,
+            runId: check.run_id || "",
+            artifacts: [
+              { type: "docx", downloadUrl: `/api/download/${encodeURIComponent(check.id)}` },
+              { type: "pdf", downloadUrl: `/api/render/pdf?projectId=${encodeURIComponent(check.id)}` },
+            ],
+          };
+
+          _setPhase("gen-phase-wait", "ok");
+          _setPhaseLabel("gen-phase-wait", `Completado en ${_genElapsed}s`);
+          if ($("gen-success")) $("gen-success").classList.remove("hidden");
+          if ($("btn-gen-downloads")) $("btn-gen-downloads").classList.remove("hidden");
+          if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.add("hidden");
+
+          refreshDashboard().catch(() => { });
+          refreshHistory().catch(() => { });
+          return;
+        }
+
+        if (failStatuses.includes(check.status)) {
+          _stopGenTimer();
+          _setPhase("gen-phase-wait", "fail");
+          const errMsg = check.error || `Generacion fallida (${check.status})`;
+          _setPhaseLabel("gen-phase-wait", errMsg);
+          _showGenError(errMsg);
+          return;
+        }
+
+        // Update label with current status
+        _setPhaseLabel("gen-phase-wait",
+          `Esperando... (${check.status || "desconocido"}, ${_genElapsed}s)`);
+      }
+
+      // Timeout
+      _stopGenTimer();
+      _setPhase("gen-phase-wait", "fail");
+      _setPhaseLabel("gen-phase-wait", `Timeout (${GEN_POLL_TIMEOUT}s)`);
+      _showGenError("Tiempo de espera agotado. n8n no respondio a tiempo.");
+
     } catch (error) {
-      const message = error?.message || "No se pudo generar la guia n8n.";
-      setStep3Error(message);
-      alert(`Error: ${message}`);
+      _stopGenTimer();
+      const message = error?.message || "Error en generacion.";
+      // If we are still on step 3, show error there
+      if (currentStep < 4) {
+        setStep3Error(message);
+        if (btn) btn.classList.remove("hidden");
+        if (loader) loader.classList.add("hidden");
+      } else {
+        _showGenError(message);
+      }
     } finally {
       isPreparingGuide = false;
-      if (actionButton) actionButton.disabled = false;
+      const btn2 = $("btn-step3-generate");
+      const loader2 = $("step3-loading");
+      if (btn2) btn2.classList.remove("hidden");
+      if (loader2) loader2.classList.add("hidden");
     }
+  }
+
+  function cancelGeneration() {
+    _genCancelled = true;
+    _stopGenTimer();
+    prevStep(3);
+  }
+
+  function retryGeneration() {
+    triggerGeneration();
+  }
+
+  function goToDownloads() {
+    continueToSimDownloads();
   }
 
   function continueToSimDownloads() {
@@ -606,8 +833,8 @@ const TesisAI = (() => {
         };
       }
       renderN8nGuide();
-      refreshDashboard().catch(() => {});
-      refreshHistory().catch(() => {});
+      refreshDashboard().catch(() => { });
+      refreshHistory().catch(() => { });
     } catch (error) {
       const message = error?.message || "No se pudo ejecutar la simulacion.";
       if ($("sim-run-status")) $("sim-run-status").textContent = message;
@@ -791,14 +1018,17 @@ const TesisAI = (() => {
   function wireHistorySearch() {
     const input = $("history-search");
     if (!input) return;
-    input.oninput = () => refreshHistory().catch(() => {});
+    input.oninput = () => refreshHistory().catch(() => { });
   }
 
   return {
     showView,
     nextStep,
     prevStep,
-    prepareN8nGuide,
+    triggerGeneration,
+    cancelGeneration,
+    retryGeneration,
+    goToDownloads,
     runN8nSimulation,
     continueToSimDownloads,
     openPromptModal,

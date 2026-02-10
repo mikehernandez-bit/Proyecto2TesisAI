@@ -124,7 +124,7 @@
       </div>
     </div>
 
-        <!-- VISTA 2: WIZARD -->
+    <!-- VISTA 2: WIZARD -->
     <div id="view-wizard" class="view-section hidden fade-in max-w-4xl mx-auto">
 
       <!-- Stepper -->
@@ -135,22 +135,32 @@
         </div>
 
         <div class="flex items-center w-full">
-          <div id="step-1-dot" class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10">1</div>
+          <div id="step-1-dot"
+            class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10">
+            1</div>
           <div id="step-1-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
-          <div id="step-2-dot" class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">2</div>
+          <div id="step-2-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            2</div>
           <div id="step-2-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
-          <div id="step-3-dot" class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">3</div>
+          <div id="step-3-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            3</div>
           <div id="step-3-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
-          <div id="step-4-dot" class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">4</div>
+          <div id="step-4-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            4</div>
           <div id="step-4-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
-          <div id="step-5-dot" class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">5</div>
+          <div id="step-5-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            5</div>
         </div>
 
         <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
           <span>Formato Ext.</span>
           <span>Tipo & Prompt</span>
           <span>Detalles</span>
-          <span>Guia n8n</span>
+          <span>Generando</span>
           <span>Descargas</span>
         </div>
       </div>
@@ -160,14 +170,17 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 class="text-lg font-semibold mb-4 text-slate-800">1. Selecciona el Formato Institucional</h3>
           <p class="text-sm text-gray-500 mb-6">
-            Se conecta a una API externa de formatos. En demo se usa <code class="bg-gray-100 px-1 rounded">data/formats_sample.json</code>.
+            Se conecta a una API externa de formatos. En demo se usa <code
+              class="bg-gray-100 px-1 rounded">data/formats_sample.json</code>.
           </p>
 
           <div class="flex gap-4 mb-6">
-            <select id="filter-university" class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <select id="filter-university"
+              class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
               <option value="">Todas las Universidades</option>
             </select>
-            <select id="filter-career" class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <select id="filter-career"
+              class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
               <option value="">Filtrar por Carrera</option>
             </select>
           </div>
@@ -193,7 +206,8 @@
           <div id="prompts-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
 
           <div class="mt-8 flex justify-between">
-            <button onclick="TesisAI.prevStep(1)" class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
+            <button onclick="TesisAI.prevStep(1)"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
             <button onclick="TesisAI.nextStep(3)" id="btn-step2-next"
               class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
               disabled>
@@ -210,123 +224,86 @@
           <p class="text-sm text-gray-500 mb-6">Los campos se generan segun variables del prompt.</p>
 
           <div id="dynamic-form" class="space-y-4 max-w-2xl mx-auto"></div>
-          <div id="step3-error" class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3"></div>
+          <div id="step3-error" class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
+          </div>
 
           <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-800 flex gap-2">
             <i class="fa-solid fa-circle-info mt-0.5"></i>
             <p>
-              Estos datos se guardan como borrador del proyecto y se usan para construir la guia operativa de integracion con <strong>n8n</strong>.
-              <br/>
-              <span class="text-[10px] text-blue-600">Configura <code class="bg-blue-100 px-1 rounded">N8N_WEBHOOK_URL</code> y <code class="bg-blue-100 px-1 rounded">N8N_SHARED_SECRET</code> para operacion real.</span>
+              Estos datos se utilizarán para generar el documento completo.
+              <br />
+              <span class="text-[10px] text-blue-600">El proceso puede tomar unos segundos mientras la IA procesa tu
+                solicitud.</span>
             </p>
           </div>
 
-          <div class="mt-8 flex justify-between">
-            <button onclick="TesisAI.prevStep(2)" class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
-            <button id="btn-step3-guide" onclick="TesisAI.prepareN8nGuide()"
+          <div class="mt-8 flex justify-between items-center">
+            <button onclick="TesisAI.prevStep(2)"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
+
+            <div id="step3-loading"
+              class="hidden flex items-center gap-3 text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+              <div class="loader w-5 h-5 border-2 border-t-blue-600"></div>
+              <span class="text-sm font-medium animate-pulse">Generando documento...</span>
+            </div>
+
+            <button id="btn-step3-generate" onclick="TesisAI.triggerGeneration()"
               class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
-              <i class="fa-solid fa-diagram-project mr-2"></i> Ir a guia n8n
+              <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generar Documento
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Step 4 -->
+      <!-- Step 4: Generacion en progreso -->
       <div id="step-4-content" class="wizard-step hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-lg font-semibold text-slate-800">4. Guia Operativa n8n (Simulacion)</h3>
-              <p class="text-sm text-gray-500">Contrato listo para workflow externo sin depender de n8n real.</p>
+          <h3 class="text-lg font-semibold text-slate-800">4. Generando documento</h3>
+
+          <!-- Progress phases -->
+          <div id="gen-phases" class="space-y-3">
+            <div id="gen-phase-health" class="flex items-center gap-3 text-sm text-gray-500">
+              <span class="phase-icon w-5 text-center">⏳</span>
+              <span class="phase-label">Verificando conexion a n8n...</span>
             </div>
+            <div id="gen-phase-send" class="flex items-center gap-3 text-sm text-gray-400">
+              <span class="phase-icon w-5 text-center">○</span>
+              <span class="phase-label">Enviando solicitud</span>
+            </div>
+            <div id="gen-phase-wait" class="flex items-center gap-3 text-sm text-gray-400">
+              <span class="phase-icon w-5 text-center">○</span>
+              <span class="phase-label">Esperando respuesta de n8n</span>
+            </div>
+          </div>
+
+          <!-- Timer -->
+          <div id="gen-timer" class="text-xs text-gray-400 hidden">
+            Tiempo transcurrido: <span id="gen-timer-value">0s</span> / 120s
+          </div>
+
+          <!-- Error message -->
+          <div id="gen-error" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-4"></div>
+
+          <!-- Success message -->
+          <div id="gen-success"
+            class="hidden bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-4">
+            Documento generado exitosamente.
+          </div>
+
+          <!-- Action buttons -->
+          <div class="flex items-center justify-between pt-2">
+            <button id="btn-gen-cancel" onclick="TesisAI.cancelGeneration()"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
+              <i class="fa-solid fa-xmark mr-1"></i> Cancelar
+            </button>
             <div class="flex gap-2">
-              <button id="btn-copy-payload" onclick="TesisAI.copyN8nPayload()" class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 rounded">
-                Copiar Payload
+              <button id="btn-gen-retry" onclick="TesisAI.retryGeneration()"
+                class="hidden bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded text-sm">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Reintentar
               </button>
-              <button id="btn-copy-headers" onclick="TesisAI.copyN8nHeaders()" class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 rounded">
-                Copiar Headers
-              </button>
-              <button id="btn-copy-webhook" onclick="TesisAI.copyN8nWebhook()" class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 rounded">
-                Copiar URL Webhook
-              </button>
-              <button id="btn-export-guide" onclick="TesisAI.exportN8nGuide()" class="px-3 py-2 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded disabled:opacity-60" disabled>
-                Exportar .md
-              </button>
-            </div>
-          </div>
-
-          <div id="n8n-guide-empty" class="text-sm text-gray-500">
-            Primero completa los pasos 1-3 para generar el contrato.
-          </div>
-
-          <div id="n8n-guide-content" class="hidden space-y-6">
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">A) Resumen</h4>
-              <div id="n8n-summary" class="text-sm text-gray-700 space-y-1"></div>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">B) Auto-check</h4>
-              <ul id="n8n-autocheck" class="text-sm text-gray-700 space-y-1"></ul>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">C) Payload copiable</h4>
-              <pre id="n8n-payload" class="text-xs bg-slate-900 text-slate-100 p-3 rounded overflow-x-auto"></pre>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">D) Headers copiable</h4>
-              <pre id="n8n-headers" class="text-xs bg-slate-900 text-slate-100 p-3 rounded overflow-x-auto"></pre>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">E) Checklist 8 pasos</h4>
-              <ol id="n8n-checklist" class="list-decimal list-inside text-sm text-gray-700 space-y-1"></ol>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">F) URLs operativas</h4>
-              <div id="n8n-urls" class="text-sm text-gray-700 space-y-1"></div>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">G) Formato completo (definition)</h4>
-              <pre id="n8n-format-definition" class="text-xs bg-slate-900 text-slate-100 p-3 rounded overflow-x-auto"></pre>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">Formato detail completo (debug)</h4>
-              <pre id="n8n-format-detail" class="text-xs bg-slate-900 text-slate-100 p-3 rounded overflow-x-auto"></pre>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">Prompt completo</h4>
-              <pre id="n8n-prompt-text" class="text-xs bg-slate-900 text-slate-100 p-3 rounded overflow-x-auto whitespace-pre-wrap"></pre>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">OUTPUT esperado de n8n</h4>
-              <pre id="n8n-expected-response" class="text-xs bg-slate-900 text-slate-100 p-3 rounded overflow-x-auto"></pre>
-            </section>
-
-            <section class="border rounded-lg p-4">
-              <h4 class="font-semibold text-slate-800 mb-2">H) Simulacion de respuesta n8n (output)</h4>
-              <pre id="n8n-sim-output" class="text-xs bg-slate-900 text-slate-100 p-3 rounded overflow-x-auto"></pre>
-            </section>
-          </div>
-
-          <div class="pt-2 space-y-3">
-            <div class="flex items-center justify-between gap-3">
-              <button id="btn-run-sim" onclick="TesisAI.runN8nSimulation()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                Simular ejecucion n8n
-              </button>
-              <div id="sim-run-status" class="text-sm text-slate-600"></div>
-            </div>
-            <div class="flex justify-between">
-              <button onclick="TesisAI.prevStep(3)" class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
-              <button onclick="TesisAI.continueToSimDownloads()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">
-                Continuar a descargas simuladas
+              <button id="btn-gen-downloads" onclick="TesisAI.goToDownloads()"
+                class="hidden bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                <i class="fa-solid fa-download mr-1"></i> Ir a Descargas
               </button>
             </div>
           </div>
@@ -337,8 +314,9 @@
       <div id="step-5-content" class="wizard-step hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-slate-800">5. Descargas simuladas</h3>
-            <p class="text-sm text-gray-500">Simulacion completada para el proyecto <code id="sim-project-id">-</code>.</p>
+            <h3 class="text-lg font-semibold text-slate-800">5. Descargas</h3>
+            <p class="text-sm text-gray-500">Documento generado para el proyecto <code id="sim-project-id">-</code>.
+            </p>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -353,15 +331,17 @@
           </div>
 
           <div class="pt-2 flex justify-between">
-            <button onclick="TesisAI.prevStep(4)" class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
-            <button onclick="TesisAI.showView('dashboard')" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">
+            <button onclick="TesisAI.prevStep(4)"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
+            <button onclick="TesisAI.showView('dashboard')"
+              class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">
               Finalizar
             </button>
           </div>
         </div>
       </div>
     </div>
-<!-- VISTA 3: ADMIN PROMPTS -->
+    <!-- VISTA 3: ADMIN PROMPTS -->
     <div id="view-admin-prompts" class="view-section hidden fade-in">
       <div class="flex justify-between items-end mb-8">
         <div>
@@ -446,11 +426,14 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre del Prompt</label>
-          <input id="modal-name" type="text" class="w-full p-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none" placeholder="Ej: Tesis Derecho Civil">
+          <input id="modal-name" type="text"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
+            placeholder="Ej: Tesis Derecho Civil">
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo Documento</label>
-          <select id="modal-doc-type" class="w-full p-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none">
+          <select id="modal-doc-type"
+            class="w-full p-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none">
             <option>Tesis Completa</option>
             <option>Artículo Científico</option>
             <option>Ensayo / Monografía</option>
@@ -466,7 +449,8 @@
       <div>
         <div class="flex justify-between items-center mb-1">
           <label class="block text-xs font-bold text-gray-500 uppercase">Instrucciones para la IA</label>
-          <span class="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Usa {{'{{variable}}'}} para dinamismo</span>
+          <span class="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Usa {{'{{variable}}'}} para
+            dinamismo</span>
         </div>
         <textarea id="modal-template"
           class="w-full p-3 border border-gray-300 rounded text-sm font-mono h-40 focus:border-blue-500 outline-none resize-none bg-gray-50"
@@ -488,8 +472,10 @@ El objetivo: {{objetivo_general}}
     </div>
 
     <div class="px-6 py-4 bg-gray-50 rounded-b-xl flex justify-end gap-3">
-      <button onclick="TesisAI.closePromptModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800">Cancelar</button>
-      <button onclick="TesisAI.savePrompt()" class="px-4 py-2 text-sm font-bold text-white bg-slate-800 rounded hover:bg-slate-900 shadow-sm">
+      <button onclick="TesisAI.closePromptModal()"
+        class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800">Cancelar</button>
+      <button onclick="TesisAI.savePrompt()"
+        class="px-4 py-2 text-sm font-bold text-white bg-slate-800 rounded hover:bg-slate-900 shadow-sm">
         Guardar Prompt
       </button>
     </div>
@@ -497,4 +483,3 @@ El objetivo: {{objetivo_general}}
 </div>
 
 {% endblock %}
-
