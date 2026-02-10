@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file if present
 
 
 def _get(key: str, default: str = "") -> str:
@@ -24,6 +27,7 @@ class Settings:
     
     # GicaTesis Integration
     GICATESIS_BASE_URL: str = _get("GICATESIS_BASE_URL", "http://localhost:8000/api/v1")
+    GICATESIS_API_KEY: str = _get("GICATESIS_API_KEY", "")
     GICAGEN_PORT: int = int(_get("GICAGEN_PORT", "8001"))
     GICAGEN_BASE_URL: str = _get("GICAGEN_BASE_URL", "http://localhost:8001")
     GICATESIS_TIMEOUT: int = int(_get("GICATESIS_TIMEOUT", "8"))

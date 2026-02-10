@@ -189,6 +189,13 @@ def build_info():
 # N8N INTEGRATION CONTRACTS
 # =============================================================================
 
+
+@router.get("/integrations/n8n/health")
+async def n8n_health():
+    """Check n8n webhook connectivity."""
+    return await n8n.ping()
+
+
 @router.get("/integrations/n8n/spec")
 async def get_n8n_spec(projectId: str):
     """
@@ -612,6 +619,85 @@ def generate(payload: ProjectGenerateIn, background: BackgroundTasks):
     return project
 
 
+@router.post("/projects/{projectId}/generate")
+async def trigger_generation(projectId: str, background: BackgroundTasks):
+    """
+    Trigger generation for an existing project draft.
+
+    1. If n8n is configured: call webhook synchronously for ACK.
+       - 200/202 => status='n8n_ack', return ok
+       - error   => status='n8n_failed', return 502
+    2. If n8n is NOT configured: fall back to local demo (background).
+    """
+    project = projects.get_project(projectId)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # ------------------------------------------------------------------
+    # Path A: n8n configured => synchronous ACK
+    # ------------------------------------------------------------------
+    if settings.N8N_WEBHOOK_URL:
+        callback_url = (
+            f"{settings.GICAGEN_BASE_URL.rstrip('/')}"
+            f"/api/integrations/n8n/callback"
+        )
+        payload = {
+            "projectId": projectId,
+            "format": {
+                "id": project.get("format_id"),
+                "name": project.get("format_name"),
+                "version": project.get("format_version"),
+            },
+            "prompt": {
+                "id": project.get("prompt_id"),
+                "name": project.get("prompt_name"),
+            },
+            "values": project.get("variables") or project.get("values", {}),
+            "callbackUrl": callback_url,
+        }
+
+        projects.update_project(projectId, {"status": "sending"})
+        result = await n8n.trigger(payload)
+
+        if result.get("ok"):
+            run_id = (
+                result.get("data", {}).get("runId")
+                or result.get("data", {}).get("run_id")
+                or f"run_{projectId}"
+            )
+            projects.update_project(projectId, {
+                "status": "n8n_ack",
+                "run_id": run_id,
+            })
+            return {
+                "ok": True,
+                "status": "n8n_ack",
+                "runId": run_id,
+                "statusCode": result.get("statusCode"),
+            }
+
+        # n8n failed
+        error_msg = result.get("error", "Error desconocido al llamar a n8n")
+        projects.update_project(projectId, {
+            "status": "n8n_failed",
+            "error": error_msg,
+        })
+        raise HTTPException(status_code=502, detail=error_msg)
+
+    # ------------------------------------------------------------------
+    # Path B: no n8n => local demo (background task)
+    # ------------------------------------------------------------------
+    projects.update_project(projectId, {"status": "processing"})
+    background.add_task(
+        _generation_job,
+        projectId,
+        project.get("format_name", "Format"),
+        project.get("prompt_name", "Prompt"),
+        project.get("variables", {}),
+    )
+    return {"ok": True, "status": "processing", "mode": "demo"}
+
+
 @router.post("/n8n/callback/{project_id}")
 def legacy_n8n_callback(project_id: str, body: Dict[str, Any]):
     """Legacy callback endpoint kept for compatibility."""
@@ -672,7 +758,11 @@ async def render_docx(projectId: str = Query(..., description="Project ID")):
     
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            response = await client.post(url, json=payload)
+            headers = {}
+            if settings.GICATESIS_API_KEY:
+                headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+
+            response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
             
             # Stream the binary response back to client
@@ -730,7 +820,11 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
     
     async with httpx.AsyncClient(timeout=180.0) as client:
         try:
-            response = await client.post(url, json=payload)
+            headers = {}
+            if settings.GICATESIS_API_KEY:
+                headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+                
+            response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
             
             content_disposition = response.headers.get(
