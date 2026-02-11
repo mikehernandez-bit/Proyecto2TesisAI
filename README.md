@@ -3,6 +3,22 @@
 UI + backend base para un sistema tipo “wizard” (mockup modularizado y funcional).
 
 ## Ejecutar
+
+Se recomienda utilizar **Python 3.12** (o versiones 3.10-3.13) para asegurar compatibilidad de librerías.
+
+### 1. Configurar entorno
+```bash
+# Crear entorno virtual
+python -m venv .venv
+
+# Activar en Windows
+.venv\Scripts\activate
+
+# Activar en Mac/Linux
+source .venv/bin/activate
+```
+
+### 2. Instalar y correr
 ```bash
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload

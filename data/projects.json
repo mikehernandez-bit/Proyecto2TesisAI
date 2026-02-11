@@ -1,1 +1,1664 @@
-[]
+[
+  {
+    "id": "proj_13d7d90628",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "draft",
+    "created_at": "2026-02-10T13:03:09",
+    "updated_at": "2026-02-10T13:15:22",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_d7c282d704",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "n8n_failed",
+    "created_at": "2026-02-10T12:44:16",
+    "updated_at": "2026-02-10T12:59:19",
+    "output_file": "outputs\\proj_d7c282d704.docx",
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_e0fad17081",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "draft",
+    "created_at": "2026-02-10T12:28:40",
+    "updated_at": "2026-02-10T12:28:40",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_90d135485e",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-10T11:11:12",
+    "updated_at": "2026-02-10T11:12:13",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "sec-0001",
+          "path": "DEDICATORIA / AGRADECIMIENTO",
+          "content": "Contenido IA simulado para: DEDICATORIA / AGRADECIMIENTO"
+        },
+        {
+          "sectionId": "sec-0002",
+          "path": "RESUMEN / ABSTRACT",
+          "content": "Contenido IA simulado para: RESUMEN / ABSTRACT"
+        },
+        {
+          "sectionId": "sec-0003",
+          "path": "INTRODUCCIÓN",
+          "content": "Contenido IA simulado para: INTRODUCCIÓN"
+        },
+        {
+          "sectionId": "sec-0004",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA"
+        },
+        {
+          "sectionId": "sec-0005",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática"
+        },
+        {
+          "sectionId": "sec-0006",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema"
+        },
+        {
+          "sectionId": "sec-0007",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos"
+        },
+        {
+          "sectionId": "sec-0008",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación"
+        },
+        {
+          "sectionId": "sec-0009",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación"
+        },
+        {
+          "sectionId": "sec-0010",
+          "path": "II. MARCO TEÓRICO",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO"
+        },
+        {
+          "sectionId": "sec-0011",
+          "path": "II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)"
+        },
+        {
+          "sectionId": "sec-0012",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas"
+        },
+        {
+          "sectionId": "sec-0013",
+          "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.3 Marco conceptual"
+        },
+        {
+          "sectionId": "sec-0014",
+          "path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.4 Definición de términos básicos"
+        },
+        {
+          "sectionId": "sec-0015",
+          "path": "III. HIPÓTESIS Y VARIABLES",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES"
+        },
+        {
+          "sectionId": "sec-0016",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)"
+        },
+        {
+          "sectionId": "sec-0017",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables"
+        },
+        {
+          "sectionId": "sec-0018",
+          "path": "IV. METODOLOGÍA",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA"
+        },
+        {
+          "sectionId": "sec-0019",
+          "path": "IV. METODOLOGÍA/4.1 Diseño metodológico",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.1 Diseño metodológico"
+        },
+        {
+          "sectionId": "sec-0020",
+          "path": "IV. METODOLOGÍA/4.2 Método de investigación",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.2 Método de investigación"
+        },
+        {
+          "sectionId": "sec-0021",
+          "path": "IV. METODOLOGÍA/4.3 Población y muestra",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.3 Población y muestra"
+        },
+        {
+          "sectionId": "sec-0022",
+          "path": "IV. METODOLOGÍA/4.4 Lugar de estudio",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.4 Lugar de estudio"
+        },
+        {
+          "sectionId": "sec-0023",
+          "path": "IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección"
+        },
+        {
+          "sectionId": "sec-0024",
+          "path": "IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos"
+        },
+        {
+          "sectionId": "sec-0025",
+          "path": "IV. METODOLOGÍA/4.7 Aspectos Éticos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.7 Aspectos Éticos"
+        },
+        {
+          "sectionId": "sec-0026",
+          "path": "V. RESULTADOS",
+          "content": "Contenido IA simulado para: V. RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0027",
+          "path": "V. RESULTADOS/5.1 Resultados descriptivos",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.1 Resultados descriptivos"
+        },
+        {
+          "sectionId": "sec-0028",
+          "path": "V. RESULTADOS/5.2 Resultados inferenciales",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.2 Resultados inferenciales"
+        },
+        {
+          "sectionId": "sec-0029",
+          "path": "VI. DISCUSIÓN DE RESULTADOS",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0030",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis"
+        },
+        {
+          "sectionId": "sec-0031",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios"
+        },
+        {
+          "sectionId": "sec-0032",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética"
+        },
+        {
+          "sectionId": "sec-0033",
+          "path": "VII. CONCLUSIONES",
+          "content": "Contenido IA simulado para: VII. CONCLUSIONES"
+        },
+        {
+          "sectionId": "sec-0034",
+          "path": "VIII. RECOMENDACIONES",
+          "content": "Contenido IA simulado para: VIII. RECOMENDACIONES"
+        },
+        {
+          "sectionId": "sec-0035",
+          "path": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+          "content": "Contenido IA simulado para: IX. REFERENCIAS BIBLIOGRÁFICAS"
+        },
+        {
+          "sectionId": "sec-0036",
+          "path": "ANEXOS",
+          "content": "Contenido IA simulado para: ANEXOS"
+        },
+        {
+          "sectionId": "sec-0037",
+          "path": "ANEXOS/Anexo 1: Matriz de Consistencia",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 1: Matriz de Consistencia"
+        },
+        {
+          "sectionId": "sec-0038",
+          "path": "ANEXOS/Anexo 2: Instrumento de recolección de datos",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 2: Instrumento de recolección de datos"
+        },
+        {
+          "sectionId": "sec-0039",
+          "path": "ANEXOS/Anexo 3: Validación de instrumento",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 3: Validación de instrumento"
+        }
+      ]
+    },
+    "run_id": "sim-20260210161206",
+    "artifacts": []
+  },
+  {
+    "id": "proj_822fd508c4",
+    "title": "a",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "a",
+      "objetivo_general": "a",
+      "poblacion": "a",
+      "variable_independiente": "a"
+    },
+    "values": {
+      "tema": "a",
+      "objetivo_general": "a",
+      "poblacion": "a",
+      "variable_independiente": "a"
+    },
+    "status": "draft",
+    "created_at": "2026-02-10T08:59:17",
+    "updated_at": "2026-02-10T08:59:17",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_1c2f373d39",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-10T08:49:49",
+    "updated_at": "2026-02-10T08:50:12",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "sec-0001",
+          "path": "DEDICATORIA / AGRADECIMIENTO",
+          "content": "Contenido IA simulado para: DEDICATORIA / AGRADECIMIENTO"
+        },
+        {
+          "sectionId": "sec-0002",
+          "path": "RESUMEN / ABSTRACT",
+          "content": "Contenido IA simulado para: RESUMEN / ABSTRACT"
+        },
+        {
+          "sectionId": "sec-0003",
+          "path": "INTRODUCCIÓN",
+          "content": "Contenido IA simulado para: INTRODUCCIÓN"
+        },
+        {
+          "sectionId": "sec-0004",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA"
+        },
+        {
+          "sectionId": "sec-0005",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática"
+        },
+        {
+          "sectionId": "sec-0006",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema"
+        },
+        {
+          "sectionId": "sec-0007",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos"
+        },
+        {
+          "sectionId": "sec-0008",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación"
+        },
+        {
+          "sectionId": "sec-0009",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación"
+        },
+        {
+          "sectionId": "sec-0010",
+          "path": "II. MARCO TEÓRICO",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO"
+        },
+        {
+          "sectionId": "sec-0011",
+          "path": "II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)"
+        },
+        {
+          "sectionId": "sec-0012",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas"
+        },
+        {
+          "sectionId": "sec-0013",
+          "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.3 Marco conceptual"
+        },
+        {
+          "sectionId": "sec-0014",
+          "path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.4 Definición de términos básicos"
+        },
+        {
+          "sectionId": "sec-0015",
+          "path": "III. HIPÓTESIS Y VARIABLES",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES"
+        },
+        {
+          "sectionId": "sec-0016",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)"
+        },
+        {
+          "sectionId": "sec-0017",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables"
+        },
+        {
+          "sectionId": "sec-0018",
+          "path": "IV. METODOLOGÍA",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA"
+        },
+        {
+          "sectionId": "sec-0019",
+          "path": "IV. METODOLOGÍA/4.1 Diseño metodológico",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.1 Diseño metodológico"
+        },
+        {
+          "sectionId": "sec-0020",
+          "path": "IV. METODOLOGÍA/4.2 Método de investigación",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.2 Método de investigación"
+        },
+        {
+          "sectionId": "sec-0021",
+          "path": "IV. METODOLOGÍA/4.3 Población y muestra",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.3 Población y muestra"
+        },
+        {
+          "sectionId": "sec-0022",
+          "path": "IV. METODOLOGÍA/4.4 Lugar de estudio",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.4 Lugar de estudio"
+        },
+        {
+          "sectionId": "sec-0023",
+          "path": "IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección"
+        },
+        {
+          "sectionId": "sec-0024",
+          "path": "IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos"
+        },
+        {
+          "sectionId": "sec-0025",
+          "path": "IV. METODOLOGÍA/4.7 Aspectos Éticos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.7 Aspectos Éticos"
+        },
+        {
+          "sectionId": "sec-0026",
+          "path": "V. RESULTADOS",
+          "content": "Contenido IA simulado para: V. RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0027",
+          "path": "V. RESULTADOS/5.1 Resultados descriptivos",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.1 Resultados descriptivos"
+        },
+        {
+          "sectionId": "sec-0028",
+          "path": "V. RESULTADOS/5.2 Resultados inferenciales",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.2 Resultados inferenciales"
+        },
+        {
+          "sectionId": "sec-0029",
+          "path": "VI. DISCUSIÓN DE RESULTADOS",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0030",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis"
+        },
+        {
+          "sectionId": "sec-0031",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios"
+        },
+        {
+          "sectionId": "sec-0032",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética"
+        },
+        {
+          "sectionId": "sec-0033",
+          "path": "VII. CONCLUSIONES",
+          "content": "Contenido IA simulado para: VII. CONCLUSIONES"
+        },
+        {
+          "sectionId": "sec-0034",
+          "path": "VIII. RECOMENDACIONES",
+          "content": "Contenido IA simulado para: VIII. RECOMENDACIONES"
+        },
+        {
+          "sectionId": "sec-0035",
+          "path": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+          "content": "Contenido IA simulado para: IX. REFERENCIAS BIBLIOGRÁFICAS"
+        },
+        {
+          "sectionId": "sec-0036",
+          "path": "ANEXOS",
+          "content": "Contenido IA simulado para: ANEXOS"
+        },
+        {
+          "sectionId": "sec-0037",
+          "path": "ANEXOS/Anexo 1: Matriz de Consistencia",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 1: Matriz de Consistencia"
+        },
+        {
+          "sectionId": "sec-0038",
+          "path": "ANEXOS/Anexo 2: Instrumento de recolección de datos",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 2: Instrumento de recolección de datos"
+        },
+        {
+          "sectionId": "sec-0039",
+          "path": "ANEXOS/Anexo 3: Validación de instrumento",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 3: Validación de instrumento"
+        }
+      ]
+    },
+    "run_id": "sim-20260210134958",
+    "artifacts": []
+  },
+  {
+    "id": "proj_3cb5dabc42",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-maestria-cuant",
+    "format_name": "Tesis de Maestría UNAC - Enfoque Cuantitativo",
+    "format_version": "4a366be37e6d7ec6",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-10T08:26:22",
+    "updated_at": "2026-02-10T08:35:56",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "sec-0001",
+          "path": "DEDICATORIA",
+          "content": "Contenido IA simulado para: DEDICATORIA"
+        },
+        {
+          "sectionId": "sec-0002",
+          "path": "AGRADECIMIENTO",
+          "content": "Contenido IA simulado para: AGRADECIMIENTO"
+        },
+        {
+          "sectionId": "sec-0003",
+          "path": "ÍNDICE DE ABREVIATURAS",
+          "content": "Contenido IA simulado para: ÍNDICE DE ABREVIATURAS"
+        },
+        {
+          "sectionId": "sec-0004",
+          "path": "HOJA DE REFERENCIA DEL JURADO Y APROBACIÓN",
+          "content": "Contenido IA simulado para: HOJA DE REFERENCIA DEL JURADO Y APROBACIÓN"
+        },
+        {
+          "sectionId": "sec-0005",
+          "path": "INTRODUCCIÓN",
+          "content": "Contenido IA simulado para: INTRODUCCIÓN"
+        },
+        {
+          "sectionId": "sec-0006",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA"
+        },
+        {
+          "sectionId": "sec-0007",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática"
+        },
+        {
+          "sectionId": "sec-0008",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática/Figura 1.1. Herramienta de ingeniería (ejemplo)",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática/Figura 1.1. Herramienta de ingeniería (ejemplo)"
+        },
+        {
+          "sectionId": "sec-0009",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema"
+        },
+        {
+          "sectionId": "sec-0010",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos"
+        },
+        {
+          "sectionId": "sec-0011",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación e importancia",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación e importancia"
+        },
+        {
+          "sectionId": "sec-0012",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Limitaciones",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.5 Limitaciones"
+        },
+        {
+          "sectionId": "sec-0013",
+          "path": "II. MARCO TEÓRICO",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO"
+        },
+        {
+          "sectionId": "sec-0014",
+          "path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1 Antecedentes"
+        },
+        {
+          "sectionId": "sec-0015",
+          "path": "II. MARCO TEÓRICO/2.1.1 Antecedentes internacionales",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1.1 Antecedentes internacionales"
+        },
+        {
+          "sectionId": "sec-0016",
+          "path": "II. MARCO TEÓRICO/2.1.2 Antecedentes nacionales",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1.2 Antecedentes nacionales"
+        },
+        {
+          "sectionId": "sec-0017",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas"
+        },
+        {
+          "sectionId": "sec-0018",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas/Figura 2.1. Modelo conceptual / esquema (ejemplo)",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas/Figura 2.1. Modelo conceptual / esquema (ejemplo)"
+        },
+        {
+          "sectionId": "sec-0019",
+          "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.3 Marco conceptual"
+        },
+        {
+          "sectionId": "sec-0020",
+          "path": "III. HIPÓTESIS Y VARIABLES",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES"
+        },
+        {
+          "sectionId": "sec-0021",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis"
+        },
+        {
+          "sectionId": "sec-0022",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.2 Variables",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.2 Variables"
+        },
+        {
+          "sectionId": "sec-0023",
+          "path": "IV. METODOLOGÍA",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA"
+        },
+        {
+          "sectionId": "sec-0024",
+          "path": "IV. METODOLOGÍA/4.1 Enfoque, tipo, diseño y nivel",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.1 Enfoque, tipo, diseño y nivel"
+        },
+        {
+          "sectionId": "sec-0025",
+          "path": "IV. METODOLOGÍA/4.2 Población y muestra",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.2 Población y muestra"
+        },
+        {
+          "sectionId": "sec-0026",
+          "path": "IV. METODOLOGÍA/4.3 Técnicas e instrumentos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.3 Técnicas e instrumentos"
+        },
+        {
+          "sectionId": "sec-0027",
+          "path": "IV. METODOLOGÍA/4.4 Procedimientos y análisis de datos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.4 Procedimientos y análisis de datos"
+        },
+        {
+          "sectionId": "sec-0028",
+          "path": "V. RESULTADOS",
+          "content": "Contenido IA simulado para: V. RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0029",
+          "path": "V. RESULTADOS/5.1 Presentación de resultados",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.1 Presentación de resultados"
+        },
+        {
+          "sectionId": "sec-0030",
+          "path": "V. RESULTADOS/5.2 Discusión",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.2 Discusión"
+        },
+        {
+          "sectionId": "sec-0031",
+          "path": "VI. CONCLUSIONES Y RECOMENDACIONES",
+          "content": "Contenido IA simulado para: VI. CONCLUSIONES Y RECOMENDACIONES"
+        },
+        {
+          "sectionId": "sec-0032",
+          "path": "VI. CONCLUSIONES Y RECOMENDACIONES/6.1 Conclusiones",
+          "content": "Contenido IA simulado para: VI. CONCLUSIONES Y RECOMENDACIONES/6.1 Conclusiones"
+        },
+        {
+          "sectionId": "sec-0033",
+          "path": "VI. CONCLUSIONES Y RECOMENDACIONES/6.2 Recomendaciones",
+          "content": "Contenido IA simulado para: VI. CONCLUSIONES Y RECOMENDACIONES/6.2 Recomendaciones"
+        },
+        {
+          "sectionId": "sec-0034",
+          "path": "REFERENCIAS BIBLIOGRÁFICAS",
+          "content": "Contenido IA simulado para: REFERENCIAS BIBLIOGRÁFICAS"
+        },
+        {
+          "sectionId": "sec-0035",
+          "path": "ANEXOS",
+          "content": "Contenido IA simulado para: ANEXOS"
+        },
+        {
+          "sectionId": "sec-0036",
+          "path": "ANEXOS/ANEXO 1. Matriz de consistencia (ejemplo completo)",
+          "content": "Contenido IA simulado para: ANEXOS/ANEXO 1. Matriz de consistencia (ejemplo completo)"
+        },
+        {
+          "sectionId": "sec-0037",
+          "path": "ANEXOS/ANEXO 2. Instrumento / evidencias (ejemplo completo)",
+          "content": "Contenido IA simulado para: ANEXOS/ANEXO 2. Instrumento / evidencias (ejemplo completo)"
+        }
+      ]
+    },
+    "run_id": "sim-20260210133246",
+    "artifacts": []
+  },
+  {
+    "id": "proj_7e5be77695",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-maestria-cuant",
+    "format_name": "Tesis de Maestría UNAC - Enfoque Cuantitativo",
+    "format_version": "4a366be37e6d7ec6",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-09T13:18:02",
+    "updated_at": "2026-02-09T13:18:19",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "sec-0001",
+          "path": "DEDICATORIA",
+          "content": "Contenido IA simulado para: DEDICATORIA"
+        },
+        {
+          "sectionId": "sec-0002",
+          "path": "AGRADECIMIENTO",
+          "content": "Contenido IA simulado para: AGRADECIMIENTO"
+        },
+        {
+          "sectionId": "sec-0003",
+          "path": "ÍNDICE DE ABREVIATURAS",
+          "content": "Contenido IA simulado para: ÍNDICE DE ABREVIATURAS"
+        },
+        {
+          "sectionId": "sec-0004",
+          "path": "HOJA DE REFERENCIA DEL JURADO Y APROBACIÓN",
+          "content": "Contenido IA simulado para: HOJA DE REFERENCIA DEL JURADO Y APROBACIÓN"
+        },
+        {
+          "sectionId": "sec-0005",
+          "path": "INTRODUCCIÓN",
+          "content": "Contenido IA simulado para: INTRODUCCIÓN"
+        },
+        {
+          "sectionId": "sec-0006",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA"
+        },
+        {
+          "sectionId": "sec-0007",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática"
+        },
+        {
+          "sectionId": "sec-0008",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática/Figura 1.1. Herramienta de ingeniería (ejemplo)",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática/Figura 1.1. Herramienta de ingeniería (ejemplo)"
+        },
+        {
+          "sectionId": "sec-0009",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema"
+        },
+        {
+          "sectionId": "sec-0010",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos"
+        },
+        {
+          "sectionId": "sec-0011",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación e importancia",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación e importancia"
+        },
+        {
+          "sectionId": "sec-0012",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Limitaciones",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.5 Limitaciones"
+        },
+        {
+          "sectionId": "sec-0013",
+          "path": "II. MARCO TEÓRICO",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO"
+        },
+        {
+          "sectionId": "sec-0014",
+          "path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1 Antecedentes"
+        },
+        {
+          "sectionId": "sec-0015",
+          "path": "II. MARCO TEÓRICO/2.1.1 Antecedentes internacionales",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1.1 Antecedentes internacionales"
+        },
+        {
+          "sectionId": "sec-0016",
+          "path": "II. MARCO TEÓRICO/2.1.2 Antecedentes nacionales",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1.2 Antecedentes nacionales"
+        },
+        {
+          "sectionId": "sec-0017",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas"
+        },
+        {
+          "sectionId": "sec-0018",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas/Figura 2.1. Modelo conceptual / esquema (ejemplo)",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas/Figura 2.1. Modelo conceptual / esquema (ejemplo)"
+        },
+        {
+          "sectionId": "sec-0019",
+          "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.3 Marco conceptual"
+        },
+        {
+          "sectionId": "sec-0020",
+          "path": "III. HIPÓTESIS Y VARIABLES",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES"
+        },
+        {
+          "sectionId": "sec-0021",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis"
+        },
+        {
+          "sectionId": "sec-0022",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.2 Variables",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.2 Variables"
+        },
+        {
+          "sectionId": "sec-0023",
+          "path": "IV. METODOLOGÍA",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA"
+        },
+        {
+          "sectionId": "sec-0024",
+          "path": "IV. METODOLOGÍA/4.1 Enfoque, tipo, diseño y nivel",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.1 Enfoque, tipo, diseño y nivel"
+        },
+        {
+          "sectionId": "sec-0025",
+          "path": "IV. METODOLOGÍA/4.2 Población y muestra",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.2 Población y muestra"
+        },
+        {
+          "sectionId": "sec-0026",
+          "path": "IV. METODOLOGÍA/4.3 Técnicas e instrumentos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.3 Técnicas e instrumentos"
+        },
+        {
+          "sectionId": "sec-0027",
+          "path": "IV. METODOLOGÍA/4.4 Procedimientos y análisis de datos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.4 Procedimientos y análisis de datos"
+        },
+        {
+          "sectionId": "sec-0028",
+          "path": "V. RESULTADOS",
+          "content": "Contenido IA simulado para: V. RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0029",
+          "path": "V. RESULTADOS/5.1 Presentación de resultados",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.1 Presentación de resultados"
+        },
+        {
+          "sectionId": "sec-0030",
+          "path": "V. RESULTADOS/5.2 Discusión",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.2 Discusión"
+        },
+        {
+          "sectionId": "sec-0031",
+          "path": "VI. CONCLUSIONES Y RECOMENDACIONES",
+          "content": "Contenido IA simulado para: VI. CONCLUSIONES Y RECOMENDACIONES"
+        },
+        {
+          "sectionId": "sec-0032",
+          "path": "VI. CONCLUSIONES Y RECOMENDACIONES/6.1 Conclusiones",
+          "content": "Contenido IA simulado para: VI. CONCLUSIONES Y RECOMENDACIONES/6.1 Conclusiones"
+        },
+        {
+          "sectionId": "sec-0033",
+          "path": "VI. CONCLUSIONES Y RECOMENDACIONES/6.2 Recomendaciones",
+          "content": "Contenido IA simulado para: VI. CONCLUSIONES Y RECOMENDACIONES/6.2 Recomendaciones"
+        },
+        {
+          "sectionId": "sec-0034",
+          "path": "REFERENCIAS BIBLIOGRÁFICAS",
+          "content": "Contenido IA simulado para: REFERENCIAS BIBLIOGRÁFICAS"
+        },
+        {
+          "sectionId": "sec-0035",
+          "path": "ANEXOS",
+          "content": "Contenido IA simulado para: ANEXOS"
+        },
+        {
+          "sectionId": "sec-0036",
+          "path": "ANEXOS/ANEXO 1. Matriz de consistencia (ejemplo completo)",
+          "content": "Contenido IA simulado para: ANEXOS/ANEXO 1. Matriz de consistencia (ejemplo completo)"
+        },
+        {
+          "sectionId": "sec-0037",
+          "path": "ANEXOS/ANEXO 2. Instrumento / evidencias (ejemplo completo)",
+          "content": "Contenido IA simulado para: ANEXOS/ANEXO 2. Instrumento / evidencias (ejemplo completo)"
+        }
+      ]
+    },
+    "run_id": "sim-20260209181809",
+    "artifacts": []
+  },
+  {
+    "id": "proj_d3a3d57186",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-09T13:17:02",
+    "updated_at": "2026-02-09T13:17:17",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "sec-0001",
+          "path": "DEDICATORIA / AGRADECIMIENTO",
+          "content": "Contenido IA simulado para: DEDICATORIA / AGRADECIMIENTO"
+        },
+        {
+          "sectionId": "sec-0002",
+          "path": "RESUMEN / ABSTRACT",
+          "content": "Contenido IA simulado para: RESUMEN / ABSTRACT"
+        },
+        {
+          "sectionId": "sec-0003",
+          "path": "INTRODUCCIÓN",
+          "content": "Contenido IA simulado para: INTRODUCCIÓN"
+        },
+        {
+          "sectionId": "sec-0004",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA"
+        },
+        {
+          "sectionId": "sec-0005",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática"
+        },
+        {
+          "sectionId": "sec-0006",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema"
+        },
+        {
+          "sectionId": "sec-0007",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos"
+        },
+        {
+          "sectionId": "sec-0008",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación"
+        },
+        {
+          "sectionId": "sec-0009",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación"
+        },
+        {
+          "sectionId": "sec-0010",
+          "path": "II. MARCO TEÓRICO",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO"
+        },
+        {
+          "sectionId": "sec-0011",
+          "path": "II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)"
+        },
+        {
+          "sectionId": "sec-0012",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas"
+        },
+        {
+          "sectionId": "sec-0013",
+          "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.3 Marco conceptual"
+        },
+        {
+          "sectionId": "sec-0014",
+          "path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.4 Definición de términos básicos"
+        },
+        {
+          "sectionId": "sec-0015",
+          "path": "III. HIPÓTESIS Y VARIABLES",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES"
+        },
+        {
+          "sectionId": "sec-0016",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)"
+        },
+        {
+          "sectionId": "sec-0017",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables"
+        },
+        {
+          "sectionId": "sec-0018",
+          "path": "IV. METODOLOGÍA",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA"
+        },
+        {
+          "sectionId": "sec-0019",
+          "path": "IV. METODOLOGÍA/4.1 Diseño metodológico",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.1 Diseño metodológico"
+        },
+        {
+          "sectionId": "sec-0020",
+          "path": "IV. METODOLOGÍA/4.2 Método de investigación",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.2 Método de investigación"
+        },
+        {
+          "sectionId": "sec-0021",
+          "path": "IV. METODOLOGÍA/4.3 Población y muestra",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.3 Población y muestra"
+        },
+        {
+          "sectionId": "sec-0022",
+          "path": "IV. METODOLOGÍA/4.4 Lugar de estudio",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.4 Lugar de estudio"
+        },
+        {
+          "sectionId": "sec-0023",
+          "path": "IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección"
+        },
+        {
+          "sectionId": "sec-0024",
+          "path": "IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos"
+        },
+        {
+          "sectionId": "sec-0025",
+          "path": "IV. METODOLOGÍA/4.7 Aspectos Éticos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.7 Aspectos Éticos"
+        },
+        {
+          "sectionId": "sec-0026",
+          "path": "V. RESULTADOS",
+          "content": "Contenido IA simulado para: V. RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0027",
+          "path": "V. RESULTADOS/5.1 Resultados descriptivos",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.1 Resultados descriptivos"
+        },
+        {
+          "sectionId": "sec-0028",
+          "path": "V. RESULTADOS/5.2 Resultados inferenciales",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.2 Resultados inferenciales"
+        },
+        {
+          "sectionId": "sec-0029",
+          "path": "VI. DISCUSIÓN DE RESULTADOS",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0030",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis"
+        },
+        {
+          "sectionId": "sec-0031",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios"
+        },
+        {
+          "sectionId": "sec-0032",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética"
+        },
+        {
+          "sectionId": "sec-0033",
+          "path": "VII. CONCLUSIONES",
+          "content": "Contenido IA simulado para: VII. CONCLUSIONES"
+        },
+        {
+          "sectionId": "sec-0034",
+          "path": "VIII. RECOMENDACIONES",
+          "content": "Contenido IA simulado para: VIII. RECOMENDACIONES"
+        },
+        {
+          "sectionId": "sec-0035",
+          "path": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+          "content": "Contenido IA simulado para: IX. REFERENCIAS BIBLIOGRÁFICAS"
+        },
+        {
+          "sectionId": "sec-0036",
+          "path": "ANEXOS",
+          "content": "Contenido IA simulado para: ANEXOS"
+        },
+        {
+          "sectionId": "sec-0037",
+          "path": "ANEXOS/Anexo 1: Matriz de Consistencia",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 1: Matriz de Consistencia"
+        },
+        {
+          "sectionId": "sec-0038",
+          "path": "ANEXOS/Anexo 2: Instrumento de recolección de datos",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 2: Instrumento de recolección de datos"
+        },
+        {
+          "sectionId": "sec-0039",
+          "path": "ANEXOS/Anexo 3: Validación de instrumento",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 3: Validación de instrumento"
+        }
+      ]
+    },
+    "run_id": "sim-20260209181709",
+    "artifacts": []
+  },
+  {
+    "id": "proj_eaf04e9e59",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-09T13:04:32",
+    "updated_at": "2026-02-09T13:16:14",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "sec-0001",
+          "path": "DEDICATORIA / AGRADECIMIENTO",
+          "content": "Contenido IA simulado para: DEDICATORIA / AGRADECIMIENTO"
+        },
+        {
+          "sectionId": "sec-0002",
+          "path": "RESUMEN / ABSTRACT",
+          "content": "Contenido IA simulado para: RESUMEN / ABSTRACT"
+        },
+        {
+          "sectionId": "sec-0003",
+          "path": "INTRODUCCIÓN",
+          "content": "Contenido IA simulado para: INTRODUCCIÓN"
+        },
+        {
+          "sectionId": "sec-0004",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA"
+        },
+        {
+          "sectionId": "sec-0005",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática"
+        },
+        {
+          "sectionId": "sec-0006",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema"
+        },
+        {
+          "sectionId": "sec-0007",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos"
+        },
+        {
+          "sectionId": "sec-0008",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación"
+        },
+        {
+          "sectionId": "sec-0009",
+          "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación",
+          "content": "Contenido IA simulado para: I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación"
+        },
+        {
+          "sectionId": "sec-0010",
+          "path": "II. MARCO TEÓRICO",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO"
+        },
+        {
+          "sectionId": "sec-0011",
+          "path": "II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)"
+        },
+        {
+          "sectionId": "sec-0012",
+          "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.2 Bases teóricas"
+        },
+        {
+          "sectionId": "sec-0013",
+          "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.3 Marco conceptual"
+        },
+        {
+          "sectionId": "sec-0014",
+          "path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+          "content": "Contenido IA simulado para: II. MARCO TEÓRICO/2.4 Definición de términos básicos"
+        },
+        {
+          "sectionId": "sec-0015",
+          "path": "III. HIPÓTESIS Y VARIABLES",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES"
+        },
+        {
+          "sectionId": "sec-0016",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)"
+        },
+        {
+          "sectionId": "sec-0017",
+          "path": "III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables",
+          "content": "Contenido IA simulado para: III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables"
+        },
+        {
+          "sectionId": "sec-0018",
+          "path": "IV. METODOLOGÍA",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA"
+        },
+        {
+          "sectionId": "sec-0019",
+          "path": "IV. METODOLOGÍA/4.1 Diseño metodológico",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.1 Diseño metodológico"
+        },
+        {
+          "sectionId": "sec-0020",
+          "path": "IV. METODOLOGÍA/4.2 Método de investigación",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.2 Método de investigación"
+        },
+        {
+          "sectionId": "sec-0021",
+          "path": "IV. METODOLOGÍA/4.3 Población y muestra",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.3 Población y muestra"
+        },
+        {
+          "sectionId": "sec-0022",
+          "path": "IV. METODOLOGÍA/4.4 Lugar de estudio",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.4 Lugar de estudio"
+        },
+        {
+          "sectionId": "sec-0023",
+          "path": "IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección"
+        },
+        {
+          "sectionId": "sec-0024",
+          "path": "IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos"
+        },
+        {
+          "sectionId": "sec-0025",
+          "path": "IV. METODOLOGÍA/4.7 Aspectos Éticos",
+          "content": "Contenido IA simulado para: IV. METODOLOGÍA/4.7 Aspectos Éticos"
+        },
+        {
+          "sectionId": "sec-0026",
+          "path": "V. RESULTADOS",
+          "content": "Contenido IA simulado para: V. RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0027",
+          "path": "V. RESULTADOS/5.1 Resultados descriptivos",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.1 Resultados descriptivos"
+        },
+        {
+          "sectionId": "sec-0028",
+          "path": "V. RESULTADOS/5.2 Resultados inferenciales",
+          "content": "Contenido IA simulado para: V. RESULTADOS/5.2 Resultados inferenciales"
+        },
+        {
+          "sectionId": "sec-0029",
+          "path": "VI. DISCUSIÓN DE RESULTADOS",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS"
+        },
+        {
+          "sectionId": "sec-0030",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis"
+        },
+        {
+          "sectionId": "sec-0031",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios"
+        },
+        {
+          "sectionId": "sec-0032",
+          "path": "VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética",
+          "content": "Contenido IA simulado para: VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética"
+        },
+        {
+          "sectionId": "sec-0033",
+          "path": "VII. CONCLUSIONES",
+          "content": "Contenido IA simulado para: VII. CONCLUSIONES"
+        },
+        {
+          "sectionId": "sec-0034",
+          "path": "VIII. RECOMENDACIONES",
+          "content": "Contenido IA simulado para: VIII. RECOMENDACIONES"
+        },
+        {
+          "sectionId": "sec-0035",
+          "path": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+          "content": "Contenido IA simulado para: IX. REFERENCIAS BIBLIOGRÁFICAS"
+        },
+        {
+          "sectionId": "sec-0036",
+          "path": "ANEXOS",
+          "content": "Contenido IA simulado para: ANEXOS"
+        },
+        {
+          "sectionId": "sec-0037",
+          "path": "ANEXOS/Anexo 1: Matriz de Consistencia",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 1: Matriz de Consistencia"
+        },
+        {
+          "sectionId": "sec-0038",
+          "path": "ANEXOS/Anexo 2: Instrumento de recolección de datos",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 2: Instrumento de recolección de datos"
+        },
+        {
+          "sectionId": "sec-0039",
+          "path": "ANEXOS/Anexo 3: Validación de instrumento",
+          "content": "Contenido IA simulado para: ANEXOS/Anexo 3: Validación de instrumento"
+        }
+      ]
+    },
+    "run_id": "sim-20260209180458",
+    "artifacts": []
+  },
+  {
+    "id": "proj_7bb12763f3",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-06T16:15:55",
+    "updated_at": "2026-02-06T16:16:30",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_0fe19f3b0a",
+    "title": "QA simulacion final",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "unac-informe-cual",
+    "format_version": null,
+    "variables": {
+      "tema": "Simulacion n8n",
+      "objetivo_general": "Verificar salida"
+    },
+    "values": {
+      "tema": "Simulacion n8n",
+      "objetivo_general": "Verificar salida"
+    },
+    "status": "completed",
+    "created_at": "2026-02-06T16:04:55",
+    "updated_at": "2026-02-06T16:05:00",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "title": "Resumen ejecutivo",
+          "content": "Simulacion de salida para Simulacion n8n. Prompt base: Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base."
+        },
+        {
+          "title": "Variables de entrada",
+          "content": "Valores aplicados en la ejecucion simulada: tema=Simulacion n8n, objetivo_general=Verificar salida"
+        },
+        {
+          "title": "Cobertura del formato",
+          "content": "La simulacion contempla la estructura definida en: _meta, caratula, preliminares, cuerpo, finales, matriz_consistencia, version, descripcion"
+        },
+        {
+          "title": "Plan de redaccion",
+          "content": "Generar cada seccion conforme al formato institucional y validar coherencia antes del callback."
+        }
+      ]
+    },
+    "run_id": "sim-20260206210455",
+    "artifacts": [
+      {
+        "type": "docx",
+        "name": "simulated.docx",
+        "downloadUrl": "http://localhost:8001/api/sim/download/docx?projectId=proj_0fe19f3b0a&runId=sim-20260206210455"
+      },
+      {
+        "type": "pdf",
+        "name": "simulated.pdf",
+        "downloadUrl": "http://localhost:8001/api/sim/download/pdf?projectId=proj_0fe19f3b0a&runId=sim-20260206210455"
+      }
+    ]
+  },
+  {
+    "id": "proj_bea935f9dc",
+    "title": "QA simulacion",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "unac-informe-cual",
+    "format_version": null,
+    "variables": {
+      "tema": "Simulacion de tesis",
+      "objetivo_general": "Validar flujo"
+    },
+    "values": {
+      "tema": "Simulacion de tesis",
+      "objetivo_general": "Validar flujo"
+    },
+    "status": "draft",
+    "created_at": "2026-02-06T16:04:19",
+    "updated_at": "2026-02-06T16:04:19",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_bdae6548fb",
+    "title": "QA simulacion",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "unac-informe-cual",
+    "format_version": null,
+    "variables": {
+      "tema": "Simulacion de tesis",
+      "objetivo_general": "Validar flujo"
+    },
+    "values": {
+      "tema": "Simulacion de tesis",
+      "objetivo_general": "Validar flujo"
+    },
+    "status": "completed",
+    "created_at": "2026-02-06T16:03:18",
+    "updated_at": "2026-02-06T16:03:22",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "title": "Resumen ejecutivo",
+          "content": "Simulacion de salida para Simulacion de tesis. Prompt base: Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base."
+        },
+        {
+          "title": "Variables de entrada",
+          "content": "Valores aplicados en la ejecucion simulada: tema=Simulacion de tesis, objetivo_general=Validar flujo"
+        },
+        {
+          "title": "Plan de redaccion",
+          "content": "Generar cada seccion conforme al formato institucional y validar coherencia antes del callback."
+        }
+      ]
+    },
+    "run_id": "sim-20260206210318",
+    "artifacts": [
+      {
+        "type": "docx",
+        "name": "simulated.docx",
+        "downloadUrl": "http://localhost:8001/api/sim/download/docx?projectId=proj_bdae6548fb&runId=sim-20260206210318"
+      },
+      {
+        "type": "pdf",
+        "name": "simulated.pdf",
+        "downloadUrl": "http://localhost:8001/api/sim/download/pdf?projectId=proj_bdae6548fb&runId=sim-20260206210318"
+      }
+    ]
+  },
+  {
+    "id": "proj_06614204ec",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "values": {
+      "tema": "A",
+      "objetivo_general": "A",
+      "poblacion": "A",
+      "variable_independiente": "A"
+    },
+    "status": "completed",
+    "created_at": "2026-02-06T15:21:00",
+    "updated_at": "2026-02-06T15:26:58",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  }
+]
