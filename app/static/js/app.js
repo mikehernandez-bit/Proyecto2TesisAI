@@ -518,7 +518,7 @@ const TesisAI = (() => {
   // Generation flow (Step 4 progress panel)
   // =========================================================================
   const GEN_POLL_INTERVAL = 3000;   // ms between polls
-  const GEN_POLL_TIMEOUT = 120;    // seconds max
+  const GEN_POLL_TIMEOUT = 600;    // seconds max (aumentado de 120s a 600s para n8n)
 
   let _genCancelled = false;
   let _genTimerHandle = null;

@@ -1,5 +1,515 @@
 [
   {
+    "id": "proj_c28ad55b95",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T20:20:45",
+    "updated_at": "2026-02-11T20:22:18",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_f0e71f4db6",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T19:42:48",
+    "updated_at": "2026-02-11T20:16:24",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_137b89e549",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-proyecto-cual",
+    "format_name": "Proyecto de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "801dc2b68744ba61",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "a",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "a",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T19:25:13",
+    "updated_at": "2026-02-11T19:25:17",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_bd43c3190f",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cuant",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cuantitativo",
+    "format_version": "cdd4d7fc67cc16b9",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T18:37:37",
+    "updated_at": "2026-02-11T18:37:40",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_6deb5ec175",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T18:35:46",
+    "updated_at": "2026-02-11T18:36:37",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_e53aca5fc7",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T18:25:41",
+    "updated_at": "2026-02-11T18:25:44",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_421966392a",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T18:10:21",
+    "updated_at": "2026-02-11T18:22:39",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_3a2333280c",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cuant",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cuantitativo",
+    "format_version": "cdd4d7fc67cc16b9",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-11T18:04:57",
+    "updated_at": "2026-02-11T18:07:00",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_20afb283cf",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cuant",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cuantitativo",
+    "format_version": "cdd4d7fc67cc16b9",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T17:51:18",
+    "updated_at": "2026-02-11T18:04:22",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_23fc8efcfc",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cuant",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cuantitativo",
+    "format_version": "cdd4d7fc67cc16b9",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T17:48:26",
+    "updated_at": "2026-02-11T17:48:37",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_ff8112edc2",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T17:47:11",
+    "updated_at": "2026-02-11T17:48:01",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_db68e98597",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cuant",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cuantitativo",
+    "format_version": "cdd4d7fc67cc16b9",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T17:18:25",
+    "updated_at": "2026-02-11T17:27:09",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_f582889962",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T17:14:00",
+    "updated_at": "2026-02-11T17:15:33",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_92afff6a49",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T16:38:18",
+    "updated_at": "2026-02-11T16:48:55",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_985f5901a8",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T16:25:33",
+    "updated_at": "2026-02-11T16:25:33",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_6184809435",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T16:10:15",
+    "updated_at": "2026-02-11T16:18:41",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_9b5de2f114",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "aaa",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "draft",
+    "created_at": "2026-02-11T16:08:01",
+    "updated_at": "2026-02-11T16:09:21",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
     "id": "proj_228c94d2e3",
     "title": "A",
     "prompt_id": "prompt_tesis_estandar",

@@ -5,8 +5,8 @@ from typing import Any, Dict
 import httpx
 from app.core.config import settings
 
-PING_TIMEOUT = 10  # seconds
-TRIGGER_TIMEOUT = 15  # seconds
+PING_TIMEOUT = 30  # seconds
+TRIGGER_TIMEOUT = 600  # seconds
 
 
 class N8NClient:
