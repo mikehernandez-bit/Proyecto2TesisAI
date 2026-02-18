@@ -1,5 +1,139 @@
 [
   {
+    "id": "proj_f620133178",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "8e9b8aca2c7b2c27",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-17T19:58:36",
+    "updated_at": "2026-02-17T20:15:19",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "s1",
+          "path": "General",
+          "content": "Contenido completo"
+        }
+      ]
+    },
+    "run_id": "1211",
+    "artifacts": []
+  },
+  {
+    "id": "proj_7eaa2f4eca",
+    "title": "aaa",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "8e9b8aca2c7b2c27",
+    "variables": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "objetivo_general": "",
+      "poblacion": "aaa",
+      "variable_independiente": "aaa"
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-17T19:50:39",
+    "updated_at": "2026-02-17T19:50:44",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_db7584b97c",
+    "title": "A",
+    "prompt_id": "prompt_tesis_estandar",
+    "prompt_name": "Tesis Ingeniería Estándar",
+    "prompt_template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "8e9b8aca2c7b2c27",
+    "variables": {
+      "tema": "",
+      "objetivo_general": "",
+      "poblacion": "",
+      "variable_independiente": ""
+    },
+    "values": {
+      "tema": "",
+      "objetivo_general": "",
+      "poblacion": "",
+      "variable_independiente": ""
+    },
+    "status": "n8n_ack",
+    "created_at": "2026-02-17T19:45:16",
+    "updated_at": "2026-02-17T19:45:21",
+    "output_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": []
+  },
+  {
+    "id": "proj_47270f117b",
+    "title": "aaa",
+    "prompt_id": "prompt_imryd",
+    "prompt_name": "Artículo Científico (IMRYD)",
+    "prompt_template": "Redacta un artículo IMRYD sobre {{tema}} con metodología {{metodologia}}.",
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "8e9b8aca2c7b2c27",
+    "variables": {
+      "tema": "aaa",
+      "metodologia": "aaa",
+      "hipotesis": "aaa"
+    },
+    "values": {
+      "tema": "aaa",
+      "metodologia": "aaa",
+      "hipotesis": "aaa"
+    },
+    "status": "ai_received",
+    "created_at": "2026-02-17T17:17:35",
+    "updated_at": "2026-02-17T19:55:47",
+    "output_file": null,
+    "error": null,
+    "ai_result": {
+      "sections": [
+        {
+          "sectionId": "s1",
+          "path": "General",
+          "content": "Contenido completo"
+        }
+      ]
+    },
+    "run_id": "1189",
+    "artifacts": []
+  },
+  {
     "id": "proj_c28ad55b95",
     "title": "aaa",
     "prompt_id": "prompt_tesis_estandar",

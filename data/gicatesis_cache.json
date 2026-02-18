@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02",
-  "catalogEtag": "\"1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02\"",
+  "catalogVersion": "583bb1efcee4c4cae890f90730810dbacf412b9b25e6c7613de193fc18d48f9a",
+  "catalogEtag": "\"583bb1efcee4c4cae890f90730810dbacf412b9b25e6c7613de193fc18d48f9a\"",
   "formats": [
     {
       "id": "unac-informe-cual",
@@ -8,7 +8,7 @@
       "university": "unac",
       "category": "Informe de Tesis",
       "documentType": "cual",
-      "version": "c5fe33e5ec221278"
+      "version": "8e9b8aca2c7b2c27"
     },
     {
       "id": "unac-informe-cuant",
@@ -1034,5 +1034,5 @@
       }
     }
   },
-  "lastSyncAt": "2026-02-05T16:20:18.120382"
+  "lastSyncAt": "2026-02-17T17:14:19.194163"
 }
