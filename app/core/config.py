@@ -37,4 +37,8 @@ class Settings:
     N8N_WEBHOOK_URL: str = _get("N8N_WEBHOOK_URL", "")
     N8N_SHARED_SECRET: str = _get("N8N_SHARED_SECRET", "")
 
+
+    # Gemini AI
+    GEMINI_API_KEY: str = _get("GEMINI_API_KEY", "")
+
 settings = Settings()
