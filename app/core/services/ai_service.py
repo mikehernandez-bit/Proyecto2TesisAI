@@ -54,7 +54,7 @@ class GeminiService:
         # Extraemos las secciones que necesitamos
         secciones_esperadas = [{"sectionId": s["sectionId"], "path": s["path"]} for s in section_index]
         
-        # 3. Instrucción mejorada a prueba de fallos
+        # 3. Instrucción mejorada (Texto Plano sin HTML)
         instruccion_sistema = f"""
 Actúa como un experto académico e investigador. 
 Tu tarea es generar el contenido para un documento basado en el siguiente prompt del usuario:
@@ -64,8 +64,11 @@ Tu tarea es generar el contenido para un documento basado en el siguiente prompt
 
 INSTRUCCIONES CRÍTICAS PARA EL FORMATO:
 - Debes generar el "content" (contenido) para CADA UNA de las secciones listadas abajo.
-- Usa formato HTML básico (<h1>, <p>, <ul>, <strong>, etc.) para el texto.
-- REGLA DE ORO: NO uses comillas dobles (") dentro del código HTML generado. Usa SIEMPRE comillas simples ('). Por ejemplo, escribe <p class='texto'> en lugar de <p class="texto">.
+- El contenido debe ser ESTRICTAMENTE TEXTO PLANO (Plain Text).
+- PROHIBIDO USAR ETIQUETAS HTML. NO uses <p>, <h1>, <ul>, <br>, ni ninguna otra.
+- Usa saltos de línea normales (\\n) para separar los párrafos.
+- Para hacer listas, usa simples guiones (- ).
+- Usa ortografía normal con tildes (escribe "Introducción", NO uses códigos como "Introducci&oacute;n").
 
 Secciones a rellenar:
 {json.dumps(secciones_esperadas, indent=2)}
