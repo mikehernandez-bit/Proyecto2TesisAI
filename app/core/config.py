@@ -37,4 +37,22 @@ class Settings:
     N8N_WEBHOOK_URL: str = _get("N8N_WEBHOOK_URL", "")
     N8N_SHARED_SECRET: str = _get("N8N_SHARED_SECRET", "")
 
+
+    # Gemini AI
+    GEMINI_API_KEY: str = _get("GEMINI_API_KEY", "")
+
+
+    # SSH Tunnel
+    SSH_HOST: str = _get("SSH_HOST", "")
+    SSH_PORT: int = int(_get("SSH_PORT", "2222"))
+    SSH_USER: str = _get("SSH_USER", "")
+    SSH_PASSWORD: str = _get("SSH_PASSWORD", "")
+
+    # PostgreSQL DB
+    DB_HOST: str = _get("DB_HOST", "127.0.0.1")
+    DB_PORT: int = int(_get("DB_PORT", "5432"))
+    DB_NAME: str = _get("DB_NAME", "")
+    DB_USER: str = _get("DB_USER", "")
+    DB_PASSWORD: str = _get("DB_PASSWORD", "")
+
 settings = Settings()

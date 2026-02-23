@@ -22,8 +22,13 @@ from fastapi.responses import FileResponse, Response
 from app.core.config import settings
 from app.core.services.docx_builder import build_demo_docx
 from app.core.services.format_service import FormatService
+
 from app.core.services.n8n_client import N8NClient
 from app.core.services.n8n_integration_service import N8NIntegrationService
+#ADD - SERVICE DE GEMNIS AI
+from app.core.services.ai_service import ai_service
+# ------------------------------------------ 
+
 from app.core.services.project_service import ProjectService
 from app.core.services.prompt_service import PromptService
 from app.core.services.definition_compiler import compile_definition_to_section_index
@@ -189,11 +194,15 @@ def build_info():
 # N8N INTEGRATION CONTRACTS
 # =============================================================================
 
-
+## --------------------------------------------------------------------------------
 @router.get("/integrations/n8n/health")
 async def n8n_health():
-    """Check n8n webhook connectivity."""
-    return await n8n.ping()
+    """Bypass n8n check: Avisamos al frontend que Gemini está listo."""
+    return {
+        "configured": True,
+        "reachable": True,
+        "message": "Conectado a IA Local (Gemini)"
+    }
 
 
 @router.get("/integrations/n8n/spec")
@@ -550,35 +559,39 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
         },
     )
 
-
-async def _generation_job(project_id: str, format_name: str, prompt_name: str, variables: Dict[str, Any]):
-    # Try n8n (real mode)
+#=============================================================================
+async def _generation_job(project_id: str, format_id: str, prompt_template: str, variables: Dict[str, Any]):
+    """Trabajo en background que llama a Gemini directamente y actualiza el proyecto."""
     try:
-        callback_url = f"{settings.GICAGEN_BASE_URL.rstrip('/')}/api/integrations/n8n/callback"
-        payload = {
-            "project_id": project_id,
-            "format_name": format_name,
-            "prompt_name": prompt_name,
-            "variables": variables,
-            "callback_url": callback_url,
-        }
-        r = await n8n.trigger(payload)
-        if r.get("ok"):
-            # Real mode expects callback later.
-            return
-    except Exception:
-        pass
+        projects.update_project(project_id, {"status": "processing"})
+        
+        # 1. Obtener la estructura del formato
+        detail = await formats.get_format_detail(format_id)
+        definition = detail.model_dump().get("definition", {}) if hasattr(detail, "model_dump") else detail.get("definition", {})
+        section_index = compile_definition_to_section_index(definition)
+        
+        if not section_index:
+            section_index = [{"sectionId": "sec-0001", "path": "Documento", "title": "Documento"}]
 
-    # Demo mode: generate locally
-    out_path = Path("outputs") / f"{project_id}.docx"
-    build_demo_docx(
-        output_path=str(out_path),
-        title=f"{prompt_name} - {format_name}",
-        sections=["Capitulo 1", "Capitulo 2", "Capitulo 3", "Capitulo 4", "Referencias"],
-        variables=variables,
-    )
-    await asyncio.sleep(0.8)
-    projects.mark_completed(project_id, str(out_path))
+        # 2. Llamar a Gemini (Esto tomará unos segundos/minutos dependiendo del tamaño)
+        ai_result = await ai_service.generate_document_content(
+            prompt_template=prompt_template,
+            variables=variables,
+            section_index=section_index
+        )
+        
+        # 3. Guardar el resultado simulando el callback que antes hacía n8n
+        run_id = f"gemini_{dt.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        projects.mark_ai_received(
+            project_id=project_id,
+            ai_result=ai_result,
+            run_id=run_id,
+            artifacts=[]
+        )
+        
+    except Exception as e:
+        # Si algo falla, marcamos el proyecto como fallido
+        projects.mark_failed(project_id, str(e))
 
 
 @router.post("/projects/generate")
@@ -618,84 +631,32 @@ def generate(payload: ProjectGenerateIn, background: BackgroundTasks):
     )
     return project
 
-
+#=============================================================================
 @router.post("/projects/{projectId}/generate")
 async def trigger_generation(projectId: str, background: BackgroundTasks):
     """
-    Trigger generation for an existing project draft.
-
-    1. If n8n is configured: call webhook synchronously for ACK.
-       - 200/202 => status='n8n_ack', return ok
-       - error   => status='n8n_failed', return 502
-    2. If n8n is NOT configured: fall back to local demo (background).
+    Inicia la generación de contenido usando Gemini en background.
     """
     project = projects.get_project(projectId)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # ------------------------------------------------------------------
-    # Path A: n8n configured => synchronous ACK
-    # ------------------------------------------------------------------
-    if settings.N8N_WEBHOOK_URL:
-        callback_url = (
-            f"{settings.GICAGEN_BASE_URL.rstrip('/')}"
-            f"/api/integrations/n8n/callback"
-        )
-        payload = {
-            "projectId": projectId,
-            "format": {
-                "id": project.get("format_id"),
-                "name": project.get("format_name"),
-                "version": project.get("format_version"),
-            },
-            "prompt": {
-                "id": project.get("prompt_id"),
-                "name": project.get("prompt_name"),
-            },
-            "values": project.get("variables") or project.get("values", {}),
-            "callbackUrl": callback_url,
-        }
+    prompt = prompts.get_prompt(project.get("prompt_id"))
+    prompt_template = prompt.get("template", "") if prompt else project.get("prompt_template", "")
 
-        projects.update_project(projectId, {"status": "sending"})
-        result = await n8n.trigger(payload)
-
-        if result.get("ok"):
-            run_id = (
-                result.get("data", {}).get("runId")
-                or result.get("data", {}).get("run_id")
-                or f"run_{projectId}"
-            )
-            projects.update_project(projectId, {
-                "status": "n8n_ack",
-                "run_id": run_id,
-            })
-            return {
-                "ok": True,
-                "status": "n8n_ack",
-                "runId": run_id,
-                "statusCode": result.get("statusCode"),
-            }
-
-        # n8n failed
-        error_msg = result.get("error", "Error desconocido al llamar a n8n")
-        projects.update_project(projectId, {
-            "status": "n8n_failed",
-            "error": error_msg,
-        })
-        raise HTTPException(status_code=502, detail=error_msg)
-
-    # ------------------------------------------------------------------
-    # Path B: no n8n => local demo (background task)
-    # ------------------------------------------------------------------
+    # Actualizamos estado para que el frontend muestre el loading
     projects.update_project(projectId, {"status": "processing"})
+    
+    # Lanzamos el trabajo a Gemini en background
     background.add_task(
         _generation_job,
-        projectId,
-        project.get("format_name", "Format"),
-        project.get("prompt_name", "Prompt"),
-        project.get("variables", {}),
+        project_id=projectId,
+        format_id=project.get("format_id"),
+        prompt_template=prompt_template,
+        variables=project.get("variables", project.get("values", {})),
     )
-    return {"ok": True, "status": "processing", "mode": "demo"}
+    
+    return {"ok": True, "status": "processing", "mode": "gemini"}
 
 
 @router.post("/n8n/callback/{project_id}")

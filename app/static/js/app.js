@@ -128,9 +128,15 @@ const TesisAI = (() => {
     $("dashboard-empty").classList.add("hidden");
 
     items.slice(0, 5).forEach((project) => {
-      const canDownload = project.status === "completed" && project.output_file;
+
+      // CORREGIDO BOTON DE DESCARGA PARA PROYECTOS SIMULADOS 
+      const canDownload = ["completed", "ai_received", "simulated"].includes(project.status);
+      const downloadUrl = project.output_file 
+        ? `/api/download/${encodeURIComponent(project.id)}` 
+        : `/api/sim/download/docx?projectId=${encodeURIComponent(project.id)}`;
+
       const downloadBtn = canDownload
-        ? `<a class="text-blue-600 hover:text-blue-800" href="/api/download/${encodeURIComponent(project.id)}" title="Descargar"><i class="fa-solid fa-download"></i></a>`
+        ? `<a class="text-blue-600 hover:text-blue-800" href="${downloadUrl}" title="Descargar"><i class="fa-solid fa-download"></i></a>`
         : `<span class="text-gray-300" title="No disponible"><i class="fa-solid fa-download"></i></span>`;
 
       const row = document.createElement("tr");
@@ -518,7 +524,7 @@ const TesisAI = (() => {
   // Generation flow (Step 4 progress panel)
   // =========================================================================
   const GEN_POLL_INTERVAL = 3000;   // ms between polls
-  const GEN_POLL_TIMEOUT = 120;    // seconds max
+  const GEN_POLL_TIMEOUT = 600;    // seconds max (aumentado de 120s a 600s para n8n)
 
   let _genCancelled = false;
   let _genTimerHandle = null;
@@ -718,14 +724,15 @@ const TesisAI = (() => {
           _stopGenTimer();
           currentProject = check;
 
+          // CORREGIDO LA RUTA PARA LA DESCARGAR EN EL FRONT END
           simRunResult = {
             projectId: check.id,
             runId: check.run_id || "",
             artifacts: [
-              { type: "docx", downloadUrl: `/api/download/${encodeURIComponent(check.id)}` },
-              { type: "pdf", downloadUrl: `/api/render/pdf?projectId=${encodeURIComponent(check.id)}` },
+              { type: "docx", downloadUrl: `/api/sim/download/docx?projectId=${encodeURIComponent(check.id)}` },
+              { type: "pdf", downloadUrl: `/api/sim/download/pdf?projectId=${encodeURIComponent(check.id)}` },
             ],
-          };
+        };
 
           _setPhase("gen-phase-wait", "ok");
           _setPhaseLabel("gen-phase-wait", `Completado en ${_genElapsed}s`);
@@ -992,9 +999,14 @@ const TesisAI = (() => {
     $("history-empty").classList.add("hidden");
 
     filtered.forEach((project) => {
-      const canDownload = project.status === "completed" && project.output_file;
+      // CORREGIDO LA RUTA PARA LA DESCARGAR EN EL FRONT END
+      const canDownload = ["completed", "ai_received", "simulated"].includes(project.status);
+      const downloadUrl = project.output_file 
+        ? `/api/download/${encodeURIComponent(project.id)}` 
+        : `/api/sim/download/docx?projectId=${encodeURIComponent(project.id)}`;
+
       const actions = canDownload
-        ? `<a class="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded" title="Descargar DOCX" href="/api/download/${encodeURIComponent(project.id)}"><i class="fa-solid fa-file-word"></i></a>`
+        ? `<a class="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded" title="Descargar DOCX" href="${downloadUrl}"><i class="fa-solid fa-file-word"></i></a>`
         : `<span class="p-2 text-gray-300 rounded" title="No disponible"><i class="fa-solid fa-file-word"></i></span>`;
 
       const row = document.createElement("tr");

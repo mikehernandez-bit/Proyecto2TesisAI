@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02",
-  "catalogEtag": "\"1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02\"",
+  "catalogVersion": "583bb1efcee4c4cae890f90730810dbacf412b9b25e6c7613de193fc18d48f9a",
+  "catalogEtag": "\"583bb1efcee4c4cae890f90730810dbacf412b9b25e6c7613de193fc18d48f9a\"",
   "formats": [
     {
       "id": "unac-informe-cual",
@@ -8,7 +8,7 @@
       "university": "unac",
       "category": "Informe de Tesis",
       "documentType": "cual",
-      "version": "c5fe33e5ec221278"
+      "version": "8e9b8aca2c7b2c27"
     },
     {
       "id": "unac-informe-cuant",
@@ -1032,7 +1032,871 @@
           ]
         }
       }
+    },
+    "unac-informe-cuant": {
+      "id": "unac-informe-cuant",
+      "title": "Informe de Tesis UNAC - Enfoque Cuantitativo",
+      "university": "unac",
+      "category": "Informe de Tesis",
+      "documentType": "cuant",
+      "version": "cdd4d7fc67cc16b9",
+      "templateRef": null,
+      "fields": [
+        {
+          "name": "universidad",
+          "label": "Universidad",
+          "type": "text",
+          "required": false,
+          "default": "UNIVERSIDAD NACIONAL DEL CALLAO",
+          "options": null,
+          "validation": null,
+          "order": 1,
+          "section": null
+        },
+        {
+          "name": "facultad",
+          "label": "Facultad",
+          "type": "text",
+          "required": false,
+          "default": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "options": null,
+          "validation": null,
+          "order": 2,
+          "section": null
+        },
+        {
+          "name": "escuela",
+          "label": "Escuela",
+          "type": "text",
+          "required": false,
+          "default": "ESCUELA PROFESIONAL DE [NOMBRE DE LA ESCUELA]",
+          "options": null,
+          "validation": null,
+          "order": 3,
+          "section": null
+        },
+        {
+          "name": "tipo_documento",
+          "label": "Tipo Documento",
+          "type": "text",
+          "required": false,
+          "default": "INFORME DE TESIS",
+          "options": null,
+          "validation": null,
+          "order": 4,
+          "section": null
+        },
+        {
+          "name": "titulo_placeholder",
+          "label": "Titulo Placeholder",
+          "type": "text",
+          "required": false,
+          "default": "\"[ESCRIBA AQUÍ EL TÍTULO DE LA TESIS]\"",
+          "options": null,
+          "validation": null,
+          "order": 5,
+          "section": null
+        },
+        {
+          "name": "frase_grado",
+          "label": "Frase Grado",
+          "type": "text",
+          "required": false,
+          "default": "PARA OPTAR EL TÍTULO PROFESIONAL DE:",
+          "options": null,
+          "validation": null,
+          "order": 6,
+          "section": null
+        },
+        {
+          "name": "grado_objetivo",
+          "label": "Grado Objetivo",
+          "type": "text",
+          "required": false,
+          "default": "[INGENIERO DE ...]",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "label_autor",
+          "label": "Label Autor",
+          "type": "text",
+          "required": false,
+          "default": "AUTOR: [NOMBRES Y APELLIDOS]",
+          "options": null,
+          "validation": null,
+          "order": 8,
+          "section": null
+        },
+        {
+          "name": "label_asesor",
+          "label": "Label Asesor",
+          "type": "text",
+          "required": false,
+          "default": "ASESOR: [NOMBRES Y APELLIDOS]",
+          "options": null,
+          "validation": null,
+          "order": 9,
+          "section": null
+        },
+        {
+          "name": "label_linea",
+          "label": "Label Linea",
+          "type": "text",
+          "required": false,
+          "default": "LÍNEA DE INVESTIGACIÓN: [NOMBRE DE LA LÍNEA]",
+          "options": null,
+          "validation": null,
+          "order": 10,
+          "section": null
+        },
+        {
+          "name": "fecha",
+          "label": "Fecha",
+          "type": "date",
+          "required": false,
+          "default": "Callao, [AÑO]",
+          "options": null,
+          "validation": null,
+          "order": 11,
+          "section": null
+        },
+        {
+          "name": "pais",
+          "label": "Pais",
+          "type": "text",
+          "required": false,
+          "default": "PERÚ",
+          "options": null,
+          "validation": null,
+          "order": 12,
+          "section": null
+        }
+      ],
+      "assets": [],
+      "rules": null,
+      "definition": {
+        "_meta": {
+          "entity": "format",
+          "publish": true,
+          "id": "unac-informe-cuant",
+          "university": "unac",
+          "category": "Informe de Tesis",
+          "documentType": "cuant",
+          "title": "Informe de Tesis UNAC - Enfoque Cuantitativo"
+        },
+        "caratula": {
+          "universidad": "UNIVERSIDAD NACIONAL DEL CALLAO",
+          "facultad": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "escuela": "ESCUELA PROFESIONAL DE [NOMBRE DE LA ESCUELA]",
+          "tipo_documento": "INFORME DE TESIS",
+          "titulo_placeholder": "\"[ESCRIBA AQUÍ EL TÍTULO DE LA TESIS]\"",
+          "frase_grado": "PARA OPTAR EL TÍTULO PROFESIONAL DE:",
+          "grado_objetivo": "[INGENIERO DE ...]",
+          "label_autor": "AUTOR: [NOMBRES Y APELLIDOS]",
+          "label_asesor": "ASESOR: [NOMBRES Y APELLIDOS]",
+          "label_linea": "LÍNEA DE INVESTIGACIÓN: [NOMBRE DE LA LÍNEA]",
+          "fecha": "Callao, [AÑO]",
+          "pais": "PERÚ"
+        },
+        "preliminares": {
+          "dedicatoria": {
+            "titulo": "DEDICATORIA / AGRADECIMIENTO",
+            "texto": "[Escriba aquí su dedicatoria o agradecimientos...]"
+          },
+          "resumen": {
+            "titulo": "RESUMEN / ABSTRACT",
+            "nota": "Nota: Síntesis de objetivos, métodos y resultados principales.",
+            "texto": "\n[Escriba aquí el cuerpo del resumen. Debe contener el objetivo, el método, los resultados y las conclusiones principales. No exceder las 200 palabras.]"
+          },
+          "indices": {
+            "contenido": "ÍNDICE DE CONTENIDO",
+            "tablas": "ÍNDICE DE TABLAS",
+            "figuras": "ÍNDICE DE FIGURAS",
+            "abreviaturas": "ÍNDICE DE ABREVIATURAS",
+            "placeholder": "(Generarlo)"
+          },
+          "introduccion": {
+            "titulo": "INTRODUCCIÓN",
+            "texto": "[La introducción informa tres elementos muy importantes: El propósito, la importancia de la investigación y el conocimiento actual del tema.]"
+          }
+        },
+        "cuerpo": [
+          {
+            "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "1.1 Descripción de la realidad problemática",
+                "instruccion_detallada": "En este apartado debes presentar y contextualizar claramente el problema basándote en evidencia objetiva, datos y hechos, utilizando un enfoque deductivo (de lo general a lo específico).\n\nDebes desarrollar el contenido considerando tres niveles de análisis:\n\n- Contexto internacional: Describe cómo se comporta la variable o el problema a nivel mundial o regional. Usa estadísticas, informes de organismos internacionales (ONU, Banco Mundial, etc.) o tendencias globales que demuestren la relevancia del tema.\n- Contexto nacional: Explica la situación del problema en el Perú. Cita normativas, informes ministeriales, planes nacionales o datos estadísticos del INEI que evidencien la deficiencia o necesidad a nivel país.\n- Contexto institucional o local: Describe la realidad específica en la empresa, área o lugar de estudio. Detalla los síntomas observables (fallas, demoras, pérdidas, quejas) con datos preliminares si es posible.\n- Sustento ingenieril (Obligatorio): Debes aplicar al menos una herramienta de ingeniería para diagnosticar técnicamente el problema, tal como:\n  * Diagrama de Ishikawa (Causa-Efecto).\n  * Diagrama de Pareto (80/20).\n  * Árbol de problemas.\n  * Matriz de Vester o Matriz de Priorización.\n- Cierre: Finaliza mencionando explícitamente la propuesta de solución técnica (ej. 'Por lo expuesto, se propone la implementación de...')."
+              },
+              {
+                "texto": "1.2 Formulación del problema",
+                "instruccion_detallada": "Estructura formalmente la idea de investigación mediante preguntas claras y precisas que relacionen las variables de estudio.\n\n- Problema General: Es la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en estudios descriptivos). Debe formularse de manera que invite a la medición o prueba estadística.\n  * Ejemplo: ¿De qué manera la implementación de X influye en Y?\n- Problemas Específicos: Son sub-preguntas que desglosan el análisis. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente o sus dimensiones. Deben ser medibles y concretas."
+              },
+              {
+                "texto": "1.3 Objetivos",
+                "instruccion_detallada": "Expresan el fin medible y verificable que se pretende lograr con la investigación. Deben iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruentes con los problemas formulados.\n\n- Objetivo General: El logro final del estudio que responde directamente al problema general.\n- Objetivos Específicos: Los pasos intermedios, operativos o secuenciales necesarios para alcanzar el objetivo general (responden a los problemas específicos)."
+              },
+              {
+                "texto": "1.4 Justificación",
+                "instruccion_detallada": "Explica las razones por las cuales es necesario y útil realizar el estudio. Debes redactar los siguientes enfoques:\n\n- Justificación Técnica/Práctica: ¿Qué problema real resuelve? ¿Cómo mejora la eficiencia, productividad, seguridad o costos en la entidad de estudio?\n- Justificación Teórica: ¿Cómo aplica, valida o contrasta conocimientos de ingeniería existentes? ¿Llena algún vacío de conocimiento?\n- Justificación Metodológica: ¿Utiliza algún instrumento, software, algoritmo o método de análisis novedoso o riguroso que sirva de modelo para futuras investigaciones?\n- Justificación Económica/Social: ¿Cuál es el beneficio costo-beneficio para la empresa? ¿Cuál es el impacto positivo en la sociedad, trabajadores o medio ambiente?"
+              },
+              {
+                "texto": "1.5 Delimitantes de la investigación",
+                "instruccion_detallada": "Define las fronteras y alcances del estudio para asegurar su viabilidad técnica y operativa:\n\n- Delimitación Temática: Línea de investigación de la escuela o área específica de la ingeniería (ej. Mantenimiento, Telecomunicaciones, Control, Software).\n- Delimitación Espacial: Lugar exacto donde se tomarán los datos o se realizará la implementación (Nombre de la Empresa, Área específica, Ciudad).\n- Delimitación Temporal: Periodo de tiempo que abarca la recolección y análisis de datos (ej. Datos históricos de 2023 o mediciones de campo de Enero a Junio 2024)."
+              }
+            ]
+          },
+          {
+            "titulo": "II. MARCO TEÓRICO",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "2.1 Antecedentes (Internacional y nacional)",
+                "instruccion_detallada": "Presenta el 'estado del arte' revisando investigaciones previas. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas aisladas) incluyendo obligatoriamente:\n- Apellido del autor y Año.\n- Título de la investigación.\n- Objetivo principal del estudio.\n- Metodología empleada (Diseño, muestra, instrumentos).\n- Resultados numéricos más relevantes (datos estadísticos, mejoras porcentuales, correlaciones).\n- Conclusiones principales.\n\nCantidad: Se recomienda un promedio de 5 antecedentes internacionales y 5 nacionales para pregrado (o 20-30 referencias totales para posgrado)."
+              },
+              {
+                "texto": "2.2 Bases teóricas",
+                "instruccion_detallada": "Es el sustento científico y técnico de la tesis.\n\n- Desarrollo: Analiza sistemáticamente las teorías, leyes, principios, modelos matemáticos o físicos que explican tus variables (Variable Independiente y Dependiente).\n- Rigor: No es un glosario ni un 'copiar y pegar'; debes interpretar la teoría, sintetizarla y citar fuentes confiables (Libros de especialidad, IEEE, normas técnicas, papers).\n- Fundamentación: Incluir brevemente el enfoque epistemológico (positivista/cuantitativo) que guía el estudio, validando el uso del método científico."
+              },
+              {
+                "texto": "2.3 Marco conceptual",
+                "instruccion_detallada": "Elabora 'constructos' o definiciones teóricas específicas para tu investigación.\n\n- Diferencia: A diferencia de las bases teóricas (que explican el funcionamiento y leyes), aquí defines conceptualmente las variables y sus dimensiones basándote en la literatura revisada para este contexto específico.\n- Propósito: Establecer con claridad y sin ambigüedades qué se entiende por cada concepto clave dentro de *tu* investigación."
+              },
+              {
+                "texto": "2.4 Definición de términos básicos",
+                "instruccion_detallada": "Es un glosario técnico funcional a la investigación.\n\nInstrucción: Define términos técnicos especializados que se usan en la tesis y que podrían prestarse a confusión. Las definiciones deben ser precisas, citadas y funcionales para evitar ambigüedades en la interpretación de los resultados."
+              }
+            ]
+          },
+          {
+            "titulo": "III. HIPÓTESIS Y VARIABLES",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "3.1 Hipótesis (General y específicas)",
+                "instruccion_detallada": "Son las respuestas tentativas y probables a los problemas formulados.\n\n- Requisito: Deben ser proposiciones afirmativas que establezcan una relación clara (causa-efecto, correlación, diferencia de grupos) entre las variables.\n- Comprobación: Deben estar formuladas de tal manera que puedan ser aceptadas o rechazadas mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).\n- Alineación: Debe existir una Hipótesis General para el Problema General y Hipótesis Específicas para cada Problema Específico."
+              },
+              {
+                "texto": "3.1.1 Operacionalización de variables",
+                "instruccion_detallada": "Es el proceso técnico fundamental de convertir conceptos abstractos en datos medibles. Se suele presentar en una matriz (tabla) que contiene:\n\n- Definición Conceptual: Qué es la variable teóricamente según un autor.\n- Definición Operacional: Cómo se medirá, calculará o manipulará en este estudio específico.\n- Dimensiones: Factores, componentes o grandes aspectos de la variable.\n- Indicadores: La unidad de medida exacta y observable (ej. %, kg, horas, grados, puntaje).\n- Escala de medición: Nominal, Ordinal, de Intervalo o de Razón."
+              }
+            ]
+          },
+          {
+            "titulo": "IV. METODOLOGÍA",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "4.1 Diseño metodológico",
+                "instruccion_detallada": "Define la estrategia operativa para probar la hipótesis. Debes especificar y justificar técnicamente:\n\n- Tipo de investigación: Básica (teórica/pura) o Aplicada (solución práctica/tecnológica).\n- Nivel: Exploratorio, Descriptivo, Correlacional o Explicativo (Causal).\n- Diseño:\n  * Experimental: Pre-experimental, Cuasi-experimental o Experimental puro (si manipulas deliberadamente la variable independiente).\n  * No Experimental: Transversal (una sola medición en el tiempo) o Longitudinal (varias mediciones a lo largo del tiempo)."
+              },
+              {
+                "texto": "4.2 Método de investigación",
+                "instruccion_detallada": "Describe el razonamiento lógico utilizado para la obtención de conocimiento.\n\nInstrucción: Generalmente en ingeniería se usa el Método Hipotético-Deductivo (parte de una teoría general, plantea hipótesis y las deduce/prueba en la realidad particular) o el Método Cuantitativo (basado en la medición numérica y el análisis estadístico objetivo)."
+              },
+              {
+                "texto": "4.3 Población y muestra",
+                "instruccion_detallada": "Define quiénes o qué cosas serán medidas y analizadas.\n\n- Población: El conjunto total de elementos (personas, máquinas, registros, lotes de producción, expedientes) con características comunes observables.\n- Muestra: El subconjunto representativo seleccionado para medir. Debes indicar:\n  * Tipo de muestreo: Probabilístico (aleatorio simple, estratificado) o No Probabilístico (por conveniencia, criterio de expertos).\n  * Cálculo: Presentar la fórmula estadística utilizada para hallar el tamaño de la muestra (n) con sus parámetros (error, confianza) o sustentar por qué se usó toda la población (censo)."
+              },
+              {
+                "texto": "4.4 Lugar de estudio",
+                "instruccion_detallada": "Describe el entorno físico.\n\nInstrucción: Ubicación geográfica e institucional exacta donde se recolectan los datos (Dirección, Ciudad, Departamento, País)."
+              },
+              {
+                "texto": "4.5 Técnicas e instrumentos de recolección",
+                "instruccion_detallada": "Detalla cómo obtendrás los datos 'crudos' de la realidad.\n\n- Técnicas: El medio o procedimiento de captura (ej. Encuesta, Observación directa, Análisis documental, Medición experimental con equipos).\n- Instrumentos: La herramienta física o digital de registro (ej. Cuestionario, Ficha de registro de datos, Hoja de verificación, Equipos de medición calibrados).\n- Validación y Confiabilidad:\n  * Validez: Mencionar si fue validado por Juicio de Expertos (adjuntar constancias en anexos).\n  * Confiabilidad: Indicar la prueba estadística piloto realizada (Alfa de Cronbach para encuestas, KR-20, o análisis de repetibilidad para instrumentos mecánicos)."
+              },
+              {
+                "texto": "4.6 Análisis y procesamiento de datos",
+                "instruccion_detallada": "Describe cómo transformarás los datos brutos en información útil y conclusiones.\n\n- Herramientas: Mencionar el software utilizado (SPSS, Excel, Minitab, Matlab, Python, etc.).\n- Estadística Descriptiva: Uso de tablas de frecuencia, medidas de tendencia central (media, mediana) y dispersión (desviación estándar).\n- Estadística Inferencial: Especificar las pruebas para la contrastación de hipótesis:\n  * Prueba de Normalidad (Shapiro-Wilk o Kolmogorov-Smirnov).\n  * Prueba de Hipótesis (T-Student, U de Mann-Whitney, Wilcoxon, Pearson, Spearman, ANOVA) seleccionada según la normalidad de los datos."
+              },
+              {
+                "texto": "4.7 Aspectos Éticos",
+                "instruccion_detallada": "Declaración de integridad científica.\n\nInstrucción: Declaración explícita del cumplimiento de principios éticos (beneficencia, justicia, autonomía) y la Conducta Responsable en Investigación (CRI). Mencionar el cuidado del anonimato, el uso de consentimiento informado y la originalidad del trabajo (anti-plagio)."
+              }
+            ]
+          },
+          {
+            "titulo": "V. RESULTADOS",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "5.1 Resultados descriptivos",
+                "instruccion_detallada": "Presenta el análisis exploratorio de los datos recolectados.\n\nInstrucción: Utiliza tablas de distribución de frecuencias y gráficos estadísticos (barras, líneas, histogramas, sectores) debidamente numerados y titulados según norma (APA/ISO). Debajo de cada tabla/figura, redacta una interpretación objetiva de los datos (qué porcentaje es mayor, cuál es la tendencia, qué dato resalta). No emitas juicios de valor aquí, solo describe los datos."
+              },
+              {
+                "texto": "5.2 Resultados inferenciales",
+                "instruccion_detallada": "Es la parte crítica de la tesis cuantitativa donde se prueban las hipótesis.\n\nInstrucción:\n1. Presenta primero la Prueba de Normalidad para justificar si usas pruebas paramétricas o no paramétricas.\n2. Desarrolla la Prueba de Hipótesis para la General y las Específicas:\n  * Plantea estadísticamente H0 (Nula) y H1 (Alterna).\n  * Muestra el estadístico de prueba calculado y el Valor-p (Sig.).\n  * Toma la decisión estadística: 'Como p < 0.05, se rechaza la hipótesis nula y se acepta la alterna'."
+              }
+            ]
+          },
+          {
+            "titulo": "VI. DISCUSIÓN DE RESULTADOS",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "6.1 Contrastación y demostración de la hipótesis",
+                "instruccion_detallada": "Realiza la discusión técnica de los hallazgos inferenciales.\n\nInstrucción: Analiza si la evidencia estadística obtenida (en el cap. 5.2) respalda o no lo que afirmaste teóricamente en tu Hipótesis (cap. 3.1). Explica qué significa este resultado en el contexto de tu problema de ingeniería (ej. 'Se demostró estadísticamente que el nuevo sistema redujo las fallas en un 20%, validando la hipótesis de mejora...')."
+              },
+              {
+                "texto": "6.2 Contrastación con otros estudios",
+                "instruccion_detallada": "Triangulación de resultados para dar validez externa.\n\nInstrucción: Compara tus hallazgos con los Antecedentes presentados en el capítulo 2.1.\n* Ejemplo: 'Este resultado coincide con lo hallado por Pérez (2020), quien también observó mejoras significativas...' o 'Difiere de Gómez (2019), posiblemente debido a las diferentes condiciones de...'.\nEsto valida la robustez y coherencia de tu investigación frente al conocimiento existente."
+              },
+              {
+                "texto": "6.3 Responsabilidad ética",
+                "instruccion_detallada": "Declaración final de integridad sobre los resultados.\n\nInstrucción: El autor asume la responsabilidad por la veracidad, autenticidad y el rigor científico de los datos presentados, asegurando que no han sido manipulados ni fabricados."
+              }
+            ]
+          },
+          {
+            "titulo": "VII. CONCLUSIONES",
+            "nota_capitulo": "Son sentencias directas, precisas y numeradas que responden a los objetivos planteados.\n\nInstrucción:\n- Deben ser numeradas.\n- Debe haber al menos una conclusión por cada objetivo específico y una para el objetivo general.\n- Deben incluir datos cuantitativos clave hallados en la investigación (ej. 'Se determinó que la eficiencia aumentó en 15%...', 'Existe una correlación positiva alta de 0.85...').\n- No presentar citas de autores ni explicaciones teóricas aquí, solo hallazgos directos."
+          },
+          {
+            "titulo": "VIII. RECOMENDACIONES",
+            "nota_capitulo": "Sugerencias de acción prácticas y viables basadas en las conclusiones.\n\nInstrucción:\n- Metodológicas: Para futuros investigadores (ej. ampliar muestra, incluir nuevas variables, usar otro diseño).\n- Académicas: Para la universidad o línea de investigación.\n- Prácticas: Dirigidas a la empresa o institución estudiada (ej. implementar el plan diseñado, realizar mantenimientos periódicos, capacitar al personal en X). Deben ser acciones concretas y realizables."
+          },
+          {
+            "titulo": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+            "nota_capitulo": "Listado riguroso según norma (ISO 690/IEEE para Ingeniería, APA otras). Usar gestores bibliográficos.",
+            "ejemplos_apa": [
+              "Chávez, S. (2018). Manual de gestión de mantenimiento. Editorial Universitaria.",
+              "Rodriguez, M. A. (2020). Implementación de un plan de mantenimiento preventivo. Tesis de Ingeniería, Universidad Nacional del Callao.",
+              "Pérez, J., & Gómez, L. (2019). Reliability analysis in industrial systems. IEEE Transactions on Reliability, 68(2), 450-460."
+            ]
+          }
+        ],
+        "finales": {
+          "anexos": {
+            "titulo_seccion": "ANEXOS",
+            "lista": [
+              {
+                "titulo": "Anexo 1: Matriz de Consistencia",
+                "nota": "Resumen lógico de Problemas, Objetivos, Hipótesis, Variables y Método (Generado automáticamente)."
+              },
+              {
+                "titulo": "Anexo 2: Instrumento de recolección de datos",
+                "nota": "Adjuntar el Cuestionario, Ficha de Registro o Ficha Técnica de los equipos."
+              },
+              {
+                "titulo": "Anexo 3: Validación de instrumento",
+                "nota": "Constancia de juicio de expertos y fiabilidad."
+              }
+            ]
+          }
+        },
+        "matriz_consistencia": {
+          "problemas": {
+            "general": "¿De qué manera la implementación de un plan de mantenimiento reduce el tiempo perdido en el área de trapiche?",
+            "especificos": [
+              "¿Cuál es el diagnóstico inicial midiendo el tiempo perdido?",
+              "¿De qué manera realizar un análisis de criticidad?",
+              "¿Cómo desarrollar un análisis de modos y efectos de fallas?"
+            ]
+          },
+          "objetivos": {
+            "general": "Determinar cómo la implementación de un plan de mantenimiento reduce el tiempo perdido.",
+            "especificos": [
+              "Realizar un diagnóstico inicial.",
+              "Realizar un análisis de criticidad.",
+              "Desarrollar un análisis AMEF."
+            ]
+          },
+          "hipotesis": {
+            "general": "La implementación de un plan de mantenimiento reduce significativamente el tiempo perdido.",
+            "especificos": [
+              "El diagnóstico permite identificar causas raíz.",
+              "El análisis de criticidad prioriza equipos clave."
+            ]
+          },
+          "variables": {
+            "independiente": {
+              "nombre": "PLAN DE MANTENIMIENTO",
+              "dimensiones": [
+                "Criticidad",
+                "AMEF",
+                "Programación"
+              ]
+            },
+            "dependiente": {
+              "nombre": "TIEMPO PERDIDO",
+              "dimensiones": [
+                "Disponibilidad",
+                "Confiabilidad"
+              ]
+            }
+          },
+          "metodologia": {
+            "tipo": "Aplicada",
+            "enfoque": "Cuantitativo",
+            "nivel": "Explicativo",
+            "diseno": "Pre Experimental",
+            "poblacion": "32 equipos",
+            "muestra": "24 equipos críticos",
+            "tecnicas": "Observación",
+            "instrumentos": "Ficha de datos",
+            "procesamiento": "SPSS v25"
+          }
+        },
+        "version": "2.0.0",
+        "descripcion": "Plantilla Oficial Informe de Tesis UNAC - Enfoque Cuantitativo (Directiva 004-2022-R)"
+      }
+    },
+    "uni-informe-apa": {
+      "id": "uni-informe-apa",
+      "title": "Informe de Tesis UNI - Formato APA",
+      "university": "uni",
+      "category": "Informe de Tesis",
+      "documentType": "apa",
+      "version": "d9b5ca24a923ed4f",
+      "templateRef": null,
+      "fields": [
+        {
+          "name": "universidad",
+          "label": "Universidad",
+          "type": "text",
+          "required": false,
+          "default": "UNIVERSIDAD NACIONAL DE INGENIERÍA",
+          "options": null,
+          "validation": null,
+          "order": 1,
+          "section": null
+        },
+        {
+          "name": "facultad",
+          "label": "Facultad",
+          "type": "text",
+          "required": false,
+          "default": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "options": null,
+          "validation": null,
+          "order": 2,
+          "section": null
+        },
+        {
+          "name": "escuela",
+          "label": "Escuela",
+          "type": "text",
+          "required": false,
+          "default": "ESCUELA PROFESIONAL DE [NOMBRE DE LA ESCUELA]",
+          "options": null,
+          "validation": null,
+          "order": 3,
+          "section": null
+        },
+        {
+          "name": "tipo_documento",
+          "label": "Tipo Documento",
+          "type": "text",
+          "required": false,
+          "default": "INFORME DE TESIS",
+          "options": null,
+          "validation": null,
+          "order": 4,
+          "section": null
+        },
+        {
+          "name": "titulo_placeholder",
+          "label": "Titulo Placeholder",
+          "type": "text",
+          "required": false,
+          "default": "\"[ESCRIBA AQUÍ EL TÍTULO DE LA TESIS]\"",
+          "options": null,
+          "validation": null,
+          "order": 5,
+          "section": null
+        },
+        {
+          "name": "frase_grado",
+          "label": "Frase Grado",
+          "type": "text",
+          "required": false,
+          "default": "PARA OPTAR EL TÍTULO PROFESIONAL DE:",
+          "options": null,
+          "validation": null,
+          "order": 6,
+          "section": null
+        },
+        {
+          "name": "grado_objetivo",
+          "label": "Grado Objetivo",
+          "type": "text",
+          "required": false,
+          "default": "[INGENIERO DE ...]",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "label_autor",
+          "label": "Label Autor",
+          "type": "text",
+          "required": false,
+          "default": "AUTOR: [NOMBRES Y APELLIDOS]",
+          "options": null,
+          "validation": null,
+          "order": 8,
+          "section": null
+        },
+        {
+          "name": "label_asesor",
+          "label": "Label Asesor",
+          "type": "text",
+          "required": false,
+          "default": "ASESOR: [NOMBRES Y APELLIDOS]",
+          "options": null,
+          "validation": null,
+          "order": 9,
+          "section": null
+        },
+        {
+          "name": "label_linea",
+          "label": "Label Linea",
+          "type": "text",
+          "required": false,
+          "default": "LÍNEA DE INVESTIGACIÓN: [NOMBRE DE LA LÍNEA]",
+          "options": null,
+          "validation": null,
+          "order": 10,
+          "section": null
+        },
+        {
+          "name": "fecha",
+          "label": "Fecha",
+          "type": "date",
+          "required": false,
+          "default": "Lima, 2026",
+          "options": null,
+          "validation": null,
+          "order": 11,
+          "section": null
+        },
+        {
+          "name": "pais",
+          "label": "Pais",
+          "type": "text",
+          "required": false,
+          "default": "PERÚ",
+          "options": null,
+          "validation": null,
+          "order": 12,
+          "section": null
+        }
+      ],
+      "assets": [],
+      "rules": null,
+      "definition": {
+        "_meta": {
+          "entity": "format",
+          "publish": true,
+          "id": "uni-informe-apa",
+          "university": "uni",
+          "category": "Informe de Tesis",
+          "documentType": "apa",
+          "title": "Informe de Tesis UNI - Formato APA"
+        },
+        "caratula": {
+          "universidad": "UNIVERSIDAD NACIONAL DE INGENIERÍA",
+          "facultad": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "escuela": "ESCUELA PROFESIONAL DE [NOMBRE DE LA ESCUELA]",
+          "tipo_documento": "INFORME DE TESIS",
+          "titulo_placeholder": "\"[ESCRIBA AQUÍ EL TÍTULO DE LA TESIS]\"",
+          "frase_grado": "PARA OPTAR EL TÍTULO PROFESIONAL DE:",
+          "grado_objetivo": "[INGENIERO DE ...]",
+          "label_autor": "AUTOR: [NOMBRES Y APELLIDOS]",
+          "label_asesor": "ASESOR: [NOMBRES Y APELLIDOS]",
+          "label_linea": "LÍNEA DE INVESTIGACIÓN: [NOMBRE DE LA LÍNEA]",
+          "fecha": "Lima, 2026",
+          "pais": "PERÚ"
+        },
+        "preliminares": {
+          "dedicatoria": {
+            "titulo": "DEDICATORIA / AGRADECIMIENTO",
+            "texto": "[Escriba aquí su dedicatoria o agradecimientos...]"
+          },
+          "resumen": {
+            "titulo": "RESUMEN / ABSTRACT",
+            "nota": "Nota: Síntesis de objetivos, métodos y resultados principales.",
+            "texto": "\n[Escriba aquí el cuerpo del resumen. Debe contener el objetivo, el método, los resultados y las conclusiones principales. No exceder las 200 palabras.]"
+          },
+          "indices": {
+            "contenido": "ÍNDICE DE CONTENIDO",
+            "tablas": "ÍNDICE DE TABLAS",
+            "figuras": "ÍNDICE DE FIGURAS",
+            "abreviaturas": "ÍNDICE DE ABREVIATURAS",
+            "placeholder": "(Generarlo)"
+          },
+          "introduccion": {
+            "titulo": "INTRODUCCIÓN",
+            "texto": "[La introducción informa tres elementos muy importantes: El propósito, la importancia de la investigación y el conocimiento actual del tema.]"
+          }
+        },
+        "cuerpo": [
+          {
+            "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "1.1 Descripción de la realidad problemática",
+                "nota": "Describa la realidad de cada variable independiente y dependiente de los últimos 5 a 10 años.",
+                "instruccion_detallada": "En este apartado debes presentar y contextualizar el problema basándote en hechos y datos, utilizando un enfoque deductivo (de lo general a lo específico).\n\nContexto internacional: Describe cómo se comporta la variable o el problema a nivel mundial o regional. Usa estadísticas, informes de organismos internacionales o tendencias globales.\nContexto nacional: Explica la situación del problema en el Perú. Cita normativas, informes ministeriales o datos estadísticos nacionales que evidencien la deficiencia.\nContexto institucional/local: Describe la realidad específica en la empresa, área o lugar de estudio. Detalla los síntomas observables (fallas, demoras, pérdidas).\nSustento ingenieril (Obligatorio): Debes aplicar al menos una herramienta de ingeniería para diagnosticar el problema, tal como:\nDiagrama de Ishikawa (Causa-Efecto).\nDiagrama de Pareto (80/20).\nÁrbol de problemas.\nMatriz de Vester o Matriz de Priorización.\nCierre: Finaliza mencionando explícitamente la propuesta de solución (ej. 'Por lo expuesto, se propone la implementación de...')."
+              },
+              {
+                "texto": "1.2 Formulación del problema",
+                "nota": "Estructure formalmente la idea de investigación (General y Específicos).",
+                "instruccion_detallada": "Estructura formalmente la idea de investigación mediante preguntas que relacionen las variables de estudio.\n\nProblema General: Es la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en descriptivos).\nEjemplo: ¿De qué manera la implementación de X influye en Y?\nProblemas Específicos: Son sub-preguntas que desglosan el análisis. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente."
+              },
+              {
+                "texto": "1.3 Objetivos",
+                "nota": "Defina el propósito, meta o fin a lograr (General y Específicos).",
+                "instruccion_detallada": "Expresan el fin medible que se pretende lograr. Deben iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruentes con los problemas.\n\nObjetivo General: El logro final del estudio (respuesta al problema general).\nObjetivos Específicos: Los pasos intermedios u operativos necesarios para alcanzar el general (respuestas a los problemas específicos)."
+              },
+              {
+                "texto": "1.4 Justificación",
+                "nota": "Explique la naturaleza, magnitud y trascendencia del estudio.",
+                "instruccion_detallada": "Explica las razones por las cuales es necesario realizar el estudio. Debes redactar los siguientes enfoques:\n\nJustificación Técnica/Práctica: ¿Qué problema real resuelve? ¿Cómo mejora la eficiencia, productividad o costos en la empresa?\nJustificación Teórica: ¿Cómo aplica o valida conocimientos de ingeniería existentes?\nJustificación Metodológica: ¿Utiliza algún instrumento, software o método de análisis que sirva de modelo para otros?\nJustificación Económica/Social: ¿Cuál es el beneficio costo-beneficio o el impacto en la sociedad/trabajadores?"
+              },
+              {
+                "texto": "1.5 Delimitantes de la investigación",
+                "nota": "Defina los límites Teóricos, Temporales y Espaciales.",
+                "instruccion_detallada": "Define las fronteras del estudio para asegurar su viabilidad:\n\nTemática: Línea de investigación de la escuela o área de la ingeniería (ej. Mantenimiento, Telecomunicaciones, Control).\nEspacial: Lugar exacto donde se tomarán los datos (Empresa X, Área Y, Ciudad Z).\nTemporal: Periodo de tiempo que abarca la recolección y análisis de datos (ej. Datos históricos de 2023 o mediciones de Enero a Junio 2024)."
+              }
+            ]
+          },
+          {
+            "titulo": "II. MARCO TEÓRICO",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "2.1 Antecedentes (Internacional y nacional)",
+                "nota": "Estado del arte. Se recomiendan 20 a 30 investigaciones afines.",
+                "instruccion_detallada": "Presenta el 'estado del arte'. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas) incluyendo:\nApellido del autor y Año.\nTítulo de la investigación.\nObjetivo principal.\nMetodología (Diseño, muestra, instrumentos).\nResultados numéricos más relevantes (datos estadísticos, mejoras porcentuales).\nConclusiones principales.\nCantidad: Se recomienda un promedio de 5 internacionales y 5 nacionales para pregrado (o 20-30 referencias totales para posgrado)."
+              },
+              {
+                "texto": "2.2 Bases teóricas",
+                "nota": "Análisis sistemático de las principales teorías existentes.",
+                "instruccion_detallada": "Es el sustento científico de la tesis.\n\nDesarrollo: Analiza sistemáticamente las teorías, leyes, principios y modelos matemáticos/físicos que explican tus variables (Variable Independiente y Dependiente).\nRigor: No es un copiado y pegado; debes interpretar la teoría y citar fuentes confiables (Libros de especialidad, IEEE, normas técnicas).\nFundamentación: Incluir brevemente el enfoque epistemológico (positivista/cuantitativo) que guía el estudio."
+              },
+              {
+                "texto": "2.3 Marco conceptual",
+                "nota": "Elaboración de nuevos constructos fundamentados.",
+                "instruccion_detallada": "Elabora 'constructos' o definiciones teóricas específicas para tu investigación.\n\nDiferencia: A diferencia de las bases teóricas (que explican el funcionamiento), aquí defines conceptualmente las variables y sus dimensiones basándote en la literatura revisada.\nPropósito: Establecer con claridad qué se entiende por cada concepto clave dentro de tu investigación."
+              },
+              {
+                "texto": "2.4 Definición de términos básicos",
+                "nota": "Glosario funcional a la investigación.",
+                "instruccion_detallada": "Definiciones precisas y funcionales a la investigación del problema, para evitar ambigüedades en la interpretación de los resultados."
+              }
+            ]
+          },
+          {
+            "titulo": "III. HIPÓTESIS Y VARIABLES",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "3.1 Hipótesis (General y específicas)",
+                "nota": "Enunciado presumible de la relación entre dos o más variables.",
+                "instruccion_detallada": "Son las respuestas tentativas a los problemas formulados.\n\nRequisito: Deben ser proposiciones afirmativas que establezcan una relación (causa-efecto, correlación o diferencia) entre las variables.\nComprobación: Deben estar formuladas de tal manera que puedan ser aceptadas o rechazadas mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).\nAlineación: Debe haber una Hipótesis General para el Problema General y Hipótesis Específicas para los Específicos."
+              },
+              {
+                "texto": "3.1.1 Operacionalización de variables",
+                "nota": "Definición conceptual y operacional, dimensiones e indicadores.",
+                "instruccion_detallada": "Es el proceso técnico de convertir conceptos abstractos en datos medibles. Se suele presentar en una matriz (tabla) que contiene:\n\nDefinición Conceptual: Qué es la variable según un autor.\nDefinición Operacional: Cómo se medirá o calculará en este estudio.\nDimensiones: Factores o componentes de la variable.\nIndicadores: La unidad de medida exacta (ej. %, kg, horas, grados).\nEscala de medición: Nominal, Ordinal, de Intervalo o de Razón."
+              }
+            ]
+          },
+          {
+            "titulo": "IV. METODOLOGÍA",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "4.1 Diseño metodológico",
+                "nota": "Conjunto de métodos y procedimientos para recopilar y analizar variables.",
+                "instruccion_detallada": "Define la estrategia para probar la hipótesis. Debes especificar y justificar:\n\nTipo de investigación: Básica (teórica) o Aplicada (solución práctica).\nNivel: Exploratorio, Descriptivo, Correlacional o Explicativo.\nDiseño:\nExperimental: Pre-experimental, Cuasi-experimental o Experimental puro (manipulación de variables).\nNo Experimental: Transversal (una medición) o Longitudinal (varias mediciones)."
+              },
+              {
+                "texto": "4.2 Método de investigación",
+                "nota": "Procedimientos para lograr los objetivos (Inductivo, Deductivo, etc.).",
+                "instruccion_detallada": "Describe el razonamiento lógico utilizado.\n\nGeneralmente en ingeniería se usa el Método Hipotético-Deductivo (parte de una teoría, plantea hipótesis y las deduce/prueba en la realidad) o el Método Cuantitativo (medición numérica y análisis estadístico)."
+              },
+              {
+                "texto": "4.3 Población y muestra",
+                "nota": "Universo y subconjunto seleccionado.",
+                "instruccion_detallada": "Define quiénes o qué cosas serán medidas.\n\nPoblación: El conjunto total de elementos (personas, máquinas, registros, lotes de producción) con características comunes.\nMuestra: El subconjunto seleccionado para medir. Debes indicar:\nTipo de muestreo: Probabilístico (aleatorio) o No Probabilístico (por conveniencia/criterio).\nCálculo: Presentar la fórmula estadística utilizada para hallar el tamaño de la muestra (n) o sustentar por qué se usó toda la población (censo)."
+              },
+              {
+                "texto": "4.4 Lugar de estudio",
+                "nota": "Ubicación geográfica e institucional.",
+                "instruccion_detallada": "Ejemplo: Facultad de Ingeniería Eléctrica y Electrónica - UNAC."
+              },
+              {
+                "texto": "4.5 Técnicas e instrumentos de recolección",
+                "nota": "Mecanismos para registrar información (Validar por expertos).",
+                "instruccion_detallada": "Detalla cómo obtendrás los datos 'crudos'.\n\nTécnicas: El medio de captura (ej. Encuesta, Observación directa, Análisis documental, Medición experimental).\nInstrumentos: La herramienta física o digital (ej. Cuestionario, Ficha de registro de datos, Hoja de verificación, Equipos de medición calibrados).\nValidación y Confiabilidad:\nValidez: Certificado por Juicio de Expertos.\nConfiabilidad: Prueba estadística piloto (Alfa de Cronbach, KR-20) para cuestionarios."
+              },
+              {
+                "texto": "4.6 Análisis y procesamiento de datos",
+                "nota": "Transformación de datos en información utilizable.",
+                "instruccion_detallada": "Describe cómo transformarás los datos en información.\n\nHerramientas: Mencionar el software (SPSS, Excel, Minitab, Matlab, Python).\nEstadística Descriptiva: Uso de tablas, frecuencias, media, desviación estándar.\nEstadística Inferencial: Especificar las pruebas para la contrastación de hipótesis:\nPrueba de Normalidad (Shapiro-Wilk o Kolmogorov-Smirnov).\nPrueba de Hipótesis (T-Student, U de Mann-Whitney, Wilcoxon, Pearson, Spearman, ANOVA) según la normalidad de los datos."
+              },
+              {
+                "texto": "4.7 Aspectos Éticos",
+                "nota": "Cumplimiento de la Conducta Responsable en Investigación (CRI).",
+                "instruccion_detallada": "Considerar principios éticos: Respeto por las personas, Beneficencia y Justicia. Evitar plagio y conflictos de interés."
+              }
+            ]
+          },
+          {
+            "titulo": "V. RESULTADOS",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "5.1 Resultados descriptivos",
+                "nota": "Tablas y figuras simples.",
+                "instruccion_detallada": "Presenta el análisis exploratorio de los datos.\n\nUtiliza tablas de distribución de frecuencias y gráficos estadísticos (barras, líneas, histogramas) debidamente numerados y titulados según norma (APA/ISO).\nDebajo de cada tabla/figura, redacta una interpretación objetiva de los datos (qué porcentaje es mayor, cuál es la tendencia)."
+              },
+              {
+                "texto": "5.2 Resultados inferenciales",
+                "nota": "Contrastación de hipótesis.",
+                "instruccion_detallada": "Es la parte crítica de la tesis cuantitativa.\n\nPresenta primero la Prueba de Normalidad para justificar si usas pruebas paramétricas o no paramétricas.\nDesarrolla la Prueba de Hipótesis para la General y las Específicas:\nPlantea H0 (Nula) y H1 (Alterna).\nMuestra el estadístico de prueba y el Valor-p (Sig.).\nToma la decisión estadística: Si p < 0.05, se rechaza la hipótesis nula."
+              }
+            ]
+          },
+          {
+            "titulo": "VI. DISCUSIÓN DE RESULTADOS",
+            "vista_previa": true,
+            "tipo_vista": "pdf_capitulo",
+            "contenido": [
+              {
+                "texto": "6.1 Contrastación y demostración de la hipótesis",
+                "nota": "Confrontación con la experiencia y evidencia empírica.",
+                "instruccion_detallada": "Realiza la discusión técnica.\n\nAnaliza si la evidencia estadística (Resultados 5.2) respalda o no lo que afirmaste en tu Hipótesis (3.1).\nExplica qué significa este resultado en el contexto de tu problema de ingeniería (ej. 'Se demostró que el nuevo sistema redujo las fallas en un 20%, validando la hipótesis...')."
+              },
+              {
+                "texto": "6.2 Contrastación con otros estudios",
+                "nota": "Comparación con antecedentes.",
+                "instruccion_detallada": "Triangulación de resultados.\n\nCompara tus hallazgos con los Antecedentes (2.1).\nEjemplo: 'Este resultado coincide con lo hallado por Pérez (2020), quien también observó mejoras...' o 'Difiere de Gómez (2019), posiblemente debido a...'.\nEsto valida la robustez de tu investigación."
+              },
+              {
+                "texto": "6.3 Responsabilidad ética",
+                "nota": "Responsabilidad por la información emitida.",
+                "instruccion_detallada": "El autor se responsabiliza por la veracidad y rigor ético de los resultados presentados."
+              }
+            ]
+          },
+          {
+            "titulo": "VII. CONCLUSIONES",
+            "nota_capitulo": "Son sentencias directas y precisas que responden a los objetivos.\n\nDeben ser numeradas.\nDebe haber una conclusión por cada objetivo específico y una para el objetivo general.\nDeben incluir datos cuantitativos clave (ej. 'Se determinó que la eficiencia aumentó en 15%...'). No presentar citas ni explicaciones teóricas aquí."
+          },
+          {
+            "titulo": "VIII. RECOMENDACIONES",
+            "nota_capitulo": "Sugerencias de acción basadas en las conclusiones.\n\nMetodológicas: Para futuros investigadores (ampliar muestra, cambiar variables).\nAcadémicas: Para la universidad.\nPrácticas: Dirigidas a la empresa o institución (implementar el plan, realizar mantenimientos, capacitar personal). Deben ser viables."
+          },
+          {
+            "titulo": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+            "nota_capitulo": "Normas internacionales: ISO 690 o IEEE (Ingenierías), APA o Vancouver (Otras). Uso de gestores como Mendeley o Zotero.",
+            "ejemplos_apa": [
+              "Hernández-Sampieri, R., & Mendoza, C. (2018). Metodología de la investigación: las rutas cuantitativa, cualitativa y mixta. McGraw-Hill Education.",
+              "Creswell, J. W. (2014). Research design: Qualitative, quantitative, and mixed methods approaches (4th ed.). Sage Publications.",
+              "Ministerio de Educación del Perú. (2020). Orientaciones para la investigación universitaria. MINEDU."
+            ]
+          }
+        ],
+        "finales": {
+          "anexos": {
+            "titulo_seccion": "ANEXOS",
+            "lista": [
+              {
+                "titulo": "Anexo 1: Matriz de Consistencia",
+                "nota": "Resumen lógico de Problemas, Objetivos, Hipótesis, Variables y Método."
+              },
+              {
+                "titulo": "Anexo 2: Instrumento de recolección de datos",
+                "nota": "Cuestionario o ficha técnica utilizada."
+              },
+              {
+                "titulo": "Anexo 3: Validación de instrumento",
+                "nota": "Constancia de juicio de expertos."
+              }
+            ]
+          }
+        },
+        "matriz_consistencia": {
+          "problemas": {
+            "general": "¿De qué manera la implementación de un plan de mantenimiento reduce el tiempo perdido en el área de trapiche?",
+            "especificos": [
+              "¿Cuál es el diagnóstico inicial midiendo el tiempo perdido?",
+              "¿De qué manera realizar un análisis de criticidad?",
+              "¿Cómo desarrollar un análisis de modos y efectos de fallas?"
+            ]
+          },
+          "objetivos": {
+            "general": "Determinar cómo la implementación de un plan de mantenimiento reduce el tiempo perdido.",
+            "especificos": [
+              "Realizar un diagnóstico inicial.",
+              "Realizar un análisis de criticidad.",
+              "Desarrollar un análisis AMEF."
+            ]
+          },
+          "hipotesis": {
+            "general": "La implementación de un plan de mantenimiento reduce significativamente el tiempo perdido.",
+            "especificos": [
+              "El diagnóstico permite identificar causas raíz.",
+              "El análisis de criticidad prioriza equipos clave."
+            ]
+          },
+          "variables": {
+            "independiente": {
+              "nombre": "PLAN DE MANTENIMIENTO",
+              "dimensiones": [
+                "Criticidad",
+                "AMEF",
+                "Programación"
+              ]
+            },
+            "dependiente": {
+              "nombre": "TIEMPO PERDIDO",
+              "dimensiones": [
+                "Disponibilidad",
+                "Confiabilidad"
+              ]
+            }
+          },
+          "metodologia": {
+            "tipo": "Aplicada",
+            "enfoque": "Cuantitativo",
+            "nivel": "Explicativo",
+            "diseno": "Pre Experimental",
+            "poblacion": "32 equipos",
+            "muestra": "24 equipos críticos",
+            "tecnicas": "Observación",
+            "instrumentos": "Ficha de datos",
+            "procesamiento": "SPSS v25"
+          }
+        },
+        "titulo": "Formato de Informe de Tesis",
+        "descripcion": "Plantilla para informe de tesis siguiendo normas APA, aplicable a facultades generales.",
+        "facultad": "Centro de Formatos UNI",
+        "version": "1.0",
+        "fecha": "14 Enero, 2026"
+      }
     }
   },
-  "lastSyncAt": "2026-02-05T16:20:18.120382"
+  "lastSyncAt": "2026-02-17T17:14:19.194163"
 }
