@@ -1,49 +1,64 @@
-# Índice de Documentación - GicaGen
+# Indice de Documentacion - GicaGen
 
-> **Para agentes:** Este índice te permite navegar toda la documentación del proyecto en 30 segundos.
+> Navegacion principal de la documentacion tecnica.
 
-## Documentación Principal
+---
 
-| Documento | Descripción |
-|-----------|-------------|
-| [01-vision-y-alcance.md](01-vision-y-alcance.md) | Qué es GicaGen, qué NO es, objetivos |
-| [02-arquitectura.md](02-arquitectura.md) | Arquitectura actual y objetivo, diagramas |
-| [03-catalogo-repo.md](03-catalogo-repo.md) | Mapa del repositorio con links a catálogos |
-| [04-integracion-gicatesis.md](04-integracion-gicatesis.md) | Contratos e integración con GicaTesis |
-| [05-plan-de-cambios.md](05-plan-de-cambios.md) | Plan de desacoplo (si aplica) |
+## Documentacion Principal
+
+| # | Documento | Proposito |
+|---|-----------|-----------|
+| 01 | [Vision y Alcance](01-vision-y-alcance.md) | Que es GicaGen, que no es, stack tecnologico |
+| 02 | [Arquitectura](02-arquitectura.md) | Componentes, flujos, dependencias, plan de desacoplo |
+| 03 | [Catalogo del Repositorio](03-catalogo-repo.md) | Vista general del repo con diagrama y estadisticas |
+| 04 | [Integracion GicaTesis](04-integracion-gicatesis.md) | Contratos API BFF, endpoints, configuracion |
+| 05 | [Plan de Cambios](05-plan-de-cambios.md) | Plan de desacoplo ports/adapters |
 
 ## Operaciones
 
-| Documento | Descripción |
-|-----------|-------------|
-| [06-desarrollo-local.md](06-desarrollo-local.md) | Setup local, env vars, comandos |
-| [07-pruebas.md](07-pruebas.md) | Tests y criterios de aceptación |
-| [08-despliegue.md](08-despliegue.md) | Build, release, deploy |
-| [09-troubleshooting.md](09-troubleshooting.md) | Errores comunes y soluciones |
+| # | Documento | Proposito |
+|---|-----------|-----------|
+| 06 | [Desarrollo Local](06-desarrollo-local.md) | Setup, ejecucion, verificacion |
+| 07 | [Pruebas](07-pruebas.md) | Estrategia de testing, criterios |
+| 08 | [Despliegue](08-despliegue.md) | Docker, VPS, variables produccion |
+| 09 | [Troubleshooting](09-troubleshooting.md) | Errores comunes y soluciones |
 
-## Catálogos
+## Catalogos Detallados
 
-| Documento | Descripción |
-|-----------|-------------|
-| [catalogo/carpetas.md](catalogo/carpetas.md) | Inventario de carpetas con propósito/criticidad |
-| [catalogo/archivos.md](catalogo/archivos.md) | Inventario de archivos con dependencias |
+| Documento | Proposito |
+|-----------|-----------|
+| [catalogo/carpetas.md](catalogo/carpetas.md) | Inventario de 17 carpetas |
+| [catalogo/archivos.md](catalogo/archivos.md) | Inventario de 73 archivos |
 
 ## ADRs (Architecture Decision Records)
 
-| ADR | Descripción |
-|-----|-------------|
-| [adrs/ADR-0001-contexto.md](adrs/ADR-0001-contexto.md) | Contexto del proyecto |
-| [adrs/ADR-0002-boundaries-desacoplo.md](adrs/ADR-0002-boundaries-desacoplo.md) | Decisiones de boundaries y desacoplo |
+| ADR | Titulo | Estado |
+|-----|--------|--------|
+| [ADR-0001](adrs/ADR-0001-contexto.md) | Contexto inicial del proyecto | Aceptado |
+| [ADR-0002](adrs/ADR-0002-boundaries-desacoplo.md) | Boundaries y desacoplo | Parcialmente implementado |
 
 ## Runbooks
 
-| Runbook | Descripción |
-|---------|-------------|
-| [runbooks/levantar-local.md](runbooks/levantar-local.md) | Cómo levantar el proyecto localmente |
+| Runbook | Proposito |
+|---------|-----------|
+| [levantar-local.md](runbooks/levantar-local.md) | Paso a paso para levantar GicaTesis + GicaGen |
 
-## Entregables
+## Diagramas
 
-| Documento | Descripción |
-|-----------|-------------|
-| [10-resumen-ejecutivo.md](10-resumen-ejecutivo.md) | Resumen ejecutivo con hallazgos y recomendaciones |
-| [11-checklist-validacion.md](11-checklist-validacion.md) | Checklist de validación del sistema |
+| Diagrama | Formato | Proposito |
+|----------|---------|-----------|
+| [arquitectura.mmd](diagramas/arquitectura.mmd) | Mermaid | Diagrama de componentes |
+
+## Resumen y Entregables
+
+| # | Documento | Proposito |
+|---|-----------|-----------|
+| 10 | [Resumen Ejecutivo](10-resumen-ejecutivo.md) | Hallazgos, riesgos, recomendaciones |
+| 11 | [Checklist de Validacion](11-checklist-validacion.md) | 45 checks de verificacion |
+
+## Guias de Estilo
+
+| Documento | Proposito |
+|-----------|-----------|
+| [README.md](README.md) | Entrada rapida a docs |
+| [STYLE_GUIDE.md](STYLE_GUIDE.md) | Reglas de encoding y estilo |

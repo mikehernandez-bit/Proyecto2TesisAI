@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02",
-  "catalogEtag": "\"1e093dc8e45f2ce54f3ec9d280e6471c22a978bc59fa3cef28a10f318e5b6f02\"",
+  "catalogVersion": "ef6814bee059e84f24acaecb071a8740ad9425e5a737c3e5959e5c9c0804a4dd",
+  "catalogEtag": "\"ef6814bee059e84f24acaecb071a8740ad9425e5a737c3e5959e5c9c0804a4dd\"",
   "formats": [
     {
       "id": "unac-informe-cual",
@@ -8,7 +8,7 @@
       "university": "unac",
       "category": "Informe de Tesis",
       "documentType": "cual",
-      "version": "c5fe33e5ec221278"
+      "version": "533b734464a98b2d"
     },
     {
       "id": "unac-informe-cuant",
@@ -16,7 +16,7 @@
       "university": "unac",
       "category": "Informe de Tesis",
       "documentType": "cuant",
-      "version": "cdd4d7fc67cc16b9"
+      "version": "a661711790bec44f"
     },
     {
       "id": "unac-maestria-cual",
@@ -24,7 +24,7 @@
       "university": "unac",
       "category": "Tesis de Postgrado",
       "documentType": "cual",
-      "version": "a5be1f2cbefb723a"
+      "version": "b7c0eee4f5005c5d"
     },
     {
       "id": "unac-maestria-cuant",
@@ -32,7 +32,7 @@
       "university": "unac",
       "category": "Tesis de Postgrado",
       "documentType": "cuant",
-      "version": "4a366be37e6d7ec6"
+      "version": "cd6db96a2baaf678"
     },
     {
       "id": "unac-proyecto-cual",
@@ -40,7 +40,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cual",
-      "version": "801dc2b68744ba61"
+      "version": "f18ff7052c503ede"
     },
     {
       "id": "unac-proyecto-cuant",
@@ -48,7 +48,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cuant",
-      "version": "fd2302e176b14a7e"
+      "version": "d96b964c3c8af464"
     },
     {
       "id": "uni-informe-apa",
@@ -56,7 +56,7 @@
       "university": "uni",
       "category": "Informe de Tesis",
       "documentType": "apa",
-      "version": "d9b5ca24a923ed4f"
+      "version": "4697338db48eb888"
     },
     {
       "id": "uni-posgrado-standard",
@@ -64,7 +64,7 @@
       "university": "uni",
       "category": "Tesis de Postgrado",
       "documentType": "standard",
-      "version": "5c8e2a739f49ba29"
+      "version": "77ff26114b503afe"
     },
     {
       "id": "uni-proyecto-standard",
@@ -72,7 +72,7 @@
       "university": "uni",
       "category": "Proyecto de Tesis",
       "documentType": "standard",
-      "version": "f6fdac861a06c7ab"
+      "version": "86760e2230103c53"
     }
   ],
   "detailsById": {
@@ -1032,7 +1032,1005 @@
           ]
         }
       }
+    },
+    "unac-proyecto-cual": {
+      "id": "unac-proyecto-cual",
+      "title": "Proyecto de Tesis UNAC - Enfoque Cualitativo",
+      "university": "unac",
+      "category": "Proyecto de Tesis",
+      "documentType": "cual",
+      "version": "f18ff7052c503ede",
+      "templateRef": null,
+      "fields": [
+        {
+          "name": "universidad",
+          "label": "Universidad",
+          "type": "text",
+          "required": false,
+          "default": "UNIVERSIDAD NACIONAL DEL CALLAO",
+          "options": null,
+          "validation": null,
+          "order": 1,
+          "section": null
+        },
+        {
+          "name": "facultad",
+          "label": "Facultad",
+          "type": "text",
+          "required": false,
+          "default": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "options": null,
+          "validation": null,
+          "order": 2,
+          "section": null
+        },
+        {
+          "name": "escuela",
+          "label": "Escuela",
+          "type": "text",
+          "required": false,
+          "default": "",
+          "options": null,
+          "validation": null,
+          "order": 3,
+          "section": null
+        },
+        {
+          "name": "tipo_documento",
+          "label": "Tipo Documento",
+          "type": "text",
+          "required": false,
+          "default": "PROYECTO DE INVESTIGACIÓN",
+          "options": null,
+          "validation": null,
+          "order": 4,
+          "section": null
+        },
+        {
+          "name": "titulo_placeholder",
+          "label": "Titulo Placeholder",
+          "type": "text",
+          "required": false,
+          "default": "“TÍTULO DEL PROYECTO”",
+          "options": null,
+          "validation": null,
+          "order": 5,
+          "section": null
+        },
+        {
+          "name": "frase_grado",
+          "label": "Frase Grado",
+          "type": "text",
+          "required": false,
+          "default": "[Nota: Contiene: Las variables, unidad de análisis, ámbito de estudio. Máximo 15 palabras sin considerar artículos conectores.]",
+          "options": null,
+          "validation": null,
+          "order": 6,
+          "section": null
+        },
+        {
+          "name": "grado_objetivo",
+          "label": "Grado Objetivo",
+          "type": "text",
+          "required": false,
+          "default": "",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "label_autor",
+          "label": "Label Autor",
+          "type": "text",
+          "required": false,
+          "default": "AUTOR(ES)\n\n[NOMBRES Y APELLIDOS]\n[NOMBRES Y APELLIDOS]",
+          "options": null,
+          "validation": null,
+          "order": 8,
+          "section": null
+        },
+        {
+          "name": "label_asesor",
+          "label": "Label Asesor",
+          "type": "text",
+          "required": false,
+          "default": "ASESOR\n[GRADO Y NOMBRES]",
+          "options": null,
+          "validation": null,
+          "order": 9,
+          "section": null
+        },
+        {
+          "name": "label_linea",
+          "label": "Label Linea",
+          "type": "text",
+          "required": false,
+          "default": "LÍNEA DE INVESTIGACIÓN:\n[Unidad de Investigación]",
+          "options": null,
+          "validation": null,
+          "order": 10,
+          "section": null
+        },
+        {
+          "name": "lugar",
+          "label": "Lugar",
+          "type": "text",
+          "required": false,
+          "default": "Callao, [AÑO]",
+          "options": null,
+          "validation": null,
+          "order": 11,
+          "section": null
+        },
+        {
+          "name": "anio",
+          "label": "Anio",
+          "type": "text",
+          "required": false,
+          "default": "PERÚ",
+          "options": null,
+          "validation": null,
+          "order": 12,
+          "section": null
+        }
+      ],
+      "assets": [
+        {
+          "id": "unac:logo:main",
+          "kind": "logo",
+          "url": "/api/v1/assets/unac/logo/main"
+        }
+      ],
+      "rules": null,
+      "definition": {
+        "_meta": {
+          "entity": "format",
+          "publish": true,
+          "id": "unac-proyecto-cual",
+          "university": "unac",
+          "category": "Proyecto de Tesis",
+          "documentType": "cual",
+          "title": "Proyecto de Tesis UNAC - Enfoque Cualitativo",
+          "descripcion": "Formato de proyecto de tesis con enfoque cualitativo para la Universidad Nacional del Callao.",
+          "version": "2.0.0"
+        },
+        "configuracion": {
+          "fuente_normal": "Times New Roman",
+          "tamano_normal": 12,
+          "ruta_logo": "app/static/assets/LogoUNAC.png",
+          "color_encabezado": "BDD7EE"
+        },
+        "caratula": {
+          "universidad": "UNIVERSIDAD NACIONAL DEL CALLAO",
+          "facultad": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "escuela": "",
+          "tipo_documento": "PROYECTO DE INVESTIGACIÓN",
+          "titulo_placeholder": "“TÍTULO DEL PROYECTO”",
+          "frase_grado": "[Nota: Contiene: Las variables, unidad de análisis, ámbito de estudio. Máximo 15 palabras sin considerar artículos conectores.]",
+          "grado_objetivo": "",
+          "label_autor": "AUTOR(ES)\n\n[NOMBRES Y APELLIDOS]\n[NOMBRES Y APELLIDOS]",
+          "label_asesor": "ASESOR\n[GRADO Y NOMBRES]",
+          "label_linea": "LÍNEA DE INVESTIGACIÓN:\n[Unidad de Investigación]",
+          "lugar": "Callao, [AÑO]",
+          "anio": "PERÚ"
+        },
+        "preliminares": {
+          "indices": [
+            {
+              "titulo": "ÍNDICE",
+              "items": [
+                {
+                  "texto": "ÍNDICE",
+                  "pag": 1
+                },
+                {
+                  "texto": "ÍNDICE DE TABLAS",
+                  "pag": 2
+                },
+                {
+                  "texto": "ÍNDICE DE FIGURAS",
+                  "pag": 3
+                },
+                {
+                  "texto": "ÍNDICE DE ABREVIATURAS",
+                  "pag": 4
+                },
+                {
+                  "texto": "INTRODUCCIÓN",
+                  "pag": 5
+                },
+                {
+                  "texto": "I. PLANTEAMIENTO DEL PROBLEMA",
+                  "pag": 6,
+                  "bold": true
+                },
+                {
+                  "texto": "II. MARCO TEÓRICO",
+                  "pag": 10,
+                  "bold": true
+                },
+                {
+                  "texto": "III. HIPÓTESIS Y VARIABLES",
+                  "pag": 17,
+                  "bold": true
+                },
+                {
+                  "texto": "IV. METODOLOGÍA DEL PROYECTO",
+                  "pag": 19,
+                  "bold": true
+                },
+                {
+                  "texto": "V. CRONOGRAMA DE ACTIVIDADES",
+                  "pag": 21,
+                  "bold": true
+                },
+                {
+                  "texto": "VI. PRESUPUESTO",
+                  "pag": 22,
+                  "bold": true
+                },
+                {
+                  "texto": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+                  "pag": 23,
+                  "bold": true
+                },
+                {
+                  "texto": "VIII. ANEXOS",
+                  "pag": 24,
+                  "bold": true
+                }
+              ]
+            },
+            {
+              "titulo": "ÍNDICE DE TABLAS",
+              "items": [
+                {
+                  "texto": "Tabla 1.1. Frecuencia de fallas en los equipos",
+                  "pag": 8
+                },
+                {
+                  "texto": "Tabla 1.2. Diagrama de Pareto",
+                  "pag": 8
+                },
+                {
+                  "texto": "Tabla 2.1. Mapa de Procesos",
+                  "pag": 12
+                },
+                {
+                  "texto": "Tabla 2.2. Diagrama de Procesos",
+                  "pag": 12
+                }
+              ]
+            },
+            {
+              "titulo": "ÍNDICE DE FIGURAS",
+              "items": [
+                {
+                  "texto": "Figura 1.1 Frecuencia de los fallas en el área de mantenimiento",
+                  "pag": 7
+                },
+                {
+                  "texto": "Figura 1.2 Ejemplo",
+                  "pag": 7
+                },
+                {
+                  "texto": "Figura 2.1 Matriz de consistencia de variable simple",
+                  "pag": 13
+                },
+                {
+                  "texto": "Figura 2.2 Matriz de consistencia de implementación",
+                  "pag": 13
+                },
+                {
+                  "texto": "Figura 2.3 Matriz de operacionalización de diseño",
+                  "pag": 14
+                },
+                {
+                  "texto": "Figura 2.4 Matriz de operacionalización de diseño",
+                  "pag": 15
+                }
+              ]
+            },
+            {
+              "titulo": "ÍNDICE DE ABREVIATURAS",
+              "items": [
+                {
+                  "texto": "ORGANIZACIÓN MUNDIAL DE LA SALUD (OMS)",
+                  "pag": 6
+                }
+              ],
+              "nota": "Colocar el significado de las abreviaturas utilizadas en la investigación sin la paginación"
+            }
+          ],
+          "introduccion": {
+            "titulo": "INTRODUCCIÓN",
+            "texto": "Manifiesta la importancia y las razones por las que realiza el proyecto de tesis, referencia algunos trabajos similares anteriormente publicados, menciona los objetivos de estudio, la problemática y las soluciones. Asimismo presentar una descripción de la estructura del proyecto (máximo 02 páginas)."
+          }
+        },
+        "cuerpo": [
+          {
+            "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+            "nota_capitulo": "Nota: Los datos no deben tener más de 4 años de antigüedad una vez terminada la experiencia.",
+            "contenido": [
+              {
+                "texto": "1.1 Descripción de la realidad problemática",
+                "nota": "Describe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa.",
+                "instruccion_detallada": "Describe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa, de las líneas de investigación prioritarias o transversales utilizando fuentes científicas y/o oficiales. Sustenta la identificación del problema relevante y evidencia el análisis de la problemática utilizando al menos una herramienta de ingeniería (Pareto, Ishikawa, árbol de problemas, matriz de relevancia, matriz de priorización, entre otras). Se debe mencionar la propuesta de solución del problema de investigación.",
+                "imagenes": [
+                  {
+                    "titulo": "Árbol de problemas",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "texto": "1.2 Formulación del problema",
+                "nota": "Problema general y específicos expresados en forma interrogativa.",
+                "instruccion_detallada": "Problema general: Se expresa en forma interrogativa, incluye las variables, unidad de análisis, lugar de la investigación y está redactado en tiempo presente.\nProblemas específicos: Están expresados en forma interrogativa, se derivan del problema general, su enunciado es claro y conciso."
+              },
+              {
+                "texto": "1.3 Objetivos",
+                "nota": "Objetivo general y específicos (verbo en infinitivo).",
+                "instruccion_detallada": "Objetivo general: Es coherente con el problema, incluye las variables, inicia con verbo en infinitivo (Ejemplo: Establecer, determinar, incrementar, etc.), enuncia la acción para la propuesta de solución. Guarda relación con el problema general. (Sugerencia revisar la taxonomía de Bloom).\nObjetivos específicos: Orientan todas las acciones parciales para lograr el objetivo general. Se inician con verbos en infinitivo y guarda relación con los problemas específicos."
+              },
+              {
+                "texto": "1.4 Justificación",
+                "nota": "Sustenta el por qué se realiza el trabajo (teórica, práctica, metodológica).",
+                "instruccion_detallada": "Sustenta adecuadamente el por qué se realiza el trabajo de investigación de acuerdo con la naturaleza del problema explicando cuáles son las contribuciones científicas o sociales y los beneficiarios de su trabajo. Definir los tipos de justificación (teórica, práctica, metodológica, etc) citando adecuadamente y el sustento respectivo explicando las razones por las cuales la investigación posee dicha justificación. Se redacta en tiempo futuro."
+              },
+              {
+                "texto": "1.5 Delimitantes de la investigación",
+                "nota": "Delimitante Teórica, Temporal y Espacial.",
+                "instruccion_detallada": "Delimitante Teórica: Especifica las teorías que soportan su investigación.\nDelimitante Temporal: Especifica en qué momento (tiempo) se realiza la investigación.\nDelimitante Espacial: Especifica en qué lugar se realiza la investigación."
+              }
+            ]
+          },
+          {
+            "titulo": "II. REVISIÓN DE LITERATURA",
+            "contenido": [
+              {
+                "texto": "2.1 Antecedentes",
+                "nota": "Nacionales e Internacionales (priorizar estudios cualitativos).",
+                "instruccion_detallada": "Presenta el estado del arte revisando investigaciones previas. Se recomienda buscar tesis o artículos con enfoque CUALITATIVO o MIXTO que aborden el mismo fenómeno de estudio.\n\nEn cada antecedente, resalta:\n- El objetivo de comprensión (no de medición).\n- La metodología cualitativa usada (fenomenología, etnografía, etc.).\n- Los hallazgos descriptivos o interpretativos más relevantes (categorías emergentes).",
+                "imagenes": [
+                  {
+                    "titulo": "Diagrama ilustrativo",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "texto": "2.2 Bases teóricas",
+                "nota": "Teorías sustantivas que fundamentan el fenómeno.",
+                "instruccion_detallada": "Desarrolla las teorías o enfoques que permiten interpretar el fenómeno estudiado.\n\nDiferencia clave: No se busca una teoría para 'medir variables', sino marcos interpretativos (ej. Teoría de la Motivación, Interaccionismo Simbólico, Gestión por Procesos) que ayuden a entender las **Categorías de estudio** y sus relaciones."
+              },
+              {
+                "texto": "2.3 Marco conceptual",
+                "nota": "Definición de las Categorías Apriorísticas.",
+                "instruccion_detallada": "Define conceptualmente las **CATEGORÍAS** y **SUBCATEGORÍAS** que guiarán la investigación inicial.\n\nInstrucción: A diferencia de las variables (que se operacionalizan en números), aquí debes definir el concepto abstracto de la categoría tal como se entiende en tu contexto (ej. 'Percepción de seguridad', 'Cultura organizacional', 'Vivencia del duelo')."
+              },
+              {
+                "texto": "2.4 Definición de términos básicos",
+                "nota": "Glosario funcional.",
+                "instruccion_detallada": "Define términos técnicos o propios del contexto (jerga de la empresa, términos técnicos específicos) para evitar ambigüedades en la lectura de las entrevistas o resultados."
+              }
+            ]
+          },
+          {
+            "titulo": "III. HIPÓTESIS Y VARIABLES",
+            "nota_capitulo": "En este capítulo se detalla el abordaje cualitativo para comprender el fenómeno.",
+            "contenido": [
+              {
+                "texto": "3.1 Enfoque y Diseño de Investigación",
+                "instruccion_detallada": "Define el enfoque (Cualitativo) y el diseño específico (Fenomenológico, Etnográfico, Teoría Fundamentada, Estudio de Caso, etc.). Justifica por qué este diseño es el más adecuado para responder a tu problema.",
+                "imagenes": [
+                  {
+                    "titulo": "Modelo de relación entre variables",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "texto": "3.2 Escenario de Estudio y Participantes",
+                "instruccion_detallada": "Describe el contexto (lugar, área, empresa) y quiénes son los informantes clave (Participantes). No se usa fórmula de muestra, sino criterios de inclusión (ej. 'trabajadores con más de 5 años de experiencia')."
+              },
+              {
+                "texto": "3.3 Matriz de Categorización",
+                "instruccion_detallada": "Tabla que organiza las Categorías Apriorísticas (conceptos clave a investigar) y sus Subcategorías. Reemplaza a la operacionalización de variables.",
+                "tablas_especiales": [
+                  {
+                    "titulo": "Tabla 3.1 Matriz de Categorización Apriorística",
+                    "headers": [
+                      "CATEGORÍA",
+                      "DEFINICIÓN CONCEPTUAL",
+                      "SUBCATEGORÍAS",
+                      "PREGUNTAS ORIENTADORAS (Instrumento)"
+                    ],
+                    "rows": [
+                      [
+                        "GESTIÓN DEL CAMBIO (Ejemplo)",
+                        "Proceso mediante el cual la organización transita de un estado actual a uno deseado (Autor, Año).",
+                        "- Resistencia al cambio\n- Adaptación tecnológica\n- Comunicación interna",
+                        "¿Cómo percibió el equipo la llegada de la nueva maquinaria?\n¿Qué canales de comunicación fueron más efectivos?"
+                      ]
+                    ]
+                  }
+                ]
+              },
+              {
+                "tipo": "tabla",
+                "titulo": "Tabla 2: Matriz de Categorización Apriorística",
+                "orientacion": "landscape",
+                "encabezados": [
+                  "Categoría",
+                  "Definición Conceptual",
+                  "Subcategorías",
+                  "Códigos",
+                  "Técnica/Instrumento"
+                ],
+                "filas": [
+                  [
+                    "[Categoría 1]",
+                    "[Definición según autor, año]",
+                    "[Subcategoría 1.1]",
+                    "[Código A]",
+                    "Entrevista semi-estructurada"
+                  ],
+                  [
+                    "",
+                    "",
+                    "[Subcategoría 1.2]",
+                    "[Código B]",
+                    "Observación participante"
+                  ],
+                  [
+                    "[Categoría 2]",
+                    "[Definición según autor, año]",
+                    "[Subcategoría 2.1]",
+                    "[Código C]",
+                    "Análisis documental"
+                  ],
+                  [
+                    "",
+                    "",
+                    "[Subcategoría 2.2]",
+                    "[Código D]",
+                    "Entrevista semi-estructurada"
+                  ]
+                ],
+                "celdas_fusionadas": [
+                  {
+                    "fila": 0,
+                    "col": 0,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 0,
+                    "col": 1,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 2,
+                    "col": 0,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 2,
+                    "col": 1,
+                    "filas_span": 2
+                  }
+                ],
+                "nota_pie": "Fuente: Elaboración propia",
+                "estilo": {
+                  "encabezado_color": "D9E2F3",
+                  "fuente_size": 9
+                }
+              },
+              {
+                "texto": "3.4 Técnicas e instrumentos de recolección de datos",
+                "instruccion_detallada": "Técnicas: Entrevista semiestructurada, Observación participante, Focus Group, Análisis documental.\nInstrumentos: Guía de entrevista (preguntas abiertas), Guía de observación, Ficha de bitácora."
+              },
+              {
+                "texto": "3.5 Procedimiento de recolección y análisis",
+                "instruccion_detallada": "Describe los pasos: 1. Inmersión en el campo. 2. Aplicación de entrevistas. 3. Transcripción. 4. Codificación (abierta, axial). 5. Triangulación de datos."
+              },
+              {
+                "texto": "3.6 Rigor Científico",
+                "instruccion_detallada": "Criterios de calidad que reemplazan a la validez y confiabilidad estadística:\n- Credibilidad (Validez interna)\n- Transferibilidad (Validez externa)\n- Dependencia (Consistencia)\n- Confirmabilidad (Objetividad)"
+              },
+              {
+                "texto": "3.7 Aspectos Éticos",
+                "instruccion_detallada": "Consentimiento informado, confidencialidad de los participantes (uso de códigos en lugar de nombres) y honestidad en el manejo de la información."
+              }
+            ]
+          },
+          {
+            "titulo": "IV. METODOLOGÍA DEL PROYECTO",
+            "contenido": [
+              {
+                "texto": "4.1 Diseño metodológico",
+                "nota": "Tipo, Enfoque, Nivel y Diseño de investigación.",
+                "instruccion_detallada": "En esta sección se debe indicar: Tipo de investigación (Básica o Aplicada), Enfoque de Investigación (Cuantitativa o Cualitativa), Nivel de Investigación (Descriptiva, Correlacional, explicativo u otros), Diseño de Investigación (No experimental, Experimental, y su esquema correspondiente) especificando el tipo. Debe definir cada clasificación de su investigación citando y argumentar su elección.",
+                "imagenes": [
+                  {
+                    "titulo": "Diseño metodológico de la investigación",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "texto": "4.2 Método de investigación",
+                "nota": "Método científico y etapas de desarrollo.",
+                "instruccion_detallada": "Método de investigación científica. Definir el método citando un autor y argumentar su elección especificando las etapas ¿Cómo se va a desarrollar? estableciendo los procedimientos del desarrollo de la investigación."
+              },
+              {
+                "texto": "4.3 Población y muestra",
+                "nota": "Descripción de población y tipo de muestreo.",
+                "instruccion_detallada": "Describe la población y argumenta la elección de la muestra, si la naturaleza de la investigación lo requiere (indicando el tipo de muestreo). En caso de que no aplique argumentar adecuadamente (Tesis de Diseño)."
+              },
+              {
+                "texto": "4.4 Lugar de estudio",
+                "nota": "Ubicación y descripción del área.",
+                "instruccion_detallada": "Muestra la ubicación de la empresa y describe el área o lugar específico donde se realiza la investigación. Se recomienda: Usar Google maps indicando la ubicación. Usar una herramienta que permita visualizar el área donde se realiza la investigación. Contexto de la empresa."
+              },
+              {
+                "texto": "4.5 Técnicas e instrumentos para la recolección de la información",
+                "instruccion_detallada": "Define (citando) y sustente el uso de las técnicas e instrumentos utilizados en la investigación, especificando que información van a obtener. Las fichas de recolección de datos no requieren validación."
+              },
+              {
+                "texto": "4.6 Análisis y procesamiento de datos",
+                "instruccion_detallada": "Explica ¿Cómo se utiliza la información? Seguir las etapas del procedimiento especificando las herramientas utilizadas y como se analizan los datos."
+              },
+              {
+                "texto": "4.7 Aspectos éticos en Investigación",
+                "instruccion_detallada": "Considerar los principios del código de ética de la UNAC y especificar ¿Cómo se aplican los principios mencionados?"
+              },
+              {
+                "tipo": "tabla",
+                "titulo": "Cronograma Resumido de Actividades",
+                "orientacion": "portrait",
+                "encabezados": [
+                  "Actividad",
+                  "Mes 1",
+                  "Mes 2",
+                  "Mes 3",
+                  "Mes 4",
+                  "Mes 5",
+                  "Mes 6"
+                ],
+                "filas": [
+                  [
+                    "Revisión bibliográfica",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Diseño metodológico",
+                    "",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Recolección de datos",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Análisis de resultados",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    ""
+                  ],
+                  [
+                    "Redacción del informe",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X"
+                  ],
+                  [
+                    "Sustentación",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X"
+                  ]
+                ],
+                "estilo": {
+                  "encabezado_color": "4472C4",
+                  "fuente_size": 10
+                }
+              }
+            ]
+          },
+          {
+            "titulo": "V. CRONOGRAMA DE ACTIVIDADES",
+            "contenido": [
+              {
+                "texto": "Cronograma de ejecución",
+                "nota": "Secuencia del desarrollo de la investigación.",
+                "instruccion_detallada": "Evidencia la secuencia del desarrollo de la investigación hasta la elaboración del informe final. La frecuencia (meses / semanas / días) va a depender de la investigación. No requiere enumerar como tabla. No requiere indicar elaboración propia.",
+                "imagenes": [
+                  {
+                    "titulo": "Diagrama ilustrativo",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "tipo": "tabla",
+                "titulo": "Cronograma Detallado de Actividades",
+                "orientacion": "landscape",
+                "encabezados": [
+                  "Actividad",
+                  "Mes 1",
+                  "Mes 2",
+                  "Mes 3",
+                  "Mes 4",
+                  "Mes 5",
+                  "Mes 6",
+                  "Mes 7",
+                  "Mes 8",
+                  "Mes 9",
+                  "Mes 10",
+                  "Mes 11",
+                  "Mes 12"
+                ],
+                "filas": [
+                  [
+                    "Revisión bibliográfica",
+                    "X",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Elaboración del marco teórico",
+                    "",
+                    "X",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Diseño metodológico",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Recolección de datos",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Procesamiento y análisis",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Redacción del informe",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    "X",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Revisión y ajustes",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    ""
+                  ],
+                  [
+                    "Sustentación",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X"
+                  ]
+                ],
+                "estilo": {
+                  "encabezado_color": "BDD7EE",
+                  "fuente_size": 8
+                }
+              }
+            ]
+          },
+          {
+            "titulo": "VI. PRESUPUESTO",
+            "contenido": [
+              {
+                "texto": "Recursos y Presupuesto",
+                "nota": "Inversión, recursos humanos, materiales y financieros.",
+                "instruccion_detallada": "Se debe presentar lo que el investigador ha invertido bajo su responsabilidad, en la investigación. Se considera los recursos humanos, materiales y financieros necesarios para el desarrollo de la investigación (en soles) e indicar la fuente de financiamiento.",
+                "imagenes": [
+                  {
+                    "titulo": "Distribución del presupuesto",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "tipo": "tabla",
+                "titulo": "Presupuesto del Proyecto",
+                "orientacion": "portrait",
+                "encabezados": [
+                  "Rubro",
+                  "Descripción",
+                  "Cantidad",
+                  "Costo Unit. (S/)",
+                  "Total (S/)"
+                ],
+                "filas": [
+                  [
+                    "Materiales",
+                    "Útiles de escritorio",
+                    "1",
+                    "50.00",
+                    "50.00"
+                  ],
+                  [
+                    "Impresiones",
+                    "Copias y anillados",
+                    "5",
+                    "30.00",
+                    "150.00"
+                  ],
+                  [
+                    "Software",
+                    "Licencia SPSS/NVivo",
+                    "1",
+                    "200.00",
+                    "200.00"
+                  ],
+                  [
+                    "Transporte",
+                    "Movilidad para trabajo de campo",
+                    "10",
+                    "15.00",
+                    "150.00"
+                  ],
+                  [
+                    "Otros",
+                    "Imprevistos",
+                    "1",
+                    "100.00",
+                    "100.00"
+                  ],
+                  [
+                    "",
+                    "",
+                    "",
+                    "TOTAL",
+                    "650.00"
+                  ]
+                ],
+                "estilo": {
+                  "encabezado_color": "4472C4",
+                  "fuente_size": 10
+                }
+              }
+            ]
+          }
+        ],
+        "finales": {
+          "referencias": {
+            "titulo": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+            "nota": "Liste todas las fuentes citadas en el texto. Use un estilo de citación consistente (según norma indicada por su programa).\n\nVerifique: autor, año, título, editorial/revista, volumen(número), páginas, DOI/URL.",
+            "ejemplos": [
+              "Chiavenato, I. (2011). Administración de recursos humanos (5.ª ed.). McGraw-Hill.",
+              "Hernández Sampieri, R., Fernández Collado, C., & Baptista Lucio, P. (2014). Metodología de la investigación (6.ª ed.). McGraw-Hill.",
+              "Pérez, J. (2023). Implementación de un sistema de mantenimiento preventivo [Tesis de pregrado, Universidad Nacional del Callao]. Repositorio Institucional UNAC.",
+              "Rodríguez, L. (2022). Análisis de fallas en sistemas de bombeo. Revista Ingeniería Mecánica, 15(2), 45-52. https://doi.org/10.1016/j.eng.2022.01.001"
+            ]
+          },
+          "anexos": {
+            "titulo_seccion": "ANEXOS",
+            "lista": [
+              {
+                "titulo": "Anexo 1: Matriz de consistencia"
+              }
+            ]
+          }
+        },
+        "matriz_consistencia": {
+          "problemas": {
+            "general": "¿De qué manera la implementación de un plan de mantenimiento reduce el tiempo perdido en el área de trapiche de la empresa Pomalca - 2023?",
+            "especificos": [
+              "Realizar un diagnóstico inicial midiendo el tiempo perdido en el área de trapiche",
+              "Realizar un análisis de criticidad de los equipos del área de trapiche.",
+              "Desarrollar un análisis de modos y efectos de fallas de los equipos críticos.",
+              "Programar las actividades del plan de mantenimiento de los equipos.",
+              "Implementar el plan de mantenimiento preventivo elaborado.",
+              "Medir el tiempo perdido después de la implementación del plan."
+            ]
+          },
+          "objetivos": {
+            "general": "Determinar cómo la implementación de un plan de mantenimiento reduce el tiempo perdido en el área de trapiche de la empresa Pomalca",
+            "especificos": [
+              "Realizar un diagnóstico inicial midiendo el tiempo perdido en el área de trapiche",
+              "Realizar un análisis de criticidad de los equipos del área de trapiche.",
+              "Desarrollar un análisis de modos y efectos de fallas de los equipos críticos.",
+              "Programar las actividades del plan de mantenimiento de los equipos.",
+              "Implementar el plan de mantenimiento preventivo elaborado.",
+              "Medir el tiempo perdido después de la implementación del plan."
+            ]
+          },
+          "hipotesis": {
+            "general": "La implementación de un plan de mantenimiento reduce el tiempo perdido en el área de trapiche de la empresa Pomalca",
+            "especificos": []
+          },
+          "variables": {
+            "independiente": {
+              "nombre": "CATEGORÍA PRINCIPAL",
+              "dimensiones": [
+                "Subcategoría 1",
+                "Subcategoría 2"
+              ]
+            },
+            "dependiente": {
+              "nombre": "CATEGORÍA SECUNDARIA (Si aplica)",
+              "dimensiones": []
+            }
+          },
+          "metodologia": {
+            "tipo": "Aplicada",
+            "enfoque": "Cualitativo",
+            "nivel": "Explicativo",
+            "diseno": "Pre Experimental",
+            "poblacion": "32 equipos del área de Trapiche",
+            "muestra": "24 equipos críticos",
+            "tecnicas": "Análisis documental, Observación",
+            "instrumentos": "Ficha de recolección de datos",
+            "procesamiento": "SPSS v25"
+          }
+        },
+        "pagina_respeto": {},
+        "informacion_basica": {
+          "titulo": "INFORMACIÓN BÁSICA",
+          "elementos": [
+            {
+              "label": "FACULTAD:",
+              "valor": "Facultad de Ingeniería Mecánica y de Energía"
+            },
+            {
+              "label": "UNIDAD DE INVESTIGACIÓN:",
+              "valor": "Unidad de Posgrado..."
+            },
+            {
+              "label": "TÍTULO:",
+              "valor": "Implementación xxx"
+            },
+            {
+              "label": "AUTOR(ES):",
+              "valor": "Nombres y Apellidos / DNI: XXX / ORCID: YYYY"
+            },
+            {
+              "label": "ASESOR:",
+              "valor": "Dr. Abel Tapia Díaz / DNI: ... / ORCID: ..."
+            },
+            {
+              "label": "LUGAR DE EJECUCIÓN:",
+              "valor": ""
+            },
+            {
+              "label": "ESCENARIO Y PARTICIPANTES:",
+              "valor": "[Lugar y personas claves]"
+            },
+            {
+              "label": "TIPO:",
+              "valor": ""
+            },
+            {
+              "label": "ENFOQUE:",
+              "valor": ""
+            },
+            {
+              "label": "DISEÑO DE INVESTIGACIÓN:",
+              "valor": ""
+            },
+            {
+              "label": "TEMA OCDE:",
+              "valor": ""
+            }
+          ]
+        }
+      }
     }
   },
-  "lastSyncAt": "2026-02-05T16:20:18.120382"
+  "lastSyncAt": "2026-02-18T09:25:37.477534"
 }

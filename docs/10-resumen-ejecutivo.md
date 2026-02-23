@@ -1,108 +1,118 @@
 # Resumen Ejecutivo
 
-> Hallazgos, riesgos y recomendaciones del análisis de GicaGen.
+> Hallazgos, riesgos y recomendaciones del analisis de GicaGen.
 
 ---
 
-## Qué Encontré
+## Que Encontre
 
 ### Estructura del Proyecto
 
-| Componente | Descripción |
+| Componente | Descripcion |
 |------------|-------------|
 | **Entrypoint** | `app/main.py` - FastAPI app configurada correctamente |
-| **Core** | 5 servicios (formats, prompts, projects, docx, n8n) |
+| **Core** | 8 servicios (formats, prompts, projects, docx, n8n client, n8n integration, definition compiler, simulation artifacts) |
+| **Integrations** | Modulo `integrations/gicatesis/` con cliente HTTP, cache ETag, DTOs y errores custom |
 | **Storage** | JSON files con locks (MVP funcional) |
-| **API** | 9 endpoints REST bien definidos |
-| **UI** | SPA JavaScript (562 líneas) + Jinja templates |
-| **Datos** | 3 archivos JSON en `/data` |
+| **API** | 21+ endpoints REST en router de 730 lineas, 5 modelos Pydantic |
+| **UI** | SPA JavaScript (898 lineas) + Jinja templates |
+| **Datos** | 4 archivos JSON en `/data` (incluyendo cache GicaTesis) |
 
-### Estadísticas
+### Estadisticas
 
 > **Fuente:** Conteo real del repositorio verificado
 
-- **Archivos totales:** 50 (sin `.venv`, `__pycache__`, `.git`)
-- **Líneas Python:** 378
-- **Líneas JavaScript:** 562
-- **Líneas HTML:** 399 (base.html: 31, app.html: 368)
-- **Dependencias:** 7 paquetes Python
+- **Archivos totales:** 73 (sin `.venv`, `__pycache__`, `.git`, `.cca`, `outputs`)
+- **Archivos Python:** 33
+- **Lineas Python:** 2875
+- **Lineas JavaScript:** 898
+- **Lineas HTML:** 464 (base.html: 31, app.html: 433)
+- **Dependencias:** 7 paquetes Python (+ python-dotenv implicito)
 
 ---
 
 ## Riesgos Identificados
 
-| Riesgo | Severidad | Mitigación |
+| Riesgo | Severidad | Mitigacion |
 |--------|-----------|------------|
-| Persistencia JSON no escala | 🟡 Media | Documentado como adapter reemplazable |
-| Servicios como globals en router | 🟡 Media | Plan de inyección de dependencias |
-| Sin tests automatizados | 🟡 Media | Estructura propuesta en docs |
-| Frontend en archivo único (562 líneas) | 🟢 Baja | Funcional para MVP, modularizar si crece |
-| Python 3.14 incompatible | 🟢 Baja | Documentado en troubleshooting |
+| Persistencia JSON no escala | Media | Documentado como adapter reemplazable |
+| Servicios como globals en router | Media | Plan de inyeccion de dependencias |
+| Sin tests automatizados | Media | Estructura propuesta en docs |
+| Frontend en archivo unico (898 lineas) | Baja | Funcional para MVP, modularizar si crece |
+| Python 3.14 incompatible | Baja | Documentado en troubleshooting |
+| Dependencia de GicaTesis para formatos | Baja | Cache ETag + fallback demo mode |
 
 ---
 
-## Qué Está Bien
+## Que Esta Bien
 
-✅ **Arquitectura clara:** Separación `core/modules/data` legible  
-✅ **Código limpio:** Archivos pequeños, responsabilidades definidas  
-✅ **FastAPI moderno:** Tipado, async, documentación automática  
-✅ **MVP funcional:** Wizard completo operativo  
-✅ **Modo demo:** Genera DOCX sin dependencias externas  
-✅ **Integración preparada:** Variables de entorno para APIs externas  
+- **Arquitectura modular:** Separacion `core/integrations/modules/data` legible
+- **Integracion GicaTesis implementada:** BFF con cache ETag, DTOs tipados, errores custom
+- **Compilador de definiciones:** IR para generacion estructurada de documentos
+- **Simulacion completa:** DOCX/PDF generados desde estructura de formato
+- **Codigo limpio:** Archivos con responsabilidades definidas
+- **FastAPI moderno:** Tipado, async, documentacion automatica
+- **MVP funcional:** Wizard 5 pasos operativo
+- **Modo demo:** Funciona sin dependencias externas
 
 ---
 
-## Qué Debe Cambiar Sí o Sí
+## Que Debe Cambiar Si o Si
 
 > [!IMPORTANT]
-> Cambios recomendados antes de producción:
+> Cambios recomendados antes de produccion:
 
 1. **Usar `Depends()` para servicios** en `api/router.py`
    - Impacto: Testing, mantenibilidad
-   - Esfuerzo: 🟢 Bajo
+   - Esfuerzo: Bajo
 
-2. **Agregar tests básicos**
+2. **Agregar tests basicos**
    - Impacto: Confiabilidad
-   - Esfuerzo: 🟡 Medio
+   - Esfuerzo: Medio
 
 3. **Validar archivos JSON al iniciar**
    - Impacto: Estabilidad
-   - Esfuerzo: 🟢 Bajo
+   - Esfuerzo: Bajo
+
+4. **Agregar `python-dotenv` a requirements.txt**
+   - Impacto: Reproducibilidad del setup
+   - Esfuerzo: Trivial
 
 ---
 
-## Qué Es Opcional
+## Que Es Opcional
 
 | Mejora | Beneficio | Esfuerzo |
 |--------|-----------|----------|
-| Separar ports/adapters | Mejor arquitectura | 🟡 Medio |
-| Integrar GicaTesis | Formatos reales | 🟡 Medio |
-| Migrar a PostgreSQL | Escalabilidad | 🔴 Alto |
-| Modularizar JS | Mantenibilidad | 🟡 Medio |
-| Docker | Deploy simplificado | 🟢 Bajo |
+| Separar ports/adapters | Mejor arquitectura | Medio |
+| Limpiar cliente legacy `core/clients/` | Menos codigo muerto | Bajo |
+| Migrar a PostgreSQL | Escalabilidad | Alto |
+| Modularizar JS | Mantenibilidad | Medio |
+| Docker | Deploy simplificado | Bajo |
 
 ---
 
-## Documentación Generada
+## Documentacion Generada
 
-| Documento | Propósito |
+| Documento | Proposito |
 |-----------|-----------|
-| [00-indice.md](00-indice.md) | Navegación |
-| [01-vision-y-alcance.md](01-vision-y-alcance.md) | Qué es GicaGen |
-| [02-arquitectura.md](02-arquitectura.md) | Actual vs objetivo |
+| [00-indice.md](00-indice.md) | Navegacion |
+| [01-vision-y-alcance.md](01-vision-y-alcance.md) | Que es GicaGen |
+| [02-arquitectura.md](02-arquitectura.md) | Arquitectura actual con 8 servicios e integraciones |
 | [03-catalogo-repo.md](03-catalogo-repo.md) | Mapa del repo |
-| [04-integracion-gicatesis.md](04-integracion-gicatesis.md) | Contratos |
-| [catalogo/carpetas.md](catalogo/carpetas.md) | 12 carpetas |
-| [catalogo/archivos.md](catalogo/archivos.md) | 50 archivos |
+| [04-integracion-gicatesis.md](04-integracion-gicatesis.md) | Contratos API y simulacion |
+| [catalogo/carpetas.md](catalogo/carpetas.md) | 17 carpetas |
+| [catalogo/archivos.md](catalogo/archivos.md) | 73 archivos |
 | [05-plan-de-cambios.md](05-plan-de-cambios.md) | Plan de desacoplo |
 | + 6 documentos operativos | Setup, tests, deploy, troubleshooting |
 
 ---
 
-## Próximos Pasos Recomendados
+## Proximos Pasos Recomendados
 
-1. ✅ Revisar documentación generada
+1. Revisar documentacion actualizada
 2. Validar checklist de [11-checklist-validacion.md](11-checklist-validacion.md)
-3. Implementar inyección de dependencias (bajo riesgo)
-4. Agregar tests unitarios básicos
-5. Evaluar integración con GicaTesis
+3. Implementar inyeccion de dependencias (bajo riesgo)
+4. Agregar `python-dotenv` a `requirements.txt`
+5. Agregar tests unitarios basicos
+6. Evaluar eliminacion de `core/clients/` legacy

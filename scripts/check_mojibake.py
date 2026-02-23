@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-
 
 TEXT_EXTS = {".py", ".js", ".html", ".md", ".json", ".css"}
 EXCLUDE_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".cca", "dist", "build"}

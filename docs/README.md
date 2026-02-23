@@ -1,33 +1,50 @@
-# Documentacion GicaGen
+# GicaGen - Documentacion
 
-GicaGen es un generador de documentos academicos con wizard UI, BFF para formatos y guia de simulacion n8n.
+> Entrada rapida a la documentacion tecnica de GicaGen.
 
-## Inicio rapido
-```bash
+## Que es GicaGen?
+
+Sistema de generacion de documentos academicos con wizard guiado, integracion BFF con GicaTesis, y simulacion n8n.
+
+## Quick Start
+
+```powershell
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-Abrir `http://127.0.0.1:8001/`.
+Abrir: http://127.0.0.1:8001/
 
 ## Navegacion
-- Indice general: `docs/00-indice.md`
-- Integracion y contrato n8n: `docs/04-integracion-gicatesis.md`
-- Desarrollo local: `docs/06-desarrollo-local.md`
-- Runbook local: `docs/runbooks/levantar-local.md`
 
-## Flujo funcional actual
-1. Paso 1: formatos via `GET /api/formats`.
-2. Paso 2: prompts via `GET /api/prompts`.
-3. Paso 3: borrador via `POST /api/projects/draft`.
-4. Paso 4: guia simulada via `GET /api/integrations/n8n/spec`.
-5. Paso 4: ejecucion simulada via `POST /api/sim/n8n/run`.
-6. Paso 5: descargas simuladas via `GET /api/sim/download/docx|pdf`.
+| Documento | Proposito |
+|-----------|-----------|
+| [00-indice.md](00-indice.md) | Indice completo |
+| [01-vision-y-alcance.md](01-vision-y-alcance.md) | Que es y que no es GicaGen |
+| [02-arquitectura.md](02-arquitectura.md) | Componentes, flujos, diagramas |
+| [04-integracion-gicatesis.md](04-integracion-gicatesis.md) | Endpoints BFF, contratos |
+| [06-desarrollo-local.md](06-desarrollo-local.md) | Setup completo |
+| [09-troubleshooting.md](09-troubleshooting.md) | Errores comunes |
 
-## Reglas de encoding
-- Guardar archivos en UTF-8.
-- No usar caracteres de box drawing en docs o codigo.
-- No usar emojis en documentacion.
-- Ejecutar `python scripts/check_mojibake.py` antes de commit.
+## Flujo Funcional Actual
+
+1. **Wizard paso 1:** Seleccionar formato academico (BFF -> GicaTesis API v1)
+2. **Wizard paso 2:** Seleccionar prompt (template con variables)
+3. **Wizard paso 3:** Llenar variables del documento
+4. **Wizard paso 4:** Guia de integracion n8n + simulacion
+5. **Wizard paso 5:** Descargar DOCX/PDF generados/simulados
+
+## Encoding
+
+- Todos los archivos deben usar **UTF-8**
+- Ver [STYLE_GUIDE.md](STYLE_GUIDE.md)
+- Pre-commit: `python scripts/check_encoding.py && python scripts/check_mojibake.py`
+
+## Puertos
+
+| Servicio | Puerto |
+|----------|--------|
+| GicaTesis | 8000 |
+| GicaGen | 8001 |

@@ -25,6 +25,45 @@
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+    .trace-node-line {
+      background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+      animation: flowPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes flowPulse {
+      0% { opacity: 0.35; }
+      50% { opacity: 1; }
+      100% { opacity: 0.35; }
+    }
+    .doc-skeleton {
+      position: relative;
+      overflow: hidden;
+      background: #f1f5f9;
+    }
+    .doc-skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+    .provider-ring svg {
+      width: 68px;
+      height: 68px;
+    }
+    .provider-ring-label {
+      font-size: 10px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .provider-card-selected {
+      border-color: #2563eb !important;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+    }
   </style>
 </head>
 <body class="h-screen flex overflow-hidden">

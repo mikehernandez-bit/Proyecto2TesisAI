@@ -1,197 +1,416 @@
-# Integracion GicaTesis y Simulacion n8n
+# Integracion GicaTesis
 
-## Resumen
-GicaGen consume formatos de GicaTesis usando un BFF. El frontend solo llama a `http://localhost:8001/api/*`.
+> Documentacion de la integracion BFF entre GicaGen y GicaTesis para formatos academicos.
 
-- Upstream formatos: `http://localhost:8000/api/v1`
-- BFF GicaGen: `http://localhost:8001/api`
+---
 
-## Endpoints BFF de formatos
-- `GET /api/formats/version`
-- `GET /api/formats`
-- `GET /api/formats/{id}`
-- `GET /api/assets/{path}`
+## Arquitectura de la Integracion
 
-## Endpoints de proyecto e integracion
-- `POST /api/projects/draft`
-- `GET /api/projects/{project_id}`
-- `PUT /api/projects/{project_id}`
-- `GET /api/integrations/n8n/spec?projectId=...`
-- `POST /api/integrations/n8n/callback`
-- `POST /api/sim/n8n/run?projectId=...`
-- `GET /api/sim/download/docx?projectId=...`
-- `GET /api/sim/download/pdf?projectId=...`
-- `GET /api/_meta/build`
+```mermaid
+graph LR
+    subgraph "GicaGen (puerto 8001)"
+        API[api/router.py]
+        FMT_SVC[FormatService]
+        GT_CLIENT[GicaTesisClient]
+        GT_CACHE[FormatCache]
+        GT_TYPES[DTOs - types.py]
+        GT_ERRORS[errors.py]
+    end
+    
+    subgraph "GicaTesis (puerto 8000)"
+        GT_API[/api/v1/formats]
+        GT_ASSETS[/api/v1/assets]
+        GT_VERSION[/api/v1/formats/version]
+    end
+    
+    API -->|GET /api/formats| FMT_SVC
+    FMT_SVC --> GT_CLIENT
+    FMT_SVC --> GT_CACHE
+    GT_CLIENT -->|httpx async| GT_API
+    GT_CLIENT -->|httpx async| GT_ASSETS
+    GT_CLIENT -->|httpx async| GT_VERSION
+    GT_CACHE -->|data/gicatesis_cache.json| GT_CACHE
+```
 
-## Contrato de `POST /api/projects/draft`
-Body opcional:
+## Modulo de Integracion
 
+**Ubicacion:** `app/integrations/gicatesis/`
+
+| Archivo | Proposito | Lineas |
+|---------|-----------|--------|
+| `client.py` | Cliente HTTP async para GicaTesis API v1 | 136 |
+| `types.py` | DTOs Pydantic que reflejan contratos API | 64 |
+| `errors.py` | Excepciones custom para errores upstream | 28 |
+| `cache/format_cache.py` | Cache local con ETag y timestamps | ~50 |
+
+### DTOs (types.py)
+
+```python
+class FormatSummary(BaseModel):
+    id: str
+    title: str
+    university: str
+    category: str | None
+    documentType: str | None
+    version: str
+
+class FormatDetail(FormatSummary):
+    description: str | None
+    fields: list[FormatField]
+    definition: dict | None     # Estructura del documento
+    assets: list[AssetRef]
+    templates: list[TemplateRef]
+
+class CatalogVersionResponse(BaseModel):
+    current: str
+    cached: str | None
+    changed: bool
+```
+
+### Errores (errors.py)
+
+```python
+class GicaTesisError(Exception): ...
+class UpstreamUnavailable(GicaTesisError): ...   # GicaTesis no accesible
+class UpstreamTimeout(GicaTesisError): ...        # Request excedio timeout
+class BadUpstreamResponse(GicaTesisError): ...    # Respuesta invalida
+```
+
+---
+
+## Endpoints BFF (GicaGen -> Browser)
+
+### GET /api/formats
+
+Retorna lista de formatos desde GicaTesis con cache.
+
+**Query params:** `university`, `category`, `documentType`
+
+**Response:**
 ```json
 {
-  "title": "opcional",
-  "formatId": "opcional",
-  "promptId": "opcional",
+  "formats": [
+    {
+      "id": "unac-tesis-2024",
+      "title": "Formato Tesis UNAC 2024",
+      "university": "UNAC",
+      "category": "Proyecto de Tesis",
+      "documentType": "tesis",
+      "version": "1.0"
+    }
+  ],
+  "stale": false,
+  "cached_at": "2024-01-15T10:30:00Z"
+}
+```
+
+**Flujo BFF:**
+1. Verifica version con GicaTesis (`/api/v1/formats/version`)
+2. Si la version no cambio, retorna cache local
+3. Si cambio, sincroniza desde GicaTesis
+4. Si GicaTesis no esta disponible, retorna cache stale
+5. Si no hay cache, usa `data/formats_sample.json` (demo)
+
+### GET /api/formats/{id}
+
+Retorna detalle de un formato especifico.
+
+**Response:** `FormatDetail` con `definition` (estructura del documento).
+
+### GET /api/formats/version
+
+Retorna version actual del catalogo.
+
+**Response:**
+```json
+{
+  "current": "2024-01-15T10:30:00Z",
+  "cached": "2024-01-14T08:00:00Z",
+  "changed": true
+}
+```
+
+### GET /api/assets/{path}
+
+Proxy para assets de GicaTesis (logos, imagenes).
+
+**Flujo:** GicaGen -> GicaTesis `/api/v1/assets/{path}` -> respuesta streamed.
+
+---
+
+## Endpoints de Proyecto
+
+### POST /api/projects/draft
+
+Crea un borrador de proyecto desde el wizard.
+
+**Request:**
+```json
+{
+  "title": "Mi Tesis",
+  "formatId": "unac-tesis-2024",
+  "promptId": "prompt_tesis_estandar",
   "values": {
-    "campo": "valor"
+    "tema": "Inteligencia Artificial",
+    "titulo_propuesto": "IA en Educacion"
   }
 }
 ```
 
-Respuesta:
-
+**Response:**
 ```json
 {
-  "id": "proj_xxx",
-  "projectId": "proj_xxx",
-  "status": "draft"
+  "projectId": "proj_abc123",
+  "status": "draft",
+  "title": "Mi Tesis"
 }
 ```
 
-## Contrato de `GET /api/integrations/n8n/spec`
-Devuelve modo simulacion y bloques para Step 4:
+### GET /api/projects
 
-- `mode`
-- `summary`
-- `envCheck`
-- `request`
-- `formatDetail`
-- `formatDefinition`
-- `promptDetail`
-- `expectedResponse`
-- `simulationOutput`
-- `checklist` (8 pasos)
-- `markdown`
+Lista todos los proyectos creados.
 
-Estructura esperada:
+### GET /api/projects/{id}
 
+Detalle de un proyecto especifico.
+
+### PUT /api/projects/{id}
+
+Actualiza campos del proyecto.
+
+### POST /api/projects/{id}/generate
+
+Inicia la generacion en modo **asyncrono**.
+
+- Respuesta rapida: `202 Accepted`.
+- No espera a que termine la IA.
+- El trabajo corre en background y actualiza el proyecto de forma incremental.
+
+**Response:**
 ```json
 {
-  "mode": "simulation",
-  "summary": {
-    "projectId": "proj_xxx",
-    "status": "draft",
-    "format": {
-      "id": "unac-informe-cual",
-      "version": "abc123",
-      "university": "unac",
-      "category": "informe",
-      "documentType": "cual",
-      "title": "Informe Cual"
-    },
-    "prompt": {
-      "id": "prompt_tesis_estandar",
-      "name": "Tesis Ingenieria Estandar",
-      "preview": "..."
+  "ok": true,
+  "status": "generating",
+  "projectId": "proj_abc123",
+  "runId": "gemini-20260219180617",
+  "mode": "async"
+}
+```
+
+### GET /api/projects/{id} (estado en vivo)
+
+Este endpoint es la fuente principal para polling del Paso 4 (cada 1s).
+
+Campos relevantes para UI:
+
+- `status`: `draft | generating | ai_received | completed | failed | blocked | cancel_requested`
+- `progress`:
+  - `current`: secciones completadas/actuales
+  - `total`: total de secciones detectadas
+  - `currentPath`: ruta/nombre de la seccion actual
+  - `provider`: proveedor activo (`gemini` o `mistral`)
+  - `updatedAt`: marca temporal de ultimo avance
+- `events`: timeline incremental (maximo 200)
+
+**Fragmento de ejemplo:**
+```json
+{
+  "id": "proj_abc123",
+  "status": "generating",
+  "progress": {
+    "current": 12,
+    "total": 74,
+    "currentPath": "1.2 Planteamiento del problema",
+    "provider": "gemini",
+    "updatedAt": "2026-02-19T18:06:17"
+  },
+  "events": [
+    {
+      "ts": "2026-02-19T18:06:17Z",
+      "level": "info",
+      "stage": "section_start",
+      "message": "IA: seccion 12/74 (...)",
+      "provider": "gemini",
+      "sectionCurrent": 12,
+      "sectionTotal": 74,
+      "sectionPath": "1.2 Planteamiento del problema"
     }
-  },
-  "envCheck": {
-    "GICATESIS_BASE_URL": { "ok": true, "value": "http://localhost:8000/api/v1" },
-    "N8N_WEBHOOK_URL": { "ok": false, "value": "" },
-    "N8N_SHARED_SECRET": { "ok": false, "value": "" }
-  },
-  "request": {
-    "webhookUrl": "<configure N8N_WEBHOOK_URL>",
-    "headers": { "X-GICAGEN-SECRET": "<configure N8N_SHARED_SECRET>" },
-    "payload": {
-      "projectId": "proj_xxx",
-      "format": {
-        "id": "unac-informe-cual",
-        "version": "abc123",
-        "university": "unac",
-        "category": "informe",
-        "documentType": "cual"
-      },
-      "prompt": {
-        "id": "prompt_tesis_estandar",
-        "text": "prompt completo"
-      },
-      "values": {
-        "tema": "..."
-      },
-      "runtime": {
-        "gicatesisBaseUrl": "http://localhost:8000/api/v1",
-        "callbackUrl": "http://localhost:8001/api/integrations/n8n/callback"
-      }
-    }
-  },
-  "formatDetail": {},
-  "formatDefinition": {},
-  "promptDetail": {
-    "id": "prompt_tesis_estandar",
-    "name": "Tesis Ingenieria Estandar",
-    "text": "prompt completo",
-    "variables": ["tema", "objetivo_general"]
-  },
-  "expectedResponse": {
-    "callbackUrl": "http://localhost:8001/api/integrations/n8n/callback",
-    "headers": { "X-N8N-SECRET": "<configure N8N_SHARED_SECRET>" },
-    "bodyExample": {
-      "projectId": "proj_xxx",
-      "runId": "sim-20260206...",
-      "status": "success",
-      "aiResult": {
-        "sections": [
-          { "title": "Introduccion", "content": "..." }
-        ]
-      },
-      "artifacts": [
-        { "type": "docx", "name": "simulated.docx", "downloadUrl": "http://localhost:8001/api/sim/download/docx?projectId=proj_xxx" },
-        { "type": "pdf", "name": "simulated.pdf", "downloadUrl": "http://localhost:8001/api/sim/download/pdf?projectId=proj_xxx" }
-      ]
-    }
-  },
+  ]
+}
+```
+
+## Reglas de compilacion de secciones IA
+
+GicaGen compila `definition` a `section_index` antes de llamar a IA.
+La compilacion evita ramas no generativas para proteger el render final.
+
+Secciones excluidas del `section_index`:
+
+- `preliminares.indices` y cualquier subitem del indice.
+- nodos de indice de tablas, indice de figuras e indice de abreviaturas.
+- ramas de `imagenes`, `figuras`, `tablas` y equivalentes de placeholders.
+
+Secciones incluidas:
+
+- capitulos y subcapitulos reales del `cuerpo`.
+- anexos textuales, cuando existen en `definition`.
+- abreviaturas solo cuando no pertenecen a un bloque de indice.
+
+Fallback defensivo:
+
+- Si una ruta de indice llega por error a IA, el prompt devuelve
+  `<<SKIP_SECTION>>`.
+- El `OutputValidator` normaliza ese token a contenido vacio antes de enviar
+  `aiResult` al render.
+
+## Relleno de `values.title`
+
+Antes de enviar payload a GicaTesis (`render/docx`, `render/pdf`, o
+`_ai_generation_job`), GicaGen normaliza valores:
+
+- Si `values.title` esta vacio, se completa con `project.title`.
+
+Este fallback evita que la caratula quede con texto placeholder.
+
+### POST /api/projects/{id}/cancel
+
+Solicita la cancelacion de una corrida en curso.
+
+El backend marca `cancel_requested` y el loop de generacion se detiene en el
+siguiente punto seguro.
+
+---
+
+## Endpoints de Integracion n8n
+
+### GET /api/integrations/n8n/spec
+
+Retorna la guia/contrato para el paso 4 del wizard.
+
+**Query:** `projectId`
+
+**Response:**
+```json
+{
+  "summary": "...",
+  "environmentCheck": {...},
+  "requestPayload": {...},
+  "requestHeaders": {...},
+  "checklist": [...],
+  "markdownGuide": "...",
   "simulationOutput": {
-    "projectId": "proj_xxx",
-    "runId": "sim-20260206...",
-    "status": "success",
-    "aiResult": {
-      "sections": [
-        { "title": "Resumen ejecutivo", "content": "..." }
-      ]
-    },
-    "artifacts": [
-      { "type": "docx", "name": "simulated.docx", "downloadUrl": "http://localhost:8001/api/sim/download/docx?projectId=proj_xxx&runId=sim-20260206..." },
-      { "type": "pdf", "name": "simulated.pdf", "downloadUrl": "http://localhost:8001/api/sim/download/pdf?projectId=proj_xxx&runId=sim-20260206..." }
-    ]
+    "aiResult": {...},
+    "artifacts": [...]
   },
-  "checklist": [
-    { "step": 1, "title": "Webhook Trigger", "detail": "..." }
-  ],
-  "markdown": "# Guia operativa n8n (simulacion)"
+  "formatDefinition": {...},
+  "promptDetail": {...},
+  "sectionIndex": [...]
 }
 ```
 
-## Callback stub de simulacion
-`POST /api/integrations/n8n/callback`
+### POST /api/integrations/n8n/callback
 
-- Si `N8N_SHARED_SECRET` esta configurado, valida `X-N8N-SECRET`.
-- Guarda `aiResult`, `runId`, `artifacts`.
-- Marca proyecto con estado `ai_received`.
+Recibe resultado de n8n (o simulacion).
 
-## Descargas simuladas
-- `GET /api/sim/download/docx?projectId=...`
-- `GET /api/sim/download/pdf?projectId=...`
+**Request:**
+```json
+{
+  "projectId": "proj_abc123",
+  "aiResult": {
+    "sections": {...}
+  }
+}
+```
 
-Generan archivos placeholder sin depender de IA real ni de n8n.
+### GET /api/integrations/n8n/health
 
-## Simulacion manual de n8n
-`POST /api/sim/n8n/run?projectId=...`
+Health check de la integracion n8n.
 
-- Genera `runId` de simulacion.
-- Persiste `ai_result` y `artifacts` en el proyecto.
-- Marca el proyecto con estado `simulated`.
-- Devuelve JSON listo para mostrar en Paso 4 (seccion H) y para habilitar descargas.
+---
 
-## Build info para validar instancia activa
-`GET /api/_meta/build`
+## Endpoints de Simulacion
 
-Respuesta:
+### POST /api/sim/n8n/run
 
+Ejecuta una simulacion completa de n8n.
+
+**Query:** `projectId`
+
+**Response:**
+```json
+{
+  "runId": "sim_abc123",
+  "projectId": "proj_abc123",
+  "status": "simulated",
+  "aiResult": {...},
+  "artifacts": [
+    {"type": "docx", "url": "/api/sim/download/docx?projectId=..."},
+    {"type": "pdf", "url": "/api/sim/download/pdf?projectId=..."}
+  ]
+}
+```
+
+### GET /api/sim/download/docx
+
+Descarga el DOCX simulado.
+
+### GET /api/sim/download/pdf
+
+Descarga el PDF simulado.
+
+---
+
+## Endpoints Legacy
+
+### POST /api/projects/generate
+
+Genera un proyecto (modo legacy).
+
+### GET /api/download/{id}
+
+Descarga DOCX generado (modo legacy).
+
+---
+
+## Build Info
+
+### GET /api/_meta/build
+
+Retorna informacion de la instancia activa.
+
+**Response:**
 ```json
 {
   "service": "gicagen",
-  "cwd": "c:\\Users\\jhoan\\Documents\\gicagen_tesis-main",
-  "started_at": "2026-02-06T18:31:46.523432+00:00",
-  "git_commit": "db75975"
+  "cwd": "C:\\Users\\jhoan\\Documents\\gicagen_tesis-main",
+  "started_at": "2024-01-15T10:30:00Z",
+  "git_commit": "abc1234"
 }
 ```
+
+---
+
+## Configuracion
+
+**Variables de entorno (`.env`):**
+
+| Variable | Descripcion | Default |
+|----------|-------------|---------|
+| `GICATESIS_BASE_URL` | Base URL de GicaTesis API v1 | `http://localhost:8000/api/v1` |
+| `GICATESIS_TIMEOUT` | Timeout para requests (segundos) | `8` |
+| `GICAGEN_PORT` | Puerto de GicaGen | `8001` |
+| `GICAGEN_BASE_URL` | URL base de GicaGen | `http://localhost:8001` |
+| `GICAGEN_DEMO_MODE` | Usar datos demo si GicaTesis no disponible | `false` |
+| `N8N_WEBHOOK_URL` | URL webhook de n8n (opcional) | `""` |
+| `N8N_SHARED_SECRET` | Secreto compartido n8n (opcional) | `""` |
+
+---
+
+## Notas Tecnicas
+
+- GicaTesis corre en port **8000**, GicaGen en port **8001**
+- La integracion usa patron **BFF** (Backend for Frontend)
+- El cache usa **ETag** para validacion eficiente
+- Si GicaTesis no esta disponible, GicaGen funciona con cache stale
+- Si no hay cache, existe un **fallback demo** con `data/formats_sample.json`
+- Los assets (logos, imagenes) se proxean desde GicaTesis via `/api/assets/`

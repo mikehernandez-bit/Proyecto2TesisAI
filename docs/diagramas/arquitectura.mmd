@@ -1,75 +1,81 @@
 %% Arquitectura GicaGen - Diagrama Mermaid
 %% Usar en: https://mermaid.live o integrado en Markdown
+%% Actualizado: refleja estructura real del codigo
 
 graph TB
     subgraph "UI Layer"
         BROWSER[Browser]
-        JS[app.js - SPA]
-        TEMPLATES[Jinja Templates]
+        JS["app.js - SPA (898 lineas)"]
+        TEMPLATES["Jinja Templates (464 lineas)"]
     end
     
-    subgraph "API Layer - Ports"
-        API[FastAPI Routers]
-        MODELS[Pydantic Models]
+    subgraph "API Layer"
+        API["api/router.py (730 lineas)"]
+        MODELS["api/models.py (5 modelos Pydantic)"]
     end
     
-    subgraph "Core Domain"
+    subgraph "Core Services"
         direction TB
-        subgraph "Services"
-            PROMPT_SVC[PromptService]
-            PROJECT_SVC[ProjectService]
-            GEN_SVC[GenerationService]
-        end
-        subgraph "Ports - Interfaces"
-            I_STORE[IDataStore]
-            I_DOCGEN[IDocumentGenerator]
-            I_FORMAT[IFormatProvider]
-            I_WORKFLOW[IWorkflowEngine]
-        end
+        FMT_SVC[FormatService]
+        PRM_SVC[PromptService]
+        PRJ_SVC[ProjectService]
+        DOCX_SVC[DocxBuilder]
+        N8N_CLIENT[N8NClient]
+        N8N_INT[N8NIntegrationService]
+        DEF_COMP[DefinitionCompiler]
+        SIM_ART[SimulationArtifactService]
     end
     
-    subgraph "Adapters Layer"
-        JSON_ADAPTER[JsonStoreAdapter]
-        DOCX_ADAPTER[DocxAdapter]
-        FORMAT_ADAPTER[ExternalFormatAdapter]
-        N8N_ADAPTER[N8NAdapter]
+    subgraph "Integrations"
+        GT_CLIENT["GicaTesisClient (async)"]
+        GT_CACHE["FormatCache (ETag)"]
+        GT_TYPES["DTOs + Errors"]
     end
     
-    subgraph "Infra Layer"
-        CONFIG[Settings]
-        FS[Filesystem]
-        HTTP[HTTP Client]
+    subgraph "Infrastructure"
+        JSON_STORE[JsonStore]
+        CONFIG[config.py]
+        TMPL_CFG[templates.py]
     end
     
     subgraph "External Systems"
-        EXT_API[API Formatos]
-        N8N[n8n Workflow]
-        GICATESIS[GicaTesis - futuro]
+        GICATESIS["GicaTesis API v1 (puerto 8000)"]
+        N8N_WH["n8n Webhook (opcional)"]
+        FS["Filesystem (data/*.json)"]
     end
     
     BROWSER --> JS
     JS --> API
     API --> MODELS
-    API --> PROMPT_SVC
-    API --> PROJECT_SVC
-    API --> GEN_SVC
+    API --> FMT_SVC
+    API --> PRM_SVC
+    API --> PRJ_SVC
+    API --> DOCX_SVC
+    API --> N8N_CLIENT
+    API --> N8N_INT
+    API --> SIM_ART
     
-    PROMPT_SVC --> I_STORE
-    PROJECT_SVC --> I_STORE
-    GEN_SVC --> I_DOCGEN
-    GEN_SVC --> I_FORMAT
-    GEN_SVC --> I_WORKFLOW
+    N8N_INT --> DEF_COMP
+    SIM_ART --> DEF_COMP
     
-    I_STORE -.->|implements| JSON_ADAPTER
-    I_DOCGEN -.->|implements| DOCX_ADAPTER
-    I_FORMAT -.->|implements| FORMAT_ADAPTER
-    I_WORKFLOW -.->|implements| N8N_ADAPTER
+    FMT_SVC --> GT_CLIENT
+    FMT_SVC --> GT_CACHE
+    FMT_SVC --> GT_TYPES
+    FMT_SVC --> CONFIG
     
-    JSON_ADAPTER --> FS
-    DOCX_ADAPTER --> FS
-    FORMAT_ADAPTER --> HTTP
-    FORMAT_ADAPTER --> EXT_API
-    N8N_ADAPTER --> HTTP
-    N8N_ADAPTER --> N8N
+    GT_CLIENT --> GICATESIS
+    GT_CACHE --> FS
     
-    FORMAT_ADAPTER -.->|futuro| GICATESIS
+    PRM_SVC --> JSON_STORE
+    PRJ_SVC --> JSON_STORE
+    JSON_STORE --> FS
+    
+    N8N_CLIENT --> CONFIG
+    N8N_CLIENT -.-> N8N_WH
+    
+    SIM_ART --> FS
+    
+    MAIN[main.py] --> API
+    MAIN --> UI_ROUTER[ui/router.py]
+    UI_ROUTER --> TEMPLATES
+    UI_ROUTER --> TMPL_CFG

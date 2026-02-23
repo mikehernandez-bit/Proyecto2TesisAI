@@ -8,21 +8,22 @@ definition rather than using generic placeholder content.
 IMPORTANT: This does NOT print instruction/guidance content (nota, instruccion_detallada, etc.)
 Those keys are for human guidance, not document content.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from docx import Document
-from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Inches, Pt
 
 from app.core.services.definition_compiler import (
-    compile_definition_to_ir,
-    get_heading_titles,
     DocumentIR,
-    IRNode,
     IRNodeType,
+    compile_definition_to_ir,
 )
 
 
@@ -63,37 +64,90 @@ def _get_format_definition(project: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-def _heading_level_to_style(level: int) -> str:
-    """Map heading level to Word style name."""
-    if level == 1:
-        return "Heading 1"
-    elif level == 2:
-        return "Heading 2"
-    elif level == 3:
-        return "Heading 3"
-    else:
-        return "Heading 4"
+def _add_toc_field(doc: Document, title: str = "TABLA DE CONTENIDO") -> None:
+    """Insert a real Word TOC field (auto-calculated) with a heading above it.
+
+    The field instruction ``TOC \\o "1-3" \\h \\z \\u`` tells Word to build the
+    table of contents from Heading 1-3 styles, with hyperlinks and hide page
+    numbers in Web Layout.  A placeholder run is inserted between the
+    ``separate`` and ``end`` field chars so that the document is still readable
+    before the user presses F9 or opens the file with *updateFields* enabled.
+    """
+    # --- Heading for the TOC section ---
+    doc.add_heading(title, level=1)
+
+    # --- TOC field paragraph ---
+    paragraph = doc.add_paragraph()
+
+    # begin
+    run_begin = paragraph.add_run()
+    fld_begin = OxmlElement("w:fldChar")
+    fld_begin.set(qn("w:fldCharType"), "begin")
+    run_begin._r.append(fld_begin)
+
+    # instruction
+    run_instr = paragraph.add_run()
+    instr_text = OxmlElement("w:instrText")
+    instr_text.set(qn("xml:space"), "preserve")
+    instr_text.text = ' TOC \\o "1-3" \\h \\z \\u '
+    run_instr._r.append(instr_text)
+
+    # separate
+    run_sep = paragraph.add_run()
+    fld_sep = OxmlElement("w:fldChar")
+    fld_sep.set(qn("w:fldCharType"), "separate")
+    run_sep._r.append(fld_sep)
+
+    # placeholder text (shown until Word recalculates)
+    paragraph.add_run("Actualice la tabla de contenido (presione F9 en Word)")
+
+    # end
+    run_end = paragraph.add_run()
+    fld_end = OxmlElement("w:fldChar")
+    fld_end.set(qn("w:fldCharType"), "end")
+    run_end._r.append(fld_end)
+
+
+def _enable_update_fields(doc: Document) -> None:
+    """Set ``w:updateFields`` in the document settings so Word recalculates
+    all fields (including the TOC) every time the file is opened."""
+    settings_element = doc.settings.element
+    update = OxmlElement("w:updateFields")
+    update.set(qn("w:val"), "true")
+    settings_element.append(update)
 
 
 def _render_ir_to_docx(doc: Document, ir: DocumentIR, tables_list: List[str], figures_list: List[str]) -> None:
     """Render IR nodes to a python-docx Document."""
     for node in ir.nodes:
         if node.node_type == IRNodeType.TOC_PLACEHOLDER:
-            doc.add_heading(node.text, level=1)
-            doc.add_paragraph("(Actualizar tabla de contenido en Word)")
-            doc.add_paragraph("")  # Spacing
+            # Insert a REAL Word TOC field — not static text with page numbers.
+            _add_toc_field(doc, title=node.text)
+            # Always separate the TOC from the body with a page break.
+            doc.add_page_break()
 
         elif node.node_type == IRNodeType.LIST_TABLES:
             doc.add_heading(node.text, level=1)
-            for i, table_title in enumerate(tables_list, 1):
-                doc.add_paragraph(f"{table_title}.....pag X", style="List Number")
-            doc.add_paragraph("")
+            if tables_list:
+                for table_title in tables_list:
+                    doc.add_paragraph(table_title, style="List Number")
+            else:
+                doc.add_paragraph("(Sin tablas)")
+            doc.add_page_break()
 
         elif node.node_type == IRNodeType.LIST_FIGURES:
             doc.add_heading(node.text, level=1)
-            for i, fig_title in enumerate(figures_list, 1):
-                doc.add_paragraph(f"{fig_title}.....pag X", style="List Number")
-            doc.add_paragraph("")
+            if figures_list:
+                for fig_title in figures_list:
+                    doc.add_paragraph(fig_title, style="List Number")
+            else:
+                doc.add_paragraph("(Sin figuras)")
+            doc.add_page_break()
+
+        elif node.node_type == IRNodeType.LIST_ABBREVIATIONS:
+            doc.add_heading(node.text, level=1)
+            doc.add_paragraph("(Completar abreviaturas)")
+            doc.add_page_break()
 
         elif node.node_type == IRNodeType.HEADING:
             doc.add_heading(node.text, level=min(node.level, 4))
@@ -184,162 +238,8 @@ def build_simulated_docx(project: Dict[str, Any], run_id: Optional[str] = None) 
         for key, value in values.items():
             doc.add_paragraph(f"{key}: {value}", style="List Bullet")
 
+    # Activate automatic field update so the TOC is recalculated on open.
+    _enable_update_fields(doc)
+
     doc.save(str(output))
     return output
-
-
-def _pdf_escape(text: str) -> str:
-    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-
-
-def _build_structured_pdf(ir: DocumentIR, project_id: str, run_id: str) -> bytes:
-    """Build a PDF with structure from IR."""
-    lines: List[str] = []
-
-    # Title
-    lines.append(ir.title or "Documento Simulado")
-    lines.append("")
-    lines.append("SIMULACION GicaGen")
-    lines.append(f"projectId: {project_id}")
-    lines.append(f"runId: {run_id}")
-    lines.append("")
-    lines.append("=" * 40)
-    lines.append("")
-
-    # Render nodes
-    for node in ir.nodes:
-        if node.node_type == IRNodeType.TOC_PLACEHOLDER:
-            lines.append(f"== {node.text} ==")
-            lines.append("(Actualizar en Word)")
-            lines.append("")
-
-        elif node.node_type == IRNodeType.LIST_TABLES:
-            lines.append(f"== {node.text} ==")
-            for i, table in enumerate(ir.tables, 1):
-                lines.append(f"  {i}. {table}")
-            lines.append("")
-
-        elif node.node_type == IRNodeType.LIST_FIGURES:
-            lines.append(f"== {node.text} ==")
-            for i, fig in enumerate(ir.figures, 1):
-                lines.append(f"  {i}. {fig}")
-            lines.append("")
-
-        elif node.node_type == IRNodeType.HEADING:
-            prefix = "#" * min(node.level, 4)
-            lines.append(f"{prefix} {node.text}")
-
-        elif node.node_type == IRNodeType.PARAGRAPH:
-            lines.append(f"    {node.text}")
-            lines.append("")
-
-        elif node.node_type == IRNodeType.TABLE_PLACEHOLDER:
-            lines.append(f"  [{node.caption}]")
-            lines.append("  +-----+-----+")
-            lines.append("  |Dato1|Dato2|")
-            lines.append("  +-----+-----+")
-            lines.append("")
-
-        elif node.node_type == IRNodeType.FIGURE_PLACEHOLDER:
-            lines.append(f"  [{node.caption}]")
-            lines.append("")
-
-    return _build_minimal_pdf(lines)
-
-
-def _build_minimal_pdf(lines: List[str]) -> bytes:
-    """Build a minimal valid PDF file."""
-    content_lines: List[str] = [
-        "BT",
-        "/F1 10 Tf",
-        "50 790 Td",
-    ]
-    first = True
-    for raw in lines:
-        line = _pdf_escape(str(raw)[:80])  # Limit line length
-        if first:
-            content_lines.append(f"({line}) Tj")
-            first = False
-        else:
-            content_lines.append("0 -14 Td")
-            content_lines.append(f"({line}) Tj")
-    content_lines.append("ET")
-    content = "\n".join(content_lines).encode("latin-1", errors="replace")
-
-    objects: List[bytes] = []
-    objects.append(b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n")
-    objects.append(b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n")
-    objects.append(
-        b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
-        b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n"
-    )
-    objects.append(b"4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n")
-    objects.append(
-        b"5 0 obj << /Length " + str(len(content)).encode("ascii") + b" >> stream\n" + content + b"\nendstream endobj\n"
-    )
-
-    out = bytearray(b"%PDF-1.4\n")
-    offsets = [0]
-    for obj in objects:
-        offsets.append(len(out))
-        out.extend(obj)
-
-    xref_start = len(out)
-    out.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
-    out.extend(b"0000000000 65535 f \n")
-    for off in offsets[1:]:
-        out.extend(f"{off:010d} 00000 n \n".encode("ascii"))
-
-    out.extend(
-        (
-            "trailer << /Size {size} /Root 1 0 R >>\n"
-            "startxref\n"
-            "{xref}\n"
-            "%%EOF\n"
-        ).format(size=len(objects) + 1, xref=xref_start).encode("ascii")
-    )
-    return bytes(out)
-
-
-def build_simulated_pdf(project: Dict[str, Any], run_id: Optional[str] = None) -> Path:
-    """
-    Build a structured PDF file based on the format definition.
-
-    The PDF mirrors the DOCX structure with headings and placeholders.
-    """
-    project_id = _safe_project_id(project)
-    output = _output_dir() / f"simulated-{project_id}.pdf"
-    run_id_value = run_id or str(project.get("run_id") or "sim-local")
-    definition = _get_format_definition(project)
-
-    if definition:
-        ir = compile_definition_to_ir(definition)
-        pdf_bytes = _build_structured_pdf(ir, project_id, run_id_value)
-    else:
-        # Fallback: simple placeholder
-        values = _project_values(project)
-        lines = [
-            "GicaGen - Simulacion",
-            "",
-            f"projectId: {project_id}",
-            f"runId: {run_id_value}",
-            "",
-            "values:",
-        ]
-        if not values:
-            lines.append("- (sin valores)")
-        else:
-            for key, value in list(values.items())[:10]:  # Limit values shown
-                lines.append(f"- {key}: {value}")
-
-        pdf_bytes = _build_minimal_pdf(lines)
-
-    output.write_bytes(pdf_bytes)
-    return output
-
-
-# Utility function for debugging
-def get_format_headings(definition: Dict[str, Any]) -> List[str]:
-    """Get list of headings from a format definition (for debugging)."""
-    ir = compile_definition_to_ir(definition)
-    return get_heading_titles(ir)

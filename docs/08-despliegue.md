@@ -1,43 +1,50 @@
 # Despliegue
 
-> Guía de build, release y deploy para GicaGen.
+> Guia de build, release y deploy para GicaGen.
 
 ## Estado Actual
 
 > [!NOTE]
-> GicaGen es un proyecto en desarrollo. Esta guía cubre despliegue básico.
+> GicaGen es un proyecto en desarrollo. Esta guia cubre despliegue basico.
 
 ---
 
 ## Ambientes
 
-| Ambiente | Descripción | URL |
+| Ambiente | Descripcion | URL |
 |----------|-------------|-----|
-| **Local** | Desarrollo en máquina local | http://127.0.0.1:8000 |
-| **Staging** | Pruebas pre-producción | (por definir) |
-| **Producción** | Ambiente live | (por definir) |
+| **Local** | Desarrollo en maquina local | http://127.0.0.1:8001 |
+| **Staging** | Pruebas pre-produccion | (por definir) |
+| **Produccion** | Ambiente live | (por definir) |
+
+> [!IMPORTANT]
+> GicaGen usa el puerto **8001**. GicaTesis usa el puerto **8000**.
 
 ---
 
 ## Build
 
-### Verificar código antes de deploy
+### Verificar codigo antes de deploy
 
-```bash
+```powershell
 # 1. Activar entorno virtual
 .venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Linux/Mac
+# source .venv/bin/activate  # Linux/Mac
 
 # 2. Verificar que inicia
-python -m uvicorn app.main:app
+python -m uvicorn app.main:app --port 8001
 
 # 3. Verificar health check
-curl http://localhost:8000/healthz
+Invoke-RestMethod http://127.0.0.1:8001/healthz
+
+# 4. Verificar encoding
+python scripts/check_encoding.py
+python scripts/check_mojibake.py
 ```
 
 ### No hay build step
 
-GicaGen es una aplicación Python + JavaScript vanilla. No requiere paso de build/compilación.
+GicaGen es una aplicacion Python + JavaScript vanilla. No requiere paso de build/compilacion.
 
 ---
 
@@ -54,15 +61,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código
+# Copiar codigo
 COPY app/ ./app/
 COPY data/ ./data/
 
 # Puerto
-EXPOSE 8000
+EXPOSE 8001
 
 # Comando
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
 ```
 
 ### Comandos Docker
@@ -72,9 +79,10 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 docker build -t gicagen:latest .
 
 # Ejecutar
-docker run -d -p 8000:8000 \
+docker run -d -p 8001:8001 \
   -e APP_ENV=prod \
-  -e FORMAT_API_BASE_URL=https://api.example.com \
+  -e GICATESIS_BASE_URL=http://gicatesis:8000/api/v1 \
+  -e GICAGEN_PORT=8001 \
   -v $(pwd)/data:/app/data \
   gicagen:latest
 
@@ -120,7 +128,7 @@ After=network.target
 User=gicagen
 WorkingDirectory=/home/gicagen/app
 Environment="PATH=/home/gicagen/app/.venv/bin"
-ExecStart=/home/gicagen/app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+ExecStart=/home/gicagen/app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001
 Restart=always
 
 [Install]
@@ -142,7 +150,7 @@ server {
     server_name gicagen.example.com;
 
     location / {
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://127.0.0.1:8001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -151,15 +159,23 @@ server {
 
 ---
 
-## Variables de Entorno en Producción
+## Variables de Entorno en Produccion
 
 ```bash
 # Archivo .env o variables de sistema
 APP_ENV=prod
-APP_NAME=GicaGen
-FORMAT_API_BASE_URL=https://api.formatos.example.com
-FORMAT_API_KEY=xxx
+APP_NAME="TesisAI Gen"
+
+# GicaTesis
+GICATESIS_BASE_URL=https://gicatesis.example.com/api/v1
+GICATESIS_TIMEOUT=8
+GICAGEN_PORT=8001
+GICAGEN_BASE_URL=https://gicagen.example.com
+GICAGEN_DEMO_MODE=false
+
+# n8n (opcional)
 N8N_WEBHOOK_URL=https://n8n.example.com/webhook/xxx
+N8N_SHARED_SECRET=un-secreto-seguro
 ```
 
 ---
@@ -168,10 +184,11 @@ N8N_WEBHOOK_URL=https://n8n.example.com/webhook/xxx
 
 - [ ] Tests pasan (cuando se implementen)
 - [ ] Variables de entorno configuradas
-- [ ] `data/` tiene archivos JSON válidos (o vacíos: `[]`)
-- [ ] Puerto 8000 disponible
+- [ ] `data/` tiene archivos JSON validos (o vacios: `[]`)
+- [ ] Puerto 8001 disponible
 - [ ] `/healthz` retorna `{"ok": true}`
 - [ ] UI carga correctamente
+- [ ] Encoding verificado (`python scripts/check_encoding.py`)
 
 ---
 
@@ -180,7 +197,7 @@ N8N_WEBHOOK_URL=https://n8n.example.com/webhook/xxx
 ```bash
 # Docker
 docker stop gicagen-container
-docker run -d -p 8000:8000 gicagen:previous-tag
+docker run -d -p 8001:8001 gicagen:previous-tag
 
 # Systemd
 sudo systemctl stop gicagen
@@ -198,7 +215,16 @@ sudo systemctl start gicagen
 # Endpoint
 GET /healthz
 # Respuesta esperada
-{"ok": true, "app": "GicaGen", "env": "prod"}
+{"ok": true, "app": "TesisAI Gen", "env": "prod", "gicatesis_url": "...", "port": 8001}
+```
+
+### Build Info
+
+```bash
+# Endpoint
+GET /api/_meta/build
+# Respuesta esperada
+{"service": "gicagen", "cwd": "...", "started_at": "...", "git_commit": "..."}
 ```
 
 ### Logs

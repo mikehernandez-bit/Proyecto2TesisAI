@@ -2,82 +2,78 @@
 
 ## Estado
 
-Propuesto
+**Parcialmente Implementado**
+
+- La integracion con GicaTesis fue implementada en `app/integrations/gicatesis/` con patron BFF.
+- El desacoplo de servicios via ports/adapters sigue pendiente.
 
 ## Contexto
 
-Durante el análisis del proyecto se identificaron acoplamientos que dificultan:
-- Testing unitario
-- Reemplazo de componentes
-- Mantenibilidad a largo plazo
+GicaGen presento acoplamiento entre core y servicios de infraestructura:
 
-### Problemas Detectados
+1. Servicios instanciados como globals en `api/router.py`
+2. `PromptService` y `ProjectService` importan `JsonStore` directamente
+3. `DocxBuilder` y `N8NClient` mezclan logica de negocio con librerias especificas
+4. El acceso a formatos externos estaba acoplado al core
 
-1. **Servicios como globals** en `api/router.py` (líneas 19-22)
-2. **Core depende de infraestructura**: `PromptService` y `ProjectService` importan `JsonStore` directamente
-3. **Adapters mezclados en core**: `format_api.py`, `n8n_client.py`, `docx_builder.py` contienen lógica de integración
+## Decision
 
-## Decisión
+Adoptar arquitectura Ports & Adapters:
 
-### Adoptar Arquitectura Ports & Adapters
+### Estructura Propuesta
 
 ```
-core/
-+-- services/       # Lógica de negocio
-`-- ports/          # Interfaces (Protocols)
-adapters/           # Implementaciones concretas
-infra/              # Config, utils técnicos
+app/
++-- core/
+|   +-- ports/              # Interfaces (Protocol)
+|   |   +-- data_store.py   # IDataStore
+|   |   +-- doc_gen.py      # IDocumentGenerator
+|   |   +-- format_prov.py  # IFormatProvider
+|   |   `-- workflow.py     # IWorkflowEngine
+|   `-- services/            # Solo dependen de ports
++-- adapters/                # Implementaciones concretas
+|   +-- storage/json_store_adapter.py
+|   +-- documents/docx_adapter.py
+|   `-- workflows/n8n_adapter.py
++-- integrations/            # IMPLEMENTADO - GicaTesis BFF
+|   `-- gicatesis/
 ```
 
 ### Reglas de Dependencia
 
-1. **Core no importa adapters/infra**
-2. **Adapters implementan ports** (interfaces definidas en core)
-3. **Composition root** (`main.py`) hace el wiring
-4. **Inyección de dependencias** via FastAPI `Depends()`
+1. `core/services/` solo importa de `core/ports/`
+2. `adapters/` implementa `core/ports/`
+3. `main.py` hace el wiring (composition root)
+4. `integrations/` puede ser usado por services directamente (BFF)
 
-### Ejemplo de Transformación
+## Que se Implemento
 
-**Antes:**
-```python
-# prompt_service.py
-from app.core.storage.json_store import JsonStore  # ❌ Import directo
+- `app/integrations/gicatesis/client.py` - Cliente HTTP async
+- `app/integrations/gicatesis/types.py` - DTOs tipados
+- `app/integrations/gicatesis/errors.py` - Excepciones custom
+- `app/integrations/gicatesis/cache/` - Cache ETag
+- `app/core/services/format_service.py` orquesta la integracion
 
-class PromptService:
-    def __init__(self):
-        self.store = JsonStore("data/prompts.json")  # ❌ Hardcoded
-```
+## Que Falta
 
-**Después:**
-```python
-# core/ports/data_store.py
-class IDataStore(Protocol):
-    def read_list(self) -> List[Dict]: ...
-
-# core/services/prompt_service.py
-class PromptService:
-    def __init__(self, store: IDataStore):  # ✅ Inyección
-        self.store = store
-```
+1. Crear `core/ports/` con interfaces Protocol
+2. Migrar `json_store.py` a `adapters/storage/`
+3. Migrar `docx_builder.py` a `adapters/documents/`
+4. Migrar `n8n_client.py` a `adapters/workflows/`
+5. Usar `Depends()` en `api/router.py` para inyeccion
 
 ## Consecuencias
 
-### Positivas
-- Servicios testeables con mocks
-- Adapters reemplazables (ej: JSON → PostgreSQL)
-- Integración con GicaTesis encapsulada en adapter
-- Código más limpio y mantenible
+**Positivas:**
+- Testing simplificado (mocks via interfaces)
+- Servicios reemplazables (BD en vez de JSON, otro engine en vez de n8n)
+- Boundaries claros
 
-### Negativas
-- Más archivos/carpetas
-- Curva de aprendizaje para el equipo
-- Requiere refactoring del código existente
+**Negativas:**
+- Mas archivos y carpetas
+- Complejidad adicional para MVP
 
-### Plan de Migración
+## Ver Tambien
 
-Ver [02-arquitectura.md](../02-arquitectura.md#d-plan-de-desacoplo) para el plan detallado.
-
-## Referencias
-
-- [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/)
-- [FastAPI Dependency Injection](https://fastapi.tiangolo.com/tutorial/dependencies/)
+- [02-arquitectura.md](../02-arquitectura.md) - Arquitectura actual completa
+- [05-plan-de-cambios.md](../05-plan-de-cambios.md) - Plan de ejecucion

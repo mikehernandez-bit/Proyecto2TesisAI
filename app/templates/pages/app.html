@@ -131,7 +131,7 @@
       <div class="mb-8">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-xl font-bold text-slate-800">Nuevo Proyecto</h2>
-          <span class="text-sm text-gray-500">Paso <span id="current-step-label">1</span> de 5</span>
+          <span class="text-sm text-gray-500">Paso <span id="current-step-label">1</span> de 6</span>
         </div>
 
         <div class="flex items-center w-full">
@@ -154,12 +154,17 @@
           <div id="step-5-dot"
             class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
             5</div>
+          <div id="step-5-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-6-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            6</div>
         </div>
 
         <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
           <span>Formato Ext.</span>
           <span>Tipo & Prompt</span>
           <span>Detalles</span>
+          <span>Seleccion IA</span>
           <span>Generando</span>
           <span>Descargas</span>
         </div>
@@ -173,6 +178,13 @@
             Se conecta a una API externa de formatos. En demo se usa <code
               class="bg-gray-100 px-1 rounded">data/formats_sample.json</code>.
           </p>
+
+          <!-- GicaTesis offline banner (hidden by default, shown by JS) -->
+          <div id="gicatesis-offline-banner"
+            class="hidden mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>GicaTesis offline &mdash; mostrando formatos en cache. Logos y assets remotos no disponibles.</span>
+          </div>
 
           <div class="flex gap-4 mb-6">
             <select id="filter-university"
@@ -224,6 +236,7 @@
           <p class="text-sm text-gray-500 mb-6">Los campos se generan segun variables del prompt.</p>
 
           <div id="dynamic-form" class="space-y-4 max-w-2xl mx-auto"></div>
+
           <div id="step3-error" class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
           </div>
 
@@ -244,10 +257,70 @@
             <div id="step3-loading"
               class="hidden flex items-center gap-3 text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
               <div class="loader w-5 h-5 border-2 border-t-blue-600"></div>
-              <span class="text-sm font-medium animate-pulse">Generando documento...</span>
+              <span class="text-sm font-medium animate-pulse">Preparando selección IA...</span>
             </div>
 
-            <button id="btn-step3-generate" onclick="TesisAI.triggerGeneration()"
+            <button id="btn-step3-next-provider" onclick="TesisAI.goToProviderStep()"
+              class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-arrow-right mr-2"></i> Siguiente: Seleccionar IA
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div id="step-4-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-semibold mb-2 text-slate-800">4. Seleccionar IA</h3>
+          <p class="text-sm text-gray-500 mb-6">
+            Elige proveedor/modelo antes de iniciar la generación en vivo.
+          </p>
+
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <h4 class="text-sm font-semibold text-slate-800">Selector de modelo IA</h4>
+                <p class="text-xs text-slate-500">Salud en tiempo real: rate-limit y cuota.</p>
+              </div>
+              <button id="btn-provider-refresh" type="button"
+                class="text-xs px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-100">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Actualizar estado
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4 text-xs">
+              <div class="inline-flex rounded-lg border border-slate-300 overflow-hidden">
+                <label class="px-3 py-2 cursor-pointer bg-white">
+                  <input id="provider-mode-fixed" type="radio" name="provider-mode" value="fixed" class="mr-1">
+                  Modo fijo
+                </label>
+                <label class="px-3 py-2 cursor-pointer bg-white border-l border-slate-300">
+                  <input id="provider-mode-auto" type="radio" name="provider-mode" value="auto" class="mr-1" checked>
+                  Modo automático
+                </label>
+              </div>
+              <div id="provider-fallback-label" class="text-slate-600">Fallback: -</div>
+            </div>
+
+            <div id="provider-select-error"
+              class="hidden text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2"></div>
+            <div id="provider-cards" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+          </div>
+
+          <div id="step4-error" class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
+          </div>
+
+          <div class="mt-8 flex justify-between items-center">
+            <button onclick="TesisAI.prevStep(3)"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
+
+            <div id="step4-loading"
+              class="hidden flex items-center gap-3 text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+              <div class="loader w-5 h-5 border-2 border-t-blue-600"></div>
+              <span class="text-sm font-medium animate-pulse">Iniciando generacion...</span>
+            </div>
+
+            <button id="btn-step4-generate" onclick="TesisAI.triggerGeneration()"
               class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
               <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generar Documento
             </button>
@@ -255,43 +328,55 @@
         </div>
       </div>
 
-      <!-- Step 4: Generacion en progreso -->
-      <div id="step-4-content" class="wizard-step hidden">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
-          <h3 class="text-lg font-semibold text-slate-800">4. Generando documento</h3>
-
-          <!-- Progress phases -->
-          <div id="gen-phases" class="space-y-3">
-            <div id="gen-phase-health" class="flex items-center gap-3 text-sm text-gray-500">
-              <span class="phase-icon w-5 text-center">⏳</span>
-              <span class="phase-label">Verificando conexion a n8n...</span>
+      <!-- Step 5: Generacion en progreso -->
+      <div id="step-5-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-5">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <h3 class="text-lg font-semibold text-slate-800">5. Generando documento</h3>
+              <p id="gen-live-summary" class="text-sm text-slate-500">Inicializando ejecucion en vivo...</p>
             </div>
-            <div id="gen-phase-send" class="flex items-center gap-3 text-sm text-gray-400">
-              <span class="phase-icon w-5 text-center">○</span>
-              <span class="phase-label">Enviando solicitud</span>
-            </div>
-            <div id="gen-phase-wait" class="flex items-center gap-3 text-sm text-gray-400">
-              <span class="phase-icon w-5 text-center">○</span>
-              <span class="phase-label">Esperando respuesta de n8n</span>
-            </div>
+            <span id="gen-live-badge"
+              class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1 text-xs font-semibold">
+              <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+              En vivo
+            </span>
           </div>
 
-          <!-- Timer -->
-          <div id="gen-timer" class="text-xs text-gray-400 hidden">
-            Tiempo transcurrido: <span id="gen-timer-value">0s</span> / 120s
+          <div id="gen-timer" class="text-xs text-slate-500 hidden">
+            Tiempo transcurrido: <span id="gen-timer-value">0s</span>
           </div>
 
-          <!-- Error message -->
-          <div id="gen-error" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-4"></div>
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <section class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <h4 class="text-sm font-semibold text-slate-700">Pipeline en vivo</h4>
+              <div id="gen-pipeline-nodes" class="space-y-2"></div>
+              <div id="gen-pipeline-fallback"
+                class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2"></div>
+            </section>
 
-          <!-- Success message -->
-          <div id="gen-success"
-            class="hidden bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-4">
+            <section class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+              <h4 class="text-sm font-semibold text-slate-700">Documento construyendose</h4>
+              <div id="gen-sections-progress" class="text-xs text-slate-500">Secciones 0/0</div>
+              <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div id="gen-sections-bar" class="h-2 bg-blue-500 transition-all duration-300" style="width:0%"></div>
+              </div>
+              <div id="gen-doc-blocks" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            </section>
+
+            <section class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+              <h4 class="text-sm font-semibold text-slate-700">Timeline</h4>
+              <div id="gen-trace-empty" class="text-xs text-slate-500">Aun no hay eventos.</div>
+              <div id="gen-trace-timeline" class="space-y-2 max-h-[420px] overflow-y-auto pr-1"></div>
+            </section>
+          </div>
+
+          <div id="gen-error" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3"></div>
+          <div id="gen-success" class="hidden bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-3">
             Documento generado exitosamente.
           </div>
 
-          <!-- Action buttons -->
-          <div class="flex items-center justify-between pt-2">
+          <div class="flex items-center justify-between pt-1">
             <button id="btn-gen-cancel" onclick="TesisAI.cancelGeneration()"
               class="text-gray-500 hover:text-gray-700 font-medium px-4 py-2">
               <i class="fa-solid fa-xmark mr-1"></i> Cancelar
@@ -310,11 +395,11 @@
         </div>
       </div>
 
-      <!-- Step 5 -->
-      <div id="step-5-content" class="wizard-step hidden">
+      <!-- Step 6 -->
+      <div id="step-6-content" class="wizard-step hidden">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-slate-800">5. Descargas</h3>
+            <h3 class="text-lg font-semibold text-slate-800">6. Descargas</h3>
             <p class="text-sm text-gray-500">Documento generado para el proyecto <code id="sim-project-id">-</code>.
             </p>
           </div>
@@ -331,7 +416,7 @@
           </div>
 
           <div class="pt-2 flex justify-between">
-            <button onclick="TesisAI.prevStep(4)"
+            <button onclick="TesisAI.prevStep(5)"
               class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
             <button onclick="TesisAI.showView('dashboard')"
               class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">

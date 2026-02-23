@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-
 
 TEXT_EXTS = {".md", ".py", ".js", ".html", ".json", ".css", ".yml", ".yaml", ".txt"}
 EXCLUDE_DIRS = {
@@ -20,13 +18,13 @@ EXCLUDE_DIRS = {
 
 # Prohibited markers represented with code points to avoid embedding bad glyphs.
 FORBIDDEN_TOKENS = (
-    "\u00c3",        # U+00C3
-    "\u00e2",        # U+00E2
+    "\u00c3",  # U+00C3
+    "\u00e2",  # U+00E2
     "\u00f0\u0178",  # U+00F0 + U+0178
-    "\u251c",        # U+251C
-    "\u2502",        # U+2502
-    "\u2514",        # U+2514
-    "\u2500",        # U+2500
+    "\u251c",  # U+251C
+    "\u2502",  # U+2502
+    "\u2514",  # U+2514
+    "\u2500",  # U+2500
 )
 
 

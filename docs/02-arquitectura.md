@@ -1,6 +1,6 @@
 ﻿# Arquitectura - GicaGen
 
-> Documentación de la arquitectura actual y objetivo del sistema.
+> Documentacion de la arquitectura actual del sistema.
 
 ---
 
@@ -10,34 +10,46 @@
 
 ```mermaid
 graph TB
-    subgraph "Capa de Presentación"
+    subgraph "Capa de Presentacion"
         BROWSER[Browser]
         JS[app.js - SPA]
         HTML[templates/app.html]
     end
     
-    subgraph "Capa de Entrada (FastAPI)"
+    subgraph "Capa de Entrada - FastAPI"
         MAIN[main.py]
         API_ROUTER[api/router.py]
         UI_ROUTER[ui/router.py]
+        MODELS[api/models.py]
     end
     
-    subgraph "Capa de Servicios (Core)"
+    subgraph "Capa de Servicios - Core"
         FMT_SVC[FormatService]
         PRM_SVC[PromptService]
         PRJ_SVC[ProjectService]
         DOCX_SVC[DocxBuilder]
         N8N_SVC[N8NClient]
+        N8N_INT[N8NIntegrationService]
+        DEF_COMP[DefinitionCompiler]
+        SIM_ART[SimulationArtifactService]
+    end
+    
+    subgraph "Capa de Integracion"
+        GT_CLIENT[GicaTesisClient]
+        GT_CACHE[FormatCache]
+        GT_TYPES[DTOs - types.py]
+        GT_ERRORS[GicaTesisError]
     end
     
     subgraph "Capa de Infraestructura"
         JSON_STORE[JsonStore]
         CONFIG[config.py]
+        TEMPLATES[templates.py]
     end
     
     subgraph "Recursos Externos"
         FS[(Filesystem - data/*.json)]
-        EXT_API[API Externa de Formatos]
+        GICATESIS[GicaTesis API v1]
         N8N_WH[n8n Webhook]
     end
     
@@ -47,15 +59,26 @@ graph TB
     MAIN --> UI_ROUTER
     UI_ROUTER --> HTML
     
+    API_ROUTER --> MODELS
     API_ROUTER --> FMT_SVC
     API_ROUTER --> PRM_SVC
     API_ROUTER --> PRJ_SVC
     API_ROUTER --> DOCX_SVC
     API_ROUTER --> N8N_SVC
+    API_ROUTER --> N8N_INT
+    API_ROUTER --> SIM_ART
     
+    FMT_SVC --> GT_CLIENT
+    FMT_SVC --> GT_CACHE
+    FMT_SVC --> GT_TYPES
+    FMT_SVC --> GT_ERRORS
     FMT_SVC --> CONFIG
-    FMT_SVC --> FS
-    FMT_SVC -.-> EXT_API
+    
+    N8N_INT --> DEF_COMP
+    SIM_ART --> DEF_COMP
+    
+    GT_CLIENT -.-> GICATESIS
+    GT_CACHE --> FS
     
     PRM_SVC --> JSON_STORE
     PRJ_SVC --> JSON_STORE
@@ -64,7 +87,7 @@ graph TB
     N8N_SVC --> CONFIG
     N8N_SVC -.-> N8N_WH
     
-    DOCX_SVC --> FS
+    SIM_ART --> FS
 ```
 
 ### Componentes Detectados
@@ -72,16 +95,25 @@ graph TB
 | Componente | Archivo | Responsabilidad |
 |------------|---------|-----------------|
 | **Entrypoint** | `app/main.py` | Configura FastAPI, monta routers y static files |
-| **API Router** | `app/modules/api/router.py` | Endpoints REST para BFF, prompts, proyectos y contratos n8n |
-| **UI Router** | `app/modules/ui/router.py` | Renderiza página principal via Jinja2 |
-| **FormatService** | `app/core/services/format_service.py` | Orquesta obtención de formatos (via GicaTesis) |
+| **API Router** | `app/modules/api/router.py` | Endpoints REST: BFF formatos, prompts, proyectos, n8n, simulacion |
+| **API Models** | `app/modules/api/models.py` | Modelos Pydantic: PromptIn, ProjectDraftIn, ProjectUpdateIn, ProjectGenerateIn, N8NCallbackIn |
+| **UI Router** | `app/modules/ui/router.py` | Renderiza pagina principal via Jinja2 |
+| **FormatService** | `app/core/services/format_service.py` | Orquesta obtencion de formatos via GicaTesis con cache ETag |
 | **PromptService** | `app/core/services/prompt_service.py` | CRUD de prompts |
 | **ProjectService** | `app/core/services/project_service.py` | CRUD de proyectos y estados |
-| **DocxBuilder** | `app/core/services/docx_builder.py` | Genera DOCX placeholder |
+| **DocxBuilder** | `app/core/services/docx_builder.py` | Genera DOCX placeholder (legacy) |
 | **N8NClient** | `app/core/services/n8n_client.py` | Trigger webhook n8n |
 | **N8NIntegrationService** | `app/core/services/n8n_integration_service.py` | Arma spec del paso 4 (payload/headers/checklist/markdown) |
+| **DefinitionCompiler** | `app/core/services/definition_compiler.py` | Compila definiciones de formato a IR (Intermediate Representation) |
+| **SimulationArtifactService** | `app/core/services/simulation_artifact_service.py` | Genera DOCX/PDF simulados desde IR de formato |
+| **GicaTesisClient** | `app/integrations/gicatesis/client.py` | Cliente HTTP async para GicaTesis API v1 |
+| **FormatCache** | `app/integrations/gicatesis/cache/format_cache.py` | Cache de formatos con ETag y timestamps |
+| **DTOs** | `app/integrations/gicatesis/types.py` | FormatSummary, FormatDetail, FormatField, AssetRef, TemplateRef, CatalogVersionResponse |
+| **GicaTesisError** | `app/integrations/gicatesis/errors.py` | Excepciones: UpstreamUnavailable, UpstreamTimeout, BadUpstreamResponse |
+| **GicaTesisClient (legacy)** | `app/core/clients/gicatesis_client.py` | Cliente legacy (referencia antigua) |
 | **JsonStore** | `app/core/storage/json_store.py` | Persistencia JSON con locks |
-| **Config** | `app/core/config.py` | Settings desde env vars |
+| **Config** | `app/core/config.py` | Settings desde env vars (dataclass frozen) |
+| **Templates** | `app/core/templates.py` | Configuracion Jinja2Templates |
 
 ### Flujos Principales
 
@@ -93,6 +125,8 @@ sequenceDiagram
     participant API as api/router
     participant PS as ProjectService
     participant NS as N8NIntegrationService
+    participant FS as FormatService
+    participant DC as DefinitionCompiler
 
     B->>API: POST /api/projects/draft
     API->>PS: create_project()
@@ -101,9 +135,13 @@ sequenceDiagram
 
     B->>API: GET /api/integrations/n8n/spec?projectId=...
     API->>PS: get_project()
-    API->>NS: build_spec(project)
-    NS-->>API: payload + headers + checklist + markdown
-    API-->>B: guia n8n (secciones A-F)
+    API->>FS: get_format_detail()
+    FS-->>API: formatDetail + definition
+    API->>NS: build_spec(project, formatDetail, prompt)
+    NS->>DC: compile_definition_to_section_index()
+    DC-->>NS: sectionIndex
+    NS-->>API: payload + headers + checklist + markdown + simulationOutput
+    API-->>B: guia n8n (secciones A-H)
 
     Note over B,API: n8n ejecuta fuera de GicaGen
     B->>API: POST /api/integrations/n8n/callback
@@ -112,7 +150,28 @@ sequenceDiagram
     API-->>B: ok
 ```
 
-#### 2. CRUD de Prompts
+#### 2. Simulacion n8n
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant API as api/router
+    participant NS as N8NIntegrationService
+    participant DC as DefinitionCompiler
+
+    B->>API: POST /api/sim/n8n/run?projectId=...
+    API->>NS: build_simulated_output(projectId, runId, sectionIndex)
+    NS->>DC: compile_definition_to_section_index()
+    DC-->>NS: sectionIndex con paths estables
+    NS-->>API: simulatedOutput (aiResult + artifacts)
+    API-->>B: JSON response
+
+    B->>API: GET /api/sim/download/docx?projectId=...
+    Note over API: Proxy a GicaTesis render/docx o local
+    API-->>B: archivo .docx
+```
+
+#### 3. CRUD de Prompts
 
 ```
 Browser -> POST/PUT/DELETE /api/prompts -> PromptService -> JsonStore -> data/prompts.json
@@ -120,29 +179,38 @@ Browser -> POST/PUT/DELETE /api/prompts -> PromptService -> JsonStore -> data/pr
 
 ### Entrypoints
 
-| Entrypoint | Descripción |
+| Entrypoint | Descripcion |
 |------------|-------------|
-| `python -m uvicorn app.main:app` | Servidor web principal |
+| `python -m uvicorn app.main:app --port 8001` | Servidor web principal |
 | `GET /` | UI principal (SPA) |
-| `GET /api/formats` | Lista formatos |
+| `GET /healthz` | Health check |
+| `GET /api/_meta/build` | Metadata de la instancia activa |
+| `GET /api/formats/version` | Version del catalogo |
+| `GET /api/formats` | Lista formatos (con filtros university/category/documentType) |
+| `GET /api/formats/{id}` | Detalle de formato |
+| `GET /api/assets/{path}` | Proxy para assets de GicaTesis |
 | `GET/POST/PUT/DELETE /api/prompts` | CRUD prompts |
 | `GET /api/projects` | Lista proyectos |
 | `POST /api/projects/draft` | Crea borrador desde wizard |
-| `GET /api/integrations/n8n/spec` | Devuelve contrato para paso 4 |
-| `POST /api/integrations/n8n/callback` | Guarda `aiResult` con secret |
-| `POST /api/projects/generate` | Inicia generación |
-| `GET /api/download/{id}` | Descarga DOCX |
-| `POST /api/n8n/callback/{id}` | Callback legacy |
-| `GET /healthz` | Health check |
+| `GET /api/projects/{id}` | Detalle de proyecto |
+| `PUT /api/projects/{id}` | Actualiza proyecto |
+| `GET /api/integrations/n8n/spec` | Contrato para paso 4 |
+| `POST /api/integrations/n8n/callback` | Callback n8n -> GicaGen |
+| `GET /api/integrations/n8n/health` | Health check n8n |
+| `POST /api/sim/n8n/run` | Ejecuta simulacion |
+| `GET /api/sim/download/docx` | Descarga DOCX simulado |
+| `GET /api/sim/download/pdf` | Descarga PDF simulado |
+| `POST /api/projects/generate` | Legacy: genera proyecto |
+| `GET /api/download/{id}` | Legacy: descarga DOCX |
 
-### Dependencias Cruzadas Peligrosas
+### Dependencias Cruzadas
 
 | Problema | Evidencia | Severidad |
 |----------|-----------|-----------|
-| **Servicios como globals** | `api/router.py:19-22` instancia `FormatService()`, `PromptService()`, etc. como variables globales | [MEDIA] Media |
-| **Core depende de infraestructura** | `prompt_service.py:4` importa `JsonStore` directamente | [MEDIA] Media |
-| **Adapters en core** | `n8n_client.py` usa `httpx` directamente, `docx_builder.py` usa `python-docx`. **Nota:** FormatService ahora usa cliente GicaTesis separado. | [MEDIA] Media |
-| **Config hardcodeada** | `docx_builder.py:21` tiene secciones fijas | [BAJA] Baja |
+| **Servicios como globals** | `api/router.py` instancia `FormatService()`, `PromptService()`, etc. como variables globales | Media |
+| **Core depende de infraestructura** | `prompt_service.py` importa `JsonStore` directamente | Media |
+| **Adapters en core** | `n8n_client.py` usa `httpx` directamente, `docx_builder.py` usa `python-docx` | Media |
+| **Config hardcodeada** | `docx_builder.py` tiene secciones fijas | Baja |
 
 ---
 
@@ -158,7 +226,7 @@ graph TB
         TEMPLATES[Jinja Templates]
     end
     
-    subgraph "API Layer (Ports)"
+    subgraph "API Layer - Ports"
         API[FastAPI Routers]
         MODELS[Pydantic Models]
     end
@@ -170,7 +238,7 @@ graph TB
             PROJECT_SVC[ProjectService]
             GEN_SVC[GenerationService]
         end
-        subgraph "Ports/Interfaces"
+        subgraph "Ports - Interfaces"
             I_STORE[IDataStore]
             I_DOCGEN[IDocumentGenerator]
             I_FORMAT[IFormatProvider]
@@ -181,7 +249,7 @@ graph TB
     subgraph "Adapters Layer"
         JSON_ADAPTER[JsonStoreAdapter]
         DOCX_ADAPTER[DocxAdapter]
-        FORMAT_ADAPTER[ExternalFormatAdapter]
+        FORMAT_ADAPTER[GicaTesisFormatAdapter]
         N8N_ADAPTER[N8NAdapter]
     end
     
@@ -192,9 +260,8 @@ graph TB
     end
     
     subgraph "External"
-        EXT_API[API Formatos]
+        GICATESIS[GicaTesis API v1]
         N8N[n8n]
-        GICATESIS[GicaTesis - futuro]
     end
     
     BROWSER --> JS
@@ -210,53 +277,61 @@ graph TB
     GEN_SVC --> I_FORMAT
     GEN_SVC --> I_WORKFLOW
     
-    I_STORE -.->|implements| JSON_ADAPTER
-    I_DOCGEN -.->|implements| DOCX_ADAPTER
-    I_FORMAT -.->|implements| FORMAT_ADAPTER
-    I_WORKFLOW -.->|implements| N8N_ADAPTER
+    I_STORE -.-|implements| JSON_ADAPTER
+    I_DOCGEN -.-|implements| DOCX_ADAPTER
+    I_FORMAT -.-|implements| FORMAT_ADAPTER
+    I_WORKFLOW -.-|implements| N8N_ADAPTER
     
     JSON_ADAPTER --> FS
     DOCX_ADAPTER --> FS
     FORMAT_ADAPTER --> HTTP
-    FORMAT_ADAPTER --> EXT_API
+    FORMAT_ADAPTER --> GICATESIS
     N8N_ADAPTER --> HTTP
     N8N_ADAPTER --> N8N
-    
-    FORMAT_ADAPTER -.->|futuro| GICATESIS
 ```
 
-### Estructura de Carpetas Propuesta
+### Estructura de Carpetas Actual
 
 ```
 app/
-+---- main.py                      # Composition root
++---- main.py                      # Entrypoint FastAPI
 +---- core/
-|   +---- domain/                  # Entidades de dominio (si las hay)
-|   +---- services/                # Servicios de negocio
-|   |   +---- prompt_service.py
-|   |   +---- project_service.py
-|   |   `---- generation_service.py
-|   `---- ports/                   # Interfaces/Contratos
-|       +---- data_store.py        # Protocol IDataStore
-|       +---- document_generator.py
-|       +---- format_provider.py
-|       `---- workflow_engine.py
-+---- adapters/                    # <- NUEVO
+|   +---- config.py                # Settings (dataclass frozen)
+|   +---- templates.py             # Jinja2Templates config
+|   +---- clients/
+|   |   `---- gicatesis_client.py  # Cliente HTTP legacy
+|   +---- services/                # 8 servicios principales
+|   |   +---- format_service.py    # Orquesta formatos con cache
+|   |   +---- prompt_service.py    # CRUD prompts
+|   |   +---- project_service.py   # CRUD proyectos
+|   |   +---- docx_builder.py      # Genera DOCX placeholder
+|   |   +---- n8n_client.py        # Cliente webhook n8n
+|   |   +---- n8n_integration_service.py  # Specs paso 4
+|   |   +---- definition_compiler.py      # Compila definiciones a IR
+|   |   `---- simulation_artifact_service.py  # Genera DOCX/PDF simulados
 |   +---- storage/
-|   |   `---- json_store_adapter.py
-|   +---- documents/
-|   |   `---- docx_adapter.py
-|   +---- formats/
-|   |   `---- external_format_adapter.py
-|   `---- workflows/
-|       `---- n8n_adapter.py
-+---- infra/                       # <- NUEVO
-|   +---- config.py
-|   `---- http_client.py
-+---- modules/                     # Se mantiene igual
+|   |   `---- json_store.py        # Persistencia JSON con locks
+|   `---- utils/
+|       `---- id.py                # Generador de IDs con prefijo
++---- integrations/                # Integraciones externas
+|   `---- gicatesis/
+|       +---- client.py            # Cliente HTTP async para GicaTesis
+|       +---- types.py             # DTOs Pydantic (FormatSummary, FormatDetail, etc.)
+|       +---- errors.py            # Excepciones custom (UpstreamUnavailable, etc.)
+|       `---- cache/
+|           `---- format_cache.py  # Cache de formatos con ETag
++---- modules/
 |   +---- api/
+|   |   +---- router.py            # Todos los endpoints API
+|   |   `---- models.py            # Modelos Pydantic de request
 |   `---- ui/
-`---- ...
+|       `---- router.py            # Renderiza pagina principal
++---- static/js/
+|   `---- app.js                   # Frontend SPA completo
+`---- templates/
+    +---- base.html                # Layout base HTML
+    `---- pages/
+        `---- app.html             # Pagina principal del wizard
 ```
 
 ---
@@ -275,13 +350,13 @@ app/
 
 3. **Composition root hace el wiring**
    - `main.py` crea las instancias concretas y las inyecta
-   - Usar `Depends()` de FastAPI para inyección
+   - Usar `Depends()` de FastAPI para inyeccion
 
 4. **Config declarativa manda**
    - Las URLs, claves y opciones vienen de `config.py`
    - No hardcodear en servicios
 
-### Ejemplo de Código (Propuesto)
+### Ejemplo de Codigo (Propuesto)
 
 ```python
 # core/ports/data_store.py
@@ -300,7 +375,7 @@ class PromptService:
 # adapters/storage/json_store_adapter.py
 class JsonStoreAdapter:
     """Implementa IDataStore usando archivos JSON."""
-    # ... (el código actual de json_store.py)
+    # ... (el codigo actual de json_store.py)
 
 # main.py (composition root)
 from fastapi import Depends
@@ -324,38 +399,39 @@ def list_prompts(svc: PromptService = Depends(get_prompt_service)):
 
 | # | Problema | Evidencia | Impacto |
 |---|----------|-----------|---------|
-| 1 | Servicios como globals en router | `api/router.py:19-22` | Testing difícil, no inyectable |
-| 2 | PromptService depende de JsonStore | `prompt_service.py:4` | Core acoplado a infra |
-| 3 | ProjectService depende de JsonStore | `project_service.py:7` | Core acoplado a infra |
-| 4 | FormatService ahora usa GicaTesisClient separado | `format_service.py` + `integrations/gicatesis/` | [OK] Implementado |
+| 1 | Servicios como globals en router | `api/router.py` | Testing dificil, no inyectable |
+| 2 | PromptService depende de JsonStore | `prompt_service.py` | Core acoplado a infra |
+| 3 | ProjectService depende de JsonStore | `project_service.py` | Core acoplado a infra |
+| 4 | FormatService usa GicaTesisClient separado | `format_service.py` + `integrations/gicatesis/` | **Implementado** |
 | 5 | DocxBuilder usa python-docx directo | `docx_builder.py` | No reemplazable |
-| 6 | N8NClient en core | `n8n_client.py` | Integración en core |
+| 6 | N8NClient en core | `n8n_client.py` | Integracion en core |
 
 ### Soluciones Propuestas
 
-| # | Solución | Archivos a modificar | Riesgo |
+| # | Solucion | Archivos a modificar | Riesgo |
 |---|----------|---------------------|--------|
-| 1 | Usar `Depends()` de FastAPI | `api/router.py`, `main.py` | [BAJA] Bajo |
-| 2-3 | Crear `IDataStore` Protocol, inyectar | `prompt_service.py`, `project_service.py`, nuevo `ports/` | [MEDIA] Medio |
-| 4 | Crear `IFormatProvider`, mover a adapters | `format_api.py` -> `adapters/` | [MEDIA] Medio |
-| 5 | Crear `IDocumentGenerator`, mover a adapters | `docx_builder.py` -> `adapters/` | [MEDIA] Medio |
-| 6 | Crear `IWorkflowEngine`, mover a adapters | `n8n_client.py` -> `adapters/` | [MEDIA] Medio |
+| 1 | Usar `Depends()` de FastAPI | `api/router.py`, `main.py` | Bajo |
+| 2-3 | Crear `IDataStore` Protocol, inyectar | `prompt_service.py`, `project_service.py`, nuevo `ports/` | Medio |
+| 4 | Ya implementado con patron BFF | `integrations/gicatesis/` | **Completado** |
+| 5 | Crear `IDocumentGenerator`, mover a adapters | `docx_builder.py` -> `adapters/` | Medio |
+| 6 | Crear `IWorkflowEngine`, mover a adapters | `n8n_client.py` -> `adapters/` | Medio |
 
-### Orden Recomendado de Ejecución
+### Orden Recomendado de Ejecucion
 
 1. **Fase 1 (Bajo riesgo):** Cambiar servicios globals a `Depends()` en router
 2. **Fase 2:** Crear carpeta `core/ports/` con interfaces
 3. **Fase 3:** Mover `json_store.py` a `adapters/storage/`, hacer que implemente interface
 4. **Fase 4:** Actualizar servicios para recibir interface inyectada
-5. **Fase 5:** Mover `format_api.py`, `n8n_client.py`, `docx_builder.py` a `adapters/`
+5. **Fase 5:** Mover `n8n_client.py`, `docx_builder.py` a `adapters/`
 
-### Checklist de Validación Post-Cambios
+### Checklist de Validacion Post-Cambios
 
-- [ ] `python -m uvicorn app.main:app --reload` inicia sin errores
+- [ ] `python -m uvicorn app.main:app --port 8001 --reload` inicia sin errores
 - [ ] Navegar a http://127.0.0.1:8001/ carga correctamente
-- [ ] Wizard completo funciona (pasos 1-4)
+- [ ] Wizard completo funciona (pasos 1-5)
 - [ ] CRUD de prompts funciona
-- [ ] Descargar DOCX generado funciona
+- [ ] Simulacion n8n genera artifacts
+- [ ] Descargar DOCX/PDF simulado funciona
 - [ ] `GET /healthz` retorna `{"ok": true}`
 
 ---
