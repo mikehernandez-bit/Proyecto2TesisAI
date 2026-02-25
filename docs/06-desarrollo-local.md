@@ -1,79 +1,84 @@
-# Desarrollo Local
+﻿# Desarrollo local
 
-## Requisitos
-- Python 3.10 a 3.13 recomendado
-- Git
-- GicaTesis disponible en `http://localhost:8000` para integracion completa
+Esta guía te deja el entorno listo para ejecutar GicaGen y validar generación
+code-first con Gemini.
 
-## Instalacion
-```bash
+## Prerrequisitos
+
+- Python 3.10 a 3.14.
+- Entorno virtual local.
+- Opcional: instancia local de GicaTesis para validaciones live.
+
+## Setup de GicaGen
+
+```powershell
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-## Variables de entorno
-```env
-APP_NAME=TesisAI Gen
-APP_ENV=dev
-
-GICATESIS_BASE_URL=http://localhost:8000/api/v1
-GICAGEN_PORT=8001
-GICAGEN_BASE_URL=http://localhost:8001
-GICATESIS_TIMEOUT=8
-GICAGEN_DEMO_MODE=false
-
-N8N_WEBHOOK_URL=
-N8N_SHARED_SECRET=
-```
-
-## Ejecutar local
-```bash
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-## Verificaciones rapidas
+Abre `http://127.0.0.1:8001/`.
+
+## Variables críticas
+
+| Variable | Requerida | Default | Notas |
+|---|---|---|---|
+| `GEMINI_API_KEY` | Sí (IA real) | `""` | Sin key no hay generación real |
+| `GEMINI_MODEL` | No | `gemini-2.0-flash` | Modelo actual |
+| `GICATESIS_BASE_URL` | No | `http://localhost:8000/api/v1` | API de formatos/render |
+| `GICAGEN_DEMO_MODE` | No | `false` | Fallback de catálogo demo |
+
+## Runbook: GicaTesis local
+
+Usa este runbook cuando necesites validar rutas que dependen de GicaTesis
+(render DOCX/PDF o catálogo live).
+
+1. Levanta GicaTesis con su comando oficial de ese repo.
+2. Verifica que responda en su health endpoint (puerto 8000).
+3. Revisa que `GICATESIS_BASE_URL` apunte a `http://localhost:8000/api/v1`.
+4. Reinicia GicaGen.
+
+Si usas estructura local estándar de ambos repos:
+
+```powershell
+# terminal GicaTesis (repo gicatesis)
+python -m uvicorn app.main:app --port 8000 --reload
+
+# terminal GicaGen (este repo)
+python -m uvicorn app.main:app --port 8001 --reload
+```
+
+## Alternativa: DEMO MODE
+
+Si no tienes GicaTesis disponible, puedes usar:
+
+```dotenv
+GICAGEN_DEMO_MODE="true"
+```
+
+Qué cubre:
+- catálogo demo (`data/formats_sample.json`).
+
+Qué no cubre:
+- render real proxy DOCX/PDF de GicaTesis.
+
+## Verificación rápida
+
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8001/healthz
-Invoke-RestMethod http://127.0.0.1:8001/api/_meta/build
-Invoke-RestMethod http://127.0.0.1:8001/api/formats
-Invoke-RestMethod http://127.0.0.1:8001/api/projects
-```
-
-## Flujo Wizard 1-5
-1. Paso 1 selecciona formato desde `GET /api/formats`.
-2. Paso 2 selecciona prompt desde `GET /api/prompts`.
-3. Paso 3 crea o actualiza draft con `POST/PUT /api/projects`.
-4. Paso 4 consume `GET /api/integrations/n8n/spec` y muestra guia de simulacion.
-5. Paso 4 permite ejecutar `POST /api/sim/n8n/run` para obtener output simulado y artifacts.
-6. Paso 5 descarga placeholders con `GET /api/sim/download/docx|pdf`.
-
-## Endpoints principales
-- `GET /api/formats/version`
-- `GET /api/formats`
-- `GET /api/formats/{id}`
-- `POST /api/projects/draft`
-- `GET /api/projects/{project_id}`
-- `PUT /api/projects/{project_id}`
-- `GET /api/integrations/n8n/spec`
-- `POST /api/integrations/n8n/callback`
-- `POST /api/sim/n8n/run`
-- `GET /api/sim/download/docx`
-- `GET /api/sim/download/pdf`
-- `GET /api/_meta/build`
-
-## Validar instancia activa
-Si existe una instancia vieja en `:8001`, revisa:
-
-```powershell
+Invoke-RestMethod http://127.0.0.1:8001/api/ai/health
 Invoke-RestMethod http://127.0.0.1:8001/api/_meta/build
 ```
 
-Debe apuntar al `cwd` correcto del repo actual.
+## Error común: "No Cloud Projects Available"
 
-## Reglas de encoding
-- Guardar archivos en UTF-8.
-- No usar caracteres de box drawing en docs o código.
-- No usar emojis en documentación.
-- Ejecutar `python scripts/check_encoding.py` antes de commit.
-- Ejecutar `python scripts/check_mojibake.py` antes de commit.
+Si AI Studio no muestra proyectos:
+
+1. Crea/selecciona proyecto en Google Cloud.
+2. En AI Studio usa **Dashboard -> Projects -> Import projects**.
+3. Crea la API key e incorpórala en `.env`.
+
+Referencia:
+- https://ai.google.dev/gemini-api/docs/api-key

@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 # Timeout for generation requests (may take time for PDF conversion)
 GENERATION_TIMEOUT = 120.0
-DOWNLOAD_TIMEOUT = 60.0
 
 
 class GenerationArtifact:
@@ -43,20 +42,6 @@ class GenerationResponse:
         self.status = status
         self.artifacts = artifacts
         self.error = error
-
-    def get_docx_url(self) -> Optional[str]:
-        """Get the DOCX artifact download URL."""
-        for a in self.artifacts:
-            if a.type == "docx":
-                return a.download_url
-        return None
-
-    def get_pdf_url(self) -> Optional[str]:
-        """Get the PDF artifact download URL."""
-        for a in self.artifacts:
-            if a.type == "pdf":
-                return a.download_url
-        return None
 
 
 class GicaTesisClient:
@@ -148,46 +133,3 @@ class GicaTesisClient:
                     artifacts=[],
                     error=str(exc),
                 )
-
-    async def stream_artifact(
-        self,
-        run_id: str,
-        artifact_type: str,
-    ) -> httpx.Response:
-        """
-        Stream an artifact from GicaTesis.
-        
-        Args:
-            run_id: Generation run ID
-            artifact_type: 'docx' or 'pdf'
-        
-        Returns:
-            httpx.Response for streaming to client
-        
-        Raises:
-            httpx.HTTPStatusError if artifact not found
-        """
-        url = f"{self.base_url}/artifacts/{run_id}/{artifact_type}"
-        
-        logger.info("Streaming artifact from GicaTesis: %s", url)
-        
-        headers = {}
-        if settings.GICATESIS_API_KEY:
-            headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
-
-        client = httpx.AsyncClient(timeout=DOWNLOAD_TIMEOUT)
-        response = await client.get(url, headers=headers)
-        response.raise_for_status()
-        return response
-
-
-# Singleton instance
-_client: Optional[GicaTesisClient] = None
-
-
-def get_gicatesis_client() -> GicaTesisClient:
-    """Get the singleton GicaTesis client."""
-    global _client
-    if _client is None:
-        _client = GicaTesisClient()
-    return _client

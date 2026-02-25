@@ -2,12 +2,14 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+
 class PromptIn(BaseModel):
     name: str = Field(..., min_length=1)
     doc_type: str = "Tesis Completa"
     is_active: bool = True
     template: str = ""
     variables: List[str] = []
+
 
 class ProjectGenerateIn(BaseModel):
     format_id: str
@@ -87,3 +89,58 @@ class N8NCallbackIn(BaseModel):
     status: Optional[str] = "success"
     aiResult: Dict[str, Any] = Field(default_factory=dict)
     artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ProviderSelectIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    provider: str = Field(default="gemini")
+    model: Optional[str] = None
+    fallback_provider: Optional[str] = None
+    fallback_model: Optional[str] = None
+    mode: str = Field(default="auto")
+    project_id: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, data: Any) -> Any:
+        if data is None:
+            return {}
+        if not isinstance(data, dict):
+            return data
+        remapped = dict(data)
+        aliases = {
+            "fallbackProvider": "fallback_provider",
+            "fallbackModel": "fallback_model",
+            "projectId": "project_id",
+        }
+        for src, dst in aliases.items():
+            if src in remapped and dst not in remapped:
+                remapped[dst] = remapped[src]
+        return remapped
+
+
+class ProjectGenerateTriggerIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    resume_mode: str = Field(default="auto")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, data: Any) -> Any:
+        if data is None:
+            return {}
+        if not isinstance(data, dict):
+            return data
+        remapped = dict(data)
+        if "resumeMode" in remapped and "resume_mode" not in remapped:
+            remapped["resume_mode"] = remapped["resumeMode"]
+        return remapped
+
+    @model_validator(mode="after")
+    def normalize_values(self) -> "ProjectGenerateTriggerIn":
+        mode = str(self.resume_mode or "auto").strip().lower()
+        if mode not in {"auto", "resume", "restart"}:
+            mode = "auto"
+        self.resume_mode = mode
+        return self

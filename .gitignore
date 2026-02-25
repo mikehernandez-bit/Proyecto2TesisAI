@@ -1,0 +1,16 @@
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+__pycache__/
+*.pyc
+node_modules/
+playwright-report/
+test-results/
+output/
+outputs/
+tmpclaude-*-cwd
+.agent/
+.agents/
+.claude/
+data/provider_selection.json
+data/projects.json.bak

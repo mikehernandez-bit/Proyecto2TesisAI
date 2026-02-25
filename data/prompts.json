@@ -1,10 +1,20 @@
 [
   {
+    "id": "prompt_bb309653fe",
+    "name": "Update Test",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "template": "Original {{var}}.",
+    "variables": [
+      "var"
+    ]
+  },
+  {
     "id": "prompt_tesis_estandar",
     "name": "Tesis Ingeniería Estándar",
     "doc_type": "Tesis Completa",
     "is_active": true,
-    "template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
+    "template": "Redacta contenido academico para una tesis de ingenieria. El tema central es {{tema}}. El objetivo general de la investigacion es: {{objetivo_general}}. La poblacion de estudio comprende: {{poblacion}}. La variable independiente principal es: {{variable_independiente}}. Manten un tono formal y academico, con argumentacion solida y coherencia entre secciones.",
     "variables": [
       "tema",
       "objetivo_general",
@@ -17,7 +27,7 @@
     "name": "Artículo Científico (IMRYD)",
     "doc_type": "Artículo Científico",
     "is_active": true,
-    "template": "Redacta un artículo IMRYD sobre {{tema}} con metodología {{metodologia}}.",
+    "template": "Redacta un articulo cientifico en formato IMRYD sobre {{tema}} con metodologia {{metodologia}}. La hipotesis de trabajo es: {{hipotesis}}. Manten rigor cientifico y coherencia entre las secciones de Introduccion, Metodos, Resultados y Discusion.",
     "variables": [
       "tema",
       "metodologia",

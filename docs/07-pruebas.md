@@ -1,144 +1,123 @@
-# Pruebas
+# Pruebas - GicaGen
 
-> Guía de pruebas para GicaGen.
+Este documento resume la estrategia de validacion para el flujo code-first
+(GicaGen -> IA -> GicaTesis render) y los gates de calidad.
 
-## Estado Actual
+## Suites y comandos base
 
-> [!WARNING]
-> El proyecto actualmente **no tiene tests automatizados** implementados.
+| Suite | Comando | Objetivo |
+|---|---|---|
+| Lint + format check | `.venv\Scripts\python scripts/quality_gate.py lint` | Detectar errores estaticos y baseline de estilo |
+| Typecheck | `.venv\Scripts\python scripts/quality_gate.py typecheck` | Validar tipos en modulos criticos |
+| Unit + integration | `.venv\Scripts\python -m pytest tests -v` | Validar API y servicios |
+| Encoding | `.venv\Scripts\python scripts/check_encoding.py` | Detectar archivos con encoding invalido |
+| Mojibake | `.venv\Scripts\python scripts/check_mojibake.py` | Detectar corrupcion de caracteres |
 
----
+## Flujo equivalente a CI en local
 
-## Tipos de Pruebas Recomendadas
+1. Instala dependencias.
 
-### 1. Pruebas Unitarias (Pendiente)
-
-**Archivos a testear:**
-- `app/core/services/prompt_service.py` - CRUD de prompts
-- `app/core/services/project_service.py` - CRUD de proyectos
-- `app/core/storage/json_store.py` - Lectura/escritura JSON
-- `app/core/utils/id.py` - Generación de IDs
-
-**Framework sugerido:** pytest
-
-```bash
-# Instalación (cuando se implemente)
-pip install pytest pytest-asyncio httpx
-
-# Ejecutar tests
-pytest tests/ -v
+```powershell
+.venv\Scripts\python -m pip install -r requirements-dev.txt
 ```
 
-### 2. Pruebas de Integración (Pendiente)
+2. Ejecuta quality gates.
 
-**Flujos a testear:**
-- POST `/api/prompts` → GET `/api/prompts` → verificar prompt creado
-- POST `/api/projects/draft` → GET `/api/integrations/n8n/spec` → verificar guia
-- POST `/api/sim/n8n/run` → verificar `runId`, `aiResult`, `artifacts`
-- Descarga simulada DOCX/PDF via `/api/sim/download/*`
-
-### 3. Pruebas E2E (Manual)
-
-**Checklist manual:**
-
-- [ ] Abrir http://127.0.0.1:8000/
-- [ ] Navegar entre vistas (Dashboard, Wizard, Admin, Historial)
-- [ ] Crear un prompt nuevo
-- [ ] Editar un prompt existente
-- [ ] Eliminar un prompt
-- [ ] Completar wizard (pasos 1-4)
-- [ ] Ejecutar "Simular ejecucion n8n" en paso 4
-- [ ] Descargar DOCX generado
-- [ ] Verificar que aparece en historial
-
----
-
-## Criterios de Aceptación
-
-### Prompt Service
-
-| Criterio | Verificación |
-|----------|--------------|
-| Crear prompt | Retorna objeto con `id` generado |
-| Listar prompts | Retorna array de prompts |
-| Actualizar prompt | Campos actualizados persisten |
-| Eliminar prompt | Prompt no aparece en lista |
-
-### Project Service
-
-| Criterio | Verificación |
-|----------|--------------|
-| Crear proyecto | Status inicial `processing` |
-| Marcar completado | Status cambia a `completed`, `output_file` presente |
-| Marcar fallido | Status cambia a `failed`, `error` presente |
-
-### Generación Demo
-
-| Criterio | Verificación |
-|----------|--------------|
-| Genera DOCX | Archivo existe en `outputs/` |
-| DOCX válido | Se puede abrir con Word/LibreOffice |
-| Contiene variables | Variables del form aparecen en documento |
-
----
-
-## Estructura de Tests Propuesta
-
-```
-tests/
-+-- conftest.py              # Fixtures compartidas
-+-- unit/
-|   +-- test_prompt_service.py
-|   +-- test_project_service.py
-|   +-- test_json_store.py
-|   `-- test_id_generator.py
-+-- integration/
-|   +-- test_api_prompts.py
-|   +-- test_api_projects.py
-|   `-- test_generation_flow.py
-`-- e2e/
-    `-- test_wizard_flow.py  # Playwright/Selenium
+```powershell
+.venv\Scripts\python scripts/quality_gate.py all
 ```
 
----
+3. Ejecuta pruebas funcionales.
 
-## Cómo Validar (Manual)
-
-```bash
-# 1. Levantar servidor
-python -m uvicorn app.main:app --reload
-
-# 2. Health check
-curl http://localhost:8000/healthz
-# Esperado: {"ok":true,"app":"TesisAI Gen","env":"dev"}
-
-# 3. Listar prompts
-curl http://localhost:8000/api/prompts
-# Esperado: Array de prompts
-
-# 4. Crear proyecto
-curl -X POST http://localhost:8000/api/projects/generate \
-  -H "Content-Type: application/json" \
-  -d '{"format_id":"fmt_unt_sistemas_2025_1","prompt_id":"prompt_tesis_estandar","title":"Test","variables":{"tema":"IA"}}'
-# Esperado: Objeto proyecto con status "processing"
-
-# 5. Verificar DOCX creado
-ls outputs/
-# Esperado: proj_xxx.docx
+```powershell
+.venv\Scripts\python -m pytest tests -v
 ```
 
-## Validacion de Encoding / Mojibake
+## Casos clave cubiertos
 
-```bash
-python scripts/check_encoding.py
-python scripts/check_mojibake.py
+Cobertura relevante en:
+
+- `tests/test_definition_compiler.py`
+- `tests/test_gemini_client.py`
+- `tests/test_ai_service.py`
+- `tests/test_api_integration.py`
+- `tests/test_output_validator.py`
+- `tests/test_router_ai_adapter.py`
+
+Escenarios criticos:
+
+1. Cuota/fallback de proveedor en capa IA.
+2. Endpoint `POST /api/projects/{id}/generate` acepta ejecucion (`202`) y
+   no congela UI.
+3. Endpoint `GET /api/projects/{id}/trace` devuelve timeline real.
+4. Eventos de pipeline para secciones, payload a GicaTesis y render DOCX/PDF.
+5. `GET /api/projects/{id}` incluye `progress` y `events` para polling.
+6. La cola de eventos rota correctamente (maximo 200 eventos).
+
+## Validacion manual del trace en vivo
+
+1. Crea borrador desde wizard (pasos 1-3).
+2. Dispara generacion en paso 4.
+3. Verifica que `POST /api/projects/{id}/generate` responde `202`.
+4. Consulta `GET /api/projects/{id}` y confirma:
+   `status=generating`, avance en `progress.current/total` y eventos nuevos.
+5. Consulta `GET /api/projects/{id}/trace` y confirma eventos de:
+   `generation.request.received`, `ai.generate.section`,
+   `gicatesis.payload`, `gicatesis.render.docx`, `gicatesis.render.pdf`.
+6. Verifica estado final de proyecto y enlaces de descarga.
+
+## Pruebas nuevas del contrato async
+
+Archivo: `tests/test_api_integration.py`
+
+- `test_generate_returns_accepted_quickly`
+- `test_background_job_updates_progress`
+- `test_fallback_event_recorded_on_quota_error`
+
+Archivo: `tests/test_project_service_events.py`
+
+- `test_append_event_truncates_to_200`
+
+Archivo: `tests/test_definition_compiler.py`
+
+- `test_section_index_excludes_preliminaries_indexes_and_keeps_body`
+- `test_section_index_skips_figure_and_table_placeholder_nodes`
+
+Archivo: `tests/test_output_validator.py`
+
+- `test_sanitizes_markdown_and_placeholders`
+- `test_index_path_forces_empty_content`
+- `test_skip_section_token_is_normalized_to_empty`
+- `test_abbreviations_are_normalized_to_tab_format`
+
+## CI (GitHub Actions)
+
+Archivo: `.github/workflows/ci.yml`.
+
+Jobs bloqueantes de PR:
+
+1. `lint`
+2. `typecheck`
+3. `pytest`
+
+## Plan E2E runnable minimo (scaffold)
+
+Se mantiene scaffold Playwright para UX del wizard:
+
+- `e2e/tests/wizard.demo.spec.ts`
+- `e2e/tests/wizard.quota.spec.ts`
+
+Comandos:
+
+```powershell
+npm install
+npm run e2e:install
+npm run e2e
 ```
 
----
+## Known gaps / TODO
 
-## Próximos Pasos
-
-1. Agregar `pytest` a `requirements.txt`
-2. Crear carpeta `tests/`
-3. Implementar tests unitarios básicos
-4. Configurar CI/CD para ejecutar tests automáticamente
+- P1: extender pruebas de trace a SSE (`/trace/stream`) en cliente web.
+- P1: convertir E2E mockeado a E2E con backend real y fixtures.
+- P1: agregar reporte de cobertura pytest en pipeline.
+- P2: evaluar job E2E no bloqueante en CI.

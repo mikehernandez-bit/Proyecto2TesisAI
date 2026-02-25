@@ -4,7 +4,7 @@
 
 ## Estado
 
-**Parcialmente Implementado** - La integración GicaTesis fue completada con patrón BFF.
+**Parcialmente Implementado** - La integracion GicaTesis fue completada con patron BFF en `integrations/gicatesis/`.
 
 ## Resumen de Problemas
 
@@ -13,26 +13,27 @@
 | 1 | Servicios instanciados como globals | `app/modules/api/router.py` | Pendiente |
 | 2 | PromptService importa JsonStore directamente | `app/core/services/prompt_service.py` | Pendiente |
 | 3 | ProjectService importa JsonStore directamente | `app/core/services/project_service.py` | Pendiente |
-| 4 | FormatService mezcla HTTP + fallback local | ~~`format_api.py`~~ -> `format_service.py` | ✅ **Implementado** |
+| 4 | FormatService mezcla HTTP + fallback local | `format_service.py` + `integrations/gicatesis/` | **Implementado** |
 | 5 | DocxBuilder usa python-docx directamente | `app/core/services/docx_builder.py` | Pendiente |
-| 6 | N8NClient en core (debería ser adapter) | `app/core/services/n8n_client.py` | Pendiente |
+| 6 | N8NClient en core (deberia ser adapter) | `app/core/services/n8n_client.py` | Pendiente |
 
 ## Cambios Propuestos
 
-### Fase 1: Inyección de dependencias (Bajo riesgo)
+### Fase 1: Inyeccion de dependencias (Bajo riesgo)
 
 **Archivo a modificar:** `app/modules/api/router.py`
 
 **Cambio:** Reemplazar instancias globales por `Depends()`
 
 ```python
-# ANTES (líneas 19-22)
+# ANTES (lineas actuales del router)
 formats = FormatService()
 prompts = PromptService()
 projects = ProjectService()
 n8n = N8NClient()
+n8n_specs = N8NIntegrationService()
 
-# DESPUÉS
+# DESPUES
 def get_format_service():
     return FormatService()
 
@@ -46,11 +47,11 @@ async def list_formats(
 ):
 ```
 
-**Validación:**
-```bash
-python -m uvicorn app.main:app --reload
-curl http://localhost:8000/api/formats
-curl http://localhost:8000/api/prompts
+**Validacion:**
+```powershell
+python -m uvicorn app.main:app --port 8001 --reload
+Invoke-RestMethod http://127.0.0.1:8001/api/formats
+Invoke-RestMethod http://127.0.0.1:8001/api/prompts
 ```
 
 ---
@@ -86,28 +87,27 @@ app/
 |   |   `-- json_store_adapter.py  # Mover de core/storage/
 |   +-- documents/
 |   |   `-- docx_adapter.py        # Mover de core/services/docx_builder.py
-|   +-- formats/
-|   |   `-- external_adapter.py    # Mover de core/services/format_api.py
 |   `-- workflows/
 |       `-- n8n_adapter.py         # Mover de core/services/n8n_client.py
 ```
 
 ---
 
-## Orden de Ejecución
+## Orden de Ejecucion
 
-1. ✅ Fase 1: Inyección con Depends() - **Hacer primero**
+1. Fase 1: Inyeccion con Depends() - **Hacer primero**
 2. Fase 2: Crear interfaces en `core/ports/`
-3. Fase 3: Mover código a `adapters/`
+3. Fase 3: Mover codigo a `adapters/`
 4. Fase 4: Actualizar servicios para usar interfaces
 
-## Checklist de Validación Post-Cambios
+## Checklist de Validacion Post-Cambios
 
-- [ ] `python -m uvicorn app.main:app` inicia sin errores
+- [ ] `python -m uvicorn app.main:app --port 8001` inicia sin errores
 - [ ] `GET /healthz` retorna `{"ok": true}`
-- [ ] Wizard completo funciona
+- [ ] Wizard completo funciona (pasos 1-5)
 - [ ] CRUD prompts funciona
-- [ ] Descarga de DOCX funciona
+- [ ] Simulacion n8n funciona
+- [ ] Descarga de DOCX/PDF funciona
 
 ## Referencias
 
