@@ -44,8 +44,8 @@ from app.integrations.gicatesis.errors import (
 from app.modules.api.models import (
     N8NCallbackIn,
     ProjectDraftIn,
-    ProjectGenerateTriggerIn,
     ProjectGenerateIn,
+    ProjectGenerateTriggerIn,
     ProjectUpdateIn,
     PromptIn,
     ProviderSelectIn,

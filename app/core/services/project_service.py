@@ -218,7 +218,10 @@ class ProjectService:
                 p["ai_result"] = ai_result if isinstance(ai_result, dict) else None
             if "artifacts" in payload:
                 artifacts = payload.get("artifacts")
-                p["artifacts"] = [item for item in artifacts if isinstance(item, dict)] if isinstance(artifacts, list) else []
+                p["artifacts"] = (
+                    [item for item in artifacts if isinstance(item, dict)]
+                    if isinstance(artifacts, list) else []
+                )
             if "ai_selection" in payload:
                 selection = payload.get("ai_selection")
                 p["ai_selection"] = selection if isinstance(selection, dict) else None

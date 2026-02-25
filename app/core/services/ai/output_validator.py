@@ -12,9 +12,9 @@ import re
 import unicodedata
 from typing import Any, Dict, List
 
+from app.core.services.ai.completeness_validator import strip_placeholder_text
 from app.core.services.content_sanitizer import sanitize_text_block
 from app.core.services.toc_detector import is_toc_path as _shared_is_toc_path
-from app.core.services.ai.completeness_validator import strip_placeholder_text
 
 logger = logging.getLogger(__name__)
 

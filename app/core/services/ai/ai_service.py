@@ -18,15 +18,15 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Set, Tuple
 
 from app.core.config import settings
 from app.core.services.ai.circuit_breaker import CircuitBreaker
+from app.core.services.ai.completeness_validator import (
+    autofill_section,
+    detect_placeholders,
+)
 from app.core.services.ai.errors import GenerationCancelledError
 from app.core.services.ai.gemini_client import GeminiClient
 from app.core.services.ai.limiter import LLMLimiter
 from app.core.services.ai.mistral_client import MistralClient
 from app.core.services.ai.openrouter_client import OpenRouterClient
-from app.core.services.ai.completeness_validator import (
-    detect_placeholders,
-    autofill_section,
-)
 from app.core.services.ai.output_validator import OutputValidator, ValidationError
 from app.core.services.ai.phase_policy import build_phase_policies
 from app.core.services.ai.prompt_renderer import PromptRenderer
