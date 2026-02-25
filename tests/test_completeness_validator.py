@@ -18,6 +18,7 @@ from app.core.services.ai.completeness_validator import (
 # detect_placeholders
 # ---------------------------------------------------------------------------
 
+
 class TestDetectPlaceholders:
     def test_detects_escriba_placeholder(self):
         sections = [
@@ -93,6 +94,7 @@ class TestDetectPlaceholders:
 # autofill_section
 # ---------------------------------------------------------------------------
 
+
 class TestAutofillSection:
     def test_autofill_dedicatoria(self):
         sec = {"sectionId": "ded", "path": "DEDICATORIA", "content": "[placeholder]"}
@@ -126,6 +128,7 @@ class TestAutofillSection:
 # strip_placeholder_text
 # ---------------------------------------------------------------------------
 
+
 class TestStripPlaceholderText:
     def test_strips_escriba_pattern(self):
         text = "Hola [Escriba aquí su texto] mundo"
@@ -154,6 +157,7 @@ class TestStripPlaceholderText:
 # ---------------------------------------------------------------------------
 # Integration: no placeholders survive the pipeline
 # ---------------------------------------------------------------------------
+
 
 class TestNoPlaceholdersSurvive:
     """Simulates sections going through detect -> autofill cycle."""
@@ -190,6 +194,4 @@ class TestNoPlaceholdersSurvive:
         forbidden = ["[Escriba", "(Completar", "{{"]
         for sec in sections:
             for pat in forbidden:
-                assert pat not in sec["content"], (
-                    f"Section {sec['sectionId']} still contains '{pat}'"
-                )
+                assert pat not in sec["content"], f"Section {sec['sectionId']} still contains '{pat}'"

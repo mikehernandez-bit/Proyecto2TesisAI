@@ -63,4 +63,3 @@ class SlidingWindowRateLimiter:
         with self._lock:
             self._trim(self._time_fn())
             return len(self._events)
-

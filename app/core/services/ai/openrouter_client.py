@@ -354,4 +354,3 @@ class OpenRouterClient:
     def _is_exhausted_message(message: str) -> bool:
         lowered = str(message or "").lower()
         return any(marker in lowered for marker in _EXHAUSTED_MARKERS)
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 API Router - BFF endpoints for frontend consumption.
 
 Frontend calls `/api/*` only. GicaGen handles:
@@ -137,6 +137,7 @@ def _emit_project_trace(
                 # Allow structured data (messages, usage) for Inspector IA
                 try:
                     import json as _json
+
                     serialized = _json.dumps(value, ensure_ascii=False)
                     if len(serialized) <= 8192:
                         safe_meta[key] = value

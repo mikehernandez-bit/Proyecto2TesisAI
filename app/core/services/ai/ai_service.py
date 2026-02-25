@@ -240,11 +240,11 @@ class AIService:
 
         payload = self._metrics.payload_for_provider(provider, model=model, configured=True)
         health = str(payload.get("health") or "UNKNOWN").upper().strip()
-        probe_status = str(
-            payload.get("last_probe_status")
-            or payload.get("probe", {}).get("status")
-            or "UNVERIFIED"
-        ).upper().strip()
+        probe_status = (
+            str(payload.get("last_probe_status") or payload.get("probe", {}).get("status") or "UNVERIFIED")
+            .upper()
+            .strip()
+        )
 
         # Do not select providers with known hard-fail states as fallback.
         if probe_status in {"EXHAUSTED", "AUTH_ERROR"}:
@@ -551,8 +551,14 @@ class AIService:
         return f"{normalized[: max_chars - 3]}..."
 
     _SECRET_PATTERNS = (
-        "Authorization", "Bearer ", "sk-", "OPENROUTER_API_KEY",
-        "GEMINI_API_KEY", "MISTRAL_API_KEY", "api_key", "apiKey",
+        "Authorization",
+        "Bearer ",
+        "sk-",
+        "OPENROUTER_API_KEY",
+        "GEMINI_API_KEY",
+        "MISTRAL_API_KEY",
+        "api_key",
+        "apiKey",
     )
 
     @staticmethod
@@ -564,9 +570,10 @@ class AIService:
                 result = result.replace(pattern, "[REDACTED]")
         # Redact Bearer tokens: Bearer XXXX...
         import re
-        result = re.sub(r'Bearer\s+[A-Za-z0-9_\-\.]+', 'Bearer [REDACTED]', result)
+
+        result = re.sub(r"Bearer\s+[A-Za-z0-9_\-\.]+", "Bearer [REDACTED]", result)
         # Redact sk-... style keys
-        result = re.sub(r'sk-[A-Za-z0-9]{8,}', '[REDACTED]', result)
+        result = re.sub(r"sk-[A-Za-z0-9]{8,}", "[REDACTED]", result)
         return result
 
     def _emit_trace(
@@ -1327,17 +1334,12 @@ class AIService:
                     issue.issue_type,
                 )
             else:
-                remaining_issues.append(
-                    f"{issue.section_id}: {issue.issue_type} — {issue.sample[:80]}"
-                )
+                remaining_issues.append(f"{issue.section_id}: {issue.issue_type} — {issue.sample[:80]}")
 
         status = "done" if not remaining_issues else "warn"
         detail = ""
         if remaining_issues:
-            detail = (
-                f"Se repararon {repaired} secciones. "
-                f"Quedan {len(remaining_issues)} con contenido dudoso."
-            )
+            detail = f"Se repararon {repaired} secciones. Quedan {len(remaining_issues)} con contenido dudoso."
         else:
             detail = f"Se repararon {repaired} secciones con placeholders."
 

@@ -51,4 +51,3 @@ def compute_backoff(
     factor = randomizer(1.0 - jitter_ratio, 1.0 + jitter_ratio)
     wait_with_jitter = base * factor
     return min(cap, max(0.1, wait_with_jitter))
-
