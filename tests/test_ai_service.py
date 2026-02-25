@@ -512,8 +512,7 @@ class TestGenerate:
 
         assert result["sections"][0]["content"] == "Contenido primario en modo fijo."
         assert not any(
-            "fallback de contingencia habilitado" in str(evt.get("title", "")).lower()
-            for evt in trace_events
+            "fallback de contingencia habilitado" in str(evt.get("title", "")).lower() for evt in trace_events
         )
 
 

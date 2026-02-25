@@ -46,20 +46,28 @@ _INSTRUCTION_PATTERNS: List[re.Pattern] = [
 # Section-path keywords for classification
 _DEDICATORIA_KEYS = frozenset({"dedicatoria"})
 _AGRADECIMIENTO_KEYS = frozenset({"agradecimiento", "agradecimientos"})
-_ABREVIATURAS_KEYS = frozenset({
-    "abreviaturas", "abreviatura",
-    "indice de abreviaturas", "lista de abreviaturas",
-    "siglas", "acronimos", "acrónimos",
-})
+_ABREVIATURAS_KEYS = frozenset(
+    {
+        "abreviaturas",
+        "abreviatura",
+        "indice de abreviaturas",
+        "lista de abreviaturas",
+        "siglas",
+        "acronimos",
+        "acrónimos",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
 # Issue dataclass
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class CompletenessIssue:
     """Describes a placeholder or empty-content problem in a section."""
+
     section_id: str
     path: str
     issue_type: str  # "placeholder" | "template_var" | "empty" | "instruction"
@@ -69,6 +77,7 @@ class CompletenessIssue:
 # ---------------------------------------------------------------------------
 # Detection
 # ---------------------------------------------------------------------------
+
 
 def detect_placeholders(
     sections: List[Dict[str, str]],
@@ -123,6 +132,7 @@ def detect_placeholders(
 # Autofill
 # ---------------------------------------------------------------------------
 
+
 def _classify_section(path: str) -> Optional[str]:
     """Return a section category based on its path, or None."""
     norm = path.strip().lower()
@@ -155,9 +165,7 @@ _AUTOFILL: Dict[str, str] = {
         "y el entorno necesarios para mi formacion. "
         "A mis companeros y amigos, por su apoyo y motivacion constante."
     ),
-    "abreviaturas": (
-        "No se identificaron abreviaturas relevantes en el presente documento."
-    ),
+    "abreviaturas": ("No se identificaron abreviaturas relevantes en el presente documento."),
 }
 
 
@@ -180,6 +188,7 @@ def autofill_section(
 # ---------------------------------------------------------------------------
 # Strip placeholders from arbitrary text (used by sanitize_content)
 # ---------------------------------------------------------------------------
+
 
 def strip_placeholder_text(text: str) -> str:
     """Remove known placeholder patterns from text, returning cleaned text.

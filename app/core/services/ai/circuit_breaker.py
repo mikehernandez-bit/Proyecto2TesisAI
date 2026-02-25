@@ -133,4 +133,3 @@ class CircuitBreaker:
                     "last_reason": state.last_reason or None,
                 }
             return payload
-

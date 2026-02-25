@@ -416,10 +416,7 @@ class LLMProviderRouter:
                                 severity="warning",
                                 phase=req.phase,
                                 provider=provider,
-                                message=(
-                                    f"{reason}: reintento {attempt + 1}/"
-                                    f"{retry_limit}; espera {wait_label}s."
-                                ),
+                                message=(f"{reason}: reintento {attempt + 1}/{retry_limit}; espera {wait_label}s."),
                                 section_id=req.section_id,
                                 section_path=req.section_path,
                                 kind="retry",
@@ -478,6 +475,5 @@ class LLMProviderRouter:
         if last_error is not None:
             raise last_error
         raise RuntimeError(
-            f"Sin proveedores disponibles para fase critica '{req.phase}'. "
-            "No hubo proveedor configurado/disponible."
+            f"Sin proveedores disponibles para fase critica '{req.phase}'. No hubo proveedor configurado/disponible."
         )
