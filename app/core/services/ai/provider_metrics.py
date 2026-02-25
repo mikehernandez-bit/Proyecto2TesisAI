@@ -81,6 +81,7 @@ class _ProviderRuntime:
     last_probe_checked_at: Optional[str] = None
     last_probe_detail: str = ""
     last_probe_retry_after_s: Optional[int] = None
+    last_probe_meta: Optional[Dict[str, Any]] = None
 
     def trim(self, now: dt.datetime) -> None:
         window_1m_cutoff = now - dt.timedelta(seconds=_RATE_WINDOW_SECONDS)
@@ -110,6 +111,7 @@ class ProviderMetricsService:
         self._runtime: Dict[str, _ProviderRuntime] = {
             "gemini": _ProviderRuntime(),
             "mistral": _ProviderRuntime(),
+            "openrouter": _ProviderRuntime(),
         }
 
     @staticmethod
@@ -242,6 +244,7 @@ class ProviderMetricsService:
         status: str,
         detail: str = "",
         retry_after_s: Optional[float] = None,
+        meta: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Store latest probe snapshot and align runtime health markers."""
         now = _utc_now()
@@ -261,6 +264,16 @@ class ProviderMetricsService:
             state.last_probe_checked_at = now.isoformat().replace("+00:00", "Z")
             state.last_probe_detail = clipped_detail
             state.last_probe_retry_after_s = wait_seconds
+            if isinstance(meta, dict):
+                compact_meta: Dict[str, Any] = {}
+                for key, value in meta.items():
+                    if value is None:
+                        continue
+                    if isinstance(value, (str, int, float, bool)):
+                        compact_meta[str(key)] = value
+                state.last_probe_meta = compact_meta or None
+            else:
+                state.last_probe_meta = None
 
             if normalized_status == "OK":
                 state.exhausted = False
@@ -331,7 +344,11 @@ class ProviderMetricsService:
 
             return {
                 "id": provider,
-                "display_name": provider.capitalize(),
+                "display_name": {
+                    "gemini": "Gemini",
+                    "mistral": "Mistral",
+                    "openrouter": "OpenRouter",
+                }.get(provider, provider.capitalize()),
                 "model": model,
                 "health": health,
                 "configured": configured,
@@ -340,11 +357,13 @@ class ProviderMetricsService:
                     "checked_at": state.last_probe_checked_at,
                     "detail": state.last_probe_detail or None,
                     "retry_after_s": state.last_probe_retry_after_s,
+                    "meta": state.last_probe_meta,
                 },
                 "last_probe_status": state.last_probe_status,
                 "last_probe_checked_at": state.last_probe_checked_at,
                 "last_probe_detail": state.last_probe_detail or None,
                 "last_probe_retry_after_s": state.last_probe_retry_after_s,
+                "last_probe_meta": state.last_probe_meta,
                 "rate_limit": {
                     "remaining": remaining_1m,
                     "limit": rate_limit_limit,

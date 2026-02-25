@@ -235,7 +235,7 @@ const TesisAI = (() => {
     updateStepperUI();
     showStep(step);
     if (step === 4) {
-      loadProviderStatus(currentProject?.id || null).catch(console.error);
+      loadProviderStatus(currentProject?.id || null, { autoProbe: true }).catch(console.error);
     }
   }
 
@@ -260,6 +260,22 @@ const TesisAI = (() => {
     resetStepper();
     await loadFormats();
     await loadPromptsForWizard();
+    if ($("btn-step3-next-provider")) {
+      $("btn-step3-next-provider").onclick = (event) => {
+        if (event) event.preventDefault();
+        goToProviderStep().catch((error) => {
+          setStep3Error(error?.message || "No se pudo avanzar a Seleccionar IA.");
+        });
+      };
+    }
+    if ($("btn-step4-generate")) {
+      $("btn-step4-generate").onclick = (event) => {
+        if (event) event.preventDefault();
+        triggerGeneration().catch((error) => {
+          setStep4Error(error?.message || "No se pudo iniciar la generación.");
+        });
+      };
+    }
     if ($("btn-provider-refresh")) {
       $("btn-provider-refresh").onclick = () => probeProviderStatus(currentProject?.id || null).catch(console.error);
     }
@@ -603,11 +619,32 @@ const TesisAI = (() => {
     return providers.find((item) => item && item.id === providerId) || null;
   }
 
-  function _computeFallbackSelection(primaryProvider) {
+  function _providerEligibleForFallback(provider) {
+    if (!provider || !provider.id) return false;
+    if (!provider.configured) return false;
+    const probeStatus = String(
+      provider?.probe?.status ?? provider?.last_probe_status ?? "UNVERIFIED"
+    ).toUpperCase();
+    const health = String(provider?.health || "UNKNOWN").toUpperCase();
+    if (probeStatus === "EXHAUSTED" || probeStatus === "AUTH_ERROR") return false;
+    if (health === "EXHAUSTED") return false;
+    return true;
+  }
+
+  function _fallbackOptionsForPrimary(primaryProvider) {
     const providers = Array.isArray(providerStatusCache?.providers)
       ? providerStatusCache.providers
       : [];
-    const candidate = providers.find((item) => item?.id && item.id !== primaryProvider);
+    return providers.filter((item) =>
+      item?.id &&
+      item.id !== primaryProvider &&
+      _providerEligibleForFallback(item)
+    );
+  }
+
+  function _computeFallbackSelection(primaryProvider) {
+    const options = _fallbackOptionsForPrimary(primaryProvider);
+    const candidate = options[0];
     if (candidate) {
       return {
         fallback_provider: candidate.id,
@@ -615,7 +652,7 @@ const TesisAI = (() => {
       };
     }
     return {
-      fallback_provider: primaryProvider === "gemini" ? "mistral" : "gemini",
+      fallback_provider: "",
       fallback_model: "",
     };
   }
@@ -636,12 +673,20 @@ const TesisAI = (() => {
   }
 
   async function _saveProviderSelection(payload, projectId = null) {
+    const selectedProvider = payload.provider || providerStatusCache?.selected_provider || "gemini";
+    const mode = payload.mode || providerStatusCache?.mode || "auto";
+    const fallbackDefault = _computeFallbackSelection(selectedProvider);
+    const fallbackProviderRaw = payload.fallback_provider || providerStatusCache?.fallback_provider || fallbackDefault.fallback_provider;
+    const fallbackProvider = mode === "auto" && fallbackProviderRaw === selectedProvider
+      ? fallbackDefault.fallback_provider
+      : fallbackProviderRaw;
+    const fallbackProviderData = _findProvider(fallbackProvider);
     const body = {
-      provider: payload.provider || providerStatusCache?.selected_provider || "gemini",
-      model: payload.model || _findProvider(payload.provider)?.model || providerStatusCache?.selected_model || "",
-      fallback_provider: payload.fallback_provider || providerStatusCache?.fallback_provider || "mistral",
-      fallback_model: payload.fallback_model || _findProvider(payload.fallback_provider || "")?.model || providerStatusCache?.fallback_model || "",
-      mode: payload.mode || providerStatusCache?.mode || "auto",
+      provider: selectedProvider,
+      model: payload.model || _findProvider(selectedProvider)?.model || providerStatusCache?.selected_model || "",
+      fallback_provider: fallbackProvider || "",
+      fallback_model: payload.fallback_model || fallbackProviderData?.model || providerStatusCache?.fallback_model || fallbackDefault.fallback_model,
+      mode,
     };
     const updated = await apiSend(_providersSelectUrl(projectId), "POST", body);
     providerStatusCache = updated;
@@ -666,7 +711,13 @@ const TesisAI = (() => {
     if (!providerStatusCache) return;
     const selectedProvider = providerStatusCache.selected_provider || "gemini";
     const selectedModel = providerStatusCache.selected_model || (_findProvider(selectedProvider)?.model || "");
-    const fallback = _computeFallbackSelection(selectedProvider);
+    const options = _fallbackOptionsForPrimary(selectedProvider);
+    const currentFallback = providerStatusCache.fallback_provider || "";
+    const fallbackCandidate = options.find((item) => item.id === currentFallback) || options[0] || null;
+    const fallback = {
+      fallback_provider: fallbackCandidate?.id || "",
+      fallback_model: fallbackCandidate?.model || "",
+    };
     await _saveProviderSelection({
       provider: selectedProvider,
       model: selectedModel,
@@ -688,11 +739,66 @@ const TesisAI = (() => {
 
     const selected = String(payload?.selected_provider || "");
     const mode = String(payload?.mode || "auto");
+    const selectedProviderData = _findProvider(selected);
+    const fallbackProviderData = _findProvider(payload?.fallback_provider || "");
     const fallbackText = mode === "auto"
-      ? `${payload?.fallback_provider || "-"} (${payload?.fallback_model || "-"})`
+      ? (fallbackProviderData
+        ? `${fallbackProviderData.display_name || fallbackProviderData.id} (${payload?.fallback_model || fallbackProviderData.model || "-"})`
+        : "Sin proveedor de respaldo disponible")
       : "Desactivado (modo fijo)";
     if ($("provider-fallback-label")) {
-      $("provider-fallback-label").textContent = `Fallback: ${fallbackText}`;
+      $("provider-fallback-label").textContent = `Proveedor de respaldo: ${fallbackText}`;
+    }
+
+    const backupControl = $("provider-backup-control");
+    const backupSelect = $("provider-backup-select");
+    if (backupControl && backupSelect) {
+      if (mode === "auto") {
+        backupControl.classList.remove("hidden");
+        const options = _fallbackOptionsForPrimary(selected);
+        if (!options.length) {
+          backupSelect.disabled = true;
+          backupSelect.innerHTML = '<option value="">Sin proveedor de respaldo disponible</option>';
+          backupSelect.onchange = null;
+        } else {
+          backupSelect.disabled = false;
+          backupSelect.innerHTML = options
+            .map((item) => {
+              const label = item.display_name || item.id;
+              return `<option value="${escapeHtml(item.id)}">${escapeHtml(label)} (${escapeHtml(item.model || "-")})</option>`;
+            })
+            .join("");
+          let selectedFallback = String(payload?.fallback_provider || "");
+          if (!options.some((item) => item.id === selectedFallback)) {
+            selectedFallback = options[0].id;
+          }
+          backupSelect.value = selectedFallback;
+          backupSelect.onchange = async () => {
+            const fallbackProvider = String(backupSelect.value || "").trim();
+            const fallbackData = _findProvider(fallbackProvider);
+            try {
+              setProviderSelectorError("");
+              await _saveProviderSelection(
+                {
+                  provider: selected,
+                  model: payload?.selected_model || selectedProviderData?.model || "",
+                  fallback_provider: fallbackProvider,
+                  fallback_model: fallbackData?.model || "",
+                  mode: "auto",
+                },
+                currentProject?.id || null
+              );
+            } catch (error) {
+              setProviderSelectorError(error?.message || "No se pudo guardar el proveedor de respaldo.");
+            }
+          };
+        }
+      } else {
+        backupControl.classList.add("hidden");
+        backupSelect.disabled = true;
+        backupSelect.innerHTML = '<option value="">Desactivado en modo fijo</option>';
+        backupSelect.onchange = null;
+      }
     }
 
     if ($("provider-mode-fixed")) $("provider-mode-fixed").checked = mode === "fixed";
@@ -703,7 +809,8 @@ const TesisAI = (() => {
       const configured = !!provider.configured;
       const isSelected = provider.id === selected;
       const probeStatus = String(provider?.probe?.status ?? provider?.last_probe_status ?? "UNVERIFIED").toUpperCase();
-      const blocked = probeStatus === "EXHAUSTED" || probeStatus === "AUTH_ERROR";
+      const online = provider?.online === true;
+      const blocked = !configured || !online || probeStatus === "EXHAUSTED" || probeStatus === "AUTH_ERROR";
 
       const rlRemaining = Number(provider?.rate_limit?.remaining ?? 0);
       const rlLimit = Number(provider?.rate_limit?.limit ?? 0);
@@ -743,23 +850,23 @@ const TesisAI = (() => {
           </div>
           <div class="mt-3 flex items-center justify-center gap-4">
             ${_ringMarkup({
-              valueText: rlText,
-              percent: rlPercent,
-              color: health.ring,
-              label: "Rate-limit",
-              subLabel: rlSub,
-            })}
+        valueText: rlText,
+        percent: rlPercent,
+        color: health.ring,
+        label: "Rate-limit",
+        subLabel: rlSub,
+      })}
             ${_ringMarkup({
-              valueText: quotaText,
-              percent: quotaPercent,
-              color: hasQuota ? health.ring : "#94a3b8",
-              label: "Cuota",
-              subLabel: quotaSub,
-            })}
+        valueText: quotaText,
+        percent: quotaPercent,
+        color: hasQuota ? health.ring : "#94a3b8",
+        label: "Cuota",
+        subLabel: quotaSub,
+      })}
           </div>
           <div class="mt-3 flex items-center justify-between gap-2">
             <div class="text-[11px] text-slate-500">
-              ${configured ? "Configurado" : "Sin API key"}
+              ${configured ? (online ? "Configurado" : "Offline") : "Sin API key"}
             </div>
             <button
               type="button"
@@ -812,7 +919,19 @@ const TesisAI = (() => {
     }
   }
 
-  async function loadProviderStatus(projectId = null) {
+  function _needsAutoProviderProbe(payload) {
+    const providers = Array.isArray(payload?.providers) ? payload.providers : [];
+    if (!providers.length) return false;
+    return providers.some((provider) => {
+      const probeStatus = String(
+        provider?.probe?.status ?? provider?.last_probe_status ?? "UNVERIFIED"
+      ).toUpperCase();
+      return probeStatus === "UNVERIFIED";
+    });
+  }
+
+  async function loadProviderStatus(projectId = null, options = {}) {
+    const autoProbe = Boolean(options?.autoProbe);
     const container = $("provider-cards");
     if (container) {
       container.innerHTML = '<div class="text-xs text-slate-500">Consultando estado de providers...</div>';
@@ -822,6 +941,9 @@ const TesisAI = (() => {
       const payload = await apiGet(_providersStatusUrl(projectId));
       providerStatusCache = payload;
       renderProviderSelector(payload);
+      if (autoProbe && _needsAutoProviderProbe(payload)) {
+        await probeProviderStatus(projectId, { showLoading: false });
+      }
     } catch (error) {
       providerStatusCache = null;
       if (container) {
@@ -831,9 +953,10 @@ const TesisAI = (() => {
     }
   }
 
-  async function probeProviderStatus(projectId = null) {
+  async function probeProviderStatus(projectId = null, options = {}) {
+    const showLoading = options?.showLoading !== false;
     const container = $("provider-cards");
-    if (container) {
+    if (container && showLoading) {
       container.innerHTML = '<div class="text-xs text-slate-500">Ejecutando probe real de providers...</div>';
     }
     try {
@@ -924,6 +1047,7 @@ const TesisAI = (() => {
   // Generation flow (Step 4 progress panel)
   // =========================================================================
   const GEN_POLL_INTERVAL = 1000;   // ms between polls
+  const GEN_MISSING_PROJECT_MAX_POLLS = 5;
   const GEN_SUCCESS_STATUSES = ["completed", "completed_with_incidents", "simulated"];
   const GEN_FAIL_STATUSES = [
     "failed",
@@ -1003,39 +1127,54 @@ const TesisAI = (() => {
     const container = $("gen-pipeline-nodes");
     if (!container) return;
 
-    container.innerHTML = PIPELINE_NODES.map((node, index) => {
+    let doneCount = 0;
+    PIPELINE_NODES.forEach((node) => {
+      const s = nodeStates[node.id]?.state || "pending";
+      if (s === "done" || s === "warn") doneCount++;
+    });
+    if ($("gen-pipeline-count")) {
+      $("gen-pipeline-count").textContent = `${doneCount}/${PIPELINE_NODES.length}`;
+    }
+
+    container.innerHTML = PIPELINE_NODES.map((node) => {
       const state = nodeStates[node.id]?.state || "pending";
       const detail = nodeStates[node.id]?.detail || "";
-      const toneClass = state === "done"
-        ? "border-green-200 bg-green-50 text-green-700"
-        : state === "running"
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : state === "warn"
-            ? "border-amber-200 bg-amber-50 text-amber-700"
-          : state === "error"
-            ? "border-red-200 bg-red-50 text-red-700"
-            : "border-slate-200 bg-white text-slate-500";
-      const flowClass = state === "running"
-        ? "trace-node-line"
-        : state === "warn"
-          ? "bg-amber-200"
-        : state === "done"
-          ? "bg-green-200"
-        : state === "error"
-          ? "bg-red-200"
-            : "bg-slate-200";
+      const iconBg = state === "done" ? "bg-emerald-50 border-emerald-200"
+        : state === "running" ? "bg-blue-50 border-blue-200"
+          : state === "warn" ? "bg-amber-50 border-amber-200"
+            : state === "error" ? "bg-red-50 border-red-200"
+              : "bg-slate-50 border-slate-200";
+      const iconText = state === "done" ? "text-emerald-700"
+        : state === "running" ? "text-blue-700"
+          : state === "warn" ? "text-amber-700"
+            : state === "error" ? "text-red-700"
+              : "text-slate-400";
+      const iconChar = state === "done" ? "✓"
+        : state === "running" ? "▶"
+          : state === "warn" ? "!"
+            : state === "error" ? "✕"
+              : "·";
+      const pillClass = state === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        : state === "running" ? "bg-blue-50 text-blue-700 border-blue-200"
+          : state === "warn" ? "bg-amber-50 text-amber-700 border-amber-200"
+            : state === "error" ? "bg-red-50 text-red-700 border-red-200"
+              : "bg-slate-50 text-slate-500 border-slate-200";
+      const pillLabel = state === "done" ? "OK"
+        : state === "running" ? "EN CURSO"
+          : state === "warn" ? "WARN"
+            : state === "error" ? "ERROR" : "PEND";
 
       return `
-        <div class="flex gap-2">
-          <div class="flex flex-col items-center pt-1">
-            <span class="w-5 h-5 rounded-full text-[11px] flex items-center justify-center border ${toneClass}">
-              ${_stateIcon(state)}
-            </span>
-            ${index < PIPELINE_NODES.length - 1 ? `<span class="w-[2px] h-8 rounded ${flowClass}"></span>` : ""}
+        <div class="flex items-start gap-3 rounded-2xl border bg-white p-3">
+          <div class="h-8 w-8 rounded-full border flex items-center justify-center ${iconBg} shrink-0">
+            <span class="${iconText} text-sm">${iconChar}</span>
           </div>
-          <div class="pb-2">
-            <div class="text-xs font-semibold text-slate-700">${escapeHtml(node.label)}</div>
-            <div class="text-[11px] text-slate-500">${escapeHtml(detail || "Pendiente")}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="font-semibold text-slate-900 truncate">${escapeHtml(node.label)}</div>
+              <span class="text-[11px] font-extrabold px-2 py-1 rounded-full border ${pillClass}">${pillLabel}</span>
+            </div>
+            <div class="text-xs text-slate-500 mt-1 truncate">${escapeHtml(detail || "Pendiente")}</div>
           </div>
         </div>
       `;
@@ -1046,47 +1185,83 @@ const TesisAI = (() => {
     const container = $("gen-doc-blocks");
     if (!container) return;
 
-    const sectionItems = state.sections.paths.slice(0, 6).map((path, idx) => ({
-      label: path || `Seccion ${idx + 1}`,
-      status: idx + 1 < state.sections.current ? "done" : "running",
-    }));
+    const total = state.sections.total;
+    const current = state.sections.current;
+    const currentPath = state.sections.currentPath || "";
+
+    // Build outline items with Map-based upsert (no duplicates)
+    const outlineMap = new Map();
+    state.sections.paths.forEach((path, idx) => {
+      const key = path || `Seccion ${idx + 1}`;
+      const sectionNum = idx + 1;
+      const status = sectionNum <= current ? "done" : sectionNum === current + 1 ? "running" : "pending";
+      // Upsert: if key exists, only upgrade status (pending -> running -> done)
+      const existing = outlineMap.get(key);
+      if (existing) {
+        if (status === "done" || (status === "running" && existing.status === "pending")) {
+          existing.status = status;
+        }
+      } else {
+        outlineMap.set(key, { label: key, status, order: outlineMap.size });
+      }
+    });
+    const sectionItems = Array.from(outlineMap.values())
+      .sort((a, b) => a.order - b.order)
+      .slice(0, 30);
+
     const baseItems = [
       { label: "Caratula", status: state.nodes.prompt.state === "done" ? "done" : "running" },
       { label: "Indice", status: state.nodes.ai.state === "done" ? "done" : "running" },
-      { label: "Abreviaturas", status: state.sections.hasAbbreviations ? "done" : "pending" },
+      ...(state.sections.hasAbbreviations ? [{ label: "Abreviaturas", status: "done" }] : []),
       ...sectionItems,
     ];
 
-    if (!baseItems.length) {
-      container.innerHTML = '<div class="text-xs text-slate-400">Aun no hay bloques.</div>';
-      return;
-    }
-
+    // Render outline buttons
     container.innerHTML = baseItems.map((item) => {
       const isDone = item.status === "done";
       const isRunning = item.status === "running";
+      const pillClass = isDone ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        : isRunning ? "bg-blue-50 text-blue-700 border-blue-200"
+          : "bg-slate-50 text-slate-500 border-slate-200";
+      const pillLabel = isDone ? "OK" : isRunning ? "EN CURSO" : "PEND";
+      const ringClass = isRunning ? "ring-2 ring-blue-100 shadow-sm" : "";
       return `
-        <div class="rounded-lg border p-2 ${
-          isDone ? "border-green-200 bg-green-50" : "border-slate-200 bg-slate-50"
-        }">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-medium text-slate-700">${escapeHtml(item.label)}</span>
-            <span class="text-[11px]">${isDone ? "\u2705" : isRunning ? "\u23f3" : "\u25cb"}</span>
+        <button class="w-full text-left rounded-2xl border p-3 bg-white flex items-start justify-between gap-3 hover:shadow-sm ${ringClass}">
+          <div class="min-w-0">
+            <div class="font-semibold text-slate-900 truncate">${escapeHtml(item.label)}</div>
+            <div class="text-xs text-slate-500 truncate mt-1">${isDone ? "Generada" : isRunning ? "Generando..." : "Pendiente"}</div>
           </div>
-          <div class="mt-2 h-6 rounded ${isDone ? "bg-white border border-green-100" : "doc-skeleton"}"></div>
-        </div>
+          <span class="text-[11px] font-extrabold px-2 py-1 rounded-full border ${pillClass}">${pillLabel}</span>
+        </button>
       `;
     }).join("");
 
-    const total = state.sections.total;
-    const current = state.sections.current;
+    // Update progress card text + bar
     const progressText = total > 0
-      ? `Secciones ${Math.min(current, total)}/${total}${state.sections.currentPath ? ` (${state.sections.currentPath})` : ""}`
-      : "Secciones 0/0";
-    if ($("gen-sections-progress")) $("gen-sections-progress").textContent = progressText;
+      ? `Secciones <b>${Math.min(current, total)}/${total}</b>${currentPath ? ` · ${currentPath}` : ""}`
+      : "Secciones <b>0/0</b>";
+    if ($("gen-sections-progress")) $("gen-sections-progress").innerHTML = progressText;
     const width = total > 0 ? Math.min(100, Math.round((Math.min(current, total) / total) * 100)) : 0;
     if ($("gen-sections-bar")) $("gen-sections-bar").style.width = `${width}%`;
+
+
+
+    // Update queue/done counters
+    const doneN = Math.min(current, total);
+    const queueN = Math.max(0, total - doneN);
+    if ($("gen-queue-count")) $("gen-queue-count").textContent = String(queueN);
+    if ($("gen-done-count")) $("gen-done-count").textContent = String(doneN);
+
+    // Show "Listo" badge if complete
+    if (total > 0 && current >= total) {
+      if ($("gen-final-badge")) $("gen-final-badge").classList.remove("hidden");
+    } else {
+      if ($("gen-final-badge")) $("gen-final-badge").classList.add("hidden");
+    }
   }
+
+  let _collapsedTimelineEvents = [];
+  let _activeTimelineFilter = "all";
 
   function _renderTimeline(events) {
     const list = $("gen-trace-timeline");
@@ -1095,11 +1270,12 @@ const TesisAI = (() => {
     if (!events.length) {
       list.innerHTML = "";
       empty.classList.remove("hidden");
+      _collapsedTimelineEvents = [];
       return;
     }
     empty.classList.add("hidden");
 
-    // Deduplicate bursts: same stage/provider/message within a 3s window.
+    // Deduplicate bursts
     const collapsed = [];
     events.slice(-120).forEach((event) => {
       const stage = String(event.stage || event.step || "");
@@ -1121,58 +1297,111 @@ const TesisAI = (() => {
       collapsed.push({ ...event, _dedupeKey: key, _count: 1 });
     });
 
-    list.innerHTML = collapsed.slice(-60).map((event) => {
-      const status = String(
-        event.status
-        || (event.level === "error" ? "error" : event.level === "warn" ? "warn" : "running")
-      );
-      const icon = _stateIcon(status);
-      const tone = status === "done"
-        ? "border-green-200 bg-green-50"
-        : status === "error"
-          ? "border-red-200 bg-red-50"
-          : status === "warn"
-            ? "border-amber-200 bg-amber-50"
-            : "border-blue-200 bg-blue-50";
+    const visible = collapsed.slice(-60);
+    _collapsedTimelineEvents = visible;
 
-      const preview = event.preview && typeof event.preview === "object" ? event.preview : null;
-      const meta = event.meta && typeof event.meta === "object" ? event.meta : null;
-      const detail = event.detail || "";
+    // Determine filter + search
+    const search = ($("gen-timeline-search")?.value || "").toLowerCase().trim();
+
+    list.innerHTML = visible.map((event, idx) => {
+      const status = String(event.status || (event.level === "error" ? "error" : event.level === "warn" ? "warn" : "running"));
       const title = String(event.title || event.message || event.stage || "Evento");
-      const countTag = Number(event._count || 1) > 1
-        ? ` <span class="text-[10px] text-slate-500">(x${Number(event._count)})</span>`
-        : "";
-      const hasExtra = Boolean(detail || preview || meta);
-      const detailHtml = hasExtra ? `
-        <div class="mt-2 text-[11px] text-slate-600 space-y-2">
-          ${detail ? `<div>${escapeHtml(detail)}</div>` : ""}
-          ${preview?.prompt ? `<div><strong>Prompt</strong><pre class="mt-1 whitespace-pre-wrap bg-white border border-slate-200 rounded p-2">${escapeHtml(preview.prompt)}</pre></div>` : ""}
-          ${preview?.raw ? `<div><strong>IA (crudo)</strong><pre class="mt-1 whitespace-pre-wrap bg-white border border-slate-200 rounded p-2">${escapeHtml(preview.raw)}</pre></div>` : ""}
-          ${preview?.clean ? `<div><strong>Limpio</strong><pre class="mt-1 whitespace-pre-wrap bg-white border border-slate-200 rounded p-2">${escapeHtml(preview.clean)}</pre></div>` : ""}
-          ${preview?.payload ? `<div><strong>Payload resumido</strong><pre class="mt-1 whitespace-pre-wrap bg-white border border-slate-200 rounded p-2">${escapeHtml(preview.payload)}</pre></div>` : ""}
-          ${meta ? `<div><strong>Meta</strong><pre class="mt-1 whitespace-pre-wrap bg-white border border-slate-200 rounded p-2">${escapeHtml(JSON.stringify(meta, null, 2))}</pre></div>` : ""}
-        </div>
-      ` : "";
+      const stage = String(event.stage || event.step || "").toLowerCase();
+      const stageLabel = stage.includes("ai") || stage.includes("ia") ? "IA"
+        : stage.includes("render") || stage.includes("docx") || stage.includes("pdf") ? "Render"
+          : stage || "Pipeline";
+      const dotColor = status === "done" ? "bg-emerald-500" : status === "error" ? "bg-red-500" : status === "warn" ? "bg-amber-500" : "bg-blue-500";
+      const countTag = Number(event._count || 1) > 1 ? ` (x${event._count})` : "";
 
-      if (!hasExtra) {
-        return `
-          <div class="rounded-lg border ${tone} p-2">
-            <div class="text-xs font-medium text-slate-700">
-              ${icon} ${escapeHtml(_formatEventTime(event.ts))} - ${escapeHtml(title)}${countTag}
-            </div>
-          </div>
-        `;
-      }
+      // Filtering
+      if (_activeTimelineFilter === "ai" && !stage.includes("ai") && !stage.includes("ia")) return "";
+      if (_activeTimelineFilter === "render" && !stage.includes("render") && !stage.includes("docx") && !stage.includes("pdf")) return "";
+      if (search && !title.toLowerCase().includes(search) && !stage.includes(search)) return "";
 
       return `
-        <details class="rounded-lg border ${tone} p-2">
-          <summary class="cursor-pointer text-xs font-medium text-slate-700">
-            ${icon} ${escapeHtml(_formatEventTime(event.ts))} - ${escapeHtml(title)}${countTag}
-          </summary>
-          ${detailHtml}
-        </details>
+        <button class="timeline-item w-full text-left rounded-2xl border p-3 bg-white transition" data-event-index="${idx}">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full ${dotColor} ring-4 ring-black/5 shrink-0"></span>
+                <div class="text-xs text-slate-500">${escapeHtml(_formatEventTime(event.ts))}</div>
+              </div>
+              <div class="mt-1 text-sm font-semibold text-slate-900 truncate">${escapeHtml(title)}${countTag}</div>
+              <div class="mt-1 text-xs text-slate-500 truncate">${escapeHtml(stageLabel)}</div>
+            </div>
+            <span class="inline-flex items-center rounded-full border bg-white px-3 py-1 text-[11px] font-extrabold text-slate-700 shrink-0">
+              ${escapeHtml(status === "done" ? "OK" : status)}
+            </span>
+          </div>
+        </button>
       `;
     }).join("");
+
+    // Attach click handlers (highlight only, no inspector)
+    list.querySelectorAll(".timeline-item[data-event-index]").forEach((el) => {
+      el.onclick = () => {
+        const idx = parseInt(el.getAttribute("data-event-index"), 10);
+        if (Number.isFinite(idx) && _collapsedTimelineEvents[idx]) {
+          list.querySelectorAll(".timeline-item").forEach((e) => e.classList.remove("selected"));
+          el.classList.add("selected");
+        }
+      };
+    });
+  }
+
+  function _filterTimeline(filter) {
+    if (filter && typeof filter === "string") _activeTimelineFilter = filter;
+    // Update filter button styles
+    document.querySelectorAll("[data-tl-filter]").forEach((btn) => {
+      if (btn.getAttribute("data-tl-filter") === _activeTimelineFilter) {
+        btn.className = "rounded-xl bg-slate-900 text-white px-3 py-1.5 text-xs font-extrabold";
+      } else {
+        btn.className = "rounded-xl border bg-white px-3 py-1.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50";
+      }
+    });
+    // Re-render with current events
+    if (_collapsedTimelineEvents.length) {
+      const list = $("gen-trace-timeline");
+      const search = ($("gen-timeline-search")?.value || "").toLowerCase().trim();
+      if (!list) return;
+      list.innerHTML = _collapsedTimelineEvents.map((event, idx) => {
+        const status = String(event.status || (event.level === "error" ? "error" : event.level === "warn" ? "warn" : "running"));
+        const title = String(event.title || event.message || event.stage || "Evento");
+        const stage = String(event.stage || event.step || "").toLowerCase();
+        const stageLabel = stage.includes("ai") || stage.includes("ia") ? "IA"
+          : stage.includes("render") || stage.includes("docx") || stage.includes("pdf") ? "Render"
+            : stage || "Pipeline";
+        const dotColor = status === "done" ? "bg-emerald-500" : status === "error" ? "bg-red-500" : status === "warn" ? "bg-amber-500" : "bg-blue-500";
+        const countTag = Number(event._count || 1) > 1 ? ` (x${event._count})` : "";
+        if (_activeTimelineFilter === "ai" && !stage.includes("ai") && !stage.includes("ia")) return "";
+        if (_activeTimelineFilter === "render" && !stage.includes("render") && !stage.includes("docx") && !stage.includes("pdf")) return "";
+        if (search && !title.toLowerCase().includes(search) && !stage.includes(search)) return "";
+        return `
+          <button class="timeline-item w-full text-left rounded-2xl border p-3 bg-white transition" data-event-index="${idx}">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="h-2.5 w-2.5 rounded-full ${dotColor} ring-4 ring-black/5 shrink-0"></span>
+                  <div class="text-xs text-slate-500">${escapeHtml(_formatEventTime(event.ts))}</div>
+                </div>
+                <div class="mt-1 text-sm font-semibold text-slate-900 truncate">${escapeHtml(title)}${countTag}</div>
+                <div class="mt-1 text-xs text-slate-500 truncate">${escapeHtml(stageLabel)}</div>
+              </div>
+              <span class="inline-flex items-center rounded-full border bg-white px-3 py-1 text-[11px] font-extrabold text-slate-700 shrink-0">${escapeHtml(status === "done" ? "OK" : status)}</span>
+            </div>
+          </button>
+        `;
+      }).join("");
+      list.querySelectorAll(".timeline-item[data-event-index]").forEach((el) => {
+        el.onclick = () => {
+          const idx = parseInt(el.getAttribute("data-event-index"), 10);
+          if (Number.isFinite(idx) && _collapsedTimelineEvents[idx]) {
+            list.querySelectorAll(".timeline-item").forEach((e) => e.classList.remove("selected"));
+            el.classList.add("selected");
+          }
+        };
+      });
+    }
   }
 
   function _deriveTraceState(events, progress = null, projectStatus = "") {
@@ -1333,8 +1562,32 @@ const TesisAI = (() => {
   function _resetGenUI() {
     _lastRenderedTraceCount = 0;
     _lastTraceState = null;
+    _collapsedTimelineEvents = [];
+    _activeTimelineFilter = "all";
     _setLiveSummary("Preparando ejecucion...", "neutral");
     _updateLiveBadge("live");
+    if ($("gen-pipeline-count")) $("gen-pipeline-count").textContent = "0/7";
+
+    // Reset badges
+    if ($("gen-status-badge")) $("gen-status-badge").classList.add("hidden");
+    if ($("gen-provider-badge")) $("gen-provider-badge").classList.add("hidden");
+    if ($("gen-model-badge")) $("gen-model-badge").classList.add("hidden");
+    if ($("gen-final-badge")) $("gen-final-badge").classList.add("hidden");
+    // Reset counters
+    if ($("gen-queue-count")) $("gen-queue-count").textContent = "0";
+    if ($("gen-done-count")) $("gen-done-count").textContent = "0";
+    // Reset doc tab to 'doc'
+    _switchDocTab("doc");
+    // Reset search
+    if ($("gen-timeline-search")) $("gen-timeline-search").value = "";
+    // Reset filters
+    document.querySelectorAll("[data-tl-filter]").forEach((btn) => {
+      if (btn.getAttribute("data-tl-filter") === "all") {
+        btn.className = "rounded-xl bg-slate-900 text-white px-3 py-1.5 text-xs font-extrabold";
+      } else {
+        btn.className = "rounded-xl border bg-white px-3 py-1.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50";
+      }
+    });
     _renderPipelineNodes({
       format: { state: "pending", detail: "Pendiente" },
       variables: { state: "pending", detail: "Pendiente" },
@@ -1364,16 +1617,23 @@ const TesisAI = (() => {
     }
     if ($("gen-timer")) $("gen-timer").classList.add("hidden");
     if ($("gen-timer-value")) $("gen-timer-value").textContent = "0s";
-    if ($("gen-error")) { $("gen-error").classList.add("hidden"); $("gen-error").textContent = ""; }
+    if ($("gen-error")) {
+      $("gen-error").classList.add("hidden");
+      const errSpan = $("gen-error").querySelector("span");
+      if (errSpan) errSpan.textContent = "";
+    }
     if ($("gen-success")) $("gen-success").classList.add("hidden");
     if ($("btn-gen-retry")) $("btn-gen-retry").classList.add("hidden");
-    if ($("btn-gen-downloads")) $("btn-gen-downloads").classList.add("hidden");
     if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.remove("hidden");
   }
 
   function _showGenError(msg) {
     const el = $("gen-error");
-    if (el) { el.textContent = msg; el.classList.remove("hidden"); }
+    if (el) {
+      el.classList.remove("hidden");
+      const span = el.querySelector("span");
+      if (span) span.textContent = msg;
+    }
     if ($("btn-gen-retry")) $("btn-gen-retry").classList.remove("hidden");
     if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.add("hidden");
     _updateLiveBadge("error");
@@ -1452,6 +1712,7 @@ const TesisAI = (() => {
 
   async function _waitForGeneration(projectId) {
     _startGenTimer();
+    let missingProjectPolls = 0;
     while (true) {
       if (_genCancelled) {
         _stopGenTimer();
@@ -1492,12 +1753,21 @@ const TesisAI = (() => {
       }
 
       if (project) {
+        missingProjectPolls = 0;
         if (_lastTraceState?.quotaRetrying) {
           _setLiveSummary("Esperando reintento del proveedor IA por cuota...", "warn");
         } else {
           _setLiveSummary(`Ejecutando flujo... ${_genElapsed}s`, "neutral");
         }
       } else {
+        missingProjectPolls += 1;
+        if (missingProjectPolls >= GEN_MISSING_PROJECT_MAX_POLLS) {
+          _stopGenTimer();
+          _showGenError(
+            "No se encontro el proyecto durante el seguimiento. Reinicia el backend y vuelve a intentar desde el historial o creando un nuevo borrador.",
+          );
+          return;
+        }
         _setLiveSummary(`Sincronizando estado del proyecto... ${_genElapsed}s`, "warn");
       }
       await _sleep(GEN_POLL_INTERVAL);
@@ -1537,7 +1807,14 @@ const TesisAI = (() => {
   }
 
   async function goToProviderStep() {
-    if (!selectedFormat || !selectedPrompt || isPreparingGuide) return;
+    if (!selectedFormat || !selectedPrompt) {
+      setStep3Error("Selecciona formato y prompt antes de continuar.");
+      return;
+    }
+    if (isPreparingGuide) {
+      setStep3Error("Hay un proceso en curso. Espera unos segundos e intenta de nuevo.");
+      return;
+    }
 
     setStep3Error("");
     const btn = $("btn-step3-next-provider");
@@ -1547,7 +1824,6 @@ const TesisAI = (() => {
 
     try {
       const projectId = await _upsertProjectDraftFromWizard();
-      await loadProviderStatus(projectId);
       nextStep(4);
     } catch (error) {
       setStep3Error(error?.message || "No se pudo preparar el proyecto.");
@@ -1611,10 +1887,20 @@ const TesisAI = (() => {
         const provider = genResult?.provider || providerStatusCache?.selected_provider || "gemini";
         const model = genResult?.model || providerStatusCache?.selected_model || "-";
         const selectionMode = genResult?.selectionMode || providerStatusCache?.mode || "auto";
-        _setLiveSummary(
-          `Usando: ${provider} (${model}) - modo ${selectionMode}.`,
-          "neutral",
-        );
+        const savedSections = Number(genResult?.savedSections || 0);
+        const resumeFromSection = Number(genResult?.resumeFromSection || 1);
+        const resumeMode = String(genResult?.resumeMode || "auto").toLowerCase();
+        if (savedSections > 0 && (resumeMode === "auto" || resumeMode === "resume")) {
+          _setLiveSummary(
+            `Reanudando desde seccion ${resumeFromSection} (se conservaron ${savedSections}). Usando: ${provider} (${model}) - modo ${selectionMode}.`,
+            "warn",
+          );
+        } else {
+          _setLiveSummary(
+            `Usando: ${provider} (${model}) - modo ${selectionMode}.`,
+            "neutral",
+          );
+        }
       }
       await _waitForGeneration(projectId);
 
@@ -1889,6 +2175,28 @@ const TesisAI = (() => {
     input.oninput = () => refreshHistory().catch(() => { });
   }
 
+  // =========================================================================
+
+
+  function _switchDocTab(tab) {
+    document.querySelectorAll("[data-doc-tab]").forEach((btn) => {
+      if (btn.getAttribute("data-doc-tab") === tab) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+    document.querySelectorAll("[data-doc-panel]").forEach((panel) => {
+      if (panel.getAttribute("data-doc-panel") === tab) {
+        panel.classList.remove("hidden");
+      } else {
+        panel.classList.add("hidden");
+      }
+    });
+  }
+
+
+
   return {
     showView,
     nextStep,
@@ -1907,6 +2215,8 @@ const TesisAI = (() => {
     copyN8nHeaders,
     copyN8nWebhook,
     exportN8nGuide,
+    _switchDocTab,
+    _filterTimeline,
     async boot() {
       wireHistorySearch();
       await refreshDashboard();
@@ -1916,3 +2226,4 @@ const TesisAI = (() => {
 
 window.TesisAI = TesisAI;
 window.addEventListener("DOMContentLoaded", () => TesisAI.boot().catch(console.error));
+

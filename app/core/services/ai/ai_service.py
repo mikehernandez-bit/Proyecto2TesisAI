@@ -22,6 +22,11 @@ from app.core.services.ai.errors import GenerationCancelledError
 from app.core.services.ai.gemini_client import GeminiClient
 from app.core.services.ai.limiter import LLMLimiter
 from app.core.services.ai.mistral_client import MistralClient
+from app.core.services.ai.openrouter_client import OpenRouterClient
+from app.core.services.ai.completeness_validator import (
+    detect_placeholders,
+    autofill_section,
+)
 from app.core.services.ai.output_validator import OutputValidator, ValidationError
 from app.core.services.ai.phase_policy import build_phase_policies
 from app.core.services.ai.prompt_renderer import PromptRenderer
@@ -32,7 +37,8 @@ from app.core.services.definition_compiler import compile_definition_to_section_
 
 logger = logging.getLogger(__name__)
 
-_PROVIDER_SET = {"gemini", "mistral"}
+_PROVIDER_ORDER = ("gemini", "mistral", "openrouter")
+_PROVIDER_SET = set(_PROVIDER_ORDER)
 
 # Throttle between section calls to avoid bursting through rate limits.
 _INTER_SECTION_DELAY_S = 2.0
@@ -108,6 +114,7 @@ class AIService:
         self._clients: Dict[str, _ProviderClient] = {
             "gemini": GeminiClient(),
             "mistral": MistralClient(),
+            "openrouter": OpenRouterClient(),
         }
         self._selection_store = ProviderSelectionService()
         self._selection = self._selection_store.get_selection()
@@ -126,10 +133,12 @@ class AIService:
             provider_concurrency={
                 "mistral": int(getattr(settings, "MAX_INFLIGHT_MISTRAL", 3)),
                 "gemini": int(getattr(settings, "MAX_INFLIGHT_GEMINI", 3)),
+                "openrouter": int(getattr(settings, "MAX_INFLIGHT_OPENROUTER", 3)),
             },
             provider_rpm={
                 "mistral": int(getattr(settings, "MISTRAL_RPM", 60)),
                 "gemini": int(getattr(settings, "GEMINI_RPM", 60)),
+                "openrouter": int(getattr(settings, "OPENROUTER_RPM", 60)),
             },
             max_inflight_per_tenant=int(getattr(settings, "MAX_INFLIGHT_PER_TENANT", 2)),
             default_concurrency=2,
@@ -162,7 +171,38 @@ class AIService:
     def _default_model_for_provider(provider: str) -> str:
         if provider == "gemini":
             return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
-        return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
+        if provider == "mistral":
+            return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
+        return str(getattr(settings, "OPENROUTER_MODEL", "openai/gpt-oss-120b:free"))
+
+    @staticmethod
+    def _fallback_for(primary: str) -> str:
+        for candidate in _PROVIDER_ORDER:
+            if candidate != primary:
+                return candidate
+        return "gemini"
+
+    @staticmethod
+    def _provider_display_name(provider: str) -> str:
+        labels = {
+            "gemini": "Gemini",
+            "mistral": "Mistral",
+            "openrouter": "OpenRouter (GPT-OSS-120B Gratis)",
+        }
+        return labels.get(provider, provider.capitalize())
+
+    @staticmethod
+    def _model_matches_provider(provider: str, model: str) -> bool:
+        normalized = str(model or "").strip().lower()
+        if not normalized:
+            return False
+        if provider == "gemini":
+            return "gemini" in normalized
+        if provider == "mistral":
+            return "mistral" in normalized
+        if provider == "openrouter":
+            return "gemini" not in normalized and "mistral" not in normalized
+        return False
 
     def _refresh_selection(self) -> Dict[str, str]:
         self._selection = self._selection_store.get_selection()
@@ -183,23 +223,90 @@ class AIService:
             return self.normalize_provider_selection(selection_override)
         return self._refresh_selection()
 
+    def _provider_usable_for_fallback(
+        self,
+        provider: str,
+        *,
+        selection_override: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Return True when provider can be used as fallback candidate."""
+        client = self._clients.get(provider)
+        if client is None or not client.is_configured():
+            return False
+
+        model = self.get_model_for_provider(provider, selection_override=selection_override)
+        if not model:
+            model = self._default_model_for_provider(provider)
+
+        payload = self._metrics.payload_for_provider(provider, model=model, configured=True)
+        health = str(payload.get("health") or "UNKNOWN").upper().strip()
+        probe_status = str(
+            payload.get("last_probe_status")
+            or payload.get("probe", {}).get("status")
+            or "UNVERIFIED"
+        ).upper().strip()
+
+        # Do not select providers with known hard-fail states as fallback.
+        if probe_status in {"EXHAUSTED", "AUTH_ERROR"}:
+            return False
+        if health == "EXHAUSTED":
+            return False
+        return True
+
+    def _effective_fallback_provider(
+        self,
+        primary: str,
+        requested_fallback: str,
+        *,
+        selection_override: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Pick first usable fallback provider, preferring requested fallback."""
+        candidates: List[str] = []
+        if requested_fallback in _PROVIDER_SET and requested_fallback != primary:
+            candidates.append(requested_fallback)
+        for candidate in _PROVIDER_ORDER:
+            if candidate == primary or candidate in candidates:
+                continue
+            candidates.append(candidate)
+
+        for candidate in candidates:
+            if self._provider_usable_for_fallback(
+                candidate,
+                selection_override=selection_override,
+            ):
+                return candidate
+        return ""
+
     def _provider_order(self, selection_override: Optional[Dict[str, Any]] = None) -> List[str]:
         selection = self._resolve_selection(selection_override)
         primary = str(selection.get("provider") or "gemini").lower().strip()
         if primary not in _PROVIDER_SET:
-            primary = "gemini"
+            primary = _PROVIDER_ORDER[0]
 
         fallback = str(selection.get("fallback_provider") or "").lower().strip()
         if fallback not in _PROVIDER_SET or fallback == primary:
-            fallback = "mistral" if primary == "gemini" else "gemini"
+            fallback = self._fallback_for(primary)
 
         mode = str(selection.get("mode") or "auto").lower().strip()
         if mode == "fixed":
             return [primary]
-        return [primary, fallback]
+
+        effective_fallback = self._effective_fallback_provider(
+            primary,
+            fallback,
+            selection_override=selection,
+        )
+        if not effective_fallback:
+            return [primary]
+        return [primary, effective_fallback]
 
     def available_providers(self, selection_override: Optional[Dict[str, Any]] = None) -> List[str]:
-        return [p for p in self._provider_order(selection_override) if self._clients[p].is_configured()]
+        available: List[str] = []
+        for provider in self._provider_order(selection_override):
+            client = self._clients.get(provider)
+            if client is not None and client.is_configured():
+                available.append(provider)
+        return available
 
     def is_configured(self, selection_override: Optional[Dict[str, Any]] = None) -> bool:
         return bool(self.available_providers(selection_override))
@@ -276,6 +383,8 @@ class AIService:
             return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
         if provider == "mistral":
             return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
+        if provider == "openrouter":
+            return str(getattr(settings, "OPENROUTER_MODEL", "openai/gpt-oss-120b:free"))
         return None
 
     @staticmethod
@@ -300,28 +409,54 @@ class AIService:
 
     def providers_status_payload(self, selection_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         selection = self._resolve_selection(selection_override)
-        selected_provider = str(selection.get("provider") or "gemini")
-        fallback_provider = str(selection.get("fallback_provider") or "mistral")
+        selected_provider = str(selection.get("provider") or _PROVIDER_ORDER[0]).lower().strip()
+        if selected_provider not in _PROVIDER_SET:
+            selected_provider = _PROVIDER_ORDER[0]
+        requested_fallback = str(selection.get("fallback_provider") or "").lower().strip()
+        if requested_fallback not in _PROVIDER_SET or requested_fallback == selected_provider:
+            requested_fallback = self._fallback_for(selected_provider)
         selected_model = str(selection.get("model") or self._default_model_for_provider(selected_provider))
-        fallback_model = str(selection.get("fallback_model") or self._default_model_for_provider(fallback_provider))
+        if not self._model_matches_provider(selected_provider, selected_model):
+            selected_model = self._default_model_for_provider(selected_provider)
         mode = str(selection.get("mode") or "auto")
 
+        fallback_provider = ""
+        if mode.lower().strip() == "auto":
+            fallback_provider = self._effective_fallback_provider(
+                selected_provider,
+                requested_fallback,
+                selection_override=selection,
+            )
+        fallback_model = ""
+        if fallback_provider:
+            requested_fallback_model = str(selection.get("fallback_model") or "").strip()
+            if not self._model_matches_provider(fallback_provider, requested_fallback_model):
+                requested_fallback_model = self._default_model_for_provider(fallback_provider)
+            fallback_model = requested_fallback_model
+
         providers_payload: List[Dict[str, Any]] = []
-        for provider in ("gemini", "mistral"):
-            configured = self._clients[provider].is_configured()
+        for provider in _PROVIDER_ORDER:
+            client = self._clients.get(provider)
+            configured = bool(client and client.is_configured())
             if provider == selected_provider:
                 model = selected_model
             elif provider == fallback_provider:
                 model = fallback_model
             else:
                 model = self._default_model_for_provider(provider)
-            providers_payload.append(
-                self._metrics.payload_for_provider(
-                    provider,
-                    model=model,
-                    configured=configured,
-                )
+            provider_payload = self._metrics.payload_for_provider(
+                provider,
+                model=model,
+                configured=configured,
             )
+            provider_payload["display_name"] = self._provider_display_name(provider)
+            probe_status = str(
+                provider_payload.get("last_probe_status")
+                or provider_payload.get("probe", {}).get("status")
+                or "UNVERIFIED"
+            ).upper()
+            provider_payload["online"] = bool(configured and probe_status in {"OK", "RATE_LIMITED"})
+            providers_payload.append(provider_payload)
 
         return {
             "selected_provider": selected_provider,
@@ -340,8 +475,10 @@ class AIService:
     ) -> Dict[str, Any]:
         """Run real low-cost provider probes and return refreshed status payload."""
         selection = self._resolve_selection(selection_override)
-        for provider in ("gemini", "mistral"):
-            client = self._clients[provider]
+        for provider in _PROVIDER_ORDER:
+            client = self._clients.get(provider)
+            if client is None:
+                continue
             model = self.get_model_for_provider(
                 provider,
                 selection_override=selection,
@@ -368,13 +505,27 @@ class AIService:
             probe_status = str(probe_result.get("status") or "ERROR").upper().strip() or "ERROR"
             probe_detail = str(probe_result.get("detail") or "").strip()
             retry_after = probe_result.get("retry_after_s")
+            probe_meta = probe_result.get("meta") if isinstance(probe_result.get("meta"), dict) else None
 
             self._metrics.record_probe(
                 provider,
                 status=probe_status,
                 detail=probe_detail,
                 retry_after_s=retry_after if isinstance(retry_after, (int, float)) else None,
+                meta=probe_meta,
             )
+
+            if probe_status == "EXHAUSTED":
+                self._metrics.record_exhausted(provider, message=probe_detail or f"{provider} exhausted")
+            elif probe_status == "RATE_LIMITED":
+                wait = retry_after if isinstance(retry_after, (int, float)) else 10
+                self._metrics.record_rate_limited(
+                    provider,
+                    retry_after_s=wait,
+                    message=probe_detail or f"{provider} rate-limited",
+                )
+            elif probe_status == "AUTH_ERROR":
+                self._metrics.record_error(provider, message=probe_detail or "Auth error", kind="auth")
 
             if probe_status == "EXHAUSTED":
                 self._metrics.record_exhausted(provider, message=probe_detail or f"{provider} exhausted")
@@ -398,6 +549,25 @@ class AIService:
         if len(normalized) <= max_chars:
             return normalized
         return f"{normalized[: max_chars - 3]}..."
+
+    _SECRET_PATTERNS = (
+        "Authorization", "Bearer ", "sk-", "OPENROUTER_API_KEY",
+        "GEMINI_API_KEY", "MISTRAL_API_KEY", "api_key", "apiKey",
+    )
+
+    @staticmethod
+    def _redact_secrets(text: str) -> str:
+        """Remove API keys and tokens from text before emitting to clients."""
+        result = str(text or "")
+        for pattern in AIService._SECRET_PATTERNS:
+            if pattern in result:
+                result = result.replace(pattern, "[REDACTED]")
+        # Redact Bearer tokens: Bearer XXXX...
+        import re
+        result = re.sub(r'Bearer\s+[A-Za-z0-9_\-\.]+', 'Bearer [REDACTED]', result)
+        # Redact sk-... style keys
+        result = re.sub(r'sk-[A-Za-z0-9]{8,}', '[REDACTED]', result)
+        return result
 
     def _emit_trace(
         self,
@@ -486,7 +656,7 @@ class AIService:
                 "engine": "simulation",
                 "model": None,
                 "reachable": False,
-                "message": "No AI provider configured. Set GEMINI_API_KEY or MISTRAL_API_KEY.",
+                "message": "No AI provider configured. Set GEMINI_API_KEY, MISTRAL_API_KEY or OPENROUTER_API_KEY.",
                 "availableProviders": [],
                 "fallbackOnQuota": fallback_on_quota,
             }
@@ -496,7 +666,7 @@ class AIService:
         message = f"{primary.capitalize()} configurado (modelo: {model})"
 
         if fallback_on_quota and len(available) > 1:
-            message = f"{message}. Fallback por cuota activo -> {available[1]}."
+            message = f"{message}. Respaldo automatico por cuota activo -> {available[1]}."
 
         return {
             "configured": True,
@@ -519,6 +689,7 @@ class AIService:
         progress_cb: Optional[Callable[..., None]] = None,
         selection_override: Optional[Dict[str, Any]] = None,
         resume_from_partial: bool = False,
+        seed_sections_override: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         """Run the full generation pipeline."""
         self._last_used_provider = None
@@ -602,10 +773,16 @@ class AIService:
 
         seeded_sections: List[Dict[str, str]] = []
         if resume_from_partial:
-            seeded_sections = self._extract_seed_sections(
-                project.get("ai_result"),
-                section_index=section_index,
-            )
+            if isinstance(seed_sections_override, list) and seed_sections_override:
+                seeded_sections = self._extract_seed_sections(
+                    {"sections": seed_sections_override},
+                    section_index=section_index,
+                )
+            else:
+                seeded_sections = self._extract_seed_sections(
+                    project.get("ai_result"),
+                    section_index=section_index,
+                )
             if seeded_sections:
                 self._partial_sections = [dict(item) for item in seeded_sections]
                 self._emit_trace(
@@ -648,6 +825,9 @@ class AIService:
                 title="Limpieza y correccion completadas",
                 meta={"sections": len(sections)},
             )
+
+        # --- Completeness check: detect and repair placeholders ---
+        sections = self._ensure_completeness(sections, project_id=project_id)
 
         try:
             ai_result = self.validator.build_ai_result(sections)
@@ -763,61 +943,34 @@ class AIService:
         preferred_provider: Optional[str] = None
         disabled_providers: Set[str] = set()
         provider_order = self._provider_order(selection)
-        default_provider = provider_order[0] if provider_order else "gemini"
-        seeded_map: Dict[str, str] = {}
-        for seeded in seed_sections or []:
-            if not isinstance(seeded, dict):
-                continue
-            seeded_content = seeded.get("content")
-            if not isinstance(seeded_content, str) or not seeded_content.strip():
-                continue
-            seeded_id = str(seeded.get("sectionId") or "").strip()
-            seeded_path = str(seeded.get("path") or "").strip()
-            seeded_key = self._section_lookup_key(seeded_id, seeded_path)
-            if seeded_key not in seeded_map:
-                seeded_map[seeded_key] = seeded_content
-
-        for i, sec in enumerate(section_index, 1):
-            self._ensure_not_cancelled()
-            section_id = str(sec.get("sectionId") or f"sec-{i:04d}")
-            path = str(sec.get("path") or f"Section {i}")
-
-            seed_key = self._section_lookup_key(section_id, path)
-            seeded_content = seeded_map.get(seed_key)
-            if seeded_content is None:
-                seeded_content = seeded_map.get(self._section_lookup_key("", path))
-
-            if seeded_content is not None:
+        default_provider = provider_order[0] if provider_order else _PROVIDER_ORDER[0]
+        seeded_count = 0
+        if seed_sections:
+            for seeded in seed_sections:
+                if not isinstance(seeded, dict):
+                    continue
+                seeded_content = seeded.get("content")
+                if not isinstance(seeded_content, str) or not seeded_content.strip():
+                    continue
+                seeded_id = str(seeded.get("sectionId") or "").strip()
+                seeded_path = str(seeded.get("path") or "").strip()
+                if not seeded_id and not seeded_path:
+                    continue
                 sections.append(
                     {
-                        "sectionId": section_id,
-                        "path": path,
+                        "sectionId": seeded_id or f"sec-{len(sections) + 1:04d}",
+                        "path": seeded_path or f"Section {len(sections) + 1}",
                         "content": seeded_content,
                     }
                 )
+            seeded_count = len(sections)
+            if seeded_count > 0:
                 self._partial_sections = [dict(item) for item in sections]
-                self._emit_trace(
-                    step="ai.generate.section",
-                    status="done",
-                    title=f"Seccion {i}/{total} reutilizada ({path})",
-                    detail="Contenido recuperado de una ejecucion previa.",
-                    meta={
-                        "sectionIndex": i,
-                        "sectionTotal": total,
-                        "sectionId": section_id,
-                        "sectionPath": path,
-                        "provider": default_provider,
-                    },
-                    preview={"raw": self._clip_preview(seeded_content)},
-                )
-                self._emit_progress(
-                    i,
-                    total,
-                    path,
-                    preferred_provider or default_provider,
-                    stage="section_done",
-                )
-                continue
+
+        for i, sec in enumerate(section_index[seeded_count:], seeded_count + 1):
+            self._ensure_not_cancelled()
+            section_id = str(sec.get("sectionId") or f"sec-{i:04d}")
+            path = str(sec.get("path") or f"Section {i}")
 
             # Throttle between generated sections to avoid rate-limit bursts
             if sections and _INTER_SECTION_DELAY_S > 0:
@@ -871,6 +1024,18 @@ class AIService:
             )
             preferred_provider = used_provider
             self._last_used_provider = used_provider
+
+            # Build enriched trace data for Inspector IA
+            _model = self.get_model_for_provider(used_provider) or "-"
+            _prompt_preview = self._redact_secrets(
+                section_prompt[:2000] + ("..." if len(section_prompt) > 2000 else "")
+            )
+            _messages = [
+                {"role": "system", "content": self._redact_secrets(section_prompt[:1500])},
+            ]
+            if sec.get("hints"):
+                _messages.append({"role": "user", "content": self._redact_secrets(str(sec["hints"])[:500])})
+
             self._emit_trace(
                 step="ai.generate.section",
                 status="done",
@@ -881,8 +1046,17 @@ class AIService:
                     "sectionId": section_id,
                     "sectionPath": path,
                     "provider": used_provider,
+                    "model": _model,
+                    "messages": _messages,
+                    "usage": {
+                        "prompt_tokens": max(1, len(section_prompt) // 4),
+                        "completion_tokens": max(1, len(content) // 4),
+                    },
                 },
-                preview={"raw": self._clip_preview(content)},
+                preview={
+                    "raw": self._redact_secrets(self._clip_preview(content, max_chars=2000)),
+                    "prompt": _prompt_preview,
+                },
             )
             self._emit_progress(
                 i,
@@ -926,9 +1100,6 @@ class AIService:
         providers = self._provider_order(runtime_selection)
         auto_mode = str(runtime_selection.get("mode") or "auto").lower().strip() == "auto"
         fallback_enabled = auto_mode and bool(getattr(settings, "AI_FALLBACK_ON_QUOTA", True))
-        force_transient_fallback = (
-            not auto_mode and bool(getattr(settings, "AI_FORCE_FALLBACK_ON_TRANSIENT", True))
-        )
         disabled = disabled_for_job if disabled_for_job is not None else set()
 
         if preferred_provider in providers and preferred_provider not in disabled:
@@ -936,21 +1107,6 @@ class AIService:
 
         if not fallback_enabled and providers:
             providers = providers[:1]
-            if force_transient_fallback:
-                fallback_provider = str(runtime_selection.get("fallback_provider") or "").lower().strip()
-                fallback_client = self._clients.get(fallback_provider)
-                if (
-                    fallback_provider in _PROVIDER_SET
-                    and fallback_provider not in providers
-                    and fallback_client is not None
-                    and fallback_client.is_configured()
-                ):
-                    providers.append(fallback_provider)
-                    logger.debug(
-                        "Fixed mode contingency fallback armed: primary=%s fallback=%s",
-                        providers[0] if providers else preferred_provider,
-                        fallback_provider,
-                    )
 
         request = LLMRequest(
             phase=phase,
@@ -1108,6 +1264,96 @@ class AIService:
                 },
             )
         return corrected
+
+    # ------------------------------------------------------------------
+    # Completeness check — detect and repair placeholders / empty stubs
+    # ------------------------------------------------------------------
+
+    def _ensure_completeness(
+        self,
+        sections: List[Dict[str, str]],
+        *,
+        project_id: str = "",
+    ) -> List[Dict[str, str]]:
+        """Detect placeholder content and auto-fill known section types.
+
+        Runs after ``_correct_ai_result`` and before ``build_ai_result``.
+        For known sections (dedicatoria, agradecimiento, abreviaturas),
+        replaces placeholder text with formal generic content.
+        Unknown sections with placeholders are logged as warnings.
+        """
+        issues = detect_placeholders(sections)
+        if not issues:
+            logger.info(
+                "Completeness check PASSED — no placeholders (projectId=%s)",
+                project_id,
+            )
+            self._emit_trace(
+                step="ai.completeness",
+                status="done",
+                title="Validacion de completitud OK",
+                meta={"issues": 0},
+            )
+            return sections
+
+        logger.warning(
+            "Completeness check found %d issue(s) in projectId=%s: %s",
+            len(issues),
+            project_id,
+            ", ".join(f"{i.section_id}({i.issue_type})" for i in issues),
+        )
+
+        repaired = 0
+        remaining_issues: List[str] = []
+
+        for issue in issues:
+            # Find the section in the list
+            target = None
+            for sec in sections:
+                if sec.get("sectionId") == issue.section_id:
+                    target = sec
+                    break
+            if target is None:
+                continue
+
+            replacement = autofill_section(target, issue.issue_type)
+            if replacement:
+                target["content"] = replacement
+                repaired += 1
+                logger.info(
+                    "Autofilled section '%s' (path='%s', type=%s)",
+                    issue.section_id,
+                    issue.path,
+                    issue.issue_type,
+                )
+            else:
+                remaining_issues.append(
+                    f"{issue.section_id}: {issue.issue_type} — {issue.sample[:80]}"
+                )
+
+        status = "done" if not remaining_issues else "warn"
+        detail = ""
+        if remaining_issues:
+            detail = (
+                f"Se repararon {repaired} secciones. "
+                f"Quedan {len(remaining_issues)} con contenido dudoso."
+            )
+        else:
+            detail = f"Se repararon {repaired} secciones con placeholders."
+
+        self._emit_trace(
+            step="ai.completeness",
+            status=status,
+            title="Validacion de completitud",
+            detail=detail,
+            meta={
+                "issues_found": len(issues),
+                "repaired": repaired,
+                "remaining": len(remaining_issues),
+            },
+        )
+
+        return sections
 
     def _build_correction_prompt(
         self,

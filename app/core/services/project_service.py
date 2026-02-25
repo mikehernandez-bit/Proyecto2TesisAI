@@ -25,6 +25,45 @@ class ProjectService:
             "updatedAt": dt.datetime.now().isoformat(timespec="seconds"),
         }
 
+    @staticmethod
+    def _empty_resume(*, format_version: str = "") -> Dict[str, Any]:
+        return {
+            "eligible": False,
+            "saved_sections_count": 0,
+            "resume_from_index": 0,
+            "last_failed_section_path": "",
+            "format_version": str(format_version or ""),
+            "base_run_id": "",
+            "retry_count": 0,
+            "reason": "",
+            "updated_at": "",
+        }
+
+    @classmethod
+    def _normalize_resume(
+        cls,
+        resume_raw: Any,
+        *,
+        format_version: str = "",
+    ) -> Dict[str, Any]:
+        base = cls._empty_resume(format_version=format_version)
+        if not isinstance(resume_raw, dict):
+            return base
+        base.update(
+            {
+                "eligible": bool(resume_raw.get("eligible")),
+                "saved_sections_count": max(0, int(resume_raw.get("saved_sections_count") or 0)),
+                "resume_from_index": max(0, int(resume_raw.get("resume_from_index") or 0)),
+                "last_failed_section_path": str(resume_raw.get("last_failed_section_path") or ""),
+                "format_version": str(resume_raw.get("format_version") or format_version or ""),
+                "base_run_id": str(resume_raw.get("base_run_id") or ""),
+                "retry_count": max(0, int(resume_raw.get("retry_count") or 0)),
+                "reason": str(resume_raw.get("reason") or ""),
+                "updated_at": str(resume_raw.get("updated_at") or ""),
+            }
+        )
+        return base
+
     @classmethod
     def _normalize_project(cls, project: Dict[str, Any]) -> Dict[str, Any]:
         normalized = dict(project)
@@ -65,6 +104,12 @@ class ProjectService:
         if warnings_count is None:
             warnings_count = sum(1 for item in incidents if str(item.get("severity") or "").lower() == "warning")
         normalized["warnings_count"] = max(0, int(warnings_count or 0))
+
+        resume_raw = normalized.get("resume")
+        normalized["resume"] = cls._normalize_resume(
+            resume_raw,
+            format_version=str(normalized.get("format_version") or ""),
+        )
         return normalized
 
     def list_projects(self) -> List[Dict[str, Any]]:
@@ -137,6 +182,10 @@ class ProjectService:
             "ai_selection": payload.get("ai_selection") if isinstance(payload.get("ai_selection"), dict) else None,
             "incidents": [],
             "warnings_count": 0,
+            "resume": {
+                **self._empty_resume(format_version=str(payload.get("format_version") or "")),
+                "updated_at": now,
+            },
         }
         items.insert(0, project)
         self.store.write_list(items)
@@ -184,6 +233,24 @@ class ProjectService:
                     p["warnings_count"] = max(0, int(payload.get("warnings_count") or 0))
                 except Exception:
                     p["warnings_count"] = 0
+            if "resume" in payload:
+                resume_payload = payload.get("resume")
+                if isinstance(resume_payload, dict):
+                    current = self._normalize_resume(
+                        p.get("resume"),
+                        format_version=str(p.get("format_version") or ""),
+                    )
+                    merged = dict(current)
+                    merged.update(resume_payload)
+                    p["resume"] = self._normalize_resume(
+                        merged,
+                        format_version=str(p.get("format_version") or ""),
+                    )
+                else:
+                    p["resume"] = {
+                        **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                        "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+                    }
             if "progress" in payload and isinstance(payload.get("progress"), dict):
                 progress = self._default_progress(provider=str(payload["progress"].get("provider") or ""))
                 progress.update(
@@ -219,6 +286,44 @@ class ProjectService:
         def _mutate(p: Dict[str, Any]) -> None:
             p["incidents"] = []
             p["warnings_count"] = 0
+
+        return self._mutate_project(project_id, _mutate)
+
+    def clear_resume(self, project_id: str) -> Optional[Dict[str, Any]]:
+        def _mutate(p: Dict[str, Any]) -> None:
+            p["resume"] = {
+                **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
+
+        return self._mutate_project(project_id, _mutate)
+
+    def mark_resume_checkpoint(
+        self,
+        project_id: str,
+        *,
+        saved_sections_count: int,
+        last_failed_section_path: str,
+        reason: str,
+        base_run_id: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        def _mutate(p: Dict[str, Any]) -> None:
+            current_resume = self._normalize_resume(
+                p.get("resume"),
+                format_version=str(p.get("format_version") or ""),
+            )
+            current_retry_count = int(current_resume.get("retry_count") or 0)
+            p["resume"] = {
+                **current_resume,
+                "eligible": saved_sections_count > 0,
+                "saved_sections_count": max(0, int(saved_sections_count)),
+                "resume_from_index": max(0, int(saved_sections_count)),
+                "last_failed_section_path": str(last_failed_section_path or ""),
+                "base_run_id": str(base_run_id or current_resume.get("base_run_id") or ""),
+                "retry_count": current_retry_count + 1,
+                "reason": str(reason or ""),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
 
         return self._mutate_project(project_id, _mutate)
 
@@ -320,6 +425,10 @@ class ProjectService:
                 p["artifacts"] = artifacts
             p["cancel_requested"] = False
             p["error"] = None
+            p["resume"] = {
+                **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
             progress = p.get("progress")
             if isinstance(progress, dict):
                 total = int(progress.get("total") or 0)
@@ -344,6 +453,10 @@ class ProjectService:
                 # Ensure stale successful payloads are not shown after failures.
                 p["ai_result"] = None
                 p["run_id"] = None
+                p["resume"] = {
+                    **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                    "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+                }
             p["artifacts"] = []
             p["output_file"] = None
             p["pdf_file"] = None
@@ -395,6 +508,10 @@ class ProjectService:
             p["artifacts"] = artifacts or []
             p["error"] = None
             p["cancel_requested"] = False
+            p["resume"] = {
+                **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
             progress = p.get("progress")
             if isinstance(progress, dict):
                 total = int(progress.get("total") or 0)
@@ -421,6 +538,10 @@ class ProjectService:
             p["artifacts"] = artifacts
             p["error"] = None
             p["cancel_requested"] = False
+            p["resume"] = {
+                **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
             progress = p.get("progress")
             if isinstance(progress, dict):
                 progress["updatedAt"] = dt.datetime.now().isoformat(timespec="seconds")

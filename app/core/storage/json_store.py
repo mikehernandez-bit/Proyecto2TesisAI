@@ -22,7 +22,14 @@ class JsonStore:
     """Simple JSON file store (list-based). Good for MVP/demo."""
 
     def __init__(self, path: str):
-        self.path = Path(path)
+        candidate = Path(path)
+        if candidate.is_absolute():
+            self.path = candidate
+        else:
+            # Resolve repository-relative paths (e.g. data/projects.json)
+            # so behavior is stable even when process CWD changes (uvicorn reload).
+            repo_root = Path(__file__).resolve().parents[3]
+            self.path = (repo_root / candidate).resolve()
 
     def read_list(self) -> List[Dict[str, Any]]:
         lock = _lock_for(self.path)

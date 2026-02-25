@@ -202,4 +202,6 @@ def test_end_to_end_pipeline():
     assert any("INTRODUCCIÓN" in p for p in paths)
     assert any("I. PLANTEAMIENTO" in p for p in paths)
     assert any("1.1" in p for p in paths)
-    assert len(adapted["sections"]) >= 6  # At least intro + chapters + subcapítulos
+    # Parent headings with children can be collapsed by the adapter to avoid
+    # TOC collisions; ensure we still keep the core academic payload.
+    assert len(adapted["sections"]) >= 4

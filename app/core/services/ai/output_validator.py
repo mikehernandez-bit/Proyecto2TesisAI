@@ -14,6 +14,7 @@ from typing import Any, Dict, List
 
 from app.core.services.content_sanitizer import sanitize_text_block
 from app.core.services.toc_detector import is_toc_path as _shared_is_toc_path
+from app.core.services.ai.completeness_validator import strip_placeholder_text
 
 logger = logging.getLogger(__name__)
 
@@ -161,8 +162,11 @@ class OutputValidator:
         if cls._is_index_path(path):
             return ""
 
+        # Strip placeholder patterns (safety net)
+        text = strip_placeholder_text(raw)
+
         # Remove code fences and common markdown formatting.
-        text = re.sub(r"```[\s\S]*?```", " ", raw)
+        text = re.sub(r"```[\s\S]*?```", " ", text)
         text = text.replace("```", " ")
         text = re.sub(r"^\s*#{1,6}\s*", "", text, flags=re.MULTILINE)
         text = text.replace("**", "").replace("__", "")

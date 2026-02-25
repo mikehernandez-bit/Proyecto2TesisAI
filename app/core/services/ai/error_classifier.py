@@ -45,7 +45,7 @@ def classify_error(exc: Exception, status_code: Optional[int] = None) -> LLMErro
     ):
         return LLMErrorType.AUTH_ERROR
 
-    if any(
+    if status == 402 or any(
         marker in message
         for marker in (
             "quota exceeded",
@@ -53,6 +53,9 @@ def classify_error(exc: Exception, status_code: Optional[int] = None) -> LLMErro
             "insufficient_quota",
             "project quota/billing",
             "exceeded your current quota",
+            "no credits",
+            "payment required",
+            "credits exhausted",
         )
     ):
         return LLMErrorType.EXHAUSTED

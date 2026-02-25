@@ -383,7 +383,98 @@ class TestGenerate:
         assert result["sections"][1]["content"] == "Contenido nuevo para segunda seccion."
         assert gemini.generate.call_count == 1
 
-    def test_fixed_mode_allows_contingency_fallback_on_transient_ssl(self, ai_svc):
+    def test_generate_resumes_from_seed_override(self, ai_svc):
+        svc, gemini, mistral = ai_svc
+        _set_selection(svc, "gemini", mode="auto")
+        gemini.is_configured.return_value = True
+        mistral.is_configured.return_value = False
+        gemini.generate.return_value = "Contenido generado desde el punto de reanudacion."
+
+        project = {
+            "id": "proj-seed-override-001",
+            "title": "Resume override",
+            "variables": {"tema": "Reintento"},
+        }
+        format_detail = {
+            "definition": {
+                "cuerpo": {
+                    "capitulos": [
+                        {"titulo": "Capitulo 1"},
+                        {"titulo": "Capitulo 2"},
+                    ]
+                }
+            }
+        }
+        seed_sections = [
+            {
+                "sectionId": "sec-0001",
+                "path": "Capitulo 1",
+                "content": "Contenido parcial externo",
+            }
+        ]
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=True)):
+            result = svc.generate(
+                project,
+                format_detail,
+                None,
+                resume_from_partial=True,
+                seed_sections_override=seed_sections,
+            )
+
+        assert len(result["sections"]) == 2
+        assert result["sections"][0]["content"] == "Contenido parcial externo"
+        assert result["sections"][1]["content"] == "Contenido generado desde el punto de reanudacion."
+        assert gemini.generate.call_count == 1
+
+    def test_resume_does_not_replay_seeded_sections_in_progress(self, ai_svc):
+        svc, gemini, mistral = ai_svc
+        _set_selection(svc, "gemini", mode="auto")
+        gemini.is_configured.return_value = True
+        mistral.is_configured.return_value = False
+        gemini.generate.return_value = "Contenido generado nuevo."
+
+        project = {
+            "id": "proj-seed-progress-001",
+            "title": "Resume progress",
+            "variables": {"tema": "Reintento"},
+        }
+        format_detail = {
+            "definition": {
+                "cuerpo": {
+                    "capitulos": [
+                        {"titulo": "Capitulo 1"},
+                        {"titulo": "Capitulo 2"},
+                    ]
+                }
+            }
+        }
+        seed_sections = [
+            {
+                "sectionId": "sec-0001",
+                "path": "Capitulo 1",
+                "content": "Contenido parcial externo",
+            }
+        ]
+        progress_events = []
+
+        def _progress_cb(current, total, path, provider, *, stage="section_start"):
+            progress_events.append((int(current), str(stage), str(path)))
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=True)):
+            svc.generate(
+                project,
+                format_detail,
+                None,
+                resume_from_partial=True,
+                seed_sections_override=seed_sections,
+                progress_cb=_progress_cb,
+            )
+
+        assert any(event[0] == 2 and event[1] == "section_start" for event in progress_events)
+        assert not any(event[0] == 1 for event in progress_events)
+
+    def test_fixed_mode_does_not_fallback_even_on_transient_ssl(self, ai_svc):
         svc, gemini, mistral = ai_svc
         _set_selection(svc, "mistral", mode="fixed")
         gemini.is_configured.return_value = True
@@ -391,7 +482,6 @@ class TestGenerate:
         mistral.generate.side_effect = RuntimeError(
             "HTTPSConnectionPool: SSLError(SSLError(1, '[SSL: SSLV3_ALERT_BAD_RECORD_MAC] bad record mac'))"
         )
-        gemini.generate.return_value = "Contenido por fallback contingente."
 
         project = {"id": "proj-fixed-ssl", "title": "SSL", "variables": {"tema": "TLS"}}
         format_detail = {"definition": {"cuerpo": {"capitulos": [{"titulo": "Capitulo 1"}]}}}
@@ -400,11 +490,11 @@ class TestGenerate:
             patch("app.core.services.ai.ai_service.settings", _settings(primary="mistral", fallback=False)),
             patch.object(svc, "_sleep_with_cancel", return_value=None),
         ):
-            result = svc.generate(project, format_detail, None)
+            with pytest.raises(RuntimeError, match="bad record mac"):
+                svc.generate(project, format_detail, None)
 
-        assert result["sections"][0]["content"] == "Contenido por fallback contingente."
         assert mistral.generate.call_count == 2  # 1 intento + 1 retry transitorio
-        assert gemini.generate.call_count == 1
+        gemini.generate.assert_not_called()
 
     def test_fixed_mode_does_not_emit_preemptive_contingency_warning(self, ai_svc):
         svc, gemini, mistral = ai_svc
@@ -516,3 +606,61 @@ class TestProviderStatus:
         mistral_status = next(item for item in status["providers"] if item["id"] == "mistral")
         assert mistral_status["health"] == "DEGRADED"
         assert mistral_status["stats"]["errors_last_15m"] >= 3
+
+    def test_auto_mode_status_skips_exhausted_fallback_provider(self, ai_svc):
+        svc, gemini, mistral = ai_svc
+        openrouter = MagicMock()
+        openrouter.is_configured.return_value = True
+        svc._clients["openrouter"] = openrouter
+        svc.set_provider_selection(
+            {
+                "provider": "mistral",
+                "model": "mistral-medium-2505",
+                "fallback_provider": "gemini",
+                "fallback_model": "gemini-2.0-flash",
+                "mode": "auto",
+            }
+        )
+        gemini.is_configured.return_value = True
+        mistral.is_configured.return_value = True
+        svc._metrics.record_exhausted("gemini", message="Quota exceeded")
+
+        status = svc.providers_status_payload()
+
+        assert status["fallback_provider"] == "openrouter"
+        assert status["fallback_model"] == "openai/gpt-oss-120b:free"
+
+    def test_auto_mode_generation_skips_exhausted_fallback_provider(self, ai_svc):
+        svc, gemini, mistral = ai_svc
+        openrouter = MagicMock()
+        openrouter.is_configured.return_value = True
+        openrouter.generate.return_value = "Contenido por OpenRouter."
+        svc._clients["openrouter"] = openrouter
+        svc.set_provider_selection(
+            {
+                "provider": "mistral",
+                "model": "mistral-medium-2505",
+                "fallback_provider": "gemini",
+                "fallback_model": "gemini-2.0-flash",
+                "mode": "auto",
+            }
+        )
+        gemini.is_configured.return_value = True
+        mistral.is_configured.return_value = True
+        mistral.generate.side_effect = [RuntimeError("Read timed out"), RuntimeError("Read timed out")]
+        gemini.generate.return_value = "No debe usarse"
+        svc._metrics.record_exhausted("gemini", message="Quota exceeded")
+
+        project = {"id": "proj-skip-exhausted-fallback", "title": "Fallback", "variables": {"tema": "x"}}
+        format_detail = {"definition": {"cuerpo": {"capitulos": [{"titulo": "Capitulo 1"}]}}}
+
+        with (
+            patch("app.core.services.ai.ai_service.settings", _settings(primary="mistral", fallback=True)),
+            patch.object(svc, "_sleep_with_cancel", return_value=None),
+        ):
+            result = svc.generate(project, format_detail, None)
+
+        assert result["sections"][0]["content"] == "Contenido por OpenRouter."
+        assert mistral.generate.call_count == 2
+        gemini.generate.assert_not_called()
+        openrouter.generate.assert_called_once()

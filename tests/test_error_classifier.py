@@ -13,6 +13,11 @@ def test_classify_exhausted_by_message():
     assert classify_error(exc) == LLMErrorType.EXHAUSTED
 
 
+def test_classify_exhausted_by_402_status():
+    exc = RuntimeError("Payment required")
+    assert classify_error(exc, status_code=402) == LLMErrorType.EXHAUSTED
+
+
 def test_classify_auth_error():
     exc = RuntimeError("401 unauthorized key invalid")
     assert classify_error(exc) == LLMErrorType.AUTH_ERROR

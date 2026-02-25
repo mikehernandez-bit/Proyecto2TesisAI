@@ -46,9 +46,11 @@ class Settings:
     # LLM resilience controls
     MAX_INFLIGHT_MISTRAL: int = int(_get("MAX_INFLIGHT_MISTRAL", "3"))
     MAX_INFLIGHT_GEMINI: int = int(_get("MAX_INFLIGHT_GEMINI", "3"))
+    MAX_INFLIGHT_OPENROUTER: int = int(_get("MAX_INFLIGHT_OPENROUTER", "3"))
     MAX_INFLIGHT_PER_TENANT: int = int(_get("MAX_INFLIGHT_PER_TENANT", "2"))
     MISTRAL_RPM: int = int(_get("MISTRAL_RPM", "60"))
     GEMINI_RPM: int = int(_get("GEMINI_RPM", "60"))
+    OPENROUTER_RPM: int = int(_get("OPENROUTER_RPM", "60"))
     RETRY_JITTER: float = float(_get("RETRY_JITTER", "0.3"))
     RETRY_CAP_SECONDS: float = float(_get("RETRY_CAP_SECONDS", "30"))
     CB_FAILURES: int = int(_get("CB_FAILURES", "5"))
@@ -79,6 +81,14 @@ class Settings:
     MISTRAL_MAX_TOKENS: int = int(_get("MISTRAL_MAX_TOKENS", "4096"))
     MISTRAL_RETRY_MAX: int = int(_get("MISTRAL_RETRY_MAX", "5"))
     MISTRAL_RETRY_BACKOFF: float = float(_get("MISTRAL_RETRY_BACKOFF", "3.0"))
+
+    # OpenRouter integration
+    OPENROUTER_API_KEY: str = _get("OPENROUTER_API_KEY", "")
+    OPENROUTER_BASE_URL: str = _get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    OPENROUTER_MODEL: str = _get("OPENROUTER_MODEL", "openai/gpt-oss-120b:free")
+    OPENROUTER_APP_TITLE: str = _get("OPENROUTER_APP_TITLE", "GicaGen Tesis")
+    OPENROUTER_HTTP_REFERER: str = _get("OPENROUTER_HTTP_REFERER", "http://localhost:8001")
+    OPENROUTER_TIMEOUT_SECONDS: int = int(_get("OPENROUTER_TIMEOUT_SECONDS", "30"))
 
 
 settings = Settings()

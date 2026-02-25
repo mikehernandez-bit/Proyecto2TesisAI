@@ -44,6 +44,7 @@ from app.integrations.gicatesis.errors import (
 from app.modules.api.models import (
     N8NCallbackIn,
     ProjectDraftIn,
+    ProjectGenerateTriggerIn,
     ProjectGenerateIn,
     ProjectUpdateIn,
     PromptIn,
@@ -132,6 +133,15 @@ def _emit_project_trace(
         for key, value in meta.items():
             if isinstance(value, (str, int, float, bool)) or value is None:
                 safe_meta[key] = _clip_text(value, 140) if isinstance(value, str) else value
+            elif isinstance(value, (list, dict)):
+                # Allow structured data (messages, usage) for Inspector IA
+                try:
+                    import json as _json
+                    serialized = _json.dumps(value, ensure_ascii=False)
+                    if len(serialized) <= 8192:
+                        safe_meta[key] = value
+                except Exception:
+                    pass
 
     def _as_int(value: Any) -> int:
         try:
@@ -255,6 +265,64 @@ def _values_with_title(
     if project_title:
         values["title"] = project_title
     return values
+
+
+def _extract_resume_seed_sections(ai_result: Any) -> list[Dict[str, str]]:
+    if not isinstance(ai_result, dict):
+        return []
+    raw_sections = ai_result.get("sections")
+    if not isinstance(raw_sections, list):
+        return []
+
+    seed_sections: list[Dict[str, str]] = []
+    for section in raw_sections:
+        if not isinstance(section, dict):
+            continue
+        content = section.get("content")
+        if not isinstance(content, str) or not content.strip():
+            continue
+        section_id = str(section.get("sectionId") or "").strip()
+        path = str(section.get("path") or "").strip()
+        if not section_id and not path:
+            continue
+        seed_sections.append(
+            {
+                "sectionId": section_id,
+                "path": path,
+                "content": content,
+            }
+        )
+    return seed_sections
+
+
+def _decide_resume_mode(
+    project: Dict[str, Any],
+    *,
+    requested_mode: str,
+) -> tuple[bool, list[Dict[str, str]], str]:
+    mode = str(requested_mode or "auto").lower().strip()
+    if mode not in {"auto", "resume", "restart"}:
+        mode = "auto"
+
+    seed_sections = _extract_resume_seed_sections(project.get("ai_result"))
+    saved_sections = len(seed_sections)
+    if mode == "restart":
+        return False, [], mode
+    if mode == "resume":
+        return saved_sections > 0, seed_sections, mode
+
+    previous_status = str(project.get("status") or "").lower().strip()
+    resume_state = project.get("resume") if isinstance(project.get("resume"), dict) else {}
+    eligible_by_status = previous_status in {
+        "failed",
+        "blocked",
+        "cancel_requested",
+        "generation_failed",
+        "ai_failed",
+    }
+    eligible_by_resume_flag = bool(resume_state.get("eligible"))
+    should_resume = saved_sections > 0 and (eligible_by_status or eligible_by_resume_flag)
+    return should_resume, seed_sections if should_resume else [], mode
 
 
 def _adapt_ai_result_for_gicatesis(ai_result: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -590,6 +658,13 @@ def providers_select(payload: ProviderSelectIn, projectId: Optional[str] = Query
         selected = ai_service.set_provider_selection(raw)
         status_payload = ai_service.providers_status_payload()
 
+    # Echo normalized selection explicitly in this endpoint response so UI/tests
+    # can confirm what was saved, independent from runtime health filtering.
+    status_payload["selected_provider"] = selected.get("provider") or status_payload.get("selected_provider", "")
+    status_payload["selected_model"] = selected.get("model") or status_payload.get("selected_model", "")
+    status_payload["fallback_provider"] = selected.get("fallback_provider") or ""
+    status_payload["fallback_model"] = selected.get("fallback_model") or ""
+    status_payload["mode"] = selected.get("mode") or status_payload.get("mode", "auto")
     status_payload["selection"] = selected
     return status_payload
 
@@ -1148,29 +1223,32 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
     )
 
 
-async def _ai_generation_job(project_id: str, run_id: str):
+async def _ai_generation_job(
+    project_id: str,
+    run_id: str,
+    *,
+    resume_from_partial: bool = False,
+    resume_seed_sections: Optional[list[Dict[str, str]]] = None,
+):
     """Background task: generate content via IA and render artifacts."""
 
     project = projects.get_project(project_id)
     if not project:
         return
 
-    provider_selection = (
+    provider_selection_raw = (
         project.get("ai_selection")
         if isinstance(project.get("ai_selection"), dict)
         else ai_service.get_provider_selection()
     )
-    previous_status = str(project.get("status") or "").lower().strip()
-    previous_ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
-    has_previous_sections = bool((previous_ai_result or {}).get("sections"))
-    resume_from_partial = previous_status in {
-        "failed",
-        "blocked",
-        "cancel_requested",
-        "generation_failed",
-        "ai_failed",
-    } and has_previous_sections
-    if not isinstance(project.get("ai_selection"), dict):
+    provider_selection = ai_service.normalize_provider_selection(provider_selection_raw)
+    safe_seed_sections = _extract_resume_seed_sections({"sections": resume_seed_sections or []})
+    if not safe_seed_sections and resume_from_partial:
+        safe_seed_sections = _extract_resume_seed_sections(project.get("ai_result"))
+    if not safe_seed_sections:
+        resume_from_partial = False
+
+    if project.get("ai_selection") != provider_selection:
         projects.update_project(project_id, {"ai_selection": provider_selection})
     provider_hint = str(
         project.get("progress", {}).get("provider")
@@ -1189,9 +1267,9 @@ async def _ai_generation_job(project_id: str, run_id: str):
     )
     projects.update_progress(
         project_id,
-        current=0,
+        current=len(safe_seed_sections) if resume_from_partial else 0,
         total=0,
-        current_path="",
+        current_path=(safe_seed_sections[-1].get("path") or "") if resume_from_partial and safe_seed_sections else "",
         provider=provider_hint,
     )
     _emit_project_trace(
@@ -1207,8 +1285,8 @@ async def _ai_generation_job(project_id: str, run_id: str):
             step="generation.resume",
             status="warn",
             title="Reanudando desde avance previo",
-            detail="Se reutilizaran secciones ya generadas en el intento anterior.",
-            meta={"stage": "queued"},
+            detail=f"Se reutilizaran {len(safe_seed_sections)} secciones ya generadas en el intento anterior.",
+            meta={"stage": "queued", "seededSections": len(safe_seed_sections)},
         )
 
     format_detail_payload: Optional[Dict[str, Any]] = None
@@ -1291,8 +1369,8 @@ async def _ai_generation_job(project_id: str, run_id: str):
                 project_id,
                 step="ai.provider.fallback",
                 status="warn",
-                title=f"Fallback de proveedor -> {provider}",
-                detail=f"Continuando en {provider} por cuota/error del proveedor primario.",
+                title=f"Cambio automatico de proveedor -> {provider}",
+                detail=f"Continuando en {provider} por cuota/error del proveedor principal.",
                 meta={
                     "provider": provider,
                     "sectionCurrent": safe_current,
@@ -1359,6 +1437,13 @@ async def _ai_generation_job(project_id: str, run_id: str):
 
         last_path = str(partial_sections[-1].get("path") or "")
         projects.update_project(project_id, {"ai_result": partial_ai})
+        projects.mark_resume_checkpoint(
+            project_id,
+            saved_sections_count=len(partial_sections),
+            last_failed_section_path=last_path,
+            reason=reason,
+            base_run_id=run_id,
+        )
         projects.update_progress(
             project_id,
             current=len(partial_sections),
@@ -1389,6 +1474,7 @@ async def _ai_generation_job(project_id: str, run_id: str):
             progress_cb=_on_progress,
             selection_override=provider_selection,
             resume_from_partial=resume_from_partial,
+            seed_sections_override=safe_seed_sections,
         )
         provider = ai_service.get_last_used_provider() or provider_hint
         model = (
@@ -1729,7 +1815,11 @@ def generate(payload: ProjectGenerateIn, background: BackgroundTasks):
 
 
 @router.post("/projects/{projectId}/generate", status_code=202)
-async def trigger_generation(projectId: str, background: BackgroundTasks):
+async def trigger_generation(
+    projectId: str,
+    background: BackgroundTasks,
+    payload: Optional[ProjectGenerateTriggerIn] = None,
+):
     """
     Trigger generation for an existing project draft.
 
@@ -1745,15 +1835,33 @@ async def trigger_generation(projectId: str, background: BackgroundTasks):
     # ------------------------------------------------------------------
     # Path A: AI provider configured => generate via AI
     # ------------------------------------------------------------------
-    project_selection = project.get("ai_selection") if isinstance(project.get("ai_selection"), dict) else None
-    if project_selection is None:
-        project_selection = ai_service.get_provider_selection()
+    project_selection_raw = project.get("ai_selection") if isinstance(project.get("ai_selection"), dict) else None
+    if project_selection_raw is None:
+        project_selection_raw = ai_service.get_provider_selection()
+    project_selection = ai_service.normalize_provider_selection(project_selection_raw)
+    if project.get("ai_selection") != project_selection:
         projects.update_project(projectId, {"ai_selection": project_selection})
 
     if ai_service.is_configured(selection_override=project_selection):
         _logger.info("Starting AI generation for project %s", projectId)
+        requested_resume_mode = payload.resume_mode if payload else "auto"
+        resume_from_partial, resume_seed_sections, resolved_resume_mode = _decide_resume_mode(
+            project,
+            requested_mode=requested_resume_mode,
+        )
+        saved_sections = len(resume_seed_sections)
+        resume_from_section = saved_sections + 1 if resume_from_partial else 1
+
         projects.clear_trace(projectId)
         projects.clear_incidents(projectId)
+        if resolved_resume_mode == "restart":
+            projects.update_project(projectId, {"ai_result": None})
+            projects.clear_resume(projectId)
+            resume_from_partial = False
+            resume_seed_sections = []
+            saved_sections = 0
+            resume_from_section = 1
+
         selection = project_selection
         available = ai_service.available_providers(selection_override=selection)
         provider = (
@@ -1770,9 +1878,13 @@ async def trigger_generation(projectId: str, background: BackgroundTasks):
                 "cancel_requested": False,
                 "run_id": run_id,
                 "progress": {
-                    "current": 0,
+                    "current": saved_sections if resume_from_partial else 0,
                     "total": 0,
-                    "currentPath": "",
+                    "currentPath": (
+                        str(resume_seed_sections[-1].get("path") or "")
+                        if resume_from_partial and resume_seed_sections
+                        else ""
+                    ),
                     "provider": provider,
                     "updatedAt": _utc_now_z(),
                 },
@@ -1784,17 +1896,50 @@ async def trigger_generation(projectId: str, background: BackgroundTasks):
             step="generation.request.received",
             status="running",
             title="Solicitud de generacion recibida",
-            meta={"runId": run_id, "provider": provider, "mode": mode, "stage": "queued"},
+            meta={
+                "runId": run_id,
+                "provider": provider,
+                "mode": mode,
+                "stage": "queued",
+                "resumeMode": resolved_resume_mode,
+                "savedSections": saved_sections,
+            },
         )
         _emit_project_trace(
             projectId,
             step="project.status.generating",
             status="running",
             title="Proyecto en estado Generando",
-            meta={"runId": run_id, "provider": provider, "mode": mode, "stage": "queued"},
+            meta={
+                "runId": run_id,
+                "provider": provider,
+                "mode": mode,
+                "stage": "queued",
+                "resumeMode": resolved_resume_mode,
+            },
         )
+        if resume_from_partial and resume_seed_sections:
+            _emit_project_trace(
+                projectId,
+                step="generation.resume",
+                status="warn",
+                title=f"Reanudando desde seccion {resume_from_section}",
+                detail=f"Se reutilizaran {saved_sections} secciones guardadas del intento previo.",
+                meta={
+                    "runId": run_id,
+                    "savedSections": saved_sections,
+                    "resumeFromSection": resume_from_section,
+                    "stage": "queued",
+                },
+            )
 
-        background.add_task(_ai_generation_job, projectId, run_id)
+        background.add_task(
+            _ai_generation_job,
+            projectId,
+            run_id,
+            resume_from_partial=resume_from_partial,
+            resume_seed_sections=resume_seed_sections,
+        )
         return {
             "ok": True,
             "status": "generating",
@@ -1804,6 +1949,9 @@ async def trigger_generation(projectId: str, background: BackgroundTasks):
             "provider": provider,
             "model": ai_service.get_model_for_provider(provider, selection_override=selection),
             "selectionMode": mode,
+            "resumeMode": resolved_resume_mode,
+            "savedSections": saved_sections,
+            "resumeFromSection": resume_from_section,
         }
 
     # ------------------------------------------------------------------

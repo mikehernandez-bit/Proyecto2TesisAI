@@ -178,6 +178,23 @@ class LLMProviderRouter:
             lines.append(normalized)
         return "\n".join(lines).strip()
 
+    @staticmethod
+    def _effective_retry_after(
+        *,
+        provider: str,
+        err_type: LLMErrorType,
+        attempt: int,
+        retry_after: Optional[float],
+    ) -> Optional[float]:
+        if retry_after is not None:
+            return retry_after
+
+        # OpenRouter free endpoints can omit Retry-After while still requiring
+        # a cool-down window. Use conservative waits to reduce repeated 429s.
+        if err_type == LLMErrorType.RATE_LIMITED and str(provider or "").lower().strip() == "openrouter":
+            return float(10 * (max(0, int(attempt)) + 1))
+        return None
+
     def _log_structured(self, payload: Dict[str, Any]) -> None:
         try:
             logger.info("llm_call %s", json.dumps(payload, ensure_ascii=False))
@@ -375,9 +392,15 @@ class LLMProviderRouter:
                         max_rate_limited_retries=self._max_rate_limited_retries,
                         max_transient_retries=self._max_transient_retries,
                     ):
+                        effective_retry_after = self._effective_retry_after(
+                            provider=provider,
+                            err_type=err_type,
+                            attempt=attempt,
+                            retry_after=retry_after,
+                        )
                         wait_seconds = compute_backoff(
                             attempt,
-                            retry_after=retry_after,
+                            retry_after=effective_retry_after,
                             jitter=self._retry_jitter,
                             cap_seconds=self._retry_cap_seconds,
                         )

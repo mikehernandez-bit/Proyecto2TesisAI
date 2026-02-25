@@ -77,3 +77,28 @@ def test_mark_failed_can_keep_partial_ai_result(tmp_path):
     assert failed["ai_result"] is not None
     assert len(failed["ai_result"]["sections"]) == 1
     assert failed["run_id"] == "run-001"
+
+
+def test_resume_checkpoint_is_saved_and_cleared_on_complete(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    project = service.create_project({"title": "Resume checkpoint"})
+    project_id = project["id"]
+
+    updated = service.mark_resume_checkpoint(
+        project_id,
+        saved_sections_count=3,
+        last_failed_section_path="Capitulo 3",
+        reason="Error transitorio",
+        base_run_id="run-xyz",
+    )
+    assert updated is not None
+    assert updated["resume"]["eligible"] is True
+    assert updated["resume"]["saved_sections_count"] == 3
+    assert updated["resume"]["resume_from_index"] == 3
+    assert updated["resume"]["last_failed_section_path"] == "Capitulo 3"
+    assert updated["resume"]["base_run_id"] == "run-xyz"
+
+    completed = service.mark_completed(project_id, output_file="outputs/final.docx")
+    assert completed is not None
+    assert completed["resume"]["eligible"] is False
+    assert completed["resume"]["saved_sections_count"] == 0

@@ -118,3 +118,29 @@ class ProviderSelectIn(BaseModel):
             if src in remapped and dst not in remapped:
                 remapped[dst] = remapped[src]
         return remapped
+
+
+class ProjectGenerateTriggerIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    resume_mode: str = Field(default="auto")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, data: Any) -> Any:
+        if data is None:
+            return {}
+        if not isinstance(data, dict):
+            return data
+        remapped = dict(data)
+        if "resumeMode" in remapped and "resume_mode" not in remapped:
+            remapped["resume_mode"] = remapped["resumeMode"]
+        return remapped
+
+    @model_validator(mode="after")
+    def normalize_values(self) -> "ProjectGenerateTriggerIn":
+        mode = str(self.resume_mode or "auto").strip().lower()
+        if mode not in {"auto", "resume", "restart"}:
+            mode = "auto"
+        self.resume_mode = mode
+        return self

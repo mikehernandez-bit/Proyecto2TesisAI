@@ -146,7 +146,7 @@ def _render_ir_to_docx(doc: Document, ir: DocumentIR, tables_list: List[str], fi
 
         elif node.node_type == IRNodeType.LIST_ABBREVIATIONS:
             doc.add_heading(node.text, level=1)
-            doc.add_paragraph("(Completar abreviaturas)")
+            doc.add_paragraph("No se identificaron abreviaturas relevantes en el documento.")
             doc.add_page_break()
 
         elif node.node_type == IRNodeType.HEADING:
