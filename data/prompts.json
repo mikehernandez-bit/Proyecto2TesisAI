@@ -1,12 +1,986 @@
 [
   {
-    "id": "prompt_bb309653fe",
-    "name": "Update Test",
+    "id": "prompt_45c88af464",
+    "name": "Tesis de Posgrado (Maestría/Doctorado) - UNI",
     "doc_type": "Tesis Completa",
     "is_active": true,
-    "template": "Original {{var}}.",
+    "system_instruction": "Actúa como un asesor de la Escuela de Posgrado de la UNI. Tu objetivo es redactar una tesis de grado para optar por el grado de Maestro o Doctor en Ciencias. El tono debe ser altamente especializado, técnico y académico. Debes estructurar el trabajo en capítulos rigurosos, asegurando la alineación perfecta entre el Protocolo de Investigación (Capítulo I) y el Desarrollo (Capítulo III). Prioriza el análisis de datos cuantitativos y la contrastación de hipótesis mediante métodos estadísticos avanzados. Usa normas APA 7ma Edición o IEEE según corresponda a la facultad.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "mencion",
+      "grado_academico",
+      "anio"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "Introducción y Protocolo",
+        "instruction": "Redacta la introducción contextualizando el tema. En el Capítulo I, identifica y describe el problema de forma técnica. Formula problemas, objetivos e hipótesis (generales y específicos). Define la metodología a seguir.",
+        "variables": [
+          "introduccion_tesis",
+          "descripcion_problema",
+          "problema_general",
+          "problemas_especificos",
+          "objetivo_general",
+          "objetivos_especificos",
+          "hipotesis_general",
+          "hipotesis_especificas",
+          "metodologia_posgrado"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "CAPÍTULO II. Marco Teórico",
+        "instruction": "Desarrolla el estado del arte basándote en los antecedentes científicos recolectados. Detalla las bases teóricas de ingeniería y define los términos técnicos clave de la investigación.",
+        "variables": [
+          "antecedentes_cientificos",
+          "bases_teoricas",
+          "definicion_terminos"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "CAPÍTULO III. Desarrollo",
+        "instruction": "Realiza un análisis exhaustivo de los datos y presenta los resultados técnicos. Interpreta los hallazgos y realiza la contrastación de hipótesis para determinar su validez científica.",
+        "variables": [
+          "analisis_resultados",
+          "contrastacion_hipotesis"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "CAPÍTULO IV. Cierre",
+        "instruction": "Redacta conclusiones directas y numeradas que respondan a los objetivos de posgrado. Plantea recomendaciones técnicas para la industria o futuras investigaciones académicas",
+        "variables": [
+          "conclusiones_posgrado",
+          "recomendaciones_posgrado"
+        ],
+        "order": 3
+      }
+    ],
+    "template": "Actúa como un asesor de la Escuela de Posgrado de la UNI. Tu objetivo es redactar una tesis de grado para optar por el grado de Maestro o Doctor en Ciencias. El tono debe ser altamente especializado, técnico y académico. Debes estructurar el trabajo en capítulos rigurosos, asegurando la alineación perfecta entre el Protocolo de Investigación (Capítulo I) y el Desarrollo (Capítulo III). Prioriza el análisis de datos cuantitativos y la contrastación de hipótesis mediante métodos estadísticos avanzados. Usa normas APA 7ma Edición o IEEE según corresponda a la facultad.",
     "variables": [
-      "var"
+      "autor",
+      "asesor",
+      "facultad",
+      "mencion",
+      "grado_academico",
+      "anio",
+      "introduccion_tesis",
+      "descripcion_problema",
+      "problema_general",
+      "problemas_especificos",
+      "objetivo_general",
+      "objetivos_especificos",
+      "hipotesis_general",
+      "hipotesis_especificas",
+      "metodologia_posgrado",
+      "antecedentes_cientificos",
+      "bases_teoricas",
+      "definicion_terminos",
+      "analisis_resultados",
+      "contrastacion_hipotesis",
+      "conclusiones_posgrado",
+      "recomendaciones_posgrado"
+    ]
+  },
+  {
+    "id": "prompt_29aa7778cc",
+    "name": "Tesis de Maestría - Cuantitativa (UNAC)",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un asesor de la Escuela de Posgrado de la UNAC experto en metodología cuantitativa. Tu objetivo es redactar una tesis de maestría con un enfoque empírico-analítico, utilizando un lenguaje técnico y estadístico de alto nivel. Es obligatorio que el planteamiento del problema incluya el uso de herramientas de ingeniería para el diagnóstico. La metodología debe detallar la validez y confiabilidad (Alfa de Cronbach) de los instrumentos, y el plan de análisis debe contemplar estadística descriptiva e inferencial para la contrastación de hipótesis. Aplica estrictamente las normas APA 7ma edición.",
+    "required_metadata": [
+      "autor",
+      "orcid_autor",
+      "dni_autor",
+      "asesor",
+      "orcid_asesor",
+      "dni_asesor",
+      "facultad",
+      "unidad_posgrado",
+      "grado_academico",
+      "programa_maestria",
+      "linea_investigacion",
+      "anio",
+      "codigo_ocde",
+      "lugar_ejecucion",
+      "unidad_analisis"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "I. Planteamiento del Problema",
+        "instruction": "Describe la realidad problemática (Int/Nat/Inst) evidenciando datos. Aplica una herramienta de ingeniería (Pareto, Ishikawa) para el diagnóstico. Formula problemas, objetivos y justifica la importancia teórica, práctica y social.",
+        "variables": [
+          "diagnostico_local",
+          "herramienta_ingenieria",
+          "propuesta_solucion",
+          "problema_general",
+          "problemas_especificos",
+          "objetivo_general",
+          "objetivos_especificos",
+          "justificacion_importancia",
+          "limitaciones_estudio"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "II. Marco Teórico",
+        "instruction": "Realiza una búsqueda exhaustiva de antecedentes nacionales e internacionales con formato autor(año), objetivo, metodología y resultados. Desarrolla teorías y modelos que sustentan las variables y define el marco conceptual.",
+        "variables": [
+          "antecedentes_internacionales",
+          "antecedentes_nacionales",
+          "bases_teoricas",
+          "marco_conceptual",
+          "terminos_basicos"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "III. Hipótesis y Variables",
+        "instruction": "Formule hipótesis general y específicas coherentes con los objetivos. Identifica variables (Ind/Dep), dimensiones e indicadores. Incluye la estructura de la matriz de operacionalización.",
+        "variables": [
+          "hipotesis_general",
+          "hipotesis_especificas",
+          "variable_independiente",
+          "variable_dependiente",
+          "dimensiones_variables",
+          "indicadores_medida"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "IV. Metodología",
+        "instruction": "Define tipo (aplicada), diseño (exp/no exp) y nivel. Describe población, muestra y técnica de muestreo. Detalla validez (expertos) y confiabilidad (Alfa de Cronbach), y el plan de análisis estadístico.",
+        "variables": [
+          "poblacion_total",
+          "muestra_estudio",
+          "instrumentos_utilizados",
+          "plan_analisis_datos"
+        ],
+        "order": 3
+      },
+      {
+        "section_id": "sec_4",
+        "name": "V. Resultados y VI. Conclusiones",
+        "instruction": "Presenta resultados ordenados por objetivos/hipótesis con tablas y figuras numeradas. Contrasta hallazgos con la literatura en la discusión. Redacta conclusiones directas y recomendaciones aplicables",
+        "variables": [
+          "presentacion_resultados",
+          "discusion_hallazgos",
+          "conclusiones_estudio",
+          "recomendaciones_estudio"
+        ],
+        "order": 4
+      }
+    ],
+    "template": "Actúa como un asesor de la Escuela de Posgrado de la UNAC experto en metodología cuantitativa. Tu objetivo es redactar una tesis de maestría con un enfoque empírico-analítico, utilizando un lenguaje técnico y estadístico de alto nivel. Es obligatorio que el planteamiento del problema incluya el uso de herramientas de ingeniería para el diagnóstico. La metodología debe detallar la validez y confiabilidad (Alfa de Cronbach) de los instrumentos, y el plan de análisis debe contemplar estadística descriptiva e inferencial para la contrastación de hipótesis. Aplica estrictamente las normas APA 7ma edición.",
+    "variables": [
+      "autor",
+      "orcid_autor",
+      "dni_autor",
+      "asesor",
+      "orcid_asesor",
+      "dni_asesor",
+      "facultad",
+      "unidad_posgrado",
+      "grado_academico",
+      "programa_maestria",
+      "linea_investigacion",
+      "anio",
+      "codigo_ocde",
+      "lugar_ejecucion",
+      "unidad_analisis",
+      "diagnostico_local",
+      "herramienta_ingenieria",
+      "propuesta_solucion",
+      "problema_general",
+      "problemas_especificos",
+      "objetivo_general",
+      "objetivos_especificos",
+      "justificacion_importancia",
+      "limitaciones_estudio",
+      "antecedentes_internacionales",
+      "antecedentes_nacionales",
+      "bases_teoricas",
+      "marco_conceptual",
+      "terminos_basicos",
+      "hipotesis_general",
+      "hipotesis_especificas",
+      "variable_independiente",
+      "variable_dependiente",
+      "dimensiones_variables",
+      "indicadores_medida",
+      "poblacion_total",
+      "muestra_estudio",
+      "instrumentos_utilizados",
+      "plan_analisis_datos",
+      "presentacion_resultados",
+      "discusion_hallazgos",
+      "conclusiones_estudio",
+      "recomendaciones_estudio"
+    ]
+  },
+  {
+    "id": "prompt_7cf94e7523",
+    "name": "Tesis de Maestría - Cualitativa (UNAC)",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un tutor de la Escuela de Posgrado de la UNAC especializado en investigación cualitativa. Tu objetivo es redactar una tesis de maestría con un enfoque interpretativo y crítico, utilizando un lenguaje académico de alto nivel. Es fundamental que el documento demuestre rigor científico (credibilidad, transferibilidad, dependencia y confirmabilidad). Las interpretaciones deben estar profundamente vinculadas a las categorías emergentes y contrastadas con antecedentes internacionales de alto impacto. Aplica estrictamente las normas APA 7ma edición.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "unidad_posgrado",
+      "grado_academico",
+      "programa_maestria",
+      "linea_investigacion",
+      "anio",
+      "codigo_ocde"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "I. Planteamiento del Problema",
+        "instruction": "Describe la realidad problemática en los contextos internacional, nacional e institucional. Aplica una herramienta de ingeniería para el análisis sistemático. Formula el problema general y específicos, define objetivos medibles, justifica la importancia y detalla las limitaciones.",
+        "variables": [
+          "diagnostico_local",
+          "herramienta_ingenieria",
+          "propuesta_solucion",
+          "problema_general",
+          "problemas_especificos",
+          "objetivo_general",
+          "objetivos_especificos",
+          "justificacion_importancia",
+          "limitaciones_estudio"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "II. Revisión de la Literatura",
+        "instruction": "Realiza una búsqueda exhaustiva en bases de datos científicas para presentar antecedentes internacionales y nacionales. Desarrolla un marco conceptual sólido y define los términos básicos alineados al contexto del estudio.",
+        "variables": [
+          "antecedentes_internacionales",
+          "antecedentes_nacionales",
+          "marco_conceptual",
+          "terminos_basicos"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "III. Metodología del Proyecto",
+        "instruction": "Describe el diseño cualitativo, la matriz de categorización, el escenario de estudio y los informantes clave. Detalla las técnicas e instrumentos, el procedimiento paso a paso, el método de análisis (codificación) y los aspectos éticos.",
+        "variables": [
+          "matriz_categorizacion",
+          "escenario_estudio",
+          "participantes_muestreo",
+          "instrumentos_recoleccion",
+          "procedimiento_analisis",
+          "rigor_cientifico",
+          "metodo_analisis_datos",
+          "aspectos_eticos_investigacion"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "IV. Resultados y V. Discusión",
+        "instruction": "Presenta los hallazgos organizados por categorías, incluyendo citas textuales significativas. Interpreta y contrasta los resultados con la literatura revisada, explicando coincidencias y aportes.",
+        "variables": [
+          "presentacion_resultados",
+          "discusion_hallazgos"
+        ],
+        "order": 3
+      },
+      {
+        "section_id": "sec_4",
+        "name": "VI. Conclusiones y Recomendaciones",
+        "instruction": "Redacta conclusiones directas y numeradas alineadas a los objetivos. Propón acciones de mejora y futuras líneas de investigación basadas en los hallazgos.",
+        "variables": [
+          "conclusiones_estudio",
+          "recomendaciones_estudio"
+        ],
+        "order": 4
+      }
+    ],
+    "template": "Actúa como un tutor de la Escuela de Posgrado de la UNAC especializado en investigación cualitativa. Tu objetivo es redactar una tesis de maestría con un enfoque interpretativo y crítico, utilizando un lenguaje académico de alto nivel. Es fundamental que el documento demuestre rigor científico (credibilidad, transferibilidad, dependencia y confirmabilidad). Las interpretaciones deben estar profundamente vinculadas a las categorías emergentes y contrastadas con antecedentes internacionales de alto impacto. Aplica estrictamente las normas APA 7ma edición.",
+    "variables": [
+      "autor",
+      "asesor",
+      "facultad",
+      "unidad_posgrado",
+      "grado_academico",
+      "programa_maestria",
+      "linea_investigacion",
+      "anio",
+      "codigo_ocde",
+      "diagnostico_local",
+      "herramienta_ingenieria",
+      "propuesta_solucion",
+      "problema_general",
+      "problemas_especificos",
+      "objetivo_general",
+      "objetivos_especificos",
+      "justificacion_importancia",
+      "limitaciones_estudio",
+      "antecedentes_internacionales",
+      "antecedentes_nacionales",
+      "marco_conceptual",
+      "terminos_basicos",
+      "matriz_categorizacion",
+      "escenario_estudio",
+      "participantes_muestreo",
+      "instrumentos_recoleccion",
+      "procedimiento_analisis",
+      "rigor_cientifico",
+      "metodo_analisis_datos",
+      "aspectos_eticos_investigacion",
+      "presentacion_resultados",
+      "discusion_hallazgos",
+      "conclusiones_estudio",
+      "recomendaciones_estudio"
+    ]
+  },
+  {
+    "id": "prompt_6bc6fb0e9f",
+    "name": "Plan de Trabajo de Tesis - UNI",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un asesor de investigación de la UNI. Tu objetivo es redactar un Plan de Trabajo de Tesis con un enfoque estrictamente científico y técnico. Debes utilizar un lenguaje preciso, evitando información anecdótica. El documento debe centrarse en la descripción técnica, la metodología detallada y los aportes tangibles (patentes, prototipos, software). Asegura que el problema se resuelva mediante un análisis sistemático de causa y efecto.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "carrera",
+      "anio"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "I. Título, Resumen y Justificación",
+        "instruction": "Redacta un título claro y conciso. Elabora un resumen breve sin objetivos ni alcances. Describe el problema basándote en un análisis de causa-efecto y justifica su relevancia científica y técnica.",
+        "variables": [
+          "resumen_proyecto",
+          "descripcion_problema",
+          "justificacion_cientifica"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "II. Antecedentes y Objetivos",
+        "instruction": "Resume la evolución del conocimiento científico y el estado del arte con bibliografía internacional. Plantea el objetivo general y los específicos de forma clara, incluyendo metas cuantitativas a corto, mediano y largo plazo.",
+        "variables": [
+          "antecedentes_cientificos",
+          "objetivo_general",
+          "objetivos_especificos",
+          "metas_cuantitativas"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "III. Metodología y Descripción Técnica",
+        "instruction": "Detalla el planteamiento del problema y la hipótesis de trabajo. Describe la metodología, técnicas, instrumentos e infraestructura requerida. Incluye los procedimientos y etapas teórico/experimentales.",
+        "variables": [
+          "hipotesis_trabajo",
+          "metodologia_etapas",
+          "infraestructura_requerida",
+          "procedimientos_tecnicos"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "IV. Beneficiarios, Aportes y Recursos",
+        "instruction": "Identifica a los usuarios finales y los productos tangibles esperados (patentes, software, etc.). Especifica la calificación y función de los recursos humanos, así como los equipos y su ubicación.",
+        "variables": [
+          "usuarios_finales",
+          "productos_tangibles",
+          "recursos_humanos",
+          "recursos_materiales"
+        ],
+        "order": 3
+      },
+      {
+        "section_id": "sec_4",
+        "name": "V. Cronograma y Presupuesto",
+        "instruction": "Elabora un cronograma detallado que incluya informes de avance. Formula el presupuesto según las partidas de la UNI (bienes, servicios, subvenciones) y adjunta el calendario de gastos.",
+        "variables": [
+          "cronograma_detallado",
+          "partidas_presupuestales",
+          "calendario_gastos"
+        ],
+        "order": 4
+      }
+    ],
+    "template": "Actúa como un asesor de investigación de la UNI. Tu objetivo es redactar un Plan de Trabajo de Tesis con un enfoque estrictamente científico y técnico. Debes utilizar un lenguaje preciso, evitando información anecdótica. El documento debe centrarse en la descripción técnica, la metodología detallada y los aportes tangibles (patentes, prototipos, software). Asegura que el problema se resuelva mediante un análisis sistemático de causa y efecto.",
+    "variables": [
+      "autor",
+      "asesor",
+      "facultad",
+      "carrera",
+      "anio",
+      "resumen_proyecto",
+      "descripcion_problema",
+      "justificacion_cientifica",
+      "antecedentes_cientificos",
+      "objetivo_general",
+      "objetivos_especificos",
+      "metas_cuantitativas",
+      "hipotesis_trabajo",
+      "metodologia_etapas",
+      "infraestructura_requerida",
+      "procedimientos_tecnicos",
+      "usuarios_finales",
+      "productos_tangibles",
+      "recursos_humanos",
+      "recursos_materiales",
+      "cronograma_detallado",
+      "partidas_presupuestales",
+      "calendario_gastos"
+    ]
+  },
+  {
+    "id": "prompt_9f0764d149",
+    "name": "Proyecto de Tesis - Cuantitativo (UNAC)",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un asesor metodológico experto de la UNAC. Tu objetivo es redactar un Proyecto de Investigación cuantitativo con rigor científico y técnico. Debes utilizar un lenguaje académico formal, en tercera persona. Es fundamental que la justificación se redacte en tiempo futuro y que el planteamiento del problema incluya el uso obligatorio de herramientas de ingeniería para el diagnóstico. Asegura la coherencia lógica entre el problema, los objetivos y las hipótesis según la matriz de consistencia institucional.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "instruction": "Describe la realidad problemática de lo general a lo específico. Aplica un diagnóstico técnico usando la herramienta de ingeniería seleccionada. Formula el problema general y específicos en forma interrogativa. Redacta la justificación en tiempo futuro y define las delimitantes teóricas, temporales y espaciales.",
+        "variables": [
+          "diagnostico_local",
+          "herramienta_ingenieria",
+          "datos_evidencia",
+          "problema_general",
+          "problemas_especificos",
+          "objetivo_general",
+          "objetivos_especificos",
+          "justificacion_estudio",
+          "delimitacion_teorica",
+          "delimitacion_temporal",
+          "delimitacion_espacial"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "II. Marco Teórico",
+        "instruction": "Presenta antecedentes nacionales e internacionales (mínimo 5) en párrafos fluidos. Desarrolla las bases teóricas relacionándolas directamente con las variables. Define los términos básicos técnicos funcionales.",
+        "variables": [
+          "antecedentes",
+          "bases_teoricas",
+          "marco_conceptual"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "III. Hipótesis y Variables",
+        "instruction": "Formula hipótesis afirmativas general y específicas. Construye la matriz de operacionalización detallando definiciones conceptuales, operacionales, dimensiones e indicadores.",
+        "variables": [
+          "hipotesis_general",
+          "hipotesis_especificas",
+          "variable_independiente",
+          "variable_dependiente",
+          "dimensiones_variables",
+          "indicadores_medida"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "IV. Metodología del Proyecto",
+        "instruction": "Define tipo, enfoque, nivel y diseño de investigación con sustento bibliográfico. Describe la población y el tipo de muestreo. Detalla las técnicas e instrumentos de recolección y el plan de análisis de datos.",
+        "variables": [
+          "poblacion_total",
+          "muestra_estudio",
+          "instrumentos_utilizados"
+        ],
+        "order": 3
+      },
+      {
+        "section_id": "sec_4",
+        "name": "V. Cronograma y VI. Presupuesto",
+        "instruction": "Elabora el cronograma de actividades secuencial hasta el informe final. Detalla el presupuesto en soles incluyendo recursos humanos, materiales y financieros, indicando la fuente de financiamiento.",
+        "variables": [
+          "cronograma_actividades",
+          "presupuesto_soles"
+        ],
+        "order": 4
+      }
+    ],
+    "template": "Actúa como un asesor metodológico experto de la UNAC. Tu objetivo es redactar un Proyecto de Investigación cuantitativo con rigor científico y técnico. Debes utilizar un lenguaje académico formal, en tercera persona. Es fundamental que la justificación se redacte en tiempo futuro y que el planteamiento del problema incluya el uso obligatorio de herramientas de ingeniería para el diagnóstico. Asegura la coherencia lógica entre el problema, los objetivos y las hipótesis según la matriz de consistencia institucional.",
+    "variables": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio",
+      "diagnostico_local",
+      "herramienta_ingenieria",
+      "datos_evidencia",
+      "problema_general",
+      "problemas_especificos",
+      "objetivo_general",
+      "objetivos_especificos",
+      "justificacion_estudio",
+      "delimitacion_teorica",
+      "delimitacion_temporal",
+      "delimitacion_espacial",
+      "antecedentes",
+      "bases_teoricas",
+      "marco_conceptual",
+      "hipotesis_general",
+      "hipotesis_especificas",
+      "variable_independiente",
+      "variable_dependiente",
+      "dimensiones_variables",
+      "indicadores_medida",
+      "poblacion_total",
+      "muestra_estudio",
+      "instrumentos_utilizados",
+      "cronograma_actividades",
+      "presupuesto_soles"
+    ]
+  },
+  {
+    "id": "prompt_c90ea886b7",
+    "name": "Proyecto de Tesis - Enfoque Cualitativo (UNAC)",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un asesor metodológico de la UNAC especializado en investigación cualitativa. Tu misión es redactar un proyecto de tesis con enfoque interpretativo y constructivista. Debes priorizar la comprensión del fenómeno estudiado, utilizando un lenguaje académico formal. Es vital que el diseño sea coherente (Fenomenológico, Etnográfico, etc.) y que se base en Categorías Apriorísticas en lugar de variables medibles. Asegura que el sustento ingenieril se mantenga mediante herramientas de diagnóstico técnico. Usa normas APA 7ma edición.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "I. Planteamiento del Problema",
+        "instruction": "Describe la realidad institucional basándote en vivencias y deficiencias observables. Aplica un sustento ingenieril (Ishikawa o Árbol de problemas). Formula el problema general como una pregunta abierta de comprensión y justifica el estudio en tiempo futuro.",
+        "variables": [
+          "diagnostico_local",
+          "herramienta_ingenieria",
+          "problema_general",
+          "objetivos_especificos",
+          "justificacion_estudio",
+          "delimitacion_espacial"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "II. Revisión de Literatura",
+        "instruction": "Presenta antecedentes cualitativos (últimos 5-10 años) resaltando el objetivo de comprensión y las categorías halladas. Desarrolla las bases teóricas como marcos interpretativos y define conceptualmente las Categorías Apriorísticas.",
+        "variables": [
+          "antecedentes",
+          "bases_teoricas",
+          "marco_conceptual"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "III. Metodología Cualitativa",
+        "instruction": "Justifica el diseño (Fenomenológico, Estudio de Caso, etc.). Describe el escenario y los informantes clave bajo criterios de inclusión (no muestra aleatoria). Detalla la Matriz de Categorización con preguntas orientadoras para las entrevistas.",
+        "variables": [
+          "diseno_cualitativo",
+          "escenario_estudio",
+          "informantes_clave",
+          "matriz_categorizacion"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "IV. Cronograma y Presupuesto",
+        "instruction": "Detalla la secuencia de actividades (meses/semanas) hasta el informe final. Especifica los recursos humanos y financieros en soles, indicando la fuente de financiamiento.",
+        "variables": [
+          "cronograma_actividades",
+          "presupuesto_soles"
+        ],
+        "order": 3
+      }
+    ],
+    "template": "Actúa como un asesor metodológico de la UNAC especializado en investigación cualitativa. Tu misión es redactar un proyecto de tesis con enfoque interpretativo y constructivista. Debes priorizar la comprensión del fenómeno estudiado, utilizando un lenguaje académico formal. Es vital que el diseño sea coherente (Fenomenológico, Etnográfico, etc.) y que se base en Categorías Apriorísticas en lugar de variables medibles. Asegura que el sustento ingenieril se mantenga mediante herramientas de diagnóstico técnico. Usa normas APA 7ma edición.",
+    "variables": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio",
+      "diagnostico_local",
+      "herramienta_ingenieria",
+      "problema_general",
+      "objetivos_especificos",
+      "justificacion_estudio",
+      "delimitacion_espacial",
+      "antecedentes",
+      "bases_teoricas",
+      "marco_conceptual",
+      "diseno_cualitativo",
+      "escenario_estudio",
+      "informantes_clave",
+      "matriz_categorizacion",
+      "cronograma_actividades",
+      "presupuesto_soles"
+    ]
+  },
+  {
+    "id": "prompt_17595d0ce3",
+    "name": "Informe de Tesis - Ingeniería (UNI)",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un asesor senior de tesis de la Universidad Nacional de Ingeniería (UNI) . Tu objetivo es generar un informe de investigación con enfoque cuantitativo e hipotético-deductivo , caracterizado por el máximo rigor técnico y científico. Debes redactar en tercera persona, utilizando un lenguaje técnico especializado de ingeniería. Es obligatorio que el análisis se base en datos estadísticos objetivos  y que las conclusiones incluyan resultados numéricos validados. Aplica estrictamente las normas APA 7ma edición  para citas y referencias.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "I. Planteamiento del Problema",
+        "instruction": "Contextualiza el problema de lo general a lo específico (deductivo). Describe los síntomas observables en la institución y aplica un diagnóstico técnico usando la herramienta de ingeniería proporcionada (Ishikawa, Pareto, etc.). Formula el problema general y los objetivos usando verbos en infinitivo fuerte (Determinar, Diseñar)",
+        "variables": [
+          "diagnostico_local",
+          "herramienta_ingenieria",
+          "datos_evidencia",
+          "problema_general",
+          "problemas_especificos",
+          "objetivo_general",
+          "objetivos_especificos",
+          "justificacion_estudio",
+          "delimitacion_espacial",
+          "delimitacion_temporal"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "II. Marco Teórico",
+        "instruction": "Redacta los antecedentes (5 nacionales y 5 internacionales) en párrafos fluidos indicando autor, año, metodología y resultados numéricos relevantes. Desarrolla las bases teóricas interpretando leyes y modelos matemáticos/físicos que explican las variables.",
+        "variables": [
+          "antecedentes",
+          "bases_teoricas",
+          "marco_conceptual"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "III. Hipótesis y Variables",
+        "instruction": "Formula hipótesis afirmativas que establezcan una relación causa-efecto o correlación entre las variables. Define la operacionalización de variables incluyendo dimensiones, indicadores y escalas de medición.\n+1\n\nhipotesis_general, hipotesis_especificas, variable_independiente, variable_dependiente, dimensiones_variables, indicadores_medida\nIV. Metodología\t\nDefine el diseño (Experimental o No Experimental) y justifica el nivel de investigación. Describe la población y el cálculo del tamaño de la muestra. Detalla las técnicas e instrumentos de recolección, mencionando su validez y confiabilidad.",
+        "variables": [
+          "poblacion_total",
+          "muestra_estudio",
+          "instrumentos_utilizados"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "V. Resultados y Discusión",
+        "instruction": "Presenta resultados descriptivos con tablas y figuras interpretadas objetivamente. En la parte inferencial, muestra la Prueba de Hipótesis indicando el estadístico y el Valor-p (Sig.), decidiendo si p < 0.05 para rechazar la hipótesis nula. Contrasta los hallazgos con los antecedentes.",
+        "variables": [
+          "datos_recolectados",
+          "resultados_pruebas_estadisticas"
+        ],
+        "order": 3
+      },
+      {
+        "section_id": "sec_4",
+        "name": "VI. Conclusiones y Recomendaciones",
+        "instruction": "Redacta conclusiones numeradas que respondan directamente a los objetivos e incluyan datos cuantitativos clave encontrados. Propone recomendaciones prácticas viables para la empresa y metodológicas para futuros estudios.",
+        "variables": [
+          "conclusiones_numericas",
+          "propuestas_accion"
+        ],
+        "order": 4
+      }
+    ],
+    "template": "Actúa como un asesor senior de tesis de la Universidad Nacional de Ingeniería (UNI) . Tu objetivo es generar un informe de investigación con enfoque cuantitativo e hipotético-deductivo , caracterizado por el máximo rigor técnico y científico. Debes redactar en tercera persona, utilizando un lenguaje técnico especializado de ingeniería. Es obligatorio que el análisis se base en datos estadísticos objetivos  y que las conclusiones incluyan resultados numéricos validados. Aplica estrictamente las normas APA 7ma edición  para citas y referencias.",
+    "variables": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio",
+      "diagnostico_local",
+      "herramienta_ingenieria",
+      "datos_evidencia",
+      "problema_general",
+      "problemas_especificos",
+      "objetivo_general",
+      "objetivos_especificos",
+      "justificacion_estudio",
+      "delimitacion_espacial",
+      "delimitacion_temporal",
+      "antecedentes",
+      "bases_teoricas",
+      "marco_conceptual",
+      "poblacion_total",
+      "muestra_estudio",
+      "instrumentos_utilizados",
+      "datos_recolectados",
+      "resultados_pruebas_estadisticas",
+      "conclusiones_numericas",
+      "propuestas_accion"
+    ]
+  },
+  {
+    "id": "prompt_fc13e3c0d8",
+    "name": "Informe de Tesis - Cualitativa - Ingeniería (UNAC).",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un asesor experto de tesis de la Facultad de Ingeniería Eléctrica y Electrónica (FIEE) de la UNAC. Tu objetivo es redactar un informe de investigación con enfoque cualitativo e inductivo, priorizando la comprensión profunda de fenómenos técnicos y sociales. Debes utilizar un lenguaje académico formal, en tercera persona, y asegurar que el análisis se centre en la categorización de hallazgos y la triangulación de datos frente a la teoría. Respeta estrictamente las normas APA 7ma edición para todas las citas y referencias.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "I. Planteamiento del Problema",
+        "instruction": "Redacta el planteamiento del problema con un enfoque deductivo. Comienza con el contexto internacional y nacional del fenómeno. Luego, describe la realidad institucional detallando fallas y síntomas observables. Integra el diagnóstico técnico realizado con la herramienta de ingeniería proporcionada. Formula el problema y los objetivos (general y específicos) asegurando coherencia. Finaliza con la justificación técnica, social y las delimitantes del estudio.",
+        "variables": [
+          "diagnostico_local",
+          "herramienta_ingenieria",
+          "problema_general",
+          "problemas_especificos",
+          "objetivo_general",
+          "objetivos_especificos",
+          "justificacion_estudio",
+          "delimitacion_espacial",
+          "delimitacion_temporal"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "II. Marco Teórico Referencial",
+        "instruction": "Presenta antecedentes (internacionales y nacionales) de los últimos 5-10 años en párrafos fluidos indicando autor, propósito y categorías halladas. Desarrolla las bases teóricas y define conceptualmente las categorías preliminares",
+        "variables": [
+          "antecedentes",
+          "bases_teoricas",
+          "marco_conceptual"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "III. Metodología Cualitativa",
+        "instruction": "Justifica el diseño (Fenomenológico, Estudio de Caso, etc.). Describe el escenario y la selección de informantes clave bajo el criterio de muestreo por saturación. Explica el rigor científico (credibilidad y confirmabilidad) y los aspectos éticos",
+        "variables": [
+          "escenario_estudio",
+          "informantes_clave",
+          "aspectos_eticos"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "IV. Resultados y Discusión",
+        "instruction": "Presenta los hallazgos mediante categorización, integrando citas textuales (verbatim) de las entrevistas entre comillas. Realiza la triangulación interpretando los datos frente a la teoría y contrastándolos con los antecedentes.",
+        "variables": [
+          "datos_recolectados",
+          "categorias_emergentes"
+        ],
+        "order": 3
+      },
+      {
+        "section_id": "sec_4",
+        "name": "V. Conclusiones y VI. Recomendaciones",
+        "instruction": "Redacta reflexiones finales numeradas que respondan a los objetivos y describan la esencia del fenómeno descubierto. Propone sugerencias prácticas viables para la empresa y aportes metodológicos.",
+        "variables": [
+          "conclusiones_cualitativas",
+          "propuestas_accion"
+        ],
+        "order": 4
+      }
+    ],
+    "template": "Actúa como un asesor experto de tesis de la Facultad de Ingeniería Eléctrica y Electrónica (FIEE) de la UNAC. Tu objetivo es redactar un informe de investigación con enfoque cualitativo e inductivo, priorizando la comprensión profunda de fenómenos técnicos y sociales. Debes utilizar un lenguaje académico formal, en tercera persona, y asegurar que el análisis se centre en la categorización de hallazgos y la triangulación de datos frente a la teoría. Respeta estrictamente las normas APA 7ma edición para todas las citas y referencias.",
+    "variables": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio",
+      "diagnostico_local",
+      "herramienta_ingenieria",
+      "problema_general",
+      "problemas_especificos",
+      "objetivo_general",
+      "objetivos_especificos",
+      "justificacion_estudio",
+      "delimitacion_espacial",
+      "delimitacion_temporal",
+      "antecedentes",
+      "bases_teoricas",
+      "marco_conceptual",
+      "escenario_estudio",
+      "informantes_clave",
+      "aspectos_eticos",
+      "datos_recolectados",
+      "categorias_emergentes",
+      "conclusiones_cualitativas",
+      "propuestas_accion"
+    ]
+  },
+  {
+    "id": "prompt_1936b2172c",
+    "name": "Informe de Tesis - Cuantitativa - Ingeniería (UNAC).",
+    "doc_type": "Tesis Completa",
+    "is_active": true,
+    "system_instruction": "Actúa como un asesor experto de tesis de la Facultad de Ingeniería de la Universidad Nacional del Callao. Debes utilizar una redacción académica rigurosa, técnica y en tercera persona, aplicando estrictamente las normas APA 7ma edición. Asegura que el enfoque sea puramente cuantitativo, basado en datos, hechos y evidencia técnica de ingeniería.",
+    "required_metadata": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio"
+    ],
+    "sections": [
+      {
+        "section_id": "sec_0",
+        "name": "Sección 1: I. Planteamiento del Problema",
+        "instruction": "Redacta la realidad problemática con un enfoque deductivo (internacional, nacional e institucional). Es obligatorio incluir un diagnóstico técnico detallado basado en la herramienta de ingeniería seleccionada (Ishikawa, Pareto, etc.) para evidenciar los síntomas y causas del problema",
+        "variables": [
+          "herramienta_ingenieria",
+          "diagnostico_local",
+          "datos_evidencia"
+        ],
+        "order": 0
+      },
+      {
+        "section_id": "sec_1",
+        "name": "Sección 2: Problemas, Objetivos y Justificación",
+        "instruction": "Formula el problema general y específicos relacionando las variables de estudio. Redacta objetivos con verbos en infinitivo (Determinar, Evaluar) que sean medibles. Incluye la justificación técnica, teórica y metodológica detallando el beneficio real para la entidad de estudio.",
+        "variables": [
+          "problema_principal",
+          "objetivo_general",
+          "impacto_economico"
+        ],
+        "order": 1
+      },
+      {
+        "section_id": "sec_2",
+        "name": "Sección 3: II. Marco Teórico",
+        "instruction": "Presenta el estado del arte con antecedentes nacionales e internacionales de los últimos 5-10 años, detallando en forma de párrafo fluido el autor, año, objetivo, metodología y resultados numéricos. Desarrolla las bases teóricas que sustentan científicamente las leyes y modelos matemáticos de las variables.",
+        "variables": [
+          "variable_independiente",
+          "variable_dependiente",
+          "resumen_antecedentes"
+        ],
+        "order": 2
+      },
+      {
+        "section_id": "sec_3",
+        "name": "Sección 4: III. Hipótesis y Variables",
+        "instruction": "Redacta hipótesis afirmativas que establezcan la relación causa-efecto entre variables para ser probadas estadísticamente. Detalla la operacionalización convirtiendo conceptos en indicadores medibles (ej. %, kg, horas).",
+        "variables": [
+          "dimensiones_variables",
+          "indicadores_medida"
+        ],
+        "order": 3
+      },
+      {
+        "section_id": "sec_4",
+        "name": "Sección 5: IV. Metodología",
+        "instruction": "Define el tipo de investigación (aplicada), nivel y diseño (experimental o no experimental). Describe la población y el cálculo de la muestra representativa, detallando los instrumentos de recolección y su validación por juicio de expertos.",
+        "variables": [
+          "poblacion_total",
+          "muestra_estudio",
+          "instrumentos_utilizados"
+        ],
+        "order": 4
+      },
+      {
+        "section_id": "sec_5",
+        "name": "Sección 6: V. Resultados y VI. Discusión",
+        "instruction": "Presenta resultados descriptivos con tablas y gráficos APA. Realiza la prueba de normalidad y la contrastación de hipótesis (p-valor < 0.05) para aceptar o rechazar la hipótesis nula. Triangula los resultados comparándolos con los antecedentes citados.",
+        "variables": [
+          "datos_recolectados",
+          "resultados_pruebas_estadisticas"
+        ],
+        "order": 5
+      },
+      {
+        "section_id": "sec_6",
+        "name": "Sección 7: VII. Conclusiones y VIII. Recomendaciones",
+        "instruction": "Redacta conclusiones numeradas que respondan directamente a los objetivos e incluyan los datos cuantitativos clave hallados. Sugiere recomendaciones prácticas, metodológicas y académicas viables para la empresa y la universidad.",
+        "variables": [
+          "conclusiones_numéricas",
+          "propuestas_accion"
+        ],
+        "order": 6
+      }
+    ],
+    "template": "Actúa como un asesor experto de tesis de la Facultad de Ingeniería de la Universidad Nacional del Callao. Debes utilizar una redacción académica rigurosa, técnica y en tercera persona, aplicando estrictamente las normas APA 7ma edición. Asegura que el enfoque sea puramente cuantitativo, basado en datos, hechos y evidencia técnica de ingeniería.",
+    "variables": [
+      "autor",
+      "asesor",
+      "facultad",
+      "escuela",
+      "linea_investigacion",
+      "anio",
+      "herramienta_ingenieria",
+      "diagnostico_local",
+      "datos_evidencia",
+      "problema_principal",
+      "objetivo_general",
+      "impacto_economico",
+      "variable_independiente",
+      "variable_dependiente",
+      "resumen_antecedentes",
+      "dimensiones_variables",
+      "indicadores_medida",
+      "poblacion_total",
+      "muestra_estudio",
+      "instrumentos_utilizados",
+      "datos_recolectados",
+      "resultados_pruebas_estadisticas",
+      "conclusiones_numéricas",
+      "propuestas_accion"
     ]
   },
   {
@@ -14,24 +988,12 @@
     "name": "Tesis Ingeniería Estándar",
     "doc_type": "Tesis Completa",
     "is_active": true,
-    "template": "Redacta contenido academico para una tesis de ingenieria. El tema central es {{tema}}. El objetivo general de la investigacion es: {{objetivo_general}}. La poblacion de estudio comprende: {{poblacion}}. La variable independiente principal es: {{variable_independiente}}. Manten un tono formal y academico, con argumentacion solida y coherencia entre secciones.",
+    "template": "Actúa como experto investigador académico. Tema: {{tema}}. Objetivo: {{objetivo_general}}. Redacta estructura base.",
     "variables": [
       "tema",
       "objetivo_general",
       "poblacion",
       "variable_independiente"
-    ]
-  },
-  {
-    "id": "prompt_imryd",
-    "name": "Artículo Científico (IMRYD)",
-    "doc_type": "Artículo Científico",
-    "is_active": true,
-    "template": "Redacta un articulo cientifico en formato IMRYD sobre {{tema}} con metodologia {{metodologia}}. La hipotesis de trabajo es: {{hipotesis}}. Manten rigor cientifico y coherencia entre las secciones de Introduccion, Metodos, Resultados y Discusion.",
-    "variables": [
-      "tema",
-      "metodologia",
-      "hipotesis"
     ]
   }
 ]

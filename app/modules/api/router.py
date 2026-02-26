@@ -827,16 +827,28 @@ def list_prompts():
     return prompts.list_prompts()
 
 
-@router.post("/prompts")
+@router.post("/prompts", status_code=201)
 def create_prompt(payload: PromptIn):
-    return prompts.create_prompt(payload.model_dump())
+    # Convertimos el objeto a diccionario para que el servicio guarde TODO
+    data = payload.model_dump()
+
+    # Aseguramos compatibilidad: si no hay template, usamos system_instruction
+    if not data.get("template") and data.get("system_instruction"):
+        data["template"] = data["system_instruction"]
+
+    return prompts.create_prompt(data)
 
 
 @router.put("/prompts/{prompt_id}")
 def update_prompt(prompt_id: str, payload: PromptIn):
-    updated = prompts.update_prompt(prompt_id, payload.model_dump())
+    data = payload.model_dump()
+
+    if not data.get("template") and data.get("system_instruction"):
+        data["template"] = data["system_instruction"]
+
+    updated = prompts.update_prompt(prompt_id, data)
     if not updated:
-        raise HTTPException(status_code=404, detail="Prompt not found")
+        raise HTTPException(status_code=404, detail="Prompt no encontrado")
     return updated
 
 
@@ -868,20 +880,29 @@ def create_project_draft(payload: Optional[ProjectDraftIn] = None):
     if payload.title and not str(draft_values.get("title") or "").strip():
         draft_values["title"] = str(payload.title).strip()
 
-    project = projects.create_project(
-        {
-            "title": payload.title,
-            "prompt_id": payload.prompt_id,
-            "prompt_name": prompt.get("name") if prompt else None,
-            "prompt_template": prompt.get("template") if prompt else None,
-            "format_id": format_id,
-            "format_name": payload.format_name or format_id,
-            "format_version": payload.format_version,
-            "variables": draft_values,
-            "values": draft_values,
-            "status": "draft",
-        }
-    )
+    # --- Guardamos las secciones y la instrucción maestra en el borrador ---
+    project_data = {
+        "title": payload.title,
+        "prompt_id": payload.prompt_id,
+        "prompt_name": prompt.get("name") if prompt else None,
+
+        # Guardamos la estructura nueva para que el generador sepa qué hacer
+        "system_instruction": prompt.get("system_instruction") if prompt else None,
+        "sections": prompt.get("sections") if prompt else [],
+
+        # Mantenemos compatibilidad con versiones viejas
+        "prompt_template": prompt.get("template") if prompt else None,
+
+        "format_id": format_id,
+        "format_name": payload.format_name or format_id,
+        "format_version": payload.format_version,
+        "variables": draft_values,
+        "values": draft_values,
+        "status": "draft",
+    }
+
+    project = projects.create_project(project_data)
+
     return {
         **project,
         "id": project["id"],
@@ -947,16 +968,26 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
     prompt = prompts.get_prompt(prompt_id) if prompt_id else None
     variables = raw.get("variables") if "variables" in raw else None
 
+    # --- Actualizamos secciones si cambia el prompt ---
     update_payload: Dict[str, Any] = {
         "title": raw.get("title"),
         "prompt_id": raw.get("prompt_id"),
         "prompt_name": prompt.get("name") if prompt else raw.get("prompt_name"),
+
+        # Si hay nuevo prompt, traemos sus secciones nuevas
+        "system_instruction": prompt.get("system_instruction") if prompt else None,
+        "sections": prompt.get("sections") if prompt else None,
+
         "prompt_template": prompt.get("template") if prompt else raw.get("prompt_template"),
         "format_id": raw.get("format_id"),
         "format_name": raw.get("format_name"),
         "format_version": raw.get("format_version"),
         "status": raw.get("status"),
     }
+
+    # Limpieza de valores nulos
+    update_payload = {k: v for k, v in update_payload.items() if v is not None}
+
     if variables is not None:
         merged_values = dict(variables)
         raw_title = str(raw.get("title") or "").strip()
