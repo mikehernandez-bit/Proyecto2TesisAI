@@ -885,14 +885,11 @@ def create_project_draft(payload: Optional[ProjectDraftIn] = None):
         "title": payload.title,
         "prompt_id": payload.prompt_id,
         "prompt_name": prompt.get("name") if prompt else None,
-
         # Guardamos la estructura nueva para que el generador sepa qué hacer
         "system_instruction": prompt.get("system_instruction") if prompt else None,
         "sections": prompt.get("sections") if prompt else [],
-
         # Mantenemos compatibilidad con versiones viejas
         "prompt_template": prompt.get("template") if prompt else None,
-
         "format_id": format_id,
         "format_name": payload.format_name or format_id,
         "format_version": payload.format_version,
@@ -973,11 +970,9 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
         "title": raw.get("title"),
         "prompt_id": raw.get("prompt_id"),
         "prompt_name": prompt.get("name") if prompt else raw.get("prompt_name"),
-
         # Si hay nuevo prompt, traemos sus secciones nuevas
         "system_instruction": prompt.get("system_instruction") if prompt else None,
         "sections": prompt.get("sections") if prompt else None,
-
         "prompt_template": prompt.get("template") if prompt else raw.get("prompt_template"),
         "format_id": raw.get("format_id"),
         "format_name": raw.get("format_name"),
