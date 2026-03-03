@@ -260,7 +260,8 @@
               <span class="text-sm font-medium animate-pulse">Preparando selección IA...</span>
             </div>
 
-            <button id="btn-step3-next-provider" type="button" onclick="TesisAI.goToProviderStep()"
+            <button id="btn-step3-next-provider" type="button"
+              onclick="TesisAI.goToProviderStep().catch(function(e){ console.error('goToProviderStep error:', e); var el=document.getElementById('step3-error'); if(el){el.textContent=e.message||'Error al avanzar';el.classList.remove('hidden');} })"
               class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
               <i class="fa-solid fa-arrow-right mr-2"></i> Siguiente: Seleccionar IA
             </button>

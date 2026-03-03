@@ -12,5 +12,27 @@ tmpclaude-*-cwd
 .agent/
 .agents/
 .claude/
+.gemini/
 data/provider_selection.json
 data/projects.json.bak
+
+# Logs y archivos temporales
+*.log
+startup_log*.txt
+test_output*.txt
+count_sections.py
+
+# Entorno
+.env
+.env.*
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

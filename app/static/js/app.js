@@ -427,51 +427,219 @@ const TesisAI = (() => {
 
   function renderDynamicForm() {
     const container = $("dynamic-form");
+    if (!container) return;
     container.innerHTML = "";
 
     if (!selectedPrompt) {
-      container.innerHTML = '<div class="text-sm text-gray-500">Selecciona un prompt primero.</div>';
+      container.innerHTML = '<div class="text-sm text-gray-500 text-center py-10 font-medium font-inter">Selecciona un formato para activar la guía.</div>';
       return;
     }
+
+    // 1. DICCIONARIO DE AYUDA ACADÉMICA
+    const academicHelp = {
+      "diagnostico_local": "Describe fallas, demoras o síntomas detectados en la empresa. Es obligatorio usar herramientas como Ishikawa o Pareto para el sustento técnico.",
+      "problema_principal": "Formula la gran pregunta de investigación: ¿De qué manera la propuesta X mejora la situación Y?",
+      "autor": "Tus nombres y apellidos completos tal como deben aparecer en la carátula oficial.",
+      "asesor": "Nombre del mentor asignado por la facultad. Comparte la responsabilidad de la autenticidad del trabajo.",
+      "facultad": "Nombre completo de la facultad (ej: Facultad de Ingeniería Eléctrica y Electrónica).",
+      "escuela": "Tu carrera profesional específica dentro de la UNAC.",
+      "linea_investigacion": "Debe ser una de las líneas oficiales aprobadas por tu Escuela Profesional.",
+      "anio": "El año de sustentación o presentación del informe.",
+      "herramienta_ingenieria": "Es obligatorio según el reglamento: utiliza un Diagrama de Ishikawa (Causa-Efecto), Pareto (80/20), Árbol de problemas o Matriz de Vester para diagnosticar técnicamente el origen del problema.",
+      "datos_evidencia": "Presenta el sustento numérico real: estadísticas de fallas, reportes de mermas, horas de parada de máquina o costos actuales por inactividad.",
+      "objetivo_general": "Define tu meta final. Debe iniciar con un verbo fuerte en infinitivo (Determinar, Diseñar, Implementar) y responder directamente a tu pregunta de investigación principal.",
+      "impacto_economico": "¿Cuánto dinero ahorrará la empresa o cuál es el beneficio costo-beneficio de tu propuesta?",
+      "variable_independiente": "Es tu propuesta o 'el remedio': el sistema, software, algoritmo o plan de mantenimiento que vas a aplicar.",
+      "variable_dependiente": "Es el 'paciente' que quieres curar: el indicador técnico que se verá afectado positivamente por tu propuesta.",
+      "resumen_antecedentes": "Resume investigaciones indexadas de los últimos 5 a 10 años. Menciona: Autor, Año, Objetivo, Metodología y resultados numéricos.",
+      "dimensiones_variables": "Son los grandes componentes en los que divides tus variables para poder medirlas.",
+      "indicadores_medida": "Es la unidad de medida exacta y observable de tus dimensiones. Ejemplos: Porcentaje (%), Horas (h), Soles (S/).",
+      "poblacion_total": "El universo completo de elementos con características comunes para tu estudio.",
+      "muestra_estudio": "Es la parte representativa que vas a medir realmente.",
+      "instrumentos_utilizados": "Son tus herramientas de captura: cuestionarios validados, fichas de registro, sensores calibrados.",
+      "datos_recolectados": "Ingresa aquí los resultados de tus mediciones o el resumen estadístico descriptivo.",
+      "resultados_pruebas_estadisticas": "Ingresa el p-valor (Sig.) obtenido en SPSS o Minitab. Si es menor a 0.05, tu hipótesis ha sido demostrada.",
+      "conclusiones_numéricas": "Responde a tus objetivos con hallazgos directos. No uses opiniones, usa cifras reales.",
+      "propuestas_accion": "Acciones prácticas y viables dirigidas a la empresa.",
+      "problema_general": "Es la interrogante maestra que busca comprender el fenómeno y las categorías centrales de tu estudio. Debe ser una pregunta abierta que invite a profundizar en significados.",
+      "problemas_especificos": "Son las sub-preguntas que desglosan tus categorías preliminares para analizar procesos o vivencias específicas.",
+      "objetivos_especificos": "Indica los pasos para analizar cada categoría. ¡Importante! Debes iniciar con verbos como: Comprender, Interpretar, Analizar o Describir.",
+      "justificacion_estudio": "Explica la utilidad de tu tesis: ¿Cómo ayuda a la empresa a entender sus procesos y qué nuevos conceptos aporta?",
+      "delimitacion_espacial": "Indica el lugar exacto (empresa, área o institución) donde realizarás la toma de datos.",
+      "delimitacion_temporal": "Define con claridad el periodo de tiempo (meses o años) que abarca tu recolección de información.",
+      "antecedentes": "Resume investigaciones similares de los últimos 5-10 años. Menciona autor, año, diseño y hallazgos.",
+      "bases_teoricas": "Es el sustento científico de tu tesis. Analiza las teorías y modelos que explican tus categorías.",
+      "marco_conceptual": "Define conceptualmente tus categorías y subcategorías basándote en la literatura revisada.",
+      "escenario_estudio": "Describe el ambiente físico y social donde realizarás el estudio.",
+      "informantes_clave": "Identifica a las personas que te darán la información y menciona el 'muestreo por saturación'.",
+      "aspectos_eticos": "Declara el respeto al anonimato, la justicia y el uso de consentimientos informados.",
+      "categorias_emergentes": "Presenta los grandes hallazgos encontrados. Incluye fragmentos de entrevistas (citas textuales).",
+      "conclusiones_cualitativas": "Redacta reflexiones finales sobre las comprensiones logradas.",
+      "conclusiones_numericas": "Son las respuestas directas y numeradas a tus objetivos.",
+      "diseno_cualitativo": "Define si tu investigación es Fenomenológica, Etnográfica, de Teoría Fundamentada o un Estudio de Caso.",
+      "matriz_categorizacion": "Es la tabla que organiza tus Categorías Apriorísticas y sus componentes (Subcategorías).",
+      "cronograma_actividades": "Muestra la secuencia de todos los pasos de tu investigación.",
+      "presupuesto_soles": "Presenta el detalle de los recursos humanos, materiales y financieros.",
+      "delimitacion_teorica": "Especifica las teorías, normas técnicas (ISO, IEEE, ANSI) o modelos de ingeniería.",
+      "hipotesis_general": "Es la respuesta tentativa y probable a tu problema principal.",
+      "hipotesis_especificas": "Son las respuestas probables a cada uno de tus problemas específicos.",
+      "descripcion_problema": "Es el pilar de tu tesis UNI. Debes plantear el problema técnico a resolver de manera detallada, sentando las bases para tu hipótesis técnica.",
+      "justificacion_cientifica": "Prioridad técnica: Describe el problema como un análisis de causa y efecto. Debe señalar por qué tu investigación es relevante académica y económicamente.",
+      "metas_cuantitativas": "Obligatorio en objetivos: Indica resultados medibles que esperas alcanzar a corto, mediano y largo plazo.",
+      "resumen_proyecto": "UNI: Describe brevemente las características generales del proyecto. No incluyas objetivos, metas ni bibliografía aquí.",
+      "hipotesis_trabajo": "Propuesta técnica lógica que responde al problema planteado.",
+      "infraestructura_requerida": "Descripción de los laboratorios, talleres o instalaciones físicas necesarias.",
+      "metodologia_etapas": "Pasos secuenciales del proyecto. La UNI exige distinguir entre las etapas de fundamentación teórica y las experimentales.",
+      "procedimientos_tecnicos": "Detalle de los métodos, algoritmos o protocolos de ingeniería que aplicarás.",
+      "usuarios_finales": "Identifica a las personas o sectores que usarán el producto de tu investigación.",
+      "productos_tangibles": "Resultados físicos o digitales que entregarás: patentes, prototipos, hardware o software.",
+      "recursos_humanos": "Lista del personal técnico involucrado, detallando su calificación y función.",
+      "recursos_materiales": "Instrumentos, equipos y materiales necesarios, indicando especificaciones técnicas.",
+      "cronograma_detallado": "Calendario de actividades que debe incluir las fechas de entrega de informes de avance.",
+      "partidas_presupuestales": "Clasificación de gastos según el formato fiscal: subvenciones, bienes, servicios, equipos.",
+      "calendario_gastos": "Cronograma financiero que especifica en qué periodos se realizará cada desembolso.",
+      "antecedentes_cientificos": "UNI: Describe la evolución del conocimiento técnico y el estado del arte de tu tema.",
+      "carrera": "Escribe el nombre de tu especialidad tal como figura en los registros oficiales.",
+      "programa_maestria": "Escribe el nombre exacto de tu mención o programa.",
+      "unidad_posgrado": "Nombre de la Unidad de Posgrado de tu facultad correspondiente.",
+      "grado_academico": "Grado al que optas (ej: Maestro en Ciencias de la Ingeniería).",
+      "codigo_ocde": "Código y descripción según la clasificación OCDE para áreas de ciencia y tecnología.",
+      "propuesta_solucion": "Menciona la mejora técnica o el modelo interpretativo que propones para el problema.",
+      "justificacion_importancia": "Sustenta la relevancia teórica, práctica y social. Indica quiénes son los beneficiarios.",
+      "limitaciones_estudio": "Indica factores (tiempo, acceso a datos) que restringen el estudio.",
+      "antecedentes_internacionales": "Resumen exhaustivo de investigaciones extranjeras (autor, año, metodología y hallazgos).",
+      "antecedentes_nacionales": "Investigaciones peruanas previas. Detalla qué aportan a tu tesis actual.",
+      "terminos_basicos": "Glosario de conceptos técnicos y categorías operativas alineadas al contexto de tu investigación.",
+      "participantes_muestreo": "Describe a tus informantes clave, criterios de selección y sustenta el tamaño de muestra.",
+      "instrumentos_recoleccion": "Detalla las técnicas (entrevista, focus group) y herramientas, incluyendo su validez.",
+      "procedimiento_analisis": "Explica el paso a paso: inmersión en campo, transcripción y procesamiento de datos.",
+      "rigor_cientifico": "Explica cómo garantizas la credibilidad, transferibilidad, dependencia y confirmabilidad.",
+      "metodo_analisis_datos": "Enfoque de análisis (temático, contenido) y uso de software como Atlas.ti o NVivo.",
+      "aspectos_eticos_investigacion": "Detalla el uso de consentimiento informado, confidencialidad y aprobación institucional.",
+      "presentacion_resultados": "Hallazgos ordenados por categorías con evidencias (citas textuales) y figuras numeradas.",
+      "discusion_hallazgos": "Interpreta tus resultados contrastándolos con la literatura y antecedentes revisados.",
+      "conclusiones_estudio": "Sentencias directas y numeradas que responden a los objetivos e hipótesis planteadas.",
+      "recomendaciones_estudio": "Sugerencias aplicables para la institución o sector y nuevas líneas de investigación.",
+      "orcid_asesor": "Código ORCID de 16 dígitos que identifica a tu asesor como investigador a nivel internacional.",
+      "lugar_ejecucion": "Nombre de la empresa, institución o área geográfica donde realizarás la recolección de datos.",
+      "unidad_analisis": "Es el objeto, proceso, persona o grupo del cual vas a extraer la información para tu estudio.",
+      "mencion": "Nombre exacto de la especialidad del programa de posgrado.",
+      "introduccion_tesis": "Visión general que contextualiza el tema de investigación y describe la estructura del documento.",
+      "metodologia_posgrado": "Descripción técnica de la estrategia de investigación, incluyendo técnicas e instrumentos.",
+      "definicion_terminos": "Glosario especializado que define los conceptos técnicos clave.",
+      "analisis_resultados": "Presentación y examen minucioso de los datos recolectados y resultados técnicos.",
+      "contrastacion_hipotesis": "Proceso técnico y estadístico donde se valida o rechaza la hipótesis de investigación.",
+      "conclusiones_posgrado": "Sentencias directas y numeradas que sintetizan los hallazgos más relevantes.",
+      "recomendaciones_posgrado": "Propuestas de acción técnica para el sector productivo o nuevas líneas de investigación."
+    };
 
     const vars = Array.isArray(selectedPrompt.variables) ? selectedPrompt.variables : [];
-    if (!vars.length) {
-      container.innerHTML = '<div class="text-sm text-gray-500">Este prompt no tiene variables.</div>';
-      return;
+
+    // 2. FILTRADO: REQUERIDOS (Pilares) VS COMPLEMENTARIOS
+    const mainKeys = [
+      "diagnostico_local",
+      "problema_principal",
+      "problema_general",
+      "descripcion_problema",
+      "justificacion_cientifica",
+      "resumen_proyecto"
+    ];
+
+    const cleanVars = vars.map(v => v.trim().toLowerCase());
+    const mainVars = cleanVars.filter(v => mainKeys.includes(v));
+    const secondaryVars = cleanVars.filter(v => !mainKeys.includes(v));
+
+    // --- SECCIÓN 1: PILARES MAESTROS ---
+    const sectionRequired = document.createElement("div");
+    sectionRequired.className = "mb-8 space-y-6";
+    sectionRequired.innerHTML = `
+        <div class="flex items-center gap-3 mb-6">
+            <div class="h-6 w-1 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"></div>
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">1. Pilares de la Investigación</h3>
+        </div>
+    `;
+    container.appendChild(sectionRequired);
+
+    // BLOQUE DE TÍTULO
+    const titleBlock = document.createElement("div");
+    titleBlock.className = "p-6 bg-blue-50 rounded-3xl border-2 border-blue-100 shadow-sm mb-6 group transition-all";
+    titleBlock.innerHTML = `
+        <div class="flex justify-between items-center mb-3 px-1">
+            <label class="block text-[10px] font-black text-blue-900 uppercase tracking-widest">Título del Proyecto</label>
+            <span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">OBLIGATORIO</span>
+        </div>
+        <input id="var_title" type="text" class="w-full p-4 border-2 border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none bg-white font-bold text-slate-800 shadow-inner" placeholder="Ej: Implementación de un sistema para mejorar...">
+        <p class="mt-3 text-[10px] text-slate-400 italic group-hover:text-blue-700 group-focus-within:text-blue-700 transition-all px-1">
+            <i class="fa-solid fa-lightbulb mr-1"></i> Fórmula: [Solución] + [Variable/Problema] + [Lugar de estudio].
+        </p>
+    `;
+    sectionRequired.appendChild(titleBlock);
+
+    // Renderizar Pilares
+    mainVars.forEach(v => renderField(v, sectionRequired, true));
+
+    // --- SECCIÓN 2: DATOS COMPLEMENTARIOS (COLAPSABLE) ---
+    if (secondaryVars.length > 0) {
+      const accordionWrapper = document.createElement("div");
+      accordionWrapper.className = "mt-10 border-t border-slate-100 pt-6";
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "flex items-center justify-between w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all border border-slate-200 group";
+      toggleBtn.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm text-slate-400 group-hover:text-blue-600 transition-colors">
+                    <i class="fa-solid fa-folder-plus text-xs"></i>
+                </div>
+                <div class="text-left">
+                    <span class="block text-[11px] font-black text-slate-700 uppercase tracking-tight">DATOS COMPLEMENTARIOS</span>
+                    <span class="block text-[9px] text-slate-500 font-medium">Información opcional para la carátula oficial.</span>
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-hover:translate-y-1 transition-all mr-2"></i>
+        `;
+
+      const optionalContent = document.createElement("div");
+      optionalContent.className = "hidden mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 px-2";
+
+      toggleBtn.onclick = (e) => {
+        e.preventDefault();
+        optionalContent.classList.toggle("hidden");
+        toggleBtn.querySelector(".fa-chevron-down").classList.toggle("rotate-180");
+      };
+
+      secondaryVars.forEach(v => renderField(v, optionalContent, false));
+
+      accordionWrapper.appendChild(toggleBtn);
+      accordionWrapper.appendChild(optionalContent);
+      container.appendChild(accordionWrapper);
     }
 
-    const titleBlock = document.createElement("div");
-    titleBlock.innerHTML = `
-      <label class="block text-sm font-medium text-slate-700 mb-1">Titulo (opcional)</label>
-      <input id="var_title" type="text" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-        placeholder="Ej: Implementacion de IA en procesos logisticos">
-    `;
-    container.appendChild(titleBlock);
-
-    vars.forEach((variable) => {
+    function renderField(variable, target, isMain) {
       const id = "var_" + variable;
-      const label = variable.replaceAll("_", " ");
+      const cleanLabel = variable.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      const helpText = academicHelp[variable] || `Dato requerido de ${cleanLabel.toLowerCase()} para el rigor técnico.`;
+      const isLong = /(diagnostico|problema|resumen|conclusiones|propuestas|objetivo|metodologia|hipotesis|justificacion|antecedentes|bases_teoricas|marco|descripcion|introduccion|analisis|contrastacion|discusion|resultados)/i.test(variable);
+
       const block = document.createElement("div");
-      const useTextarea = /(objetivo|resumen|metodologia|hipotesis|problema|justificacion)/i.test(variable);
-
-      if (useTextarea) {
-        block.innerHTML = `
-          <label class="block text-sm font-medium text-slate-700 mb-1">${escapeHtml(label)} ({{${escapeHtml(variable)}}})</label>
-          <textarea id="${escapeHtml(id)}" rows="3"
-            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="Escribe ${escapeHtml(label)}"></textarea>
+      block.className = `group ${isMain ? 'mb-8' : 'mb-2'}`;
+      block.innerHTML = `
+          <div class="flex justify-between items-center mb-2 px-1">
+            <label class="block text-[10px] font-bold ${isMain ? 'text-slate-700' : 'text-slate-400'} uppercase tracking-widest group-hover:text-blue-600 transition-colors">${cleanLabel}</label>
+            ${isMain ? '<span class="text-[8px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-black uppercase tracking-tighter">Prioridad</span>' : ''}
+          </div>
+          <div class="relative">
+            ${isLong
+          ? `<textarea id="${id}" rows="3" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Redacta aquí..."></textarea>`
+          : `<input id="${id}" type="text" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Ingresa el dato...">`
+        }
+          </div>
+          <p class="mt-2 text-[10px] text-slate-400 italic flex items-start gap-1.5 px-1 font-medium leading-tight group-hover:text-blue-700 group-focus-within:text-blue-800 transition-all duration-300">
+            <i class="fa-solid fa-graduation-cap mt-0.5 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all"></i>
+            <span>${helpText}</span>
+          </p>
         `;
-      } else {
-        block.innerHTML = `
-          <label class="block text-sm font-medium text-slate-700 mb-1">${escapeHtml(label)} ({{${escapeHtml(variable)}}})</label>
-          <input id="${escapeHtml(id)}" type="text"
-            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="Escribe ${escapeHtml(label)}">
-        `;
-      }
-
-      container.appendChild(block);
-    });
+      target.appendChild(block);
+    }
   }
 
   function collectWizardPayload() {

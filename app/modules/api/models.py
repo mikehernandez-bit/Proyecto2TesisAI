@@ -3,12 +3,35 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+# --- Estructura de cada sección (bloque) de un prompt ---
+class PromptSection(BaseModel):
+    section_id: str = Field(..., description="ID único interno (ej: 'sec_123')")
+    name: str = Field(..., description="Nombre visible en el formulario (ej: '1.1 Realidad Problemática')")
+    instruction: str = Field("", description="El prompt específico para esta sección")
+    variables: List[str] = Field(default_factory=list, description="Variables específicas de esta sección")
+    order: int = Field(0, description="Para ordenar las secciones")
+
+
+# --- Modelo de Prompt con soporte para secciones dinámicas ---
 class PromptIn(BaseModel):
     name: str = Field(..., min_length=1)
     doc_type: str = "Tesis Completa"
     is_active: bool = True
-    template: str = ""
+
+    # Instrucción Maestra (Tono, estilo, normas APA, etc.)
+    system_instruction: str = Field("", description="Instrucciones globales de estilo")
+
+    # Metadatos fijos (Autor, Escuela, Asesor)
+    required_metadata: List[str] = Field(default_factory=list, description="Campos fijos de carátula")
+
+    # Lista de secciones dinámicas
+    sections: List[PromptSection] = Field(default_factory=list, description="Lista de bloques de la tesis")
+
+    # Mantenemos 'variables' como la suma de todo (para compatibilidad con el Wizard Paso 3)
     variables: List[str] = []
+
+    # Mantenemos 'template' por compatibilidad con versiones anteriores (legacy)
+    template: str = ""
 
 
 class ProjectGenerateIn(BaseModel):
@@ -27,6 +50,10 @@ class ProjectDraftIn(BaseModel):
     variables: Dict[str, Any] = Field(default_factory=dict)
     format_name: Optional[str] = None
     format_version: Optional[str] = None
+
+    # Snapshot del prompt en el borrador
+    system_instruction: Optional[str] = None
+    sections: Optional[List[PromptSection]] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -61,6 +88,10 @@ class ProjectUpdateIn(BaseModel):
     format_name: Optional[str] = None
     format_version: Optional[str] = None
     status: Optional[str] = None
+
+    # Permitir actualizar secciones del borrador
+    system_instruction: Optional[str] = None
+    sections: Optional[List[PromptSection]] = None
 
     @model_validator(mode="before")
     @classmethod

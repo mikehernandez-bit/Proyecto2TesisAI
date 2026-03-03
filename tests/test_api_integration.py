@@ -284,7 +284,7 @@ class TestPromptsEndpoints:
             "active": True,
         }
         r = client.post("/api/prompts", json=payload)
-        assert r.status_code == 200
+        assert r.status_code == 201
         created = r.json()
         assert "id" in created
         prompt_id = created["id"]
