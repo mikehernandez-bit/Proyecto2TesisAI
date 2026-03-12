@@ -51,6 +51,9 @@ from app.modules.api.models import (
     ProviderSelectIn,
 )
 
+from app.core.services.definition_compiler import compile_definition_to_section_index
+from app.core.services.ai.validator import validate_thesis_quality # <--- NUEVO
+
 _logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -1513,6 +1516,39 @@ async def _ai_generation_job(
         )
         projects.update_progress(project_id, provider=provider)
 
+        # =====================================================================
+        # NUEVO: EJECUCIÓN DEL CONTROL DE CALIDAD ACADÉMICA Y EVIDENCIAS
+        # =====================================================================
+        _emit_project_trace(
+            project_id,
+            step="generation.validation.start",
+            status="running",
+            title="Iniciando control de calidad (Longitud, Completitud, Títulos)",
+        )
+        
+        # Obtenemos la estructura original oficial (los 6 formatos)
+        expected_index = compile_definition_to_section_index(format_detail_payload.get("definition", {})) if isinstance(format_detail_payload, dict) else []
+        
+        # Validamos
+        is_valid, evidencias = validate_thesis_quality(ai_result, expected_index, format_id)
+        
+        # Emitimos cada evidencia como un "Trace" para que se vea en el Frontend
+        for evidencia in evidencias:
+            trace_status = "error" if "❌" in evidencia else ("warn" if "⚠️" in evidencia else "info")
+            _emit_project_trace(
+                project_id,
+                step="generation.validation.rule",
+                status=trace_status,
+                title="Evidencia de Calidad",
+                detail=evidencia,
+            )
+            
+        # Guardamos las evidencias en el resultado de la IA para persistencia en BD
+        ai_result["quality_validation"] = {
+            "is_valid": is_valid,
+            "evidences": evidencias
+        }
+        # =====================================================================
         run_incidents = ai_service.get_run_incidents()
         if run_incidents:
             for incident in run_incidents:
