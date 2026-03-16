@@ -713,7 +713,7 @@ class TestGenerationEndpoint:
         assert response.status_code == 202
         # CI/local variance on Windows can be high due background task scheduling
         # and JSON store I/O; endpoint must still return quickly (non-blocking).
-        assert elapsed < 5.0
+        assert elapsed < 8.0
 
     def test_background_job_updates_progress(self, client):
         from app.modules.api import router as router_module

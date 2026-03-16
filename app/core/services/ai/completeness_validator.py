@@ -124,8 +124,7 @@ def _structured_content_looks_placeholder_only(content: list[Any]) -> str:
             caption = str(item.get("caption") or item.get("titulo") or "").strip()
             normalized = _normalize_label(caption)
             if normalized and any(
-                marker in normalized
-                for marker in ("figura de ejemplo", "diagrama ilustrativo", "arbol de problemas")
+                marker in normalized for marker in ("figura de ejemplo", "diagrama ilustrativo", "arbol de problemas")
             ):
                 return caption[:120]
     return ""
@@ -322,8 +321,7 @@ def _supporting_excerpt(
 
 def _academic_subject(values: Dict[str, Any] | None) -> str:
     return (
-        _first_nonempty(values, ("tema", "title", "project_title", "projectTitle"))
-        or "el objeto de estudio planteado"
+        _first_nonempty(values, ("tema", "title", "project_title", "projectTitle")) or "el objeto de estudio planteado"
     )
 
 
@@ -351,9 +349,11 @@ def _build_discussion_fallback(
 
     first = (
         f"La discusion de resultados del presente estudio interpreta los hallazgos vinculados con {subject}. "
-        f"En relacion con el objetivo general de {objective or 'desarrollar un analisis consistente del problema investigado'}, "
-        "la evidencia reunida permite sostener que los resultados no deben entenderse como datos aislados, sino como indicadores "
-        "que muestran tendencias tecnicas, operativas o metodologicas coherentes con el problema inicialmente formulado. "
+        "En relacion con el objetivo general de "
+        f"{objective or 'desarrollar un analisis consistente del problema investigado'}, "
+        "la evidencia reunida permite sostener que los resultados no deben entenderse "
+        "como datos aislados, sino como indicadores que muestran tendencias tecnicas, "
+        "operativas o metodologicas coherentes con el problema inicialmente formulado. "
     )
     if results_excerpt:
         first += (
@@ -363,25 +363,31 @@ def _build_discussion_fallback(
         )
     else:
         first += (
-            "La lectura integrada de los resultados permite reconocer patrones, relaciones y puntos criticos que fortalecen la "
+            "La lectura integrada de los resultados permite reconocer patrones, relaciones "
+            "y puntos criticos que fortalecen la "
             "comprension del fenomeno estudiado y orientan la toma de decisiones derivada del trabajo academico."
         )
 
     second = (
-        "Asimismo, la discusion exige contrastar dichos hallazgos con los antecedentes y fundamentos teoricos revisados, con el fin "
+        "Asimismo, la discusion exige contrastar dichos hallazgos con los antecedentes "
+        "y fundamentos teoricos revisados, con el fin "
         "de determinar coincidencias, diferencias y aportes del estudio. "
     )
     if antecedent_excerpt:
         second += (
-            f"En ese sentido, la literatura considerada destaca que {antecedent_excerpt}, lo cual ofrece un marco util para explicar "
-            "por que los resultados del proyecto mantienen coherencia con enfoques previos y, al mismo tiempo, aportan una mirada "
-            "contextualizada al escenario analizado. En conjunto, esta contrastacion respalda la validez academica de la discusion y "
-            "permite formular conclusiones y recomendaciones directamente relacionadas con el problema de investigacion."
+            "En ese sentido, la literatura considerada destaca que "
+            f"{antecedent_excerpt}, lo cual ofrece un marco util para explicar "
+            "por que los resultados del proyecto mantienen coherencia con enfoques previos "
+            "y, al mismo tiempo, aportan una mirada contextualizada al escenario analizado. "
+            "En conjunto, esta contrastacion respalda la validez academica de la discusion y "
+            "permite formular conclusiones y recomendaciones directamente relacionadas "
+            "con el problema de investigacion."
         )
     else:
         second += (
-            "Aunque la profundidad de la contrastacion depende de la validacion final del autor, el analisis realizado permite sostener "
-            "que los resultados guardan correspondencia con el marco conceptual del estudio y ofrecen una base suficiente para derivar "
+            "Aunque la profundidad de la contrastacion depende de la validacion final del autor, "
+            "el analisis realizado permite sostener que los resultados guardan correspondencia "
+            "con el marco conceptual del estudio y ofrecen una base suficiente para derivar "
             "conclusiones tecnicas, metodologicas y practicas con sentido academico."
         )
 
@@ -392,15 +398,19 @@ def _build_conclusions_fallback(values: Dict[str, Any] | None) -> str:
     subject = _academic_subject(values)
     objective = _general_objective(values) or "analizar el problema de investigacion con un enfoque academico riguroso"
     return (
-        f"En sintesis, el estudio permitio establecer hallazgos consistentes respecto de {subject}, en correspondencia directa con el "
-        f"objetivo general de {objective}. A partir del analisis desarrollado, se concluye que la informacion obtenida ofrece una base "
-        "suficiente para comprender el fenomeno estudiado, identificar sus factores mas relevantes y sustentar tecnicamente la respuesta "
+        "En sintesis, el estudio permitio establecer hallazgos consistentes respecto de "
+        f"{subject}, en correspondencia directa con el objetivo general de {objective}. "
+        "A partir del analisis desarrollado, se concluye que la informacion obtenida "
+        "ofrece una base suficiente para comprender el fenomeno estudiado, identificar "
+        "sus factores mas relevantes y sustentar tecnicamente la respuesta "
         "al problema planteado.\n\n"
-        "Asimismo, se concluye que la articulacion entre el marco teorico, la metodologia aplicada y los resultados obtenidos fortalece "
-        "la coherencia interna del trabajo. Esta relacion permite interpretar los hallazgos con mayor consistencia, delimitar su alcance "
+        "Asimismo, se concluye que la articulacion entre el marco teorico, la metodologia "
+        "aplicada y los resultados obtenidos fortalece la coherencia interna del trabajo. "
+        "Esta relacion permite interpretar los hallazgos con mayor consistencia, delimitar su alcance "
         "real y reconocer tanto los aportes del estudio como sus restricciones metodologicas.\n\n"
-        "Finalmente, las conclusiones del documento confirman que el proceso de investigacion desarrollado produce conocimiento util para "
-        "el contexto evaluado y deja criterios claros para la toma de decisiones, la mejora del objeto de estudio y la continuidad de "
+        "Finalmente, las conclusiones del documento confirman que el proceso de investigacion "
+        "desarrollado produce conocimiento util para el contexto evaluado y deja criterios "
+        "claros para la toma de decisiones, la mejora del objeto de estudio y la continuidad de "
         "nuevas investigaciones relacionadas."
     )
 
@@ -408,14 +418,17 @@ def _build_conclusions_fallback(values: Dict[str, Any] | None) -> str:
 def _build_recommendations_fallback(values: Dict[str, Any] | None) -> str:
     subject = _academic_subject(values)
     return (
-        f"Se recomienda que las decisiones y acciones derivadas del estudio sobre {subject} se implementen de manera progresiva, con "
-        "seguimiento tecnico y criterios de evaluacion definidos, a fin de verificar su impacto real y ajustar oportunamente los "
+        "Se recomienda que las decisiones y acciones derivadas del estudio sobre "
+        f"{subject} se implementen de manera progresiva, con seguimiento tecnico y "
+        "criterios de evaluacion definidos, a fin de verificar su impacto real y ajustar oportunamente los "
         "procedimientos involucrados.\n\n"
-        "Tambien se recomienda fortalecer la recoleccion y sistematizacion de informacion en futuras etapas del trabajo, de modo que sea "
-        "posible ampliar la comparacion entre periodos, escenarios o unidades de analisis y obtener evidencia aun mas robusta para la "
+        "Tambien se recomienda fortalecer la recoleccion y sistematizacion de informacion "
+        "en futuras etapas del trabajo, de modo que sea posible ampliar la comparacion entre "
+        "periodos, escenarios o unidades de analisis y obtener evidencia aun mas robusta para la "
         "toma de decisiones academicas o institucionales.\n\n"
-        "Finalmente, resulta pertinente que futuras investigaciones profundicen en variables complementarias, instrumentos adicionales y "
-        "estrategias metodologicas comparables, con el proposito de validar los hallazgos alcanzados y ampliar el valor aplicado del "
+        "Finalmente, resulta pertinente que futuras investigaciones profundicen en variables "
+        "complementarias, instrumentos adicionales y estrategias metodologicas comparables, "
+        "con el proposito de validar los hallazgos alcanzados y ampliar el valor aplicado del "
         "estudio en contextos similares."
     )
 

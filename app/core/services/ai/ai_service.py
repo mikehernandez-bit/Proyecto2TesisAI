@@ -32,9 +32,9 @@ from app.core.services.ai.openrouter_client import OpenRouterClient
 from app.core.services.ai.output_validator import OutputValidator, ValidationError
 from app.core.services.ai.phase_policy import build_phase_policies
 from app.core.services.ai.prompt_renderer import PromptRenderer
-from app.core.services.ai.reference_proposals import replace_references_section
 from app.core.services.ai.provider_metrics import ProviderMetricsService
 from app.core.services.ai.provider_selection import ProviderSelectionService
+from app.core.services.ai.reference_proposals import replace_references_section
 from app.core.services.ai.resilience_router import LLMProviderRouter, LLMRequest, LLMResult
 from app.core.services.definition_compiler import compile_definition_to_section_index
 

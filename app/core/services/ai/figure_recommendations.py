@@ -201,9 +201,7 @@ def apply_figure_recommendations(
         blocks = _content_to_blocks(current_content)
 
         figure_indexes = [
-            index
-            for index, block in enumerate(blocks)
-            if _normalize_token(block.get("tipo")) == "figura"
+            index for index, block in enumerate(blocks) if _normalize_token(block.get("tipo")) == "figura"
         ]
 
         if figure_indexes:
