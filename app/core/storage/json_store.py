@@ -42,9 +42,7 @@ class JsonStore:
                 return json.loads(raw)
             except json.JSONDecodeError:
                 # Attempt to recover the first valid JSON array.
-                logger.warning(
-                    "Corrupted JSON in %s — attempting recovery", self.path
-                )
+                logger.warning("Corrupted JSON in %s — attempting recovery", self.path)
                 try:
                     obj, _ = json.JSONDecoder().raw_decode(raw)
                     if isinstance(obj, list):
@@ -53,9 +51,7 @@ class JsonStore:
                             json.dumps(obj, indent=2, ensure_ascii=False),
                             encoding="utf-8",
                         )
-                        logger.info(
-                            "Recovered %d items from %s", len(obj), self.path
-                        )
+                        logger.info("Recovered %d items from %s", len(obj), self.path)
                         return obj
                 except (json.JSONDecodeError, ValueError):
                     pass

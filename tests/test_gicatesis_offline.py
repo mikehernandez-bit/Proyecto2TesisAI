@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.services.gicatesis_status import GicaTesisStatus, gicatesis_status
+from app.integrations.gicatesis.status import GicaTesisStatus, gicatesis_status
 from app.integrations.gicatesis.errors import UpstreamUnavailable
 from app.main import app
 

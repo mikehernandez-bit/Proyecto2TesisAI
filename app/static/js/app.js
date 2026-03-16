@@ -112,12 +112,14 @@ const TesisAI = (() => {
   function statusBadge(status) {
     if (status === "draft") return '<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-semibold">Borrador</span>';
     if (status === "generating") return '<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">Generando</span>';
+    if (status === "rendering") return '<span class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">Renderizando</span>';
     if (status === "ai_received") return '<span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs font-semibold">IA recibida</span>';
     if (status === "cancel_requested") return '<span class="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-semibold">Cancelando</span>';
     if (status === "simulated") return '<span class="bg-cyan-100 text-cyan-700 px-2 py-1 rounded text-xs font-semibold">Simulado</span>';
     if (status === "completed") return '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">Completado</span>';
     if (status === "completed_with_incidents") return '<span class="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-semibold">Completado con incidencias</span>';
     if (status === "processing") return '<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-semibold">Procesando</span>';
+    if (status === "render_failed") return '<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-semibold">Render fallido</span>';
     if (status === "generation_failed" || status === "ai_failed" || status === "blocked") return '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold">Fallo</span>';
     if (status === "failed") return '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold">Fallo</span>';
     return '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">N/A</span>';
@@ -1219,6 +1221,7 @@ const TesisAI = (() => {
   const GEN_SUCCESS_STATUSES = ["completed", "completed_with_incidents", "simulated"];
   const GEN_FAIL_STATUSES = [
     "failed",
+    "render_failed",
     "n8n_failed",
     "generation_failed",
     "ai_failed",
@@ -1724,6 +1727,28 @@ const TesisAI = (() => {
       }
     }
 
+    if (projectStatus === "render_failed") {
+      const markDone = (nodeId, detailText) => {
+        if (nodes[nodeId].state === "pending" || nodes[nodeId].state === "running") {
+          nodes[nodeId].state = "done";
+        }
+        if (!nodes[nodeId].detail || nodes[nodeId].detail === "Pendiente") {
+          nodes[nodeId].detail = detailText;
+        }
+      };
+      markDone("format", "Formato cargado");
+      markDone("variables", "Variables listas");
+      markDone("prompt", "Prompt armado");
+      markDone("ai", "Contenido IA conservado");
+      if (nodes.clean.state === "pending" || nodes.clean.state === "running") {
+        markDone("clean", "Validacion completada");
+      }
+      if (nodes.render.state === "pending" || nodes.render.state === "running") {
+        nodes.render.state = "error";
+        nodes.render.detail = "Render fallido. Puedes reintentar sin volver a IA.";
+      }
+    }
+
     return { nodes, sections, fallbackText, quotaRetrying };
   }
 
@@ -1915,7 +1940,9 @@ const TesisAI = (() => {
 
       if (project && GEN_FAIL_STATUSES.includes(project.status)) {
         _stopGenTimer();
-        const errMsg = project.error || `Generacion fallida (${project.status})`;
+        const errMsg = project.status === "render_failed"
+          ? (project.error || "Render fallido. El contenido IA se conserva; reintenta para ejecutar solo render.")
+          : (project.error || `Generacion fallida (${project.status})`);
         _showGenError(errMsg);
         return;
       }
@@ -2051,6 +2078,12 @@ const TesisAI = (() => {
 
       const mode = genResult?.mode || "ai";
       if (mode === "demo") _setLiveSummary("Modo demo activo. Ejecutando generacion local...", "warn");
+      else if (mode === "render_only") {
+        _setLiveSummary(
+          "Reintentando solo render con el ai_result guardado. No se volvera a llamar al proveedor IA.",
+          "warn",
+        );
+      }
       else {
         const provider = genResult?.provider || providerStatusCache?.selected_provider || "gemini";
         const model = genResult?.model || providerStatusCache?.selected_model || "-";

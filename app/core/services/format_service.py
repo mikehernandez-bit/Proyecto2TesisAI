@@ -20,10 +20,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
-from app.core.services.gicatesis_status import gicatesis_status
 from app.integrations.gicatesis.cache.format_cache import FormatCache
 from app.integrations.gicatesis.client import GicaTesisClient
 from app.integrations.gicatesis.errors import GicaTesisError
+from app.integrations.gicatesis.status import gicatesis_status
 from app.integrations.gicatesis.types import FormatDetail
 
 logger = logging.getLogger(__name__)

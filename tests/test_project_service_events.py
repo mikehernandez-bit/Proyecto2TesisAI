@@ -79,6 +79,48 @@ def test_mark_failed_can_keep_partial_ai_result(tmp_path):
     assert failed["run_id"] == "run-001"
 
 
+def test_mark_render_failed_preserves_ai_result_and_clears_artifacts(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    project = service.create_project({"title": "Render retry"})
+    project_id = project["id"]
+
+    service.update_project(
+        project_id,
+        {
+            "run_id": "render-run-001",
+            "ai_result": {
+                "sections": [
+                    {
+                        "sectionId": "sec-0001",
+                        "path": "Cronograma",
+                        "content": "Contenido estructurado listo para render.",
+                    }
+                ]
+            },
+            "artifacts": [{"type": "docx", "downloadUrl": "/api/download/x"}],
+            "output_file": "outputs/test.docx",
+            "pdf_file": "outputs/test.pdf",
+            "progress": {
+                "current": 4,
+                "total": 4,
+                "currentPath": "Cronograma",
+                "provider": "mistral",
+            },
+        },
+    )
+
+    failed = service.mark_render_failed(project_id, "422 payload invalid")
+    assert failed is not None
+    assert failed["status"] == "render_failed"
+    assert failed["ai_result"] is not None
+    assert failed["run_id"] == "render-run-001"
+    assert failed["artifacts"] == []
+    assert failed["output_file"] is None
+    assert failed["pdf_file"] is None
+    assert failed["progress"]["current"] == 4
+    assert failed["progress"]["total"] == 4
+
+
 def test_resume_checkpoint_is_saved_and_cleared_on_complete(tmp_path):
     service = ProjectService(str(tmp_path / "projects.json"))
     project = service.create_project({"title": "Resume checkpoint"})

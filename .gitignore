@@ -9,12 +9,22 @@ test-results/
 output/
 outputs/
 tmpclaude-*-cwd
+
+# Agentes / LLM (no es código de producción)
 .agent/
 .agents/
 .claude/
 .gemini/
+.cca/
+AGENTS.md
+PLAN.md
+context_for_codex.md
+skills-lock.json
+
+# Datos locales de estado
 data/provider_selection.json
 data/projects.json.bak
+data/projects.json
 
 # Logs y archivos temporales
 *.log

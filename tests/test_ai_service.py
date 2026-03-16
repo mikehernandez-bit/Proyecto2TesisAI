@@ -427,6 +427,45 @@ class TestGenerate:
         assert result["sections"][1]["content"] == "Contenido generado desde el punto de reanudacion."
         assert gemini.generate.call_count == 1
 
+    def test_generate_consolidates_simulated_references_section(self, ai_svc):
+        svc, gemini, mistral = ai_svc
+        _set_selection(svc, "gemini", mode="auto")
+        gemini.is_configured.return_value = True
+        mistral.is_configured.return_value = False
+        gemini.generate.return_value = "Contenido academico generado para la seccion."
+
+        project = {
+            "id": "proj-references-001",
+            "title": "Mantenimiento predictivo",
+            "variables": {"tema": "Mantenimiento predictivo"},
+        }
+        format_detail = {
+            "definition": {
+                "cuerpo": {
+                    "capitulos": [
+                        {"titulo": "II. MARCO TEORICO"},
+                    ]
+                },
+                "finales": {
+                    "referencias": {"titulo": "IX. REFERENCIAS BIBLIOGRAFICAS"},
+                },
+            }
+        }
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+            result = svc.generate(project, format_detail, None)
+
+        references = next(
+            section for section in result["sections"] if "REFERENCIAS" in section["path"].upper()
+        )
+        body = next(
+            section for section in result["sections"] if "MARCO TEORICO" in section["path"].upper()
+        )
+
+        assert body["content"] == "Contenido academico generado para la seccion."
+        assert "sin acceso a internet" in references["content"]
+        assert "Fundamentos teoricos de mantenimiento predictivo" in references["content"]
+
     def test_resume_does_not_replay_seeded_sections_in_progress(self, ai_svc):
         svc, gemini, mistral = ai_svc
         _set_selection(svc, "gemini", mode="auto")
@@ -663,3 +702,43 @@ class TestProviderStatus:
         assert mistral.generate.call_count == 2
         gemini.generate.assert_not_called()
         openrouter.generate.assert_called_once()
+
+    def test_generate_preserves_structured_blocks_in_allowed_sections(self, ai_svc):
+        svc, gemini, mistral = ai_svc
+        _set_selection(svc, "gemini", mode="auto")
+        gemini.is_configured.return_value = True
+        mistral.is_configured.return_value = False
+        gemini.generate.return_value = (
+            "Texto previo del cronograma.\n\n"
+            "<<<TABLE_JSON\n"
+            '{"tipo":"tabla","id":"tab_001","titulo":"Cronograma","encabezados":["Actividad","Mes 1","Mes 2"],'
+            '"filas":[["Revision","X",""],["Validacion","","X"]]}\n'
+            "TABLE_JSON>>>\n\n"
+            "Texto posterior del cronograma."
+        )
+
+        project = {
+            "id": "proj-structured-001",
+            "title": "Structured",
+            "variables": {"tema": "Planificacion"},
+            "values": {"tema": "Planificacion"},
+        }
+        prompt = {"template": "Genera contenido sobre {{tema}}."}
+        format_detail = {
+            "definition": {
+                "cuerpo": {
+                    "capitulos": [
+                        {"titulo": "Cronograma"},
+                    ]
+                }
+            }
+        }
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=True)):
+            result = svc.generate(project, format_detail, prompt)
+
+        content = result["sections"][0]["content"]
+        assert isinstance(content, list)
+        assert content[0]["tipo"] == "parrafo"
+        assert content[1]["tipo"] == "tabla"
+        assert content[2]["tipo"] == "parrafo"

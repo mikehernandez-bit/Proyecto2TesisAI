@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 from fastapi import APIRouter, Request
-from app.core.templates import templates
+
 from app.core.config import settings
+from app.core.templates import templates
 
 router = APIRouter()
+
 
 @router.get("/")
 def home(request: Request):

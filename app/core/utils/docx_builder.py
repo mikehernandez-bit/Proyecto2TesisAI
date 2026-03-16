@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, List
+
 from docx import Document
+
 
 def build_demo_docx(output_path: str, title: str, sections: List[str], variables: Dict[str, Any]) -> None:
     """Creates a placeholder DOCX (demo mode)."""

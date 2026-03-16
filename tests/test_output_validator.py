@@ -82,6 +82,83 @@ class TestValidate:
         assert "TITULO DEL PROYECTO" not in content
         assert "item con vineta" in content
 
+    def test_preserves_structured_content_lists(self, validator):
+        ai_result = {
+            "sections": [
+                {
+                    "sectionId": "sec-structured",
+                    "path": "II. MARCO TEORICO/2.1 Bases teoricas",
+                    "content": [
+                        {"tipo": "parrafo", "texto": "Parrafo academico suficientemente largo para pasar validacion."},
+                        {
+                            "tipo": "tabla",
+                            "titulo": "Tabla 1. Variables",
+                            "encabezados": ["Variable", "Definicion", "Indicador"],
+                            "filas": [["A", "[COMPLETAR]", "I1"]],
+                        },
+                        {
+                            "tipo": "figura",
+                            "titulo": "Figura 1. Modelo",
+                            "caption": "Figura 1. Modelo conceptual propuesto.",
+                        },
+                    ],
+                }
+            ]
+        }
+
+        result = validator.validate(ai_result)
+        content = result["sections"][0]["content"]
+        assert isinstance(content, list)
+        assert content[0]["tipo"] == "parrafo"
+        assert content[1]["tipo"] == "tabla"
+        assert content[1]["filas"][0][1] == "[COMPLETAR]"
+        assert content[2]["tipo"] == "figura"
+        assert content[2]["ruta_placeholder"] == "assets/placeholder_figura.png"
+
+    def test_figure_title_is_derived_from_caption_when_missing(self, validator):
+        ai_result = {
+            "sections": [
+                {
+                    "sectionId": "sec-figure",
+                    "path": "IV. METODOLOGIA/4.1 Diseno metodologico",
+                    "content": [
+                        {
+                            "tipo": "figura",
+                            "caption": "Figura 2. Flujo metodologico del estudio sobre mantenimiento predictivo.",
+                        }
+                    ],
+                }
+            ]
+        }
+
+        result = validator.validate(ai_result)
+        figure = result["sections"][0]["content"][0]
+        assert figure["titulo"] == "Flujo metodologico del estudio sobre mantenimiento predictivo."
+
+    def test_strips_raw_structured_repr_from_plain_text(self, validator):
+        ai_result = {
+            "sections": [
+                {
+                    "sectionId": "sec-raw",
+                    "path": "I. PLANTEAMIENTO/1.1 Problema",
+                    "content": (
+                        "Parrafo limpio antes.\n"
+                        "[{'tipo': 'tabla', 'id': 'tab_001', 'titulo': 'Tabla rota'}]\n"
+                        "{'tipo': 'figura', 'id': 'fig_001', 'caption': 'Figura rota'}\n"
+                        "Parrafo limpio despues."
+                    ),
+                }
+            ]
+        }
+
+        result = validator.validate(ai_result)
+        content = result["sections"][0]["content"]
+        assert "tipo" not in content
+        assert "tab_001" not in content
+        assert "fig_001" not in content
+        assert "Parrafo limpio antes." in content
+        assert "Parrafo limpio despues." in content
+
     def test_index_path_forces_empty_content(self, validator):
         """TOC sections are now DROPPED entirely, not just emptied."""
         ai_result = {

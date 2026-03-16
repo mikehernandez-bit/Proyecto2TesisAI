@@ -10,7 +10,7 @@ Devuelve unicamente un JSON valido llamado AI_RESULT_JSON_CORREGIDO con esta for
 
 {
   "sections": [
-    {"sectionId": "...", "path": "...", "content": "..."},
+    {"sectionId": "...", "path": "...", "content": "... o lista estructurada"},
     ...
   ]
 }
@@ -18,9 +18,14 @@ Devuelve unicamente un JSON valido llamado AI_RESULT_JSON_CORREGIDO con esta for
 REGLAS OBLIGATORIAS (si fallas una, tu respuesta es invalida):
 1) Devuelve SOLO JSON. Nada de texto extra, nada de explicaciones.
 2) Cada sectionId y path deben mantenerse EXACTAMENTE como llegan.
-3) content debe ser TEXTO PLANO: NO uses markdown. Prohibido: **negritas**, # titulos, listas con "-", tablas con "|".
-4) Prohibido poner placeholders: "FIGURA DE EJEMPLO", "TABLA DE EJEMPLO", "XXX", "[pendiente]", "lorem ipsum".
+3) content puede ser TEXTO PLANO o una LISTA ESTRUCTURADA de bloques validos.
+   - Texto plano: NO uses markdown. Prohibido: **negritas**, # titulos, listas con "-", tablas con "|".
+   - Lista estructurada: solo admite bloques con tipo "parrafo", "tabla" o "figura".
+   - Si ya existe una tabla o figura valida en AI_RESULT_JSON, preservala y corrige solo lo necesario.
+   - NUNCA conviertas listas/dicts estructurados en texto literal.
+4) Prohibido poner placeholders: "FIGURA DE EJEMPLO", "TABLA DE EJEMPLO", "XXX", "[pendiente]", "[COMPLETAR]", "lorem ipsum".
    - Si el formato requiere figura/tabla, describe el contenido de forma realista sin poner "de ejemplo".
+   - Para figuras usa caption especifico y placeholder tecnico controlado, no figuras base del formato.
 5) No inventes "INDICE" manual. Si una seccion es de indice (INDICE, INDICE DE TABLAS,
    INDICE DE FIGURAS, INDICE DE ABREVIATURAS o ruta que empiece por INDICE/),
    deja content EXACTAMENTE como: "<<SKIP_SECTION>>".
@@ -28,6 +33,9 @@ REGLAS OBLIGATORIAS (si fallas una, tu respuesta es invalida):
 7) Minimo por seccion de contenido academico: 120 palabras (excepto indice, caratula y secciones que deban ir vacias).
 8) Manten estilo academico formal (tesis), coherente con VALUES_JSON.
 9) No cambies el idioma: todo en espanol.
+10) No afirmes haber buscado en internet ni consultado fuentes online reales.
+11) Si corriges la seccion de referencias bibliograficas, genera referencias propuestas simuladas,
+    coherentes con el documento, sin DOI ni URL inventados, y deja claro que deben validarse.
 
 ENTRADA:
 FORMAT_JSON:

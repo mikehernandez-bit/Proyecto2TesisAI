@@ -582,6 +582,113 @@ class TestGenerationEndpoint:
         assert background_mock.call_args.kwargs["resume_from_partial"] is False
         assert background_mock.call_args.kwargs["resume_seed_sections"] == []
 
+    def test_generate_render_failed_retries_render_only_without_ai(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Render Retry Test",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Render retry"},
+        }
+        r = client.post("/api/projects/draft", json=payload)
+        project_id = r.json()["id"]
+        router_module.projects.update_project(
+            project_id,
+            {
+                "status": "render_failed",
+                "ai_result": {
+                    "sections": [
+                        {
+                            "sectionId": "sec-0001",
+                            "path": "Cronograma",
+                            "content": "Contenido IA ya disponible.",
+                        }
+                    ]
+                },
+                "progress": {
+                    "current": 1,
+                    "total": 1,
+                    "currentPath": "Cronograma",
+                    "provider": "mistral",
+                },
+            },
+        )
+
+        with (
+            patch("app.modules.api.router.ai_service.is_configured", return_value=False),
+            patch(
+                "app.modules.api.router._render_saved_ai_job",
+                new=AsyncMock(return_value=None),
+            ) as render_mock,
+            patch(
+                "app.modules.api.router._ai_generation_job",
+                new=AsyncMock(return_value=None),
+            ) as ai_mock,
+        ):
+            response = client.post(f"/api/projects/{project_id}/generate", json={})
+
+        assert response.status_code == 202
+        data = response.json()
+        assert data["mode"] == "render_only"
+        assert data["status"] == "rendering"
+        assert render_mock.call_args.args[0] == project_id
+        assert ai_mock.call_count == 0
+
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["status"] == "rendering"
+
+    def test_generate_render_failed_restart_forces_new_ai_run(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Render Restart Test",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Restart from render"},
+        }
+        r = client.post("/api/projects/draft", json=payload)
+        project_id = r.json()["id"]
+        router_module.projects.update_project(
+            project_id,
+            {
+                "status": "render_failed",
+                "ai_result": {
+                    "sections": [
+                        {
+                            "sectionId": "sec-0001",
+                            "path": "Introduccion",
+                            "content": "Contenido previo",
+                        }
+                    ]
+                },
+            },
+        )
+
+        with (
+            patch("app.modules.api.router.ai_service.is_configured", return_value=True),
+            patch(
+                "app.modules.api.router._render_saved_ai_job",
+                new=AsyncMock(return_value=None),
+            ) as render_mock,
+            patch(
+                "app.modules.api.router._ai_generation_job",
+                new=AsyncMock(return_value=None),
+            ) as ai_mock,
+        ):
+            response = client.post(
+                f"/api/projects/{project_id}/generate",
+                json={"resumeMode": "restart"},
+            )
+
+        assert response.status_code == 202
+        data = response.json()
+        assert data["mode"] == "async"
+        assert data["status"] == "generating"
+        assert data["resumeMode"] == "restart"
+        assert render_mock.call_count == 0
+        assert ai_mock.call_count == 1
+
     def test_generate_returns_accepted_quickly(self, client):
         payload = {
             "title": "Gen Async Test",
@@ -679,6 +786,46 @@ class TestGenerationEndpoint:
         assert any(
             evt.get("stage") == "provider_fallback" or evt.get("step") == "ai.provider.fallback" for evt in events
         )
+
+    def test_render_saved_ai_job_marks_render_failed_on_local_payload_validation(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Render Validation Test",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Render validation"},
+        }
+        r = client.post("/api/projects/draft", json=payload)
+        project_id = r.json()["id"]
+        router_module.projects.update_project(
+            project_id,
+            {
+                "status": "render_failed",
+                "ai_result": {
+                    "sections": [
+                        {
+                            "sectionId": "sec-0001",
+                            "path": "Cronograma",
+                            "content": [
+                                {
+                                    "tipo": "tabla",
+                                    "encabezados": [],
+                                    "filas": [],
+                                }
+                            ],
+                        }
+                    ]
+                },
+            },
+        )
+
+        asyncio.run(router_module._render_saved_ai_job(project_id, "render-test-001"))
+
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["status"] == "render_failed"
+        assert project["ai_result"] is not None
+        assert "encabezados" in str(project["error"]) or "Render payload" in str(project["error"])
 
 
 # =============================================================================

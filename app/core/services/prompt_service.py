@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+
 from app.core.storage.json_store import JsonStore
 from app.core.utils.id import new_id
+
 
 class PromptService:
     """CRUD for prompt templates con soporte para secciones dinámicas."""
@@ -28,12 +30,10 @@ class PromptService:
             "name": payload.get("name", "Nuevo Prompt"),
             "doc_type": payload.get("doc_type", "Tesis Completa"),
             "is_active": bool(payload.get("is_active", True)),
-
             # --- NUEVOS CAMPOS ---
             "system_instruction": payload.get("system_instruction", ""),
             "required_metadata": payload.get("required_metadata", []),
             "sections": payload.get("sections", []),
-
             # Mantenemos template por compatibilidad
             "template": payload.get("template") or payload.get("system_instruction") or "",
             "variables": payload.get("variables", []),
@@ -48,19 +48,19 @@ class PromptService:
         for i, p in enumerate(items):
             if p.get("id") == prompt_id:
                 # Actualizamos el objeto incluyendo los nuevos campos
-                p.update({
-                    "name": payload.get("name", p.get("name")),
-                    "doc_type": payload.get("doc_type", p.get("doc_type")),
-                    "is_active": bool(payload.get("is_active", p.get("is_active", True))),
-
-                    # --- NUEVOS CAMPOS ---
-                    "system_instruction": payload.get("system_instruction", p.get("system_instruction", "")),
-                    "required_metadata": payload.get("required_metadata", p.get("required_metadata", [])),
-                    "sections": payload.get("sections", p.get("sections", [])),
-
-                    "template": payload.get("template", p.get("template", "")),
-                    "variables": payload.get("variables", p.get("variables", [])),
-                })
+                p.update(
+                    {
+                        "name": payload.get("name", p.get("name")),
+                        "doc_type": payload.get("doc_type", p.get("doc_type")),
+                        "is_active": bool(payload.get("is_active", p.get("is_active", True))),
+                        # --- NUEVOS CAMPOS ---
+                        "system_instruction": payload.get("system_instruction", p.get("system_instruction", "")),
+                        "required_metadata": payload.get("required_metadata", p.get("required_metadata", [])),
+                        "sections": payload.get("sections", p.get("sections", [])),
+                        "template": payload.get("template", p.get("template", "")),
+                        "variables": payload.get("variables", p.get("variables", [])),
+                    }
+                )
 
                 # Aseguramos consistencia entre template y system_instruction
                 if payload.get("system_instruction") and not payload.get("template"):
