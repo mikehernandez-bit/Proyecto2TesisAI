@@ -102,7 +102,8 @@ class N8NIntegrationService:
                 },
                 "payload": request_payload,
             },
-            "formatDetail": format_detail or {
+            "formatDetail": format_detail
+            or {
                 "id": format_obj["id"],
                 "title": format_obj["title"],
                 "university": format_obj["university"],
@@ -169,9 +170,7 @@ class N8NIntegrationService:
             "projectId": project_id,
             "runId": run_id,
             "status": "success",
-            "aiResult": {
-                "sections": ai_sections
-            },
+            "aiResult": {"sections": ai_sections},
         }
 
     def _latest_or_example_output(
@@ -193,14 +192,42 @@ class N8NIntegrationService:
 
     def _checklist(self) -> List[Dict[str, Any]]:
         return [
-            {"step": 1, "title": "Webhook Trigger", "detail": "Crear trigger POST en n8n para recibir request.payload."},
-            {"step": 2, "title": "Secret compartido", "detail": "Configurar X-GICAGEN-SECRET en entrada y X-N8N-SECRET en callback."},
-            {"step": 3, "title": "GET format", "detail": "Consumir formato desde request.runtime.gicatesisBaseUrl + /formats/{id}."},
-            {"step": 4, "title": "Prompt final", "detail": "Combinar prompt.text con values para construir el prompt de ejecucion."},
-            {"step": 5, "title": "IA a JSON", "detail": "Ejecutar IA y producir JSON estable en aiResult.sections por path/sectionId."},
-            {"step": 6, "title": "Validacion", "detail": "Validar estructura antes de callback (projectId, status, aiResult)."},
+            {
+                "step": 1,
+                "title": "Webhook Trigger",
+                "detail": "Crear trigger POST en n8n para recibir request.payload.",
+            },
+            {
+                "step": 2,
+                "title": "Secret compartido",
+                "detail": "Configurar X-GICAGEN-SECRET en entrada y X-N8N-SECRET en callback.",
+            },
+            {
+                "step": 3,
+                "title": "GET format",
+                "detail": "Consumir formato desde request.runtime.gicatesisBaseUrl + /formats/{id}.",
+            },
+            {
+                "step": 4,
+                "title": "Prompt final",
+                "detail": "Combinar prompt.text con values para construir el prompt de ejecucion.",
+            },
+            {
+                "step": 5,
+                "title": "IA a JSON",
+                "detail": "Ejecutar IA y producir JSON estable en aiResult.sections por path/sectionId.",
+            },
+            {
+                "step": 6,
+                "title": "Validacion",
+                "detail": "Validar estructura antes de callback (projectId, status, aiResult).",
+            },
             {"step": 7, "title": "Callback", "detail": "Enviar POST al callbackUrl con header X-N8N-SECRET."},
-            {"step": 8, "title": "Responder al webhook", "detail": "Responder 200 al trigger inicial y guardar trazabilidad de runId."},
+            {
+                "step": 8,
+                "title": "Responder al webhook",
+                "detail": "Responder 200 al trigger inicial y guardar trazabilidad de runId.",
+            },
         ]
 
     def _project_values(self, project: Dict[str, Any]) -> Dict[str, Any]:
@@ -272,7 +299,9 @@ class N8NIntegrationService:
 
         payload_json = json.dumps(spec.get("request", {}).get("payload", {}), indent=2, ensure_ascii=False)
         request_headers_json = json.dumps(spec.get("request", {}).get("headers", {}), indent=2, ensure_ascii=False)
-        callback_headers_json = json.dumps(spec.get("expectedResponse", {}).get("headers", {}), indent=2, ensure_ascii=False)
+        callback_headers_json = json.dumps(
+            spec.get("expectedResponse", {}).get("headers", {}), indent=2, ensure_ascii=False
+        )
         format_definition_json = json.dumps(spec.get("formatDefinition", {}), indent=2, ensure_ascii=False)
         output_json = json.dumps(spec.get("simulationOutput", {}), indent=2, ensure_ascii=False)
 

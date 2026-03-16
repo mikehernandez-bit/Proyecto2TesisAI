@@ -29,12 +29,12 @@ import re
 #   "TÍTULO ... pag X"    (literal "pag X")
 _LEADER_PAGE_RE = re.compile(
     r"(?:"
-    r"[.\u2026]{3,}"        # 3+ dots or ellipsis chars
-    r"|[ \t]{4,}"           # OR 4+ spaces/tabs (right-aligned page number)
+    r"[.\u2026]{3,}"  # 3+ dots or ellipsis chars
+    r"|[ \t]{4,}"  # OR 4+ spaces/tabs (right-aligned page number)
     r")"
     r"\s*"
-    r"(?:pag\.?\s*)?"       # optional "pag" / "pag."
-    r"(?:\d+|X)"            # page number or literal "X"
+    r"(?:pag\.?\s*)?"  # optional "pag" / "pag."
+    r"(?:\d+|X)"  # page number or literal "X"
     r"\s*$",
     re.IGNORECASE,
 )

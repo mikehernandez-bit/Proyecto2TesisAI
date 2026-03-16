@@ -44,6 +44,87 @@ Invoke-RestMethod http://127.0.0.1:8001/api/formats
 - `http://127.0.0.1:8001/api/formats` responde OK en GicaGen.
 - En UI `http://127.0.0.1:8001/`, el paso de seleccion de formato carga datos.
 
+## 3.1) Smoke de render string-only
+
+Valida compatibilidad total con contenido plano:
+
+```powershell
+$body = @{
+  formatId = "demo"
+  values = @{ title = "Smoke string" }
+  mode = "simulation"
+  aiResult = @{
+    sections = @(
+      @{
+        path = "Introduccion"
+        content = "Texto completamente plano."
+      }
+    )
+  }
+} | ConvertTo-Json -Depth 8
+
+Invoke-WebRequest `
+  -Uri http://127.0.0.1:8000/api/v1/render/docx `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body $body `
+  -OutFile .\outputs\smoke-string.docx
+```
+
+## 3.2) Smoke de render estructurado
+
+Valida tabla real y figura placeholder sin imprimir objetos crudos:
+
+```powershell
+$body = @{
+  formatId = "demo"
+  values = @{ title = "Smoke estructurado" }
+  mode = "simulation"
+  aiResult = @{
+    sections = @(
+      @{
+        path = "Cronograma"
+        content = @(
+          @{ tipo = "parrafo"; texto = "Resumen del cronograma." }
+          @{
+            tipo = "tabla"
+            titulo = "Tabla 1. Cronograma"
+            encabezados = @("Actividad", "Mes 1", "Mes 2")
+            filas = @(
+              @("Revision", "X", "")
+            )
+          }
+        )
+      },
+      @{
+        path = "II. MARCO TEORICO/2.1 Bases teoricas"
+        content = @(
+          @{ tipo = "parrafo"; texto = "Marco teorico resumido." }
+          @{
+            tipo = "figura"
+            caption = "Figura 1. Modelo conceptual."
+            ruta_placeholder = "assets/placeholder_figura.png"
+          }
+        )
+      }
+    )
+  }
+} | ConvertTo-Json -Depth 10
+
+Invoke-WebRequest `
+  -Uri http://127.0.0.1:8000/api/v1/render/docx `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body $body `
+  -OutFile .\outputs\smoke-structured.docx
+```
+
+Resultado esperado:
+- El DOCX se genera con `200 OK`.
+- No aparecen listas/diccionarios crudos en el documento.
+- La tabla sale como tabla real.
+- La figura sale como caption + placeholder.
+
 ## 4) Prueba funcional rapida en UI
 1. Abre `http://127.0.0.1:8001/`.
 2. En el wizard, entra al paso 1.

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import time
 from typing import Any, Dict
+
 import httpx
+
 from app.core.config import settings
 
 PING_TIMEOUT = 10  # seconds
@@ -116,4 +118,3 @@ class N8NClient:
             return {"ok": False, "error": "No se pudo conectar a n8n"}
         except Exception as exc:
             return {"ok": False, "error": f"Error: {exc}"}
-

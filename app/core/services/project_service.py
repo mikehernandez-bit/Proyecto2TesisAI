@@ -524,6 +524,34 @@ class ProjectService:
 
         return self._mutate_project(project_id, _mutate)
 
+    def mark_render_failed(
+        self,
+        project_id: str,
+        error: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Persist a render-stage failure without discarding validated AI output."""
+
+        def _mutate(p: Dict[str, Any]) -> None:
+            p["status"] = "render_failed"
+            p["error"] = error
+            p["artifacts"] = []
+            p["output_file"] = None
+            p["pdf_file"] = None
+            p["cancel_requested"] = False
+            p["resume"] = {
+                **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
+            progress = p.get("progress")
+            if isinstance(progress, dict):
+                total = int(progress.get("total") or 0)
+                if total > 0:
+                    progress["current"] = total
+                progress["updatedAt"] = dt.datetime.now().isoformat(timespec="seconds")
+                p["progress"] = progress
+
+        return self._mutate_project(project_id, _mutate)
+
     def mark_simulated(
         self,
         project_id: str,

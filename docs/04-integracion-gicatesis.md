@@ -272,6 +272,40 @@ Antes de enviar payload a GicaTesis (`render/docx`, `render/pdf`, o
 
 Este fallback evita que la caratula quede con texto placeholder.
 
+## Contrato de render compartido
+
+Antes de hacer `POST` hacia GicaTesis, GicaGen valida localmente el payload de
+render con el mismo contrato tipado que acepta el upstream:
+
+- `aiResult.sections[].content` puede ser `string`
+- o una lista de bloques estructurados:
+  - `parrafo`
+  - `tabla`
+  - `figura`
+
+Reglas aplicadas en GicaGen:
+
+- Secciones textuales (`Introduccion`, `Objetivos`, `Justificacion`,
+  `Conclusiones`, `Recomendaciones`) se aplanan a texto limpio.
+- Secciones permitidas (`Marco teorico`, `Metodologia`, `Resultados`,
+  `Cronograma`, `Presupuesto`, `Matrices`, `Anexos`) conservan bloques
+  estructurados validos.
+- Si el payload no cumple el contrato, GicaGen falla localmente con `422` y no
+  envia nada a GicaTesis.
+
+## Reintento `render_only`
+
+Si la IA termina bien pero el render falla, el proyecto queda en estado
+`render_failed`.
+
+En ese estado:
+
+- `ai_result` se conserva.
+- El siguiente `POST /api/projects/{id}/generate` reutiliza ese `ai_result`.
+- No se vuelve a consumir proveedor IA.
+- El proyecto pasa temporalmente a `rendering`.
+- Solo `resumeMode=restart` fuerza una generacion IA nueva.
+
 ### POST /api/projects/{id}/cancel
 
 Solicita la cancelacion de una corrida en curso.

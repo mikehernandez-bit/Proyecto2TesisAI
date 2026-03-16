@@ -13,6 +13,8 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Optional
 
+from app.core.services.ai.section_content_policy import render_prompt_policy_rules
+
 logger = logging.getLogger(__name__)
 
 # Pattern matches {{variable_name}} with optional whitespace inside braces
@@ -37,8 +39,8 @@ SYSTEM_PROMPT = (
     "- Identificador interno: {section_id}\n"
     "\n"
     "REGLAS OBLIGATORIAS (si no cumples, la salida se considera incorrecta):\n"
-    "1) Devuelve SOLO texto plano. NO uses Markdown "
-    "(NO **negritas**, NO ###, NO listas con guiones, NO tablas con |).\n"
+    "1) NO uses Markdown (NO **negritas**, NO ###, NO listas con guiones, "
+    "NO tablas con |).\n"
     "2) NO escribas el titulo de la seccion. El titulo ya lo pone el formato. "
     "Empieza directo con el contenido.\n"
     "3) NO pongas saltos de pagina ni caracteres raros. "
@@ -50,15 +52,49 @@ SYSTEM_PROMPT = (
     "6) Si la seccion es de indice (INDICE, INDICE DE TABLAS, INDICE DE FIGURAS, "
     "INDICE DE ABREVIATURAS o cualquier ruta que empiece por INDICE/), "
     "responde EXACTAMENTE: <<SKIP_SECTION>>.\n"
-    "7) No uses placeholders como FIGURA DE EJEMPLO, TABLA DE EJEMPLO, XXX, "
-    "[pendiente], lorem ipsum, TÍTULO DEL PROYECTO.\n"
-    "   - Si necesitas referirte a una figura, escribe solo la leyenda en texto:\n"
-    "     Figura X. (Descripcion breve). Fuente: Elaboracion propia.\n"
-    "8) Manten tono academico, coherente con Peru/Lima si aplica. "
+    "7) Manten tono academico, coherente con Peru/Lima si aplica. "
     "Incluye conectores y evita relleno.\n"
-    "9) Minimo: 180-250 palabras si es seccion de contenido "
+    "8) Minimo: 180-250 palabras si es seccion de contenido "
     "(introduccion, problema, marco, metodologia, etc.).\n"
-    "10) No uses sangrias raras ni dobles espacios. Usa maximo una linea en blanco entre parrafos.\n"
+    "9) No uses sangrias raras ni dobles espacios. Usa maximo una linea "
+    "en blanco entre parrafos.\n"
+    "10) NO afirmes haber navegado internet ni consultado bases de datos en tiempo real.\n"
+    "11) Si mencionas referencias o bibliografia, tratalas como propuestas academicas "
+    "para validacion del autor. NO inventes DOI, URL ni enlaces reales.\n"
+    "\n"
+    "TABLAS Y FIGURAS SUGERIDAS:\n"
+    "Si la seccion amerita una tabla o figura (cronograma, presupuesto, "
+    "operacionalizacion, resultados, diagrama de flujo, mapa conceptual), "
+    "PUEDES incluirla usando un bloque JSON especial delimitado asi:\n"
+    "\n"
+    "Para TABLAS, inserta exactamente:\n"
+    "<<<TABLE_JSON\n"
+    '{"tipo":"tabla","id":"tab_ID_UNICO","titulo":"Titulo de la Tabla",'
+    '"encabezados":["Col1","Col2","Col3"],'
+    '"filas":[["dato1","dato2","dato3"],["dato4","dato5","dato6"]],'
+    '"nota_pie":"Fuente: Elaboracion propia"}\n'
+    "TABLE_JSON>>>\n"
+    "\n"
+    "Para FIGURAS (caption solamente, la imagen se agrega despues), "
+    "inserta exactamente:\n"
+    "<<<FIGURE_JSON\n"
+    '{"tipo":"figura","id":"fig_ID_UNICO","titulo":"Titulo de la Figura",'
+    '"caption":"Figura X. Descripcion breve de la figura."}\n'
+    "FIGURE_JSON>>>\n"
+    "\n"
+    "REGLAS DE TABLAS/FIGURAS:\n"
+    "- Solo sugiere tablas/figuras cuando REALMENTE aporten valor academico.\n"
+    f"{render_prompt_policy_rules()}"
+    "- Si sugieres una figura, el titulo y caption deben ser especificos y utiles para el autor; "
+    "nunca uses 'Diagrama ilustrativo' ni 'Figura de ejemplo'.\n"
+    "- Si no tienes datos reales para una tabla, NO uses placeholders como [COMPLETAR]; "
+    "omite la tabla y resuelve la idea con texto academico limpio.\n"
+    "- Maximo 2 tablas y 1 figura por seccion.\n"
+    "- El texto ANTES y DESPUES de la tabla/figura debe fluir naturalmente.\n"
+    "- NO uses Markdown para tablas (no |). Usa SOLO el bloque JSON delimitado.\n"
+    "- Si la seccion NO necesita tabla/figura, devuelve solo texto plano normal.\n"
+    "- Si la seccion corresponde a referencias bibliograficas, propone referencias "
+    "simuladas coherentes con el contenido y deja claro que deben validarse.\n"
     "\n"
     "Ahora redacta la seccion {section_path} cumpliendo TODO.\n"
 )

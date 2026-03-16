@@ -15,8 +15,6 @@ import asyncio
 import datetime as dt
 import json
 import logging
-import re
-import subprocess
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -28,19 +26,19 @@ from app.core.config import settings
 from app.core.services.ai import AIService, QuotaExceededError
 from app.core.services.ai.errors import GenerationCancelledError
 from app.core.services.definition_compiler import compile_definition_to_section_index
-from app.core.services.docx_builder import build_demo_docx
 from app.core.services.format_service import FormatService
-from app.core.services.gicatesis_status import gicatesis_status
-from app.core.services.n8n_client import N8NClient
-from app.core.services.n8n_integration_service import N8NIntegrationService
 from app.core.services.project_service import ProjectService
 from app.core.services.prompt_service import PromptService
-from app.core.services.toc_detector import is_toc_path as _is_toc_path
+from app.core.utils.docx_builder import build_demo_docx
 from app.integrations.gicatesis.errors import (
     GicaTesisError,
     UpstreamTimeout,
     UpstreamUnavailable,
 )
+from app.integrations.gicatesis.types import RenderPayloadValidationError
+from app.integrations.gicatesis.status import gicatesis_status
+from app.integrations.n8n.client import N8NClient
+from app.integrations.n8n.service import N8NIntegrationService
 from app.modules.api.models import (
     N8NCallbackIn,
     ProjectDraftIn,
@@ -49,6 +47,39 @@ from app.modules.api.models import (
     ProjectUpdateIn,
     PromptIn,
     ProviderSelectIn,
+)
+from app.modules.api.payload_helpers import (
+    adapt_ai_result_for_gicatesis as _adapt_ai_result_for_gicatesis,
+)
+from app.modules.api.payload_helpers import (
+    build_render_payload as _build_render_payload,
+)
+from app.modules.api.payload_helpers import (
+    build_sim_sections as _build_sim_sections,
+)
+from app.modules.api.payload_helpers import (
+    decide_resume_mode as _decide_resume_mode,
+)
+from app.modules.api.payload_helpers import (
+    extract_resume_seed_sections as _extract_resume_seed_sections,
+)
+from app.modules.api.payload_helpers import (
+    extract_upstream_detail as _extract_upstream_detail,
+)
+from app.modules.api.payload_helpers import (
+    gicatesis_unavailable_detail as _gicatesis_unavailable_detail,
+)
+from app.modules.api.payload_helpers import (
+    values_with_title as _values_with_title,
+)
+from app.modules.api.trace_helpers import (
+    emit_project_trace as _emit_project_trace_raw,
+)
+from app.modules.api.trace_helpers import (
+    git_commit as _git_commit,
+)
+from app.modules.api.trace_helpers import (
+    utc_now_z as _utc_now_z,
 )
 
 _logger = logging.getLogger(__name__)
@@ -67,55 +98,13 @@ TRACE_MAX_PREVIEW_CHARS = 520
 TRACE_TERMINAL_STATUSES = {
     "completed",
     "failed",
+    "render_failed",
     "blocked",
     "cancel_requested",
     "n8n_failed",
     "ai_failed",
     "generation_failed",
 }
-_API_KEY_RE = re.compile(r"AIza[0-9A-Za-z\-_]{20,}")
-_BEARER_RE = re.compile(r"Bearer\s+[A-Za-z0-9\-\._~\+/]+=*", re.IGNORECASE)
-_SECRET_FIELD_RE = re.compile(r"(?i)\b(api[_-]?key|authorization|token|secret)\b\s*[:=]\s*([^\s,;]+)")
-
-
-def _utc_now_z() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _sanitize_text(value: Any) -> str:
-    text = str(value or "")
-    text = _API_KEY_RE.sub("[REDACTED_KEY]", text)
-    text = _BEARER_RE.sub("Bearer [REDACTED]", text)
-    text = _SECRET_FIELD_RE.sub(lambda m: f"{m.group(1)}=[REDACTED]", text)
-    return " ".join(text.split())
-
-
-def _clip_text(value: Any, max_chars: int = TRACE_MAX_PREVIEW_CHARS) -> str:
-    sanitized = _sanitize_text(value)
-    if len(sanitized) <= max_chars:
-        return sanitized
-    return f"{sanitized[: max_chars - 1]}â€¦"
-
-
-def _sanitize_preview(preview: Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]:
-    if not isinstance(preview, dict):
-        return None
-    cleaned: Dict[str, str] = {}
-    for key in ("prompt", "raw", "clean", "payload"):
-        if key in preview and preview.get(key) is not None:
-            cleaned[key] = _clip_text(preview.get(key))
-    return cleaned or None
-
-
-def _status_to_level(status: str) -> str:
-    lowered = str(status or "").lower()
-    if lowered in {"error", "failed"}:
-        return "error"
-    if lowered in {"warn", "warning"}:
-        return "warn"
-    if lowered == "done":
-        return "info"
-    return "info"
 
 
 def _emit_project_trace(
@@ -128,317 +117,165 @@ def _emit_project_trace(
     meta: Optional[Dict[str, Any]] = None,
     preview: Optional[Dict[str, Any]] = None,
 ) -> None:
-    safe_meta: Dict[str, Any] = {}
-    if isinstance(meta, dict) and meta:
-        for key, value in meta.items():
-            if isinstance(value, (str, int, float, bool)) or value is None:
-                safe_meta[key] = _clip_text(value, 140) if isinstance(value, str) else value
-            elif isinstance(value, (list, dict)):
-                # Allow structured data (messages, usage) for Inspector IA
-                try:
-                    import json as _json
+    """Wrapper local para inyectar la dependencia de 'projects' al helper de trace."""
+    _emit_project_trace_raw(
+        project_id,
+        step=step,
+        status=status,
+        title=title,
+        detail=detail,
+        meta=meta,
+        preview=preview,
+        projects=projects,
+    )
 
-                    serialized = _json.dumps(value, ensure_ascii=False)
-                    if len(serialized) <= 8192:
-                        safe_meta[key] = value
-                except Exception:
-                    pass
 
-    def _as_int(value: Any) -> int:
+class RenderStageError(RuntimeError):
+    """Raised when the render stage fails after AI content is already available."""
+
+    def __init__(self, detail: Any, *, status_code: int = 500) -> None:
+        self.detail_payload = detail
+        self.status_code = int(status_code or 500)
+        super().__init__(self.detail_text)
+
+    @property
+    def detail_text(self) -> str:
+        detail = self.detail_payload
+        if isinstance(detail, str):
+            return detail
         try:
-            return int(value)
+            return json.dumps(detail, ensure_ascii=False)
         except Exception:
-            return 0
-
-    provider = str(safe_meta.get("provider") or safe_meta.get("to") or safe_meta.get("targetProvider") or "")
-    section_current = _as_int(safe_meta.get("sectionIndex") or safe_meta.get("sectionCurrent") or 0)
-    section_total = _as_int(safe_meta.get("sectionTotal") or safe_meta.get("totalSections") or 0)
-    section_path = str(safe_meta.get("sectionPath") or safe_meta.get("path") or "")
-
-    message = _clip_text(
-        f"{title}. {detail}" if detail else title,
-        360,
-    )
-    event_stage = str(safe_meta.get("stage") or step)
-    event: Dict[str, Any] = {
-        "ts": _utc_now_z(),
-        # New event contract (for project.events)
-        "level": _status_to_level(status),
-        "stage": event_stage,
-        "message": message,
-        "provider": provider,
-        "sectionCurrent": section_current,
-        "sectionTotal": section_total,
-        "sectionPath": section_path,
-        # Legacy trace fields (kept for compatibility)
-        "step": step,
-        "status": status,
-        "title": _clip_text(title, 220),
-    }
-    if detail:
-        event["detail"] = _clip_text(detail, 360)
-    if safe_meta:
-        event["meta"] = safe_meta
-    safe_preview = _sanitize_preview(preview)
-    if safe_preview:
-        event["preview"] = safe_preview
-    projects.append_event(project_id, event)
+            return str(detail)
 
 
-def _git_commit() -> str:
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip() or "unknown"
-    except Exception:
-        return "unknown"
-
-
-def _extract_upstream_detail(response: httpx.Response, default_message: str) -> str:
-    """Extract useful detail from an upstream HTTP response body."""
-    try:
-        payload = response.json()
-    except Exception:
-        payload = None
-
-    if isinstance(payload, dict):
-        detail = payload.get("detail")
-        if isinstance(detail, str) and detail.strip():
-            return detail.strip()
-
-    raw = response.text.strip() if isinstance(response.text, str) else ""
-    if raw:
-        return raw[:500]
-    return default_message
-
-
-def _gicatesis_unavailable_detail(action: str) -> str:
-    return (
-        f"{action}: no se pudo conectar a GicaTesis en "
-        f"{settings.GICATESIS_BASE_URL}. Levanta GicaTesis en :8000 o "
-        "actualiza GICATESIS_BASE_URL. Para pruebas de catalogo sin upstream, "
-        "puedes usar GICAGEN_DEMO_MODE=true."
-    )
-
-
-def _build_sim_sections(
-    section_index: list[Dict[str, Any]],
-) -> list[Dict[str, str]]:
-    sections: list[Dict[str, str]] = []
-    for idx, section in enumerate(section_index, start=1):
-        path = str(section.get("path") or "").strip()
-        if not path:
-            continue
-        section_id = str(section.get("sectionId") or f"sec-{idx:04d}")
-        sections.append(
-            {
-                "sectionId": section_id,
-                "path": path,
-                "content": f"Contenido IA simulado para: {path}",
-            }
-        )
-    if not sections:
-        sections.append(
-            {
-                "sectionId": "sec-0001",
-                "path": "Documento/Seccion principal",
-                "content": "Contenido IA simulado para: Documento/Seccion principal",
-            }
-        )
-    return sections
-
-
-def _values_with_title(
-    project: Dict[str, Any],
-    source_values: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    """Ensure render/generation values include ``title`` fallback."""
-    values: Dict[str, Any] = dict(source_values or {})
-    title_value = values.get("title")
-    if isinstance(title_value, str) and title_value.strip():
-        return values
-
-    project_title = str(project.get("title") or "").strip()
-    if project_title:
-        values["title"] = project_title
-    return values
-
-
-def _extract_resume_seed_sections(ai_result: Any) -> list[Dict[str, str]]:
-    if not isinstance(ai_result, dict):
-        return []
-    raw_sections = ai_result.get("sections")
-    if not isinstance(raw_sections, list):
-        return []
-
-    seed_sections: list[Dict[str, str]] = []
-    for section in raw_sections:
-        if not isinstance(section, dict):
-            continue
-        content = section.get("content")
-        if not isinstance(content, str) or not content.strip():
-            continue
-        section_id = str(section.get("sectionId") or "").strip()
-        path = str(section.get("path") or "").strip()
-        if not section_id and not path:
-            continue
-        seed_sections.append(
-            {
-                "sectionId": section_id,
-                "path": path,
-                "content": content,
-            }
-        )
-    return seed_sections
-
-
-def _decide_resume_mode(
-    project: Dict[str, Any],
-    *,
-    requested_mode: str,
-) -> tuple[bool, list[Dict[str, str]], str]:
-    mode = str(requested_mode or "auto").lower().strip()
-    if mode not in {"auto", "resume", "restart"}:
-        mode = "auto"
-
-    seed_sections = _extract_resume_seed_sections(project.get("ai_result"))
-    saved_sections = len(seed_sections)
-    if mode == "restart":
-        return False, [], mode
-    if mode == "resume":
-        return saved_sections > 0, seed_sections, mode
-
-    previous_status = str(project.get("status") or "").lower().strip()
-    resume_state = project.get("resume") if isinstance(project.get("resume"), dict) else {}
-    eligible_by_status = previous_status in {
-        "failed",
-        "blocked",
-        "cancel_requested",
-        "generation_failed",
-        "ai_failed",
-    }
-    eligible_by_resume_flag = bool(resume_state.get("eligible"))
-    should_resume = saved_sections > 0 and (eligible_by_status or eligible_by_resume_flag)
-    return should_resume, seed_sections if should_resume else [], mode
-
-
-def _adapt_ai_result_for_gicatesis(ai_result: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Normalize aiResult payload for GicaTesis render without path collisions.
-
-    Important:
-    - Keep only canonical paths emitted by the compiler.
-    - Do not duplicate leaf paths, which can collide with TOC/index headings.
-    """
-    if not isinstance(ai_result, dict):
-        return {"sections": []}
-
-    raw_sections = ai_result.get("sections")
-    if not isinstance(raw_sections, list):
-        return {"sections": []}
-
-    canonical_sections: list[Dict[str, str]] = []
-    seen: set[tuple[str, str]] = set()
-
-    for section in raw_sections:
-        if not isinstance(section, dict):
-            continue
-
-        content = section.get("content")
-        if not isinstance(content, str) or not content.strip():
-            continue
-
-        section_id = section.get("sectionId")
-        section_path = section.get("path")
-        path = section_path.strip() if isinstance(section_path, str) else ""
-
-        if not path:
-            continue
-
-        # Defence-in-depth: drop TOC/index sections that may have leaked.
-        if _is_toc_path(path):
-            continue
-
-        canonical_id = section_id.strip() if isinstance(section_id, str) and section_id.strip() else ""
-        dedupe_key = (canonical_id or path, path)
-        if dedupe_key in seen:
-            continue
-        seen.add(dedupe_key)
-
-        entry: Dict[str, str] = {
-            "path": path,
-            "content": content,
-        }
-        if canonical_id:
-            entry["sectionId"] = canonical_id
-        canonical_sections.append(entry)
-
-    # Avoid top-level heading collisions with TOC rows in upstream renderers:
-    # when a level-1 section also has child sections, move its content to the
-    # first child and omit the parent entry.
-    by_path: Dict[str, Dict[str, str]] = {item["path"]: item for item in canonical_sections if item.get("path")}
-    parent_paths_with_children: set[str] = set()
-    for path in by_path.keys():
-        if "/" in path:
-            continue
-        prefix = f"{path}/"
-        if any(other_path.startswith(prefix) for other_path in by_path.keys()):
-            parent_paths_with_children.add(path)
-
-    paths_to_drop: set[str] = set()
-    for parent_path in parent_paths_with_children:
-        parent_entry = by_path.get(parent_path)
-        if not parent_entry:
-            continue
-        parent_content = str(parent_entry.get("content") or "").strip()
-        if not parent_content:
-            paths_to_drop.add(parent_path)
-            continue
-
-        first_child: Optional[Dict[str, str]] = None
-        child_prefix = f"{parent_path}/"
-        for item in canonical_sections:
-            item_path = item.get("path", "")
-            if item_path.startswith(child_prefix):
-                first_child = item
-                break
-        if first_child is not None:
-            child_content = str(first_child.get("content") or "").strip()
-            if child_content:
-                first_child["content"] = f"{parent_content}\n\n{child_content}"
-            else:
-                first_child["content"] = parent_content
-        paths_to_drop.add(parent_path)
-
-    if paths_to_drop:
-        canonical_sections = [item for item in canonical_sections if item.get("path") not in paths_to_drop]
-
-    return {"sections": canonical_sections}
-
-
-def _build_render_payload(
-    *,
-    format_id: str,
-    values: Dict[str, Any],
-    ai_result_raw: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    """Build render payload for GicaTesis preserving canonical AI sections.
-
-    Keep ``aiResult.sections`` as the source of truth. Do not replace it
-    with an injected structured definition, otherwise generated content can
-    be lost when upstream renderers ignore custom fields.
-    """
-    ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
+def _build_payload_preview(format_id: str, values: dict[str, Any], sections_count: int) -> dict[str, Any]:
     return {
         "formatId": format_id,
-        "values": values,
+        "valuesKeys": sorted(list(values.keys())),
+        "sections": sections_count,
         "mode": "simulation",
-        "aiResult": ai_result,
     }
+
+
+def _render_project_outputs_sync(
+    project_id: str,
+    *,
+    format_id: str,
+    values: dict[str, Any],
+    ai_result_raw: dict[str, Any],
+) -> tuple[Path, Path]:
+    ai_payload = _adapt_ai_result_for_gicatesis(ai_result_raw)
+    ai_sections = ai_payload.get("sections", [])
+    sections_count = len(ai_sections)
+    payload_preview = _build_payload_preview(format_id, values, sections_count)
+
+    _emit_project_trace(
+        project_id,
+        step="gicatesis.payload",
+        status="running",
+        title="Enviando payload a GicaTesis",
+        detail=f"Secciones preparadas: {sections_count}.",
+        meta={
+            "formatId": format_id,
+            "sections": sections_count,
+            "stage": "section_done",
+        },
+        preview={"payload": json.dumps(payload_preview, ensure_ascii=False)},
+    )
+
+    try:
+        payload = _build_render_payload(
+            format_id=format_id,
+            values=values,
+            ai_result_raw=ai_result_raw,
+        )
+    except RenderPayloadValidationError as exc:
+        _emit_project_trace(
+            project_id,
+            step="gicatesis.payload",
+            status="error",
+            title="Payload invalido antes de enviar a GicaTesis",
+            detail=json.dumps(exc.errors, ensure_ascii=False),
+            meta={"stage": "failed", "statusCode": 422},
+        )
+        raise RenderStageError(exc.errors, status_code=422) from exc
+
+    base_url = settings.GICATESIS_BASE_URL.rstrip("/")
+    headers: Dict[str, str] = {}
+    if settings.GICATESIS_API_KEY:
+        headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+
+    out_dir = Path("outputs")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    docx_path = out_dir / f"{project_id}.docx"
+    pdf_path = out_dir / f"{project_id}.pdf"
+
+    with httpx.Client(timeout=240.0) as client:
+        _emit_project_trace(
+            project_id,
+            step="gicatesis.render.docx",
+            status="running",
+            title="Render DOCX en proceso",
+        )
+        try:
+            docx_response = client.post(f"{base_url}/render/docx", json=payload, headers=headers)
+            docx_response.raise_for_status()
+            docx_path.write_bytes(docx_response.content)
+        except httpx.HTTPStatusError as exc:
+            detail = _extract_upstream_detail(exc.response, "GicaTesis render/docx failed")
+            _emit_project_trace(
+                project_id,
+                step="gicatesis.render.docx",
+                status="error",
+                title="Render DOCX fallido",
+                detail=detail,
+            )
+            raise RenderStageError(detail, status_code=exc.response.status_code) from exc
+
+        _emit_project_trace(
+            project_id,
+            step="gicatesis.render.docx",
+            status="done",
+            title="DOCX listo",
+            detail=f"Archivo: {docx_path.name}",
+        )
+
+        _emit_project_trace(
+            project_id,
+            step="gicatesis.render.pdf",
+            status="running",
+            title="Render PDF en proceso",
+        )
+        try:
+            pdf_response = client.post(f"{base_url}/render/pdf", json=payload, headers=headers)
+            pdf_response.raise_for_status()
+            pdf_path.write_bytes(pdf_response.content)
+        except httpx.HTTPStatusError as exc:
+            detail = _extract_upstream_detail(exc.response, "GicaTesis render/pdf failed")
+            _emit_project_trace(
+                project_id,
+                step="gicatesis.render.pdf",
+                status="error",
+                title="Render PDF fallido",
+                detail=detail,
+            )
+            raise RenderStageError(detail, status_code=exc.response.status_code) from exc
+
+    _emit_project_trace(
+        project_id,
+        step="gicatesis.payload",
+        status="done",
+        title="Payload procesado por GicaTesis",
+    )
+    _emit_project_trace(
+        project_id,
+        step="gicatesis.render.pdf",
+        status="done",
+        title="PDF listo",
+        detail=f"Archivo: {pdf_path.name}",
+    )
+    return docx_path, pdf_path
 
 
 # =============================================================================
@@ -1077,11 +914,14 @@ async def sim_download_docx(projectId: str, runId: Optional[str] = None):
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
     url = f"{settings.GICATESIS_BASE_URL.rstrip('/')}/render/docx"
-    payload: Dict[str, Any] = _build_render_payload(
-        format_id=format_id,
-        values=values,
-        ai_result_raw=ai_result_raw,
-    )
+    try:
+        payload: Dict[str, Any] = _build_render_payload(
+            format_id=format_id,
+            values=values,
+            ai_result_raw=ai_result_raw,
+        )
+    except RenderPayloadValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors)
     _emit_project_trace(
         projectId,
         step="gicatesis.payload",
@@ -1174,11 +1014,14 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
     url = f"{settings.GICATESIS_BASE_URL.rstrip('/')}/render/pdf"
-    payload: Dict[str, Any] = _build_render_payload(
-        format_id=format_id,
-        values=values,
-        ai_result_raw=ai_result_raw,
-    )
+    try:
+        payload: Dict[str, Any] = _build_render_payload(
+            format_id=format_id,
+            values=values,
+            ai_result_raw=ai_result_raw,
+        )
+    except RenderPayloadValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors)
     _emit_project_trace(
         projectId,
         step="gicatesis.payload",
@@ -1255,7 +1098,7 @@ async def _ai_generation_job(
     run_id: str,
     *,
     resume_from_partial: bool = False,
-    resume_seed_sections: Optional[list[Dict[str, str]]] = None,
+    resume_seed_sections: Optional[list[Dict[str, Any]]] = None,
 ):
     """Background task: generate content via IA and render artifacts."""
 
@@ -1577,120 +1420,17 @@ async def _ai_generation_job(
                     "variables": values,
                 },
             )
-        ai_payload = _adapt_ai_result_for_gicatesis(ai_result)
-        ai_sections = ai_payload.get("sections", [])
-        sections_count = len(ai_sections)
 
-        # Build a hierarchical payload by injecting AI content into the
-        # format definition.  This ensures content lands ONLY in the
         # correct sections (desarrollo / texto) â€” indices, caratula, and
-        # structural fields are never touched.
-        payload_preview = {
-            "formatId": latest_format_id,
-            "valuesKeys": sorted(list(values.keys())),
-            "sections": sections_count,
-            "mode": "simulation",
-        }
-
-        _emit_project_trace(
-            project_id,
-            step="gicatesis.payload",
-            status="running",
-            title="Enviando payload a GicaTesis",
-            detail=f"Secciones preparadas: {sections_count}.",
-            meta={
-                "formatId": latest_format_id,
-                "sections": sections_count,
-                "stage": "section_done",
-            },
-            preview={"payload": json.dumps(payload_preview, ensure_ascii=False)},
-        )
-
         def _render_outputs_sync() -> tuple[Path, Path]:
-            base_url = settings.GICATESIS_BASE_URL.rstrip("/")
-            headers: Dict[str, str] = {}
-            if settings.GICATESIS_API_KEY:
-                headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
-
-            payload = _build_render_payload(
+            return _render_project_outputs_sync(
+                project_id,
                 format_id=latest_format_id,
                 values=values,
                 ai_result_raw=ai_result,
             )
 
-            out_dir = Path("outputs")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            docx_path = out_dir / f"{project_id}.docx"
-            pdf_path = out_dir / f"{project_id}.pdf"
-
-            with httpx.Client(timeout=240.0) as client:
-                _emit_project_trace(
-                    project_id,
-                    step="gicatesis.render.docx",
-                    status="running",
-                    title="Render DOCX en proceso",
-                )
-                try:
-                    docx_response = client.post(f"{base_url}/render/docx", json=payload, headers=headers)
-                    docx_response.raise_for_status()
-                    docx_path.write_bytes(docx_response.content)
-                except httpx.HTTPStatusError as exc:
-                    detail = _extract_upstream_detail(exc.response, "GicaTesis render/docx failed")
-                    _emit_project_trace(
-                        project_id,
-                        step="gicatesis.render.docx",
-                        status="error",
-                        title="Render DOCX fallido",
-                        detail=detail,
-                    )
-                    raise RuntimeError(detail) from exc
-
-                _emit_project_trace(
-                    project_id,
-                    step="gicatesis.render.docx",
-                    status="done",
-                    title="DOCX listo",
-                    detail=f"Archivo: {docx_path.name}",
-                )
-
-                _emit_project_trace(
-                    project_id,
-                    step="gicatesis.render.pdf",
-                    status="running",
-                    title="Render PDF en proceso",
-                )
-                try:
-                    pdf_response = client.post(f"{base_url}/render/pdf", json=payload, headers=headers)
-                    pdf_response.raise_for_status()
-                    pdf_path.write_bytes(pdf_response.content)
-                except httpx.HTTPStatusError as exc:
-                    detail = _extract_upstream_detail(exc.response, "GicaTesis render/pdf failed")
-                    _emit_project_trace(
-                        project_id,
-                        step="gicatesis.render.pdf",
-                        status="error",
-                        title="Render PDF fallido",
-                        detail=detail,
-                    )
-                    raise RuntimeError(detail) from exc
-
-            return docx_path, pdf_path
-
         docx_path, pdf_path = await asyncio.to_thread(_render_outputs_sync)
-
-        _emit_project_trace(
-            project_id,
-            step="gicatesis.payload",
-            status="done",
-            title="Payload procesado por GicaTesis",
-        )
-        _emit_project_trace(
-            project_id,
-            step="gicatesis.render.pdf",
-            status="done",
-            title="PDF listo",
-            detail=f"Archivo: {pdf_path.name}",
-        )
 
         projects.mark_completed(
             project_id,
@@ -1722,6 +1462,25 @@ async def _ai_generation_job(
             },
         )
         _logger.info("AI generation completed for project %s using %s", project_id, provider)
+    except RenderStageError as exc:
+        projects.mark_render_failed(project_id, exc.detail_text)
+        _emit_project_trace(
+            project_id,
+            step="project.status.render_failed",
+            status="error",
+            title="Render fallido; contenido IA conservado",
+            detail=exc.detail_text,
+            meta={"runId": run_id, "stage": "failed", "statusCode": exc.status_code},
+        )
+        _emit_project_trace(
+            project_id,
+            step="generation.job",
+            status="error",
+            title="Generacion IA completada, pero el render fallo",
+            detail="El proyecto conserva ai_result para reintentar solo render.",
+            meta={"runId": run_id, "stage": "failed", "statusCode": exc.status_code},
+        )
+        _logger.error("Render stage failed for project %s: %s", project_id, exc.detail_text)
     except GenerationCancelledError as exc:
         _persist_partial_resume_snapshot("Generacion cancelada por usuario")
         projects.mark_blocked(project_id, str(exc), keep_ai_result=True)
@@ -1763,6 +1522,73 @@ async def _ai_generation_job(
             meta={"runId": run_id, "stage": "failed"},
         )
         _logger.error("AI generation failed for project %s: %s", project_id, exc)
+
+
+async def _render_saved_ai_job(project_id: str, run_id: str) -> None:
+    """Render artifacts from an already validated ai_result without re-running IA."""
+
+    project = projects.get_project(project_id)
+    if not project:
+        return
+
+    format_id = str(project.get("format_id") or "").strip()
+    ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
+    if not format_id:
+        projects.mark_render_failed(project_id, "No format_id available for GicaTesis render.")
+        return
+    if not isinstance(ai_result, dict) or not isinstance(ai_result.get("sections"), list) or not ai_result["sections"]:
+        projects.mark_render_failed(project_id, "No ai_result available for render retry.")
+        return
+
+    values_source = project.get("values") if isinstance(project.get("values"), dict) else {}
+    values = _values_with_title(project, values_source)
+    if values != values_source:
+        projects.update_project(
+            project_id,
+            {
+                "values": values,
+                "variables": values,
+            },
+        )
+
+    provider = str(project.get("progress", {}).get("provider") or "")
+
+    try:
+        docx_path, pdf_path = await asyncio.to_thread(
+            _render_project_outputs_sync,
+            project_id,
+            format_id=format_id,
+            values=values,
+            ai_result_raw=ai_result,
+        )
+        projects.mark_completed(
+            project_id,
+            str(docx_path),
+            pdf_file=str(pdf_path),
+            artifacts=[
+                {"type": "docx", "downloadUrl": f"/api/download/{project_id}"},
+                {"type": "pdf", "downloadUrl": f"/api/download/{project_id}/pdf"},
+            ],
+        )
+        _emit_project_trace(
+            project_id,
+            step="generation.job",
+            status="done",
+            title="Render reintentado con exito",
+            detail="Se reutilizo el ai_result guardado sin volver a llamar al proveedor IA.",
+            meta={"runId": run_id, "provider": provider, "stage": "done"},
+        )
+    except RenderStageError as exc:
+        projects.mark_render_failed(project_id, exc.detail_text)
+        _emit_project_trace(
+            project_id,
+            step="project.status.render_failed",
+            status="error",
+            title="Render reintentado y fallido",
+            detail=exc.detail_text,
+            meta={"runId": run_id, "provider": provider, "stage": "failed", "statusCode": exc.status_code},
+        )
+        _logger.error("Render retry failed for project %s: %s", project_id, exc.detail_text)
 
 
 async def _demo_generation_job(project_id: str, format_name: str, prompt_name: str, variables: Dict[str, Any]):
@@ -1869,9 +1695,100 @@ async def trigger_generation(
     if project.get("ai_selection") != project_selection:
         projects.update_project(projectId, {"ai_selection": project_selection})
 
+    requested_resume_mode = payload.resume_mode if payload else "auto"
+    stored_ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
+    stored_ai_sections = (
+        stored_ai_result.get("sections")
+        if isinstance(stored_ai_result, dict) and isinstance(stored_ai_result.get("sections"), list)
+        else []
+    )
+    can_retry_render_only = (
+        str(project.get("status") or "").strip().lower() == "render_failed"
+        and requested_resume_mode != "restart"
+        and bool(stored_ai_sections)
+    )
+
+    if can_retry_render_only:
+        _logger.info("Retrying render-only for project %s using saved ai_result", projectId)
+        projects.clear_trace(projectId)
+        progress = project.get("progress") if isinstance(project.get("progress"), dict) else {}
+        provider = (
+            str(progress.get("provider") or project_selection.get("provider") or settings.AI_PRIMARY_PROVIDER)
+            .lower()
+            .strip()
+            or "gemini"
+        )
+        mode = str(project_selection.get("mode") or "auto").lower().strip()
+        run_id = f"render-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        total_sections = int(progress.get("total") or len(stored_ai_sections))
+        current_sections = int(progress.get("current") or total_sections or len(stored_ai_sections))
+        current_path = (
+            str(progress.get("currentPath") or "").strip()
+            or str((stored_ai_sections[-1] or {}).get("path") or "").strip()
+        )
+        projects.update_project(
+            projectId,
+            {
+                "status": "rendering",
+                "cancel_requested": False,
+                "run_id": run_id,
+                "error": None,
+                "progress": {
+                    "current": current_sections,
+                    "total": total_sections,
+                    "currentPath": current_path,
+                    "provider": provider,
+                    "updatedAt": _utc_now_z(),
+                },
+            },
+        )
+        _emit_project_trace(
+            projectId,
+            step="generation.request.received",
+            status="running",
+            title="Solicitud de reintento de render recibida",
+            detail="Se reutilizara el contenido IA ya validado; no se llamara al proveedor.",
+            meta={
+                "runId": run_id,
+                "provider": provider,
+                "mode": mode,
+                "stage": "queued",
+                "resumeMode": requested_resume_mode,
+                "savedSections": len(stored_ai_sections),
+                "retryMode": "render_only",
+            },
+        )
+        _emit_project_trace(
+            projectId,
+            step="project.status.rendering",
+            status="running",
+            title="Proyecto en estado Renderizando",
+            detail="Reintentando solo DOCX/PDF con ai_result existente.",
+            meta={
+                "runId": run_id,
+                "provider": provider,
+                "mode": mode,
+                "stage": "queued",
+                "retryMode": "render_only",
+            },
+        )
+        background.add_task(_render_saved_ai_job, projectId, run_id)
+        return {
+            "ok": True,
+            "status": "rendering",
+            "projectId": projectId,
+            "runId": run_id,
+            "mode": "render_only",
+            "provider": provider,
+            "model": ai_service.get_model_for_provider(provider, selection_override=project_selection),
+            "selectionMode": mode,
+            "resumeMode": requested_resume_mode,
+            "savedSections": len(stored_ai_sections),
+            "resumeFromSection": len(stored_ai_sections),
+        }
+
     if ai_service.is_configured(selection_override=project_selection):
         _logger.info("Starting AI generation for project %s", projectId)
-        requested_resume_mode = payload.resume_mode if payload else "auto"
         resume_from_partial, resume_seed_sections, resolved_resume_mode = _decide_resume_mode(
             project,
             requested_mode=requested_resume_mode,
@@ -2146,11 +2063,14 @@ async def render_docx(projectId: str = Query(..., description="Project ID")):
 
     # Proxy to GicaTesis render endpoint
     url = f"{settings.GICATESIS_BASE_URL}/render/docx"
-    payload: Dict[str, Any] = _build_render_payload(
-        format_id=format_id,
-        values=values,
-        ai_result_raw=ai_result_raw,
-    )
+    try:
+        payload: Dict[str, Any] = _build_render_payload(
+            format_id=format_id,
+            values=values,
+            ai_result_raw=ai_result_raw,
+        )
+    except RenderPayloadValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors)
     _emit_project_trace(
         projectId,
         step="gicatesis.payload",
@@ -2250,11 +2170,14 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
     # Build structured definition with AI content injected into the
     # Proxy to GicaTesis render endpoint
     url = f"{settings.GICATESIS_BASE_URL}/render/pdf"
-    payload: Dict[str, Any] = _build_render_payload(
-        format_id=format_id,
-        values=values,
-        ai_result_raw=ai_result_raw,
-    )
+    try:
+        payload: Dict[str, Any] = _build_render_payload(
+            format_id=format_id,
+            values=values,
+            ai_result_raw=ai_result_raw,
+        )
+    except RenderPayloadValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors)
     _emit_project_trace(
         projectId,
         step="gicatesis.payload",

@@ -1,6 +1,8 @@
 """Tests for app.core.services.ai.prompt_renderer."""
+
 import pytest
-from app.core.services.ai.prompt_renderer import PromptRenderer, SYSTEM_PROMPT
+
+from app.core.services.ai.prompt_renderer import SYSTEM_PROMPT, PromptRenderer
 
 
 @pytest.fixture
@@ -89,7 +91,12 @@ class TestBuildSectionPrompt:
         """Verify the SYSTEM_PROMPT constant contains key formatting rules."""
         assert "NO uses Markdown" in SYSTEM_PROMPT
         assert "NO escribas el titulo" in SYSTEM_PROMPT
-        assert "FIGURA DE EJEMPLO" in SYSTEM_PROMPT
+        assert "<<<TABLE_JSON" in SYSTEM_PROMPT
+        assert "<<<FIGURE_JSON" in SYSTEM_PROMPT
         assert "<<SKIP_SECTION>>" in SYSTEM_PROMPT
+        assert "NO sugieras tablas/figuras en Introduccion" in SYSTEM_PROMPT
+        assert "Cronograma" in SYSTEM_PROMPT
+        assert "NO afirmes haber navegado internet" in SYSTEM_PROMPT
+        assert "NO inventes DOI, URL ni enlaces reales" in SYSTEM_PROMPT
         assert "{{title}}" in SYSTEM_PROMPT
         assert "{{tema}}" in SYSTEM_PROMPT

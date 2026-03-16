@@ -65,6 +65,25 @@ class TestDetectPlaceholders:
         assert len(issues) == 1
         assert issues[0].issue_type == "instruction"
 
+    def test_detects_placeholder_only_structured_table(self):
+        sections = [
+            {
+                "sectionId": "disc",
+                "path": "VI. DISCUSION DE RESULTADOS/6.1 Discusion",
+                "content": [
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Tabla comparativa",
+                        "encabezados": ["Autor", "Variable", "Resultado"],
+                        "filas": [["[Autor 1]", "[Variable]", "[Resultado]"]],
+                    }
+                ],
+            },
+        ]
+        issues = detect_placeholders(sections)
+        assert len(issues) == 1
+        assert issues[0].issue_type == "placeholder"
+
     def test_no_issues_for_real_content(self):
         sections = [
             {
@@ -122,6 +141,52 @@ class TestAutofillSection:
         sec = {"sectionId": "intro", "path": "INTRODUCCION", "content": ""}
         result = autofill_section(sec, "empty")
         assert result is None
+
+    def test_autofill_discusion_generates_required_fallback(self):
+        sec = {"sectionId": "disc", "path": "VI. DISCUSION DE RESULTADOS/6.1 Discusion", "content": ""}
+        result = autofill_section(
+            sec,
+            "empty",
+            values={
+                "tema": "mantenimiento predictivo en motores de combustion interna",
+                "objetivo_general": "evaluar el impacto del analisis predictivo en la deteccion de fallas",
+            },
+            all_sections=[
+                {
+                    "sectionId": "res",
+                    "path": "V. RESULTADOS/5.1 Resultados",
+                    "content": (
+                        "Los resultados evidenciaron una mejora en la deteccion temprana de fallas y una reduccion "
+                        "de intervenciones no planificadas."
+                    ),
+                }
+            ],
+        )
+        assert result is not None
+        assert "mantenimiento predictivo" in result.lower()
+        assert len(result) > 150
+
+    def test_autofill_conclusiones_generates_required_fallback(self):
+        sec = {"sectionId": "conc", "path": "VII. CONCLUSIONES/7.1 Conclusiones", "content": ""}
+        result = autofill_section(
+            sec,
+            "empty",
+            values={"tema": "optimizacion logistica con IA generativa"},
+        )
+        assert result is not None
+        assert "concluye" in result.lower() or "conclus" in result.lower()
+        assert len(result) > 150
+
+    def test_autofill_recomendaciones_generates_required_fallback(self):
+        sec = {"sectionId": "rec", "path": "VIII. RECOMENDACIONES/8.1 Recomendaciones", "content": ""}
+        result = autofill_section(
+            sec,
+            "empty",
+            values={"tema": "optimizacion logistica con IA generativa"},
+        )
+        assert result is not None
+        assert "recomienda" in result.lower()
+        assert len(result) > 150
 
 
 # ---------------------------------------------------------------------------

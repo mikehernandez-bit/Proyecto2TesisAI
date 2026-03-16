@@ -22,7 +22,9 @@ from app.core.services.ai.completeness_validator import (
     autofill_section,
     detect_placeholders,
 )
+from app.core.services.ai.content_parser import parse_ai_content
 from app.core.services.ai.errors import GenerationCancelledError
+from app.core.services.ai.figure_recommendations import apply_figure_recommendations
 from app.core.services.ai.gemini_client import GeminiClient
 from app.core.services.ai.limiter import LLMLimiter
 from app.core.services.ai.mistral_client import MistralClient
@@ -30,6 +32,7 @@ from app.core.services.ai.openrouter_client import OpenRouterClient
 from app.core.services.ai.output_validator import OutputValidator, ValidationError
 from app.core.services.ai.phase_policy import build_phase_policies
 from app.core.services.ai.prompt_renderer import PromptRenderer
+from app.core.services.ai.reference_proposals import replace_references_section
 from app.core.services.ai.provider_metrics import ProviderMetricsService
 from app.core.services.ai.provider_selection import ProviderSelectionService
 from app.core.services.ai.resilience_router import LLMProviderRouter, LLMRequest, LLMResult
@@ -126,7 +129,7 @@ class AIService:
         self._active_selection: Dict[str, Any] = {}
         self._run_incidents: List[Dict[str, Any]] = []
         self._last_call_result: Optional[LLMResult] = None
-        self._partial_sections: List[Dict[str, str]] = []
+        self._partial_sections: List[Dict[str, Any]] = []
 
         self._phase_policies = build_phase_policies()
         self._limiter = LLMLimiter(
@@ -696,7 +699,7 @@ class AIService:
         progress_cb: Optional[Callable[..., None]] = None,
         selection_override: Optional[Dict[str, Any]] = None,
         resume_from_partial: bool = False,
-        seed_sections_override: Optional[List[Dict[str, str]]] = None,
+        seed_sections_override: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Run the full generation pipeline."""
         self._last_used_provider = None
@@ -778,7 +781,7 @@ class AIService:
         project_values = dict(values)
         project_values.setdefault("title", project.get("title", ""))
 
-        seeded_sections: List[Dict[str, str]] = []
+        seeded_sections: List[Dict[str, Any]] = []
         if resume_from_partial:
             if isinstance(seed_sections_override, list) and seed_sections_override:
                 seeded_sections = self._extract_seed_sections(
@@ -834,7 +837,28 @@ class AIService:
             )
 
         # --- Completeness check: detect and repair placeholders ---
-        sections = self._ensure_completeness(sections, project_id=project_id)
+        sections = self._ensure_completeness(
+            sections,
+            project_id=project_id,
+            values=project_values,
+        )
+        sections = apply_figure_recommendations(
+            sections,
+            values=project_values,
+        )
+        self._emit_trace(
+            step="ai.figures",
+            status="done",
+            title="Figuras recomendadas derivadas",
+            detail="Se revisaron secciones elegibles para insertar placeholders tecnicos con caption especifico.",
+        )
+        sections = replace_references_section(sections, values=project_values)
+        self._emit_trace(
+            step="ai.references",
+            status="done",
+            title="Referencias finales consolidadas",
+            detail="Se generaron referencias propuestas simuladas sin acceso a internet.",
+        )
 
         try:
             ai_result = self.validator.build_ai_result(sections)
@@ -889,19 +913,25 @@ class AIService:
         ai_result: Any,
         *,
         section_index: List[Dict[str, Any]],
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         if not isinstance(ai_result, dict):
             return []
         raw_sections = ai_result.get("sections")
         if not isinstance(raw_sections, list):
             return []
 
-        seeded_map: Dict[str, str] = {}
+        seeded_map: Dict[str, Any] = {}
         for section in raw_sections:
             if not isinstance(section, dict):
                 continue
             content = section.get("content")
-            if not isinstance(content, str) or not content.strip():
+            if isinstance(content, str):
+                if not content.strip():
+                    continue
+            elif isinstance(content, list):
+                if not content:
+                    continue
+            else:
                 continue
             section_id = str(section.get("sectionId") or "").strip()
             path = str(section.get("path") or "").strip()
@@ -911,7 +941,7 @@ class AIService:
             if key not in seeded_map:
                 seeded_map[key] = content
 
-        ordered: List[Dict[str, str]] = []
+        ordered: List[Dict[str, Any]] = []
         for idx, section in enumerate(section_index, 1):
             section_id = str(section.get("sectionId") or f"sec-{idx:04d}")
             path = str(section.get("path") or f"Section {idx}")
@@ -938,14 +968,14 @@ class AIService:
         project_id: str,
         values: Dict[str, Any] | None = None,
         selection: Optional[Dict[str, Any]] = None,
-        seed_sections: Optional[List[Dict[str, str]]] = None,
-    ) -> List[Dict[str, str]]:
+        seed_sections: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
         """Generate content for each section in the index.
 
         Includes an inter-section delay to stay within API rate limits
         when generating many sections (e.g. 74 for a full thesis format).
         """
-        sections: List[Dict[str, str]] = []
+        sections: List[Dict[str, Any]] = []
         total = len(section_index)
         preferred_provider: Optional[str] = None
         disabled_providers: Set[str] = set()
@@ -957,7 +987,13 @@ class AIService:
                 if not isinstance(seeded, dict):
                     continue
                 seeded_content = seeded.get("content")
-                if not isinstance(seeded_content, str) or not seeded_content.strip():
+                if isinstance(seeded_content, str):
+                    if not seeded_content.strip():
+                        continue
+                elif isinstance(seeded_content, list):
+                    if not seeded_content:
+                        continue
+                else:
                     continue
                 seeded_id = str(seeded.get("sectionId") or "").strip()
                 seeded_path = str(seeded.get("path") or "").strip()
@@ -1073,11 +1109,14 @@ class AIService:
                 stage="section_done",
             )
 
+            # Parse structured blocks (tables/figures) from AI output
+            parsed_content = parse_ai_content(content)
+
             sections.append(
                 {
                     "sectionId": section_id,
                     "path": path,
-                    "content": content,
+                    "content": parsed_content,
                 }
             )
             self._partial_sections = [dict(item) for item in sections]
@@ -1176,12 +1215,12 @@ class AIService:
 
     def _correct_ai_result(
         self,
-        sections: List[Dict[str, str]],
+        sections: List[Dict[str, Any]],
         definition: Dict[str, Any],
         values: Dict[str, Any],
         project_id: str,
         selection: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         """Run a correction pass on the raw AI-generated sections.
 
         Sends the entire ai_result (all sections) plus the format definition
@@ -1278,10 +1317,11 @@ class AIService:
 
     def _ensure_completeness(
         self,
-        sections: List[Dict[str, str]],
+        sections: List[Dict[str, Any]],
         *,
         project_id: str = "",
-    ) -> List[Dict[str, str]]:
+        values: Dict[str, Any] | None = None,
+    ) -> List[Dict[str, Any]]:
         """Detect placeholder content and auto-fill known section types.
 
         Runs after ``_correct_ai_result`` and before ``build_ai_result``.
@@ -1323,7 +1363,12 @@ class AIService:
             if target is None:
                 continue
 
-            replacement = autofill_section(target, issue.issue_type)
+            replacement = autofill_section(
+                target,
+                issue.issue_type,
+                values=values,
+                all_sections=sections,
+            )
             if replacement:
                 target["content"] = replacement
                 repaired += 1
@@ -1359,7 +1404,7 @@ class AIService:
 
     def _build_correction_prompt(
         self,
-        sections: List[Dict[str, str]],
+        sections: List[Dict[str, Any]],
         definition: Dict[str, Any],
         values: Dict[str, Any],
     ) -> str:
@@ -1384,9 +1429,9 @@ class AIService:
     @staticmethod
     def _parse_corrected_json(
         raw_response: str,
-        original_sections: List[Dict[str, str]],
+        original_sections: List[Dict[str, Any]],
         project_id: str,
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         """Parse the AI correction response as JSON.
 
         Attempts to extract a valid ``{"sections": [...]}`` structure from
@@ -1461,7 +1506,7 @@ class AIService:
                 project_id,
             )
 
-        result: List[Dict[str, str]] = []
+        result: List[Dict[str, Any]] = []
         for orig in original_sections:
             sid = orig["sectionId"]
             corrected_item = corrected_by_id.get(sid)
@@ -1469,6 +1514,8 @@ class AIService:
             if isinstance(corrected_item, dict):
                 corrected_content = corrected_item.get("content")
                 if isinstance(corrected_content, str) and corrected_content.strip():
+                    content = corrected_content
+                elif isinstance(corrected_content, list) and corrected_content:
                     content = corrected_content
             result.append(
                 {
