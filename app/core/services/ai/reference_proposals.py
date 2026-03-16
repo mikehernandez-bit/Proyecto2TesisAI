@@ -16,6 +16,7 @@ _REFERENCE_WARNING = (
     "Las siguientes referencias son propuestas academicas simuladas generadas sin acceso a internet. "
     "Deben ser validadas, corregidas o reemplazadas por el autor antes de la version final."
 )
+_REFERENCE_VALIDATION_NOTE = "Referencia propuesta simulada para validacion del autor."
 
 _ROMAN_PREFIX_RE = re.compile(r"^[\dIVXLCDM]+(?:[.\-]\d+)*[.)\s-]+")
 _WORD_RE = re.compile(r"[A-Za-zA-Z][A-Za-zA-Z0-9]{3,}")
@@ -61,23 +62,58 @@ _AUTHOR_PAIRS: tuple[tuple[str, str], ...] = (
 )
 _CATEGORY_TEMPLATES: dict[str, tuple[str, ...]] = {
     "foundation": (
-        "{a1}, & {a2} ({y1}). Contextualizacion del problema de {topic} en organizaciones contemporaneas. Revista Latinoamericana de Gestion Aplicada, 14(2), 45-62. Referencia propuesta simulada para validacion del autor.",
-        "{a3} ({y2}). Formulacion de objetivos y delimitacion de estudios sobre {focus}. Editorial Academia Tecnica. Referencia propuesta simulada para validacion del autor.",
+        (
+            "{a1}, & {a2} ({y1}). Contextualizacion del problema de {topic} en organizaciones contemporaneas. "
+            "Revista Latinoamericana de Gestion Aplicada, 14(2), 45-62. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
+        (
+            "{a3} ({y2}). Formulacion de objetivos y delimitacion de estudios sobre {focus}. "
+            "Editorial Academia Tecnica. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
     ),
     "theory": (
-        "{a1}, & {a2} ({y1}). Fundamentos teoricos de {topic}. Fondo Editorial Universitario. Referencia propuesta simulada para validacion del autor.",
-        "{a3}, & {a4} ({y2}). Modelos conceptuales para el analisis de {focus}. Revista Iberoamericana de Estudios Aplicados, 11(1), 33-51. Referencia propuesta simulada para validacion del autor.",
+        (
+            "{a1}, & {a2} ({y1}). Fundamentos teoricos de {topic}. Fondo Editorial Universitario. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
+        (
+            "{a3}, & {a4} ({y2}). Modelos conceptuales para el analisis de {focus}. "
+            "Revista Iberoamericana de Estudios Aplicados, 11(1), 33-51. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
     ),
     "methodology": (
-        "{a1} ({y1}). Metodologia de la investigacion aplicada a {topic}. Editorial Metodo y Evidencia. Referencia propuesta simulada para validacion del autor.",
-        "{a2}, & {a3} ({y2}). Diseno de instrumentos y tecnicas de recoleccion para {focus}. Revista de Metodos Aplicados, 9(3), 70-88. Referencia propuesta simulada para validacion del autor.",
+        (
+            "{a1} ({y1}). Metodologia de la investigacion aplicada a {topic}. "
+            "Editorial Metodo y Evidencia. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
+        (
+            "{a2}, & {a3} ({y2}). Diseno de instrumentos y tecnicas de recoleccion para {focus}. "
+            "Revista de Metodos Aplicados, 9(3), 70-88. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
     ),
     "results": (
-        "{a1}, & {a2} ({y1}). Analisis e interpretacion de resultados en proyectos sobre {topic}. Revista de Analisis Aplicado, 17(2), 101-119. Referencia propuesta simulada para validacion del autor.",
-        "{a3} ({y2}). Discusion de hallazgos y contraste teorico en estudios de {focus}. Cuadernos de Investigacion Profesional, 6(1), 25-39. Referencia propuesta simulada para validacion del autor.",
+        (
+            "{a1}, & {a2} ({y1}). Analisis e interpretacion de resultados en proyectos sobre {topic}. "
+            "Revista de Analisis Aplicado, 17(2), 101-119. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
+        (
+            "{a3} ({y2}). Discusion de hallazgos y contraste teorico en estudios de {focus}. "
+            "Cuadernos de Investigacion Profesional, 6(1), 25-39. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
     ),
     "closure": (
-        "{a1} ({y1}). Criterios para redactar conclusiones y recomendaciones en estudios de {topic}. Manual de Escritura Academica Avanzada. Referencia propuesta simulada para validacion del autor.",
+        (
+            "{a1} ({y1}). Criterios para redactar conclusiones y recomendaciones en estudios de {topic}. "
+            "Manual de Escritura Academica Avanzada. "
+            f"{_REFERENCE_VALIDATION_NOTE}"
+        ),
     ),
 }
 
@@ -124,7 +160,7 @@ def _visible_content_text(content: Any) -> str:
             continue
         if not isinstance(item, dict):
             continue
-        block_type = _norm_upper(item.get("tipo"))
+        block_type = _norm_upper(str(item.get("tipo") or ""))
         if block_type == "PARRAFO":
             text = " ".join(str(item.get("texto") or "").split())
             if text:
@@ -264,8 +300,6 @@ def replace_references_section(
 
     references_content = build_reference_section_content(sections, values=values)
     updated: list[dict[str, Any]] = []
-    replaced = False
-
     for section in sections:
         if not isinstance(section, dict):
             continue
@@ -273,7 +307,6 @@ def replace_references_section(
         path = str(entry.get("path") or "").strip()
         if _is_reference_path(path):
             entry["content"] = references_content
-            replaced = True
         updated.append(entry)
 
     return updated

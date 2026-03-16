@@ -35,8 +35,8 @@ from app.integrations.gicatesis.errors import (
     UpstreamTimeout,
     UpstreamUnavailable,
 )
-from app.integrations.gicatesis.types import RenderPayloadValidationError
 from app.integrations.gicatesis.status import gicatesis_status
+from app.integrations.gicatesis.types import RenderPayloadValidationError
 from app.integrations.n8n.client import N8NClient
 from app.integrations.n8n.service import N8NIntegrationService
 from app.modules.api.models import (

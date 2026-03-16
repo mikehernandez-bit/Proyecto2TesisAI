@@ -99,9 +99,7 @@ def allows_structured_content(path: str) -> bool:
     if is_text_only_section(path):
         return False
     return any(
-        keyword in segment
-        for segment in normalized_path_segments(path)
-        for keyword in STRUCTURED_SECTION_KEYWORDS
+        keyword in segment for segment in normalized_path_segments(path) for keyword in STRUCTURED_SECTION_KEYWORDS
     )
 
 
@@ -110,9 +108,7 @@ def allows_recommended_figure(path: str) -> bool:
     if is_text_only_section(path):
         return False
     return any(
-        keyword in segment
-        for segment in normalized_path_segments(path)
-        for keyword in RECOMMENDED_FIGURE_KEYWORDS
+        keyword in segment for segment in normalized_path_segments(path) for keyword in RECOMMENDED_FIGURE_KEYWORDS
     )
 
 

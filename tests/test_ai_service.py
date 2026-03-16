@@ -455,12 +455,8 @@ class TestGenerate:
         with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
             result = svc.generate(project, format_detail, None)
 
-        references = next(
-            section for section in result["sections"] if "REFERENCIAS" in section["path"].upper()
-        )
-        body = next(
-            section for section in result["sections"] if "MARCO TEORICO" in section["path"].upper()
-        )
+        references = next(section for section in result["sections"] if "REFERENCIAS" in section["path"].upper())
+        body = next(section for section in result["sections"] if "MARCO TEORICO" in section["path"].upper())
 
         assert body["content"] == "Contenido academico generado para la seccion."
         assert "sin acceso a internet" in references["content"]
