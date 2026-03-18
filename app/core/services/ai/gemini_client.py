@@ -74,6 +74,16 @@ class GeminiClient:
         return model
 
     def generate(self, prompt: str, *, timeout: int = 60, model: Optional[str] = None) -> str:
+        text, _usage = self.generate_with_usage(prompt, timeout=timeout, model=model)
+        return text
+
+    def generate_with_usage(
+        self,
+        prompt: str,
+        *,
+        timeout: int = 60,
+        model: Optional[str] = None,
+    ) -> tuple[str, Dict[str, Any]]:
         """Generate content from a prompt with retries."""
         if not self.is_configured():
             raise RuntimeError("GEMINI_API_KEY is not configured")
@@ -96,7 +106,7 @@ class GeminiClient:
                     )
                     last_error = RuntimeError("Gemini returned empty content")
                 else:
-                    return text
+                    return text, self._extract_usage(response)
 
             except Exception as exc:
                 if self._is_auth_error(exc):
@@ -143,6 +153,25 @@ class GeminiClient:
         raise RuntimeError(
             f"Gemini generation failed after {settings.GEMINI_RETRY_MAX} attempts. Last error: {last_error}"
         )
+
+    @staticmethod
+    def _extract_usage(response: Any) -> Dict[str, Any]:
+        usage_metadata = getattr(response, "usage_metadata", None) or getattr(response, "usageMetadata", None)
+        if usage_metadata is None:
+            return {}
+
+        def _read(name: str) -> Any:
+            if isinstance(usage_metadata, dict):
+                return usage_metadata.get(name)
+            return getattr(usage_metadata, name, None)
+
+        return {
+            "input_tokens": _read("prompt_token_count") or _read("promptTokenCount"),
+            "output_tokens": _read("candidates_token_count") or _read("candidatesTokenCount"),
+            "total_tokens": _read("total_token_count") or _read("totalTokenCount"),
+            "estimated": False,
+            "source": "reported_by_provider",
+        }
 
     def probe(self, *, timeout: int = 8, model: Optional[str] = None) -> Dict[str, Any]:
         """Run a low-cost real request to validate provider availability."""

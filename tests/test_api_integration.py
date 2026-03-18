@@ -376,6 +376,80 @@ class TestProjectsEndpoints:
         assert r.json()["id"] == project_id
         assert r.json()["title"] == "Get Test"
 
+    def test_update_project_can_reset_generated_state_and_keep_wizard_state(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Reset project",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Original"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        router_module.projects.update_project(
+            project_id,
+            {
+                "status": "completed",
+                "ai_result": {"sections": [{"sectionId": "sec-1", "path": "Introduccion", "content": "Texto"}]},
+                "output_file": "outputs/reset.docx",
+                "pdf_file": "outputs/reset.pdf",
+                "generation_phase": {
+                    "status": "completed",
+                    "sections": [{"section_id": "sec-1", "section_path": "Introduccion"}],
+                    "completed_sections": 1,
+                    "total_sections": 1,
+                },
+            },
+        )
+        router_module.projects.append_event(
+            project_id,
+            {"ts": "2026-03-18T10:00:00Z", "stage": "ai.generate.section", "message": "done"},
+        )
+
+        update_response = client.put(
+            f"/api/projects/{project_id}",
+            json={
+                "title": "Reset project actualizado",
+                "values": {"tema": "Cambiado"},
+                "wizardState": {
+                    "currentStep": 3,
+                    "lastCompletedStep": 4,
+                    "lastOpenMode": "edit-details",
+                },
+                "resetGeneratedState": True,
+            },
+        )
+
+        assert update_response.status_code == 200
+        updated = update_response.json()
+        assert updated["status"] == "draft"
+        assert updated["title"] == "Reset project actualizado"
+        assert updated["values"]["tema"] == "Cambiado"
+        assert updated["ai_result"] is None
+        assert updated["output_file"] is None
+        assert updated["pdf_file"] is None
+        assert updated["generation_phase"]["status"] == "idle"
+        assert updated["construction_phase"]["status"] == "idle"
+        assert updated["generation_snapshot"]["saved_sections_count"] == 0
+        assert updated["wizard_state"]["current_step"] == 3
+        assert updated["wizard_state"]["last_completed_step"] == 4
+        trace = client.get(f"/api/projects/{project_id}/trace").json()
+        assert trace["events"] == []
+
+    def test_home_includes_dashboard_resume_controls(self, client):
+        response = client.get("/")
+        assert response.status_code == 200
+        html = response.text
+        assert "/static/js/app.js?v=" in html
+        assert "no-store" in response.headers.get("cache-control", "")
+        assert 'id="dashboard-latest-card"' in html
+        assert 'id="dashboard-latest-actions"' in html
+        assert 'id="wizard-context-panel"' in html
+        assert 'data-wizard-jump="1"' in html
+        assert 'data-wizard-jump="4"' in html
+
 
 # =============================================================================
 # GENERATION ENDPOINT
@@ -497,7 +571,28 @@ class TestGenerationEndpoint:
                             "path": "Introduccion",
                             "content": "Contenido parcial",
                         }
-                    ]
+                    ],
+                    "tokenUsage": {
+                        "attempts": [
+                            {
+                                "input_tokens": 50,
+                                "output_tokens": 20,
+                                "total_tokens": 70,
+                                "provider": "gemini",
+                                "model": "gemini-2.0-flash",
+                                "phase": "generate_section",
+                                "section_id": "sec-0001",
+                                "section_path": "Introduccion",
+                                "section_title": "Introduccion",
+                                "attempt": 1,
+                                "timestamp": "2026-03-17T10:00:00Z",
+                                "estimated": False,
+                                "source": "reported_by_provider",
+                                "success": True,
+                                "error": "",
+                            }
+                        ]
+                    },
                 },
                 "resume": {
                     "eligible": True,
@@ -527,6 +622,10 @@ class TestGenerationEndpoint:
         assert data["resumeFromSection"] == 2
         assert background_mock.call_args.kwargs["resume_from_partial"] is True
         assert len(background_mock.call_args.kwargs["resume_seed_sections"]) == 1
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["generation_snapshot"]["saved_sections_count"] == 1
+        assert project["generation_snapshot"]["completed_sections"][0]["path"] == "Introduccion"
+        assert project["progress"]["tokenUsage"]["total_tokens"] == 70
 
     def test_generate_restart_mode_ignores_saved_progress(self, client):
         from app.modules.api import router as router_module
@@ -581,6 +680,9 @@ class TestGenerationEndpoint:
         assert data["resumeFromSection"] == 1
         assert background_mock.call_args.kwargs["resume_from_partial"] is False
         assert background_mock.call_args.kwargs["resume_seed_sections"] == []
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["generation_snapshot"]["saved_sections_count"] == 0
+        assert project["generation_snapshot"]["completed_sections"] == []
 
     def test_generate_render_failed_retries_render_only_without_ai(self, client):
         from app.modules.api import router as router_module
@@ -748,6 +850,203 @@ class TestGenerationEndpoint:
         assert project["progress"]["total"] > 0
         assert project["progress"]["currentPath"] == "Introduccion"
 
+    def test_background_job_persists_token_usage_for_step5(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Token Progress Test",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Tokens"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        usage_snapshot = {
+            "input_tokens_total": 120,
+            "output_tokens_total": 45,
+            "total_tokens": 165,
+            "calls_total": 1,
+            "reported_calls": 1,
+            "estimated_calls": 0,
+            "has_estimated_usage": False,
+            "current_section": {
+                "section_id": "sec-0001",
+                "section_path": "Introduccion",
+                "section_title": "Introduccion",
+            },
+            "last_call": {
+                "provider": "gemini",
+                "model": "gemini-2.0-flash",
+            },
+        }
+        usage_report = {
+            **usage_snapshot,
+            "attempts": [
+                {
+                    "input_tokens": 120,
+                    "output_tokens": 45,
+                    "total_tokens": 165,
+                    "provider": "gemini",
+                    "model": "gemini-2.0-flash",
+                    "phase": "generate_section",
+                    "section_id": "sec-0001",
+                    "section_path": "Introduccion",
+                    "section_title": "Introduccion",
+                    "attempt": 1,
+                    "timestamp": "2026-03-17T10:00:00Z",
+                    "estimated": False,
+                    "source": "reported_by_provider",
+                    "success": True,
+                    "error": "",
+                }
+            ],
+            "sections": [
+                {
+                    "section_id": "sec-0001",
+                    "section_path": "Introduccion",
+                    "section_title": "Introduccion",
+                    "input_tokens_total": 120,
+                    "output_tokens_total": 45,
+                    "total_tokens": 165,
+                    "calls_total": 1,
+                    "reported_calls": 1,
+                    "estimated_calls": 0,
+                    "has_estimated_usage": False,
+                    "last_provider": "gemini",
+                    "last_model": "gemini-2.0-flash",
+                    "last_timestamp": "2026-03-17T10:00:00Z",
+                }
+            ],
+            "providers": [
+                {
+                    "provider": "gemini",
+                    "model": "gemini-2.0-flash",
+                    "input_tokens_total": 120,
+                    "output_tokens_total": 45,
+                    "total_tokens": 165,
+                    "calls_total": 1,
+                    "reported_calls": 1,
+                    "estimated_calls": 0,
+                    "has_estimated_usage": False,
+                }
+            ],
+        }
+
+        def _fake_generate(project, format_detail, prompt, **kwargs):
+            progress_cb = kwargs.get("progress_cb")
+            if callable(progress_cb):
+                progress_cb(1, 3, "Introduccion", "gemini", stage="section_start")
+            raise RuntimeError("forced failure")
+
+        with (
+            patch(
+                "app.modules.api.router.formats.get_format_detail",
+                new=AsyncMock(return_value={"definition": {"cuerpo": {"capitulos": [{"titulo": "Uno"}]}}}),
+            ),
+            patch("app.modules.api.router.ai_service.generate", side_effect=_fake_generate),
+            patch.object(router_module.ai_service, "get_token_usage_snapshot", return_value=usage_snapshot),
+            patch.object(router_module.ai_service, "get_token_usage_report", return_value=usage_report),
+        ):
+            asyncio.run(router_module._ai_generation_job(project_id, "gemini-token-run"))
+
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["progress"]["tokenUsage"]["total_tokens"] == 165
+        assert project["progress"]["tokenUsage"]["reported_calls"] == 1
+        assert project["token_usage"]["total_tokens"] == 165
+        assert project["token_usage"]["attempts"][0]["provider"] == "gemini"
+
+    def test_background_job_persists_generation_snapshot_on_partial_failure(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Resume Snapshot Test",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Snapshot"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        usage_snapshot = {
+            "input_tokens_total": 120,
+            "output_tokens_total": 45,
+            "total_tokens": 165,
+            "calls_total": 1,
+            "reported_calls": 1,
+            "estimated_calls": 0,
+            "has_estimated_usage": False,
+            "current_section": {
+                "section_id": "sec-0001",
+                "section_path": "Introduccion",
+                "section_title": "Introduccion",
+            },
+            "last_call": {"provider": "gemini", "model": "gemini-2.0-flash"},
+        }
+        usage_report = {
+            **usage_snapshot,
+            "attempts": [
+                {
+                    "input_tokens": 120,
+                    "output_tokens": 45,
+                    "total_tokens": 165,
+                    "provider": "gemini",
+                    "model": "gemini-2.0-flash",
+                    "phase": "generate_section",
+                    "section_id": "sec-0001",
+                    "section_path": "Introduccion",
+                    "section_title": "Introduccion",
+                    "attempt": 1,
+                    "timestamp": "2026-03-17T10:00:00Z",
+                    "estimated": False,
+                    "source": "reported_by_provider",
+                    "success": True,
+                    "error": "",
+                }
+            ],
+            "sections": [],
+            "providers": [],
+        }
+
+        def _fake_generate(project, format_detail, prompt, **kwargs):
+            raise RuntimeError("forced failure")
+
+        with (
+            patch(
+                "app.modules.api.router.formats.get_format_detail",
+                new=AsyncMock(
+                    return_value={
+                        "definition": {
+                            "cuerpo": {"capitulos": [{"titulo": "Introduccion"}, {"titulo": "Marco teorico"}]}
+                        }
+                    }
+                ),
+            ),
+            patch("app.modules.api.router.ai_service.generate", side_effect=_fake_generate),
+            patch.object(
+                router_module.ai_service,
+                "get_partial_ai_result",
+                return_value={
+                    "sections": [
+                        {
+                            "sectionId": "sec-0001",
+                            "path": "Introduccion",
+                            "content": "Contenido parcial",
+                        }
+                    ]
+                },
+            ),
+            patch.object(router_module.ai_service, "get_token_usage_snapshot", return_value=usage_snapshot),
+            patch.object(router_module.ai_service, "get_token_usage_report", return_value=usage_report),
+        ):
+            asyncio.run(router_module._ai_generation_job(project_id, "gemini-resume-run"))
+
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["generation_snapshot"]["saved_sections_count"] == 1
+        assert project["generation_snapshot"]["completed_sections"][0]["path"] == "Introduccion"
+        assert project["generation_snapshot"]["status"] == "resume_ready"
+        assert project["generation_snapshot"]["tokenUsage"]["total_tokens"] == 165
+
     def test_fallback_event_recorded_on_quota_error(self, client):
         from app.core.services.ai.errors import QuotaExceededError
         from app.modules.api import router as router_module
@@ -786,6 +1085,228 @@ class TestGenerationEndpoint:
         assert any(
             evt.get("stage") == "provider_fallback" or evt.get("step") == "ai.provider.fallback" for evt in events
         )
+
+    def test_home_includes_step5_token_panel(self, client):
+        response = client.get("/")
+        assert response.status_code == 200
+        html = response.text
+        assert 'id="gen-token-input-total"' in html
+        assert 'id="gen-token-output-total"' in html
+        assert 'id="gen-token-total"' in html
+        assert 'id="gen-token-source"' in html
+        assert 'id="gen-ai-section-list"' in html
+        assert 'id="construct-task-list"' in html
+        assert 'id="step-7-content"' in html
+        assert "Generación IA" in html
+        assert "Construcción" in html
+
+    def test_background_job_exposes_generation_and_construction_phases(self, client, tmp_path):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Phase Split Test",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Phase split"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        usage_report = {
+            "input_tokens_total": 210,
+            "output_tokens_total": 75,
+            "total_tokens": 285,
+            "calls_total": 1,
+            "reported_calls": 1,
+            "estimated_calls": 0,
+            "has_estimated_usage": False,
+            "current_section": {
+                "section_id": "sec-0001",
+                "section_path": "Introduccion",
+                "section_title": "Introduccion",
+            },
+            "last_call": {
+                "provider": "mistral",
+                "model": "mistral-medium-2505",
+            },
+            "attempts": [
+                {
+                    "input_tokens": 210,
+                    "output_tokens": 75,
+                    "total_tokens": 285,
+                    "provider": "mistral",
+                    "model": "mistral-medium-2505",
+                    "phase": "generate_section",
+                    "section_id": "sec-0001",
+                    "section_path": "Introduccion",
+                    "section_title": "Introduccion",
+                    "attempt": 1,
+                    "timestamp": "2026-03-18T10:00:00Z",
+                    "duration_ms": 840,
+                    "estimated": False,
+                    "source": "reported_by_provider",
+                    "success": True,
+                    "error": "",
+                }
+            ],
+            "sections": [],
+            "providers": [],
+        }
+
+        def _fake_generate(project, format_detail, prompt, **kwargs):
+            trace_hook = kwargs.get("trace_hook")
+            progress_cb = kwargs.get("progress_cb")
+            if callable(trace_hook):
+                trace_hook(
+                    {
+                        "step": "prompt.base",
+                        "status": "done",
+                        "title": "Prompt base listo",
+                        "preview": {"prompt": "PROMPT BASE DEL PROYECTO"},
+                    }
+                )
+                trace_hook(
+                    {
+                        "step": "format.section_index",
+                        "status": "done",
+                        "title": "Formato parseado",
+                        "meta": {
+                            "sectionTotal": 1,
+                            "sectionOutline": [
+                                {
+                                    "sectionId": "sec-0001",
+                                    "sectionPath": (
+                                        "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica"
+                                    ),
+                                },
+                            ],
+                        },
+                    }
+                )
+                trace_hook(
+                    {
+                        "step": "ai.generate.section",
+                        "status": "done",
+                        "title": "Seccion 1/1 completada",
+                        "meta": {
+                            "sectionIndex": 1,
+                            "sectionTotal": 1,
+                            "sectionId": "sec-0001",
+                            "sectionPath": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                            "provider": "mistral",
+                            "model": "mistral-medium-2505",
+                            "durationMs": 840,
+                            "usageAttempts": usage_report["attempts"],
+                        },
+                        "preview": {
+                            "prompt": "PROMPT SECCION INTRODUCCION",
+                            "raw": "Salida IA para introduccion.",
+                        },
+                    }
+                )
+                trace_hook(
+                    {
+                        "step": "ai.generate.done",
+                        "status": "done",
+                        "title": "Generacion IA completada",
+                    }
+                )
+            if callable(progress_cb):
+                progress_cb(
+                    1,
+                    1,
+                    "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                    "mistral",
+                    stage="section_done",
+                    payload={
+                        "section_id": "sec-0001",
+                        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                        "section_title": "1.1 Descripcion de la realidad problematica",
+                        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+                        "section_level": 2,
+                        "prompt_sent": "PROMPT SECCION INTRODUCCION",
+                        "ai_output": "Salida IA para introduccion.",
+                        "input_tokens": 210,
+                        "output_tokens": 75,
+                        "total_tokens": 285,
+                        "model": "mistral-medium-2505",
+                        "provider": "mistral",
+                        "status": "ok",
+                        "duration_ms": 840,
+                        "estimated": False,
+                        "source": "reported_by_provider",
+                        "attempt_count": 1,
+                        "attempts": usage_report["attempts"],
+                    },
+                )
+            return {
+                "sections": [
+                    {
+                        "sectionId": "sec-0001",
+                        "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                        "content": "Salida IA para introduccion.",
+                    }
+                ],
+                "tokenUsage": usage_report,
+            }
+
+        def _fake_render(project_id_arg, **kwargs):
+            router_module._set_construction_task(
+                project_id_arg,
+                "payload",
+                status="done",
+                detail="Payload validado.",
+                global_status="running",
+            )
+            router_module._set_construction_task(
+                project_id_arg,
+                "render_docx",
+                status="done",
+                detail="DOCX listo.",
+                global_status="running",
+            )
+            router_module._set_construction_task(
+                project_id_arg,
+                "render_pdf",
+                status="done",
+                detail="PDF listo.",
+                global_status="running",
+            )
+            docx_path = tmp_path / "split.docx"
+            pdf_path = tmp_path / "split.pdf"
+            docx_path.write_bytes(b"docx")
+            pdf_path.write_bytes(b"pdf")
+            return docx_path, pdf_path
+
+        with (
+            patch(
+                "app.modules.api.router.formats.get_format_detail",
+                new=AsyncMock(return_value={"definition": {"cuerpo": {"capitulos": [{"titulo": "Introduccion"}]}}}),
+            ),
+            patch("app.modules.api.router.ai_service.generate", side_effect=_fake_generate),
+            patch.object(router_module.ai_service, "get_token_usage_snapshot", return_value=usage_report),
+            patch.object(router_module.ai_service, "get_token_usage_report", return_value=usage_report),
+            patch("app.modules.api.router._render_project_outputs_sync", side_effect=_fake_render),
+        ):
+            asyncio.run(router_module._ai_generation_job(project_id, "split-run-001"))
+
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["generation_phase"]["status"] == "completed"
+        assert project["generation_phase"]["base_prompt"] == "PROMPT BASE DEL PROYECTO"
+        assert project["generation_phase"]["sections"][0]["prompt_sent"] == "PROMPT SECCION INTRODUCCION"
+        assert project["generation_phase"]["sections"][0]["ai_output"] == "Salida IA para introduccion."
+        assert project["generation_phase"]["sections"][0]["parent_section_path"] == "I. PLANTEAMIENTO DEL PROBLEMA"
+        assert project["generation_phase"]["sections"][0]["section_level"] == 2
+        assert (
+            project["generation_phase"]["planned_sections"][0]["parent_section_path"] == "I. PLANTEAMIENTO DEL PROBLEMA"
+        )
+        assert project["generation_phase"]["sections"][0]["total_tokens"] == 285
+        assert project["construction_phase"]["status"] == "completed"
+        tasks = {item["id"]: item for item in project["construction_phase"]["tasks"]}
+        assert tasks["payload"]["status"] == "done"
+        assert tasks["render_docx"]["status"] == "done"
+        assert tasks["render_pdf"]["status"] == "done"
+        assert tasks["final_validation"]["status"] == "done"
 
     def test_render_saved_ai_job_marks_render_failed_on_local_payload_validation(self, client):
         from app.modules.api import router as router_module

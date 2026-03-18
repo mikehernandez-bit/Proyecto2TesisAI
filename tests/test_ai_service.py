@@ -73,6 +73,29 @@ def ai_svc():
     return svc, gemini, mistral
 
 
+class _UsageProvider:
+    def __init__(self, *, content: str, usage: dict[str, int] | None = None) -> None:
+        self._content = content
+        self._usage = dict(usage or {})
+
+    def is_configured(self) -> bool:
+        return True
+
+    def generate_with_usage(self, prompt: str, *, timeout: int = 60, model: str | None = None):
+        return self._content, dict(self._usage)
+
+
+class _EstimateOnlyProvider:
+    def __init__(self, *, content: str) -> None:
+        self._content = content
+
+    def is_configured(self) -> bool:
+        return True
+
+    def generate(self, prompt: str, *, timeout: int = 60, model: str | None = None) -> str:
+        return self._content
+
+
 class TestIsConfigured:
     def test_not_configured_when_no_provider_has_key(self, ai_svc):
         svc, gemini, mistral = ai_svc
@@ -95,6 +118,102 @@ class TestIsConfigured:
 
 
 class TestGenerate:
+    def test_generate_records_token_usage_per_section_and_total(self, ai_svc):
+        svc, _, _ = ai_svc
+        _set_selection(svc, "gemini", mode="fixed")
+        svc._clients = {
+            "gemini": _UsageProvider(
+                content="Contenido generado por Gemini para la seccion.",
+                usage={"input_tokens": 120, "output_tokens": 45, "total_tokens": 165},
+            ),
+            "mistral": MagicMock(is_configured=MagicMock(return_value=False)),
+        }
+
+        project = {
+            "id": "proj-token-usage-001",
+            "title": "Token Usage",
+            "variables": {"tema": "IA aplicada"},
+            "values": {"tema": "IA aplicada"},
+        }
+        format_detail = {
+            "definition": {
+                "cuerpo": {
+                    "capitulos": [
+                        {"titulo": "Introduccion"},
+                        {"titulo": "Marco teorico"},
+                    ]
+                }
+            }
+        }
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+            result = svc.generate(project, format_detail, None)
+
+        usage = result["tokenUsage"]
+        assert usage["calls_total"] == 2
+        assert usage["reported_calls"] == 2
+        assert usage["estimated_calls"] == 0
+        assert usage["input_tokens_total"] == 240
+        assert usage["output_tokens_total"] == 90
+        assert usage["total_tokens"] == 330
+        assert len(usage["sections"]) == 2
+
+    def test_generate_marks_estimated_usage_when_provider_does_not_report_usage(self, ai_svc):
+        svc, _, _ = ai_svc
+        _set_selection(svc, "gemini", mode="fixed")
+        svc._clients = {
+            "gemini": _EstimateOnlyProvider(content="Contenido estimado para la seccion."),
+            "mistral": MagicMock(is_configured=MagicMock(return_value=False)),
+        }
+
+        project = {"id": "proj-token-estimate-001", "title": "Estimate", "variables": {"tema": "ML"}}
+        format_detail = {"definition": {"cuerpo": {"capitulos": [{"titulo": "Capitulo 1"}]}}}
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+            result = svc.generate(project, format_detail, None)
+
+        usage = result["tokenUsage"]
+        assert usage["calls_total"] == 1
+        assert usage["reported_calls"] == 0
+        assert usage["estimated_calls"] == 1
+        assert usage["has_estimated_usage"] is True
+        assert usage["total_tokens"] > 0
+
+    def test_generate_accumulates_retry_and_fallback_usage_attempts(self, ai_svc):
+        svc, gemini, _ = ai_svc
+        _set_selection(svc, "gemini", mode="auto")
+        gemini.is_configured.return_value = True
+        gemini.generate.side_effect = QuotaExceededError(
+            "Quota exceeded. Check Gemini project quota/billing.",
+            provider="gemini",
+            error_type="exhausted",
+        )
+        svc._clients = {
+            "gemini": gemini,
+            "mistral": _UsageProvider(
+                content="Contenido generado por Mistral tras fallback.",
+                usage={"input_tokens": 80, "output_tokens": 20, "total_tokens": 100},
+            ),
+        }
+
+        project = {"id": "proj-token-fallback-001", "title": "Fallback", "variables": {"tema": "Fallback"}}
+        format_detail = {"definition": {"cuerpo": {"capitulos": [{"titulo": "Capitulo 1"}]}}}
+
+        with (
+            patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=True)),
+            patch("app.core.services.ai.ai_service.time.sleep"),
+        ):
+            result = svc.generate(project, format_detail, None)
+
+        usage = result["tokenUsage"]
+        assert usage["calls_total"] == 2
+        assert usage["reported_calls"] == 1
+        assert usage["estimated_calls"] == 1
+        assert usage["total_tokens"] >= 100
+        assert len(usage["attempts"]) == 2
+        assert usage["attempts"][0]["provider"] == "gemini"
+        assert usage["attempts"][1]["provider"] == "mistral"
+
     def test_full_flow_with_primary_provider(self, ai_svc):
         svc, gemini, mistral = ai_svc
         _set_selection(svc, "gemini", mode="auto")
@@ -493,7 +612,7 @@ class TestGenerate:
         ]
         progress_events = []
 
-        def _progress_cb(current, total, path, provider, *, stage="section_start"):
+        def _progress_cb(current, total, path, provider, *, stage="section_start", payload=None):
             progress_events.append((int(current), str(stage), str(path)))
 
         with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=True)):
@@ -549,6 +668,96 @@ class TestGenerate:
         assert not any(
             "fallback de contingencia habilitado" in str(evt.get("title", "")).lower() for evt in trace_events
         )
+
+    def test_generate_emits_prompt_base_and_section_audit_traces(self, ai_svc):
+        svc, _, _ = ai_svc
+        _set_selection(svc, "gemini", mode="fixed")
+        svc._clients = {
+            "gemini": _UsageProvider(
+                content="Respuesta detallada para la seccion de introduccion.",
+                usage={"input_tokens": 90, "output_tokens": 30, "total_tokens": 120},
+            ),
+            "mistral": MagicMock(is_configured=MagicMock(return_value=False)),
+        }
+        project = {
+            "id": "proj-trace-audit-001",
+            "title": "Trace",
+            "variables": {"tema": "Mantenimiento predictivo", "title": "Trace"},
+            "values": {"tema": "Mantenimiento predictivo", "title": "Trace"},
+        }
+        prompt = {"template": "Contexto general: {{tema}}"}
+        format_detail = {"definition": {"cuerpo": {"capitulos": [{"titulo": "Introduccion"}]}}}
+        trace_events = []
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+            svc.generate(project, format_detail, prompt, trace_hook=trace_events.append)
+
+        base_prompt_event = next(evt for evt in trace_events if evt.get("step") == "prompt.base")
+        assert "Contexto general: Mantenimiento predictivo" in str(base_prompt_event.get("preview", {}).get("prompt"))
+
+        section_done = next(
+            evt for evt in trace_events if evt.get("step") == "ai.generate.section" and evt.get("status") == "done"
+        )
+        assert "Introduccion" in str(section_done.get("preview", {}).get("prompt"))
+        assert "Respuesta detallada para la seccion de introduccion." in str(section_done.get("preview", {}).get("raw"))
+        assert section_done.get("meta", {}).get("sectionUsage", {}).get("total_tokens") == 120
+
+    def test_generate_emits_distinct_prompts_for_sibling_subsections(self, ai_svc):
+        svc, _, _ = ai_svc
+        _set_selection(svc, "gemini", mode="fixed")
+        svc._clients = {
+            "gemini": _UsageProvider(
+                content="Contenido por subseccion.",
+                usage={"input_tokens": 90, "output_tokens": 30, "total_tokens": 120},
+            ),
+            "mistral": MagicMock(is_configured=MagicMock(return_value=False)),
+        }
+        project = {
+            "id": "proj-trace-hierarchy-001",
+            "title": "Trace hierarchy",
+            "variables": {"tema": "Mantenimiento predictivo", "title": "Trace hierarchy"},
+            "values": {"tema": "Mantenimiento predictivo", "title": "Trace hierarchy"},
+        }
+        prompt = {"template": "Contexto general: {{tema}}"}
+        format_detail = {
+            "definition": {
+                "cuerpo": {
+                    "capitulos": [
+                        {
+                            "titulo": "I. Planteamiento del problema",
+                            "subsecciones": [
+                                {"titulo": "1.1 Descripcion de la realidad problematica"},
+                                {"titulo": "1.2 Formulacion del problema"},
+                            ],
+                        }
+                    ]
+                }
+            }
+        }
+        trace_events = []
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+            svc.generate(project, format_detail, prompt, trace_hook=trace_events.append)
+
+        section_done_events = [
+            evt for evt in trace_events if evt.get("step") == "ai.generate.section" and evt.get("status") == "done"
+        ]
+        sibling_events = [
+            evt
+            for evt in section_done_events
+            if evt.get("meta", {}).get("sectionPath")
+            in {
+                "I. Planteamiento del problema/1.1 Descripcion de la realidad problematica",
+                "I. Planteamiento del problema/1.2 Formulacion del problema",
+            }
+        ]
+        assert len(sibling_events) == 2
+        first_prompt = str(sibling_events[0].get("preview", {}).get("prompt"))
+        second_prompt = str(sibling_events[1].get("preview", {}).get("prompt"))
+
+        assert "I. Planteamiento del problema/1.1 Descripcion de la realidad problematica" in first_prompt
+        assert "I. Planteamiento del problema/1.2 Formulacion del problema" in second_prompt
+        assert first_prompt != second_prompt
 
 
 class TestProviderStatus:
