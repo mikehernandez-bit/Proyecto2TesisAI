@@ -61,6 +61,16 @@ class OpenRouterClient:
         return bool(settings.OPENROUTER_API_KEY)
 
     def generate(self, prompt: str, *, timeout: int = 60, model: Optional[str] = None) -> str:
+        text, _usage = self.generate_with_usage(prompt, timeout=timeout, model=model)
+        return text
+
+    def generate_with_usage(
+        self,
+        prompt: str,
+        *,
+        timeout: int = 60,
+        model: Optional[str] = None,
+    ) -> tuple[str, Dict[str, Any]]:
         if not self.is_configured():
             raise RuntimeError("OPENROUTER_API_KEY is not configured")
 
@@ -146,7 +156,7 @@ class OpenRouterClient:
         response.raise_for_status()
         text = self._extract_text(response)
         if text.strip():
-            return text
+            return text, self._extract_usage(response)
         raise RuntimeError("OpenRouter returned empty content")
 
     def probe(self, *, timeout: int = 8, model: Optional[str] = None) -> Dict[str, Any]:
@@ -349,6 +359,19 @@ class OpenRouterClient:
             except Exception:
                 return None
         return None
+
+    @staticmethod
+    def _extract_usage(response: requests.Response) -> Dict[str, Any]:
+        payload = OpenRouterClient._safe_json(response)
+        raw_usage = payload.get("usage") if isinstance(payload, dict) else None
+        usage: Dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
+        return {
+            "input_tokens": usage.get("prompt_tokens"),
+            "output_tokens": usage.get("completion_tokens"),
+            "total_tokens": usage.get("total_tokens"),
+            "estimated": False,
+            "source": "reported_by_provider",
+        }
 
     @staticmethod
     def _is_exhausted_message(message: str) -> bool:

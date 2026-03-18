@@ -194,7 +194,7 @@
 
 <body class="h-screen flex overflow-hidden">
   {% block content %}{% endblock %}
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v={{ asset_version | default('dev') }}"></script>
 </body>
 
 </html>

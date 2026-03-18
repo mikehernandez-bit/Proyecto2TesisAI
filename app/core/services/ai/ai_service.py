@@ -14,7 +14,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set
 
 from app.core.config import settings
 from app.core.services.ai.circuit_breaker import CircuitBreaker
@@ -36,6 +36,13 @@ from app.core.services.ai.provider_metrics import ProviderMetricsService
 from app.core.services.ai.provider_selection import ProviderSelectionService
 from app.core.services.ai.reference_proposals import replace_references_section
 from app.core.services.ai.resilience_router import LLMProviderRouter, LLMRequest, LLMResult
+from app.core.services.ai.token_usage import (
+    empty_token_usage_report,
+    merge_token_usage,
+    normalize_token_usage_report,
+    summarize_token_usage,
+    token_usage_snapshot,
+)
 from app.core.services.definition_compiler import compile_definition_to_section_index
 
 logger = logging.getLogger(__name__)
@@ -130,6 +137,8 @@ class AIService:
         self._run_incidents: List[Dict[str, Any]] = []
         self._last_call_result: Optional[LLMResult] = None
         self._partial_sections: List[Dict[str, Any]] = []
+        self._token_usage_report: Dict[str, Any] = empty_token_usage_report()
+        self._last_base_prompt: str = ""
 
         self._phase_policies = build_phase_policies()
         self._limiter = LLMLimiter(
@@ -326,6 +335,27 @@ class AIService:
     def get_partial_ai_result(self) -> Dict[str, Any]:
         """Return the latest partial sections generated during current run."""
         return {"sections": [dict(section) for section in self._partial_sections]}
+
+    def get_token_usage_report(self) -> Dict[str, Any]:
+        return normalize_token_usage_report(self._token_usage_report)
+
+    def get_token_usage_snapshot(self) -> Dict[str, Any]:
+        return token_usage_snapshot(self._token_usage_report)
+
+    def _record_token_usage(
+        self,
+        attempts: List[Dict[str, Any]],
+        *,
+        current_section_id: str = "",
+        current_section_path: str = "",
+    ) -> Dict[str, Any]:
+        self._token_usage_report = merge_token_usage(
+            self._token_usage_report,
+            attempts,
+            current_section_id=current_section_id,
+            current_section_path=current_section_path,
+        )
+        return self.get_token_usage_snapshot()
 
     def resilience_metrics_payload(self) -> Dict[str, Any]:
         return {
@@ -615,6 +645,7 @@ class AIService:
         provider: str,
         *,
         stage: str,
+        payload: Optional[Dict[str, Any]] = None,
     ) -> None:
         if self._progress_cb is None:
             return
@@ -625,6 +656,7 @@ class AIService:
                 str(path or ""),
                 str(provider or ""),
                 stage=stage,
+                payload=payload if isinstance(payload, dict) else None,
             )
         except Exception:
             logger.debug("AIService progress callback failed", exc_info=True)
@@ -711,6 +743,7 @@ class AIService:
         self._run_incidents = []
         self._last_call_result = None
         self._partial_sections = []
+        self._token_usage_report = empty_token_usage_report()
 
         project_id = project.get("id", "unknown")
         logger.info("AIService.generate START projectId=%s", project_id)
@@ -731,11 +764,13 @@ class AIService:
             values,
             trace_hook=self._trace_hook,
         )
+        self._last_base_prompt = base_prompt
 
         if not base_prompt.strip():
             base_prompt = (
                 f"Genera contenido academico para un documento de tesis. Titulo: {project.get('title', 'Sin titulo')}."
             )
+            self._last_base_prompt = base_prompt
             logger.warning(
                 "Empty prompt template, using fallback. projectId=%s",
                 project_id,
@@ -747,6 +782,14 @@ class AIService:
                 detail="Se aplico un prompt generico para continuar.",
                 preview={"prompt": self._clip_preview(base_prompt)},
             )
+
+        self._emit_trace(
+            step="prompt.base",
+            status="done",
+            title="Prompt base listo",
+            detail="Se guardo el prompt general antes de dividir la generacion por secciones.",
+            preview={"prompt": self._redact_secrets(base_prompt)},
+        )
 
         definition: Dict[str, Any] = {}
         if isinstance(format_detail, dict):
@@ -774,12 +817,33 @@ class AIService:
                 step="format.section_index",
                 status="done",
                 title=f"Formato parseado ({len(section_index)} secciones)",
-                meta={"sectionTotal": len(section_index)},
+                meta={
+                    "sectionTotal": len(section_index),
+                    "sectionOutline": [
+                        {
+                            "sectionId": str(item.get("sectionId") or ""),
+                            "sectionPath": str(item.get("path") or ""),
+                            "sectionTitle": str(
+                                item.get("title") or self._section_title_from_path(str(item.get("path") or ""))
+                            ),
+                            "sectionParentPath": self._section_parent_path(str(item.get("path") or "")),
+                            "sectionLevel": int(
+                                item.get("level") or self._section_level_from_path(str(item.get("path") or ""))
+                            ),
+                        }
+                        for item in section_index
+                    ],
+                },
             )
 
         # Merge project-level values for system prompt rendering
         project_values = dict(values)
         project_values.setdefault("title", project.get("title", ""))
+
+        if resume_from_partial:
+            stored_ai_result = project.get("ai_result")
+            if isinstance(stored_ai_result, dict):
+                self._token_usage_report = normalize_token_usage_report(stored_ai_result.get("tokenUsage"))
 
         seeded_sections: List[Dict[str, Any]] = []
         if resume_from_partial:
@@ -871,11 +935,15 @@ class AIService:
                 detail=str(exc),
             )
             raise RuntimeError(f"AI output validation failed: {exc}") from exc
+        ai_result["tokenUsage"] = self.get_token_usage_report()
         self._emit_trace(
             step="ai.validation",
             status="done",
             title="Salida IA validada",
-            meta={"sections": len(ai_result.get("sections", []))},
+            meta={
+                "sections": len(ai_result.get("sections", [])),
+                "tokenUsage": self.get_token_usage_snapshot(),
+            },
         )
 
         logger.info(
@@ -893,6 +961,7 @@ class AIService:
                 "provider": self._last_used_provider,
                 "warnings": self.get_run_warning_count(),
                 "incidents": len(self._run_incidents),
+                "tokenUsage": self.get_token_usage_snapshot(),
             },
         )
         self._trace_hook = None
@@ -907,6 +976,23 @@ class AIService:
         if canonical_id:
             return f"id:{canonical_id}"
         return f"path:{str(path or '').strip()}"
+
+    @staticmethod
+    def _section_title_from_path(path: str) -> str:
+        parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
+        return parts[-1] if parts else ""
+
+    @staticmethod
+    def _section_parent_path(path: str) -> str:
+        parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
+        if len(parts) <= 1:
+            return ""
+        return "/".join(parts[:-1])
+
+    @staticmethod
+    def _section_level_from_path(path: str) -> int:
+        parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
+        return max(1, len(parts))
 
     def _extract_seed_sections(
         self,
@@ -1014,6 +1100,13 @@ class AIService:
             self._ensure_not_cancelled()
             section_id = str(sec.get("sectionId") or f"sec-{i:04d}")
             path = str(sec.get("path") or f"Section {i}")
+            expected_model = (
+                self.get_model_for_provider(
+                    preferred_provider or default_provider,
+                    selection_override=selection,
+                )
+                or "-"
+            )
 
             # Throttle between generated sections to avoid rate-limit bursts
             if sections and _INTER_SECTION_DELAY_S > 0:
@@ -1026,6 +1119,14 @@ class AIService:
                 path,
                 project_id,
             )
+            section_prompt = self.renderer.build_section_prompt(
+                base_prompt=base_prompt,
+                section_path=path,
+                section_id=section_id,
+                extra_context=sec.get("hints", ""),
+                values=values,
+            )
+            redacted_prompt = self._redact_secrets(section_prompt)
             self._emit_trace(
                 step="ai.generate.section",
                 status="running",
@@ -1035,7 +1136,10 @@ class AIService:
                     "sectionTotal": total,
                     "sectionId": section_id,
                     "sectionPath": path,
+                    "provider": preferred_provider or default_provider,
+                    "model": expected_model,
                 },
+                preview={"prompt": redacted_prompt},
             )
             self._emit_progress(
                 i,
@@ -1043,38 +1147,97 @@ class AIService:
                 path,
                 preferred_provider or default_provider,
                 stage="section_start",
+                payload={
+                    "section_id": section_id,
+                    "section_path": path,
+                    "section_title": self._section_title_from_path(path),
+                    "parent_section_path": self._section_parent_path(path),
+                    "section_level": self._section_level_from_path(path),
+                    "prompt_sent": redacted_prompt,
+                    "model": expected_model,
+                    "provider": preferred_provider or default_provider,
+                    "status": "generating",
+                },
             )
 
-            section_prompt = self.renderer.build_section_prompt(
-                base_prompt=base_prompt,
-                section_path=path,
-                section_id=section_id,
-                extra_context=sec.get("hints", ""),
-                values=values,
-            )
+            started_at = time.perf_counter()
+            try:
+                llm_result = self._generate_with_provider_fallback(
+                    section_prompt,
+                    preferred_provider=preferred_provider,
+                    section_current=i,
+                    section_total=total,
+                    section_path=path,
+                    section_id=section_id,
+                    phase="generate_section",
+                    context=sec.get("hints", ""),
+                    selection=selection,
+                    disabled_for_job=disabled_providers,
+                )
+            except Exception as exc:
+                duration_ms = max(0, int(round((time.perf_counter() - started_at) * 1000)))
+                error_detail = str(exc)[:220]
+                self._emit_trace(
+                    step="ai.generate.section",
+                    status="error",
+                    title=f"Seccion {i}/{total} con error ({path})",
+                    detail=error_detail,
+                    meta={
+                        "sectionIndex": i,
+                        "sectionTotal": total,
+                        "sectionId": section_id,
+                        "sectionPath": path,
+                        "provider": preferred_provider or default_provider,
+                        "model": expected_model,
+                        "durationMs": duration_ms,
+                    },
+                    preview={"prompt": redacted_prompt},
+                )
+                self._emit_progress(
+                    i,
+                    total,
+                    path,
+                    preferred_provider or default_provider,
+                    stage="section_error",
+                    payload={
+                        "section_id": section_id,
+                        "section_path": path,
+                        "section_title": self._section_title_from_path(path),
+                        "parent_section_path": self._section_parent_path(path),
+                        "section_level": self._section_level_from_path(path),
+                        "prompt_sent": redacted_prompt,
+                        "model": expected_model,
+                        "provider": preferred_provider or default_provider,
+                        "status": "error",
+                        "duration_ms": duration_ms,
+                        "error": error_detail,
+                    },
+                )
+                raise
 
-            content, used_provider = self._generate_with_provider_fallback(
-                section_prompt,
-                preferred_provider=preferred_provider,
-                section_current=i,
-                section_total=total,
-                section_path=path,
-                section_id=section_id,
-                phase="generate_section",
-                context=sec.get("hints", ""),
-                selection=selection,
-                disabled_for_job=disabled_providers,
-            )
+            duration_ms = max(0, int(round((time.perf_counter() - started_at) * 1000)))
+            content = llm_result.content
+            used_provider = llm_result.provider
             preferred_provider = used_provider
             self._last_used_provider = used_provider
+            usage_snapshot = self._record_token_usage(
+                llm_result.attempts,
+                current_section_id=section_id,
+                current_section_path=path,
+            )
+            section_usage_report = summarize_token_usage(
+                llm_result.attempts,
+                current_section_id=section_id,
+                current_section_path=path,
+            )
+            raw_section_usage = section_usage_report.get("current_section")
+            section_usage: Dict[str, Any] = dict(raw_section_usage) if isinstance(raw_section_usage, dict) else {}
 
             # Build enriched trace data for Inspector IA
             _model = self.get_model_for_provider(used_provider) or "-"
-            _prompt_preview = self._redact_secrets(
-                section_prompt[:2000] + ("..." if len(section_prompt) > 2000 else "")
-            )
+            _prompt_preview = redacted_prompt
             _messages = [
-                {"role": "system", "content": self._redact_secrets(section_prompt[:1500])},
+                {"role": "system", "content": self._redact_secrets(section_prompt)},
             ]
             if sec.get("hints"):
                 _messages.append({"role": "user", "content": self._redact_secrets(str(sec["hints"])[:500])})
@@ -1090,14 +1253,15 @@ class AIService:
                     "sectionPath": path,
                     "provider": used_provider,
                     "model": _model,
+                    "durationMs": duration_ms,
                     "messages": _messages,
-                    "usage": {
-                        "prompt_tokens": max(1, len(section_prompt) // 4),
-                        "completion_tokens": max(1, len(content) // 4),
-                    },
+                    "usage": llm_result.usage,
+                    "usageAttempts": llm_result.attempts,
+                    "sectionUsage": section_usage,
+                    "tokenUsage": usage_snapshot,
                 },
                 preview={
-                    "raw": self._redact_secrets(self._clip_preview(content, max_chars=2000)),
+                    "raw": self._redact_secrets(content),
                     "prompt": _prompt_preview,
                 },
             )
@@ -1107,6 +1271,33 @@ class AIService:
                 path,
                 used_provider,
                 stage="section_done",
+                payload={
+                    "section_id": section_id,
+                    "section_path": path,
+                    "section_title": self._section_title_from_path(path),
+                    "parent_section_path": self._section_parent_path(path),
+                    "section_level": self._section_level_from_path(path),
+                    "prompt_sent": redacted_prompt,
+                    "ai_output": self._redact_secrets(content),
+                    "input_tokens": int(section_usage.get("input_tokens_total") or 0),
+                    "output_tokens": int(section_usage.get("output_tokens_total") or 0),
+                    "total_tokens": int(section_usage.get("total_tokens") or 0),
+                    "model": _model,
+                    "provider": used_provider,
+                    "status": "ok",
+                    "duration_ms": duration_ms,
+                    "estimated": bool(section_usage.get("has_estimated_usage")),
+                    "source": (
+                        "estimated"
+                        if int(section_usage.get("estimated_calls") or 0) > 0
+                        and int(section_usage.get("reported_calls") or 0) == 0
+                        else "mixed"
+                        if int(section_usage.get("estimated_calls") or 0) > 0
+                        else "reported_by_provider"
+                    ),
+                    "attempt_count": len(llm_result.attempts),
+                    "attempts": llm_result.attempts,
+                },
             )
 
             # Parse structured blocks (tables/figures) from AI output
@@ -1136,7 +1327,7 @@ class AIService:
         context: str = "",
         selection: Optional[Dict[str, Any]] = None,
         disabled_for_job: Optional[Set[str]] = None,
-    ) -> Tuple[str, str]:
+    ) -> LLMResult:
         """Call the resilient router and keep compatibility with existing call sites."""
         # Keep router references aligned with runtime overrides/mocks.
         self._resilience_router.set_providers(self._clients)
@@ -1205,7 +1396,7 @@ class AIService:
                 stage="provider_fallback",
             )
 
-        return result.content, result.provider
+        return result
 
     # ------------------------------------------------------------------
     # Post-processing correction
@@ -1257,7 +1448,7 @@ class AIService:
             return sections
 
         try:
-            raw_response, provider = self._generate_with_provider_fallback(
+            llm_result = self._generate_with_provider_fallback(
                 correction_prompt,
                 preferred_provider=self._last_used_provider,
                 phase="cleanup_correction",
@@ -1266,12 +1457,32 @@ class AIService:
                 context=json.dumps({"sections": sections}, ensure_ascii=False),
                 selection=selection,
             )
-            if self._last_call_result and self._last_call_result.status == "degraded":
+            raw_response = llm_result.content
+            provider = llm_result.provider
+            usage_snapshot = self._record_token_usage(
+                llm_result.attempts,
+                current_section_id="cleanup_correction",
+                current_section_path="Limpieza/Correccion",
+            )
+            self._emit_progress(
+                len(sections),
+                len(sections),
+                "Limpieza/Correccion",
+                provider,
+                stage="cleanup_correction",
+            )
+            if llm_result.status == "degraded":
                 self._emit_trace(
                     step="ai.correction",
                     status="warn",
                     title="Limpieza opcional omitida (modo degradado)",
                     detail="Se mantiene contenido original y el documento continua.",
+                    meta={
+                        "provider": provider,
+                        "usage": llm_result.usage,
+                        "usageAttempts": llm_result.attempts,
+                        "tokenUsage": usage_snapshot,
+                    },
                 )
                 return sections
             if provider != "DEGRADED":
@@ -1298,12 +1509,14 @@ class AIService:
                 status="warn",
                 title="No se pudo aplicar correccion estructurada",
                 detail="Se conserva la salida original de IA.",
+                meta={"tokenUsage": self.get_token_usage_snapshot()},
             )
         else:
             self._emit_trace(
                 step="ai.correction",
                 status="done",
                 title="Correccion estructurada aplicada",
+                meta={"tokenUsage": self.get_token_usage_snapshot()},
                 preview={
                     "raw": self._clip_preview(raw_response),
                     "clean": self._clip_preview(corrected[0]["content"] if corrected else ""),

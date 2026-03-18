@@ -25,6 +25,11 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from app.core.config import settings
 from app.core.services.ai import AIService, QuotaExceededError
 from app.core.services.ai.errors import GenerationCancelledError
+from app.core.services.ai.token_usage import (
+    empty_token_usage_report,
+    normalize_token_usage_report,
+    token_usage_snapshot,
+)
 from app.core.services.definition_compiler import compile_definition_to_section_index
 from app.core.services.format_service import FormatService
 from app.core.services.project_service import ProjectService
@@ -158,6 +163,420 @@ def _build_payload_preview(format_id: str, values: dict[str, Any], sections_coun
     }
 
 
+def _build_generation_snapshot(
+    *,
+    sections: list[Dict[str, Any]] | None,
+    total_sections: int = 0,
+    current_path: str = "",
+    token_usage_snapshot_data: Optional[Dict[str, Any]] = None,
+    run_id: str = "",
+    status: str = "idle",
+) -> Dict[str, Any]:
+    completed_sections: list[Dict[str, str]] = []
+    for item in sections or []:
+        if not isinstance(item, dict):
+            continue
+        section_id = str(item.get("sectionId") or item.get("section_id") or "").strip()
+        path = str(item.get("path") or item.get("section_path") or "").strip()
+        if not section_id and not path:
+            continue
+        completed_sections.append({"sectionId": section_id, "path": path})
+
+    snapshot_current_path = str(current_path or "").strip() or (
+        str(completed_sections[-1]["path"]).strip() if completed_sections else ""
+    )
+    return {
+        "saved_sections_count": len(completed_sections),
+        "total_sections": max(0, int(total_sections or 0)),
+        "current_path": snapshot_current_path,
+        "completed_sections": completed_sections,
+        "tokenUsage": token_usage_snapshot_data or token_usage_snapshot(empty_token_usage_report()),
+        "source_run_id": str(run_id or "").strip(),
+        "status": str(status or "idle").strip() or "idle",
+        "updated_at": _utc_now_z(),
+    }
+
+
+_CONSTRUCTION_TASK_SPECS = (
+    ("handoff", "Contenido IA validado"),
+    ("payload", "Payload a GicaTesis"),
+    ("render_docx", "Render DOCX"),
+    ("render_pdf", "Render PDF"),
+    ("final_validation", "Validacion final"),
+)
+
+
+def _empty_generation_phase(*, total_sections: int = 0) -> Dict[str, Any]:
+    return {
+        "status": "idle",
+        "base_prompt": "",
+        "current_section_id": "",
+        "current_section_path": "",
+        "total_sections": max(0, int(total_sections or 0)),
+        "completed_sections": 0,
+        "planned_sections": [],
+        "sections": [],
+        "started_at": "",
+        "updated_at": "",
+        "finished_at": "",
+    }
+
+
+def _default_construction_tasks() -> list[Dict[str, Any]]:
+    return [
+        {
+            "id": task_id,
+            "label": label,
+            "status": "pending",
+            "detail": "Pendiente",
+            "updated_at": "",
+        }
+        for task_id, label in _CONSTRUCTION_TASK_SPECS
+    ]
+
+
+def _empty_construction_phase() -> Dict[str, Any]:
+    return {
+        "status": "idle",
+        "current_task": "",
+        "tasks": _default_construction_tasks(),
+        "started_at": "",
+        "updated_at": "",
+        "finished_at": "",
+    }
+
+
+def _normalize_generation_phase_state(raw: Any) -> Dict[str, Any]:
+    if not isinstance(raw, dict):
+        return _empty_generation_phase()
+    base = _empty_generation_phase(total_sections=int(raw.get("total_sections") or 0))
+    base.update(
+        {
+            "status": str(raw.get("status") or "idle"),
+            "base_prompt": str(raw.get("base_prompt") or ""),
+            "current_section_id": str(raw.get("current_section_id") or ""),
+            "current_section_path": str(raw.get("current_section_path") or ""),
+            "total_sections": max(0, int(raw.get("total_sections") or 0)),
+            "completed_sections": max(0, int(raw.get("completed_sections") or 0)),
+            "started_at": str(raw.get("started_at") or ""),
+            "updated_at": str(raw.get("updated_at") or ""),
+            "finished_at": str(raw.get("finished_at") or ""),
+        }
+    )
+    planned = raw.get("planned_sections")
+    if isinstance(planned, list):
+        base["planned_sections"] = [item for item in planned if isinstance(item, dict)]
+    sections = raw.get("sections")
+    if isinstance(sections, list):
+        base["sections"] = [item for item in sections if isinstance(item, dict)]
+    return base
+
+
+def _normalize_construction_phase_state(raw: Any) -> Dict[str, Any]:
+    if not isinstance(raw, dict):
+        return _empty_construction_phase()
+    base = _empty_construction_phase()
+    base.update(
+        {
+            "status": str(raw.get("status") or "idle"),
+            "current_task": str(raw.get("current_task") or ""),
+            "started_at": str(raw.get("started_at") or ""),
+            "updated_at": str(raw.get("updated_at") or ""),
+            "finished_at": str(raw.get("finished_at") or ""),
+        }
+    )
+    tasks_by_id = {task["id"]: dict(task) for task in _default_construction_tasks()}
+    raw_tasks = raw.get("tasks")
+    if isinstance(raw_tasks, list):
+        for item in raw_tasks:
+            if not isinstance(item, dict):
+                continue
+            task_id = str(item.get("id") or "").strip()
+            if not task_id:
+                continue
+            current = tasks_by_id.get(task_id, {"id": task_id, "label": task_id, "status": "pending", "detail": ""})
+            current.update(
+                {
+                    "label": str(item.get("label") or current.get("label") or task_id),
+                    "status": str(item.get("status") or current.get("status") or "pending"),
+                    "detail": str(item.get("detail") or current.get("detail") or ""),
+                    "updated_at": str(item.get("updated_at") or current.get("updated_at") or ""),
+                }
+            )
+            tasks_by_id[task_id] = current
+    base["tasks"] = list(tasks_by_id.values())
+    return base
+
+
+def _section_title_from_path(path: str) -> str:
+    parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
+    return parts[-1] if parts else ""
+
+
+def _section_parent_path(path: str) -> str:
+    parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
+    if len(parts) <= 1:
+        return ""
+    return "/".join(parts[:-1])
+
+
+def _section_level_from_path(path: str) -> int:
+    parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
+    return max(1, len(parts))
+
+
+def _usage_source_label(attempts: list[Dict[str, Any]]) -> str:
+    if not attempts:
+        return ""
+    estimated = sum(1 for item in attempts if bool(item.get("estimated")))
+    reported = sum(1 for item in attempts if not bool(item.get("estimated")))
+    if estimated and reported:
+        return "mixed"
+    if estimated:
+        return "estimated"
+    return "reported_by_provider"
+
+
+def _aggregate_attempt_usage(attempts: list[Dict[str, Any]]) -> Dict[str, Any]:
+    safe_attempts = [item for item in attempts if isinstance(item, dict)]
+    return {
+        "input_tokens": sum(int(item.get("input_tokens") or 0) for item in safe_attempts),
+        "output_tokens": sum(int(item.get("output_tokens") or 0) for item in safe_attempts),
+        "total_tokens": sum(int(item.get("total_tokens") or 0) for item in safe_attempts),
+        "estimated": any(bool(item.get("estimated")) for item in safe_attempts),
+        "source": _usage_source_label(safe_attempts),
+        "attempt_count": len(safe_attempts),
+        "provider": str((safe_attempts[-1].get("provider") if safe_attempts else "") or ""),
+        "model": str((safe_attempts[-1].get("model") if safe_attempts else "") or ""),
+    }
+
+
+def _upsert_generation_section(
+    phase: Dict[str, Any],
+    section_payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    normalized = _normalize_generation_phase_state(phase)
+    sections = list(normalized.get("sections") or [])
+    section_id = str(section_payload.get("section_id") or "").strip()
+    section_path = str(section_payload.get("section_path") or "").strip()
+    key = section_id or section_path
+    if not key:
+        return normalized
+
+    now = _utc_now_z()
+    merged_payload = dict(section_payload)
+    attempts = merged_payload.get("attempts")
+    attempts = [item for item in attempts if isinstance(item, dict)] if isinstance(attempts, list) else []
+    if attempts:
+        aggregate = _aggregate_attempt_usage(attempts)
+        merged_payload.setdefault("input_tokens", aggregate["input_tokens"])
+        merged_payload.setdefault("output_tokens", aggregate["output_tokens"])
+        merged_payload.setdefault("total_tokens", aggregate["total_tokens"])
+        merged_payload.setdefault("estimated", aggregate["estimated"])
+        merged_payload.setdefault("source", aggregate["source"])
+        merged_payload.setdefault("attempt_count", aggregate["attempt_count"])
+        merged_payload.setdefault("provider", aggregate["provider"])
+        merged_payload.setdefault("model", aggregate["model"])
+
+    idx = next(
+        (
+            index
+            for index, item in enumerate(sections)
+            if key == (str(item.get("section_id") or "").strip() or str(item.get("section_path") or "").strip())
+        ),
+        -1,
+    )
+    current = sections[idx] if idx >= 0 else {}
+    started_at = str(current.get("started_at") or merged_payload.get("started_at") or now)
+    completed_at = (
+        now
+        if str(merged_payload.get("status") or "").lower().strip() in {"ok", "error"}
+        else str(current.get("completed_at") or "")
+    )
+    updated = {
+        "section_id": section_id or str(current.get("section_id") or ""),
+        "section_path": section_path or str(current.get("section_path") or ""),
+        "section_title": str(
+            merged_payload.get("section_title")
+            or current.get("section_title")
+            or _section_title_from_path(section_path or current.get("section_path") or "")
+        ),
+        "parent_section_path": str(
+            merged_payload.get("parent_section_path")
+            or current.get("parent_section_path")
+            or _section_parent_path(section_path or current.get("section_path") or "")
+        ),
+        "section_level": int(
+            merged_payload.get("section_level")
+            or current.get("section_level")
+            or _section_level_from_path(section_path or current.get("section_path") or "")
+        ),
+        "prompt_sent": str(merged_payload.get("prompt_sent") or current.get("prompt_sent") or ""),
+        "ai_output": str(merged_payload.get("ai_output") or current.get("ai_output") or ""),
+        "input_tokens": int(merged_payload.get("input_tokens") or current.get("input_tokens") or 0),
+        "output_tokens": int(merged_payload.get("output_tokens") or current.get("output_tokens") or 0),
+        "total_tokens": int(merged_payload.get("total_tokens") or current.get("total_tokens") or 0),
+        "model": str(merged_payload.get("model") or current.get("model") or ""),
+        "provider": str(merged_payload.get("provider") or current.get("provider") or ""),
+        "status": str(merged_payload.get("status") or current.get("status") or "pending"),
+        "duration_ms": int(merged_payload.get("duration_ms") or current.get("duration_ms") or 0),
+        "estimated": bool(
+            merged_payload.get("estimated") if "estimated" in merged_payload else current.get("estimated")
+        ),
+        "source": str(merged_payload.get("source") or current.get("source") or ""),
+        "attempt_count": int(merged_payload.get("attempt_count") or current.get("attempt_count") or len(attempts)),
+        "attempts": attempts or list(current.get("attempts") or []),
+        "error": str(merged_payload.get("error") or current.get("error") or ""),
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "updated_at": now,
+    }
+    if idx >= 0:
+        sections[idx] = updated
+    else:
+        sections.append(updated)
+    normalized["sections"] = sections
+    normalized["current_section_id"] = updated["section_id"]
+    normalized["current_section_path"] = updated["section_path"]
+    normalized["completed_sections"] = sum(1 for item in sections if str(item.get("status") or "").lower() == "ok")
+    normalized["updated_at"] = now
+    if not normalized.get("started_at"):
+        normalized["started_at"] = now
+    if str(updated["status"]).lower() == "ok":
+        normalized["status"] = "running"
+    elif str(updated["status"]).lower() == "error":
+        normalized["status"] = "failed"
+    return normalized
+
+
+def _update_generation_phase_for_event(project_id: str, event: Dict[str, Any]) -> None:
+    project = projects.get_project(project_id)
+    if not project:
+        return
+    phase = _normalize_generation_phase_state(project.get("generation_phase"))
+    meta = event.get("meta") if isinstance(event.get("meta"), dict) else {}
+    preview = event.get("preview") if isinstance(event.get("preview"), dict) else {}
+    step = str(event.get("step") or "")
+    status = str(event.get("status") or "")
+    now = _utc_now_z()
+
+    if step == "prompt.base":
+        phase["base_prompt"] = str(preview.get("prompt") or phase.get("base_prompt") or "")
+        phase["status"] = "running"
+        phase["updated_at"] = now
+        if not phase.get("started_at"):
+            phase["started_at"] = now
+    elif step == "format.section_index":
+        phase["total_sections"] = max(0, int(meta.get("sectionTotal") or phase.get("total_sections") or 0))
+        outline = meta.get("sectionOutline")
+        if isinstance(outline, list):
+            phase["planned_sections"] = [
+                {
+                    "section_id": str(item.get("sectionId") or ""),
+                    "section_path": str(item.get("sectionPath") or ""),
+                    "section_title": _section_title_from_path(str(item.get("sectionPath") or "")),
+                    "parent_section_path": str(
+                        item.get("sectionParentPath") or _section_parent_path(str(item.get("sectionPath") or ""))
+                    ),
+                    "section_level": int(
+                        item.get("sectionLevel") or _section_level_from_path(str(item.get("sectionPath") or ""))
+                    ),
+                }
+                for item in outline
+                if isinstance(item, dict) and (item.get("sectionId") or item.get("sectionPath"))
+            ]
+        phase["updated_at"] = now
+    elif step == "ai.generate.section":
+        section_payload = {
+            "section_id": str(meta.get("sectionId") or ""),
+            "section_path": str(meta.get("sectionPath") or ""),
+            "section_title": _section_title_from_path(str(meta.get("sectionPath") or "")),
+            "parent_section_path": str(
+                meta.get("sectionParentPath") or _section_parent_path(str(meta.get("sectionPath") or ""))
+            ),
+            "section_level": int(
+                meta.get("sectionLevel") or _section_level_from_path(str(meta.get("sectionPath") or ""))
+            ),
+            "prompt_sent": str(preview.get("prompt") or ""),
+            "ai_output": str(preview.get("raw") or ""),
+            "model": str(meta.get("model") or ""),
+            "provider": str(meta.get("provider") or ""),
+            "duration_ms": int(meta.get("durationMs") or 0),
+            "attempts": meta.get("usageAttempts") if isinstance(meta.get("usageAttempts"), list) else [],
+            "error": str(event.get("detail") or ""),
+            "status": "pending",
+        }
+        if status == "running":
+            section_payload["status"] = "generating"
+        elif status == "done":
+            section_payload["status"] = "ok"
+        elif status == "error":
+            section_payload["status"] = "error"
+        phase = _upsert_generation_section(phase, section_payload)
+    elif step == "ai.generate.done":
+        phase["status"] = "completed"
+        phase["finished_at"] = now
+        phase["updated_at"] = now
+    elif step == "generation.job" and status == "error":
+        phase["status"] = "failed"
+        phase["updated_at"] = now
+    elif step == "generation.job" and status == "warn":
+        phase["status"] = "blocked"
+        phase["updated_at"] = now
+
+    projects.update_project(project_id, {"generation_phase": phase})
+
+
+def _set_construction_task(
+    project_id: str,
+    task_id: str,
+    *,
+    status: str,
+    detail: str = "",
+    global_status: str = "",
+    finish: bool = False,
+) -> None:
+    project = projects.get_project(project_id)
+    if not project:
+        return
+    phase = _normalize_construction_phase_state(project.get("construction_phase"))
+    now = _utc_now_z()
+    tasks = []
+    for task in phase.get("tasks") or []:
+        if str(task.get("id") or "") == task_id:
+            tasks.append(
+                {
+                    "id": task_id,
+                    "label": str(task.get("label") or task_id),
+                    "status": status,
+                    "detail": detail or str(task.get("detail") or ""),
+                    "updated_at": now,
+                }
+            )
+        else:
+            tasks.append(task)
+    phase["tasks"] = tasks
+    phase["current_task"] = task_id if status == "running" else phase.get("current_task") or ""
+    phase["updated_at"] = now
+    if not phase.get("started_at") and status in {"running", "done", "error"}:
+        phase["started_at"] = now
+    if global_status:
+        phase["status"] = global_status
+    elif status == "error":
+        phase["status"] = "error"
+    elif any(str(task.get("status") or "") == "running" for task in tasks):
+        phase["status"] = "running"
+    elif all(str(task.get("status") or "") == "done" for task in tasks):
+        phase["status"] = "completed"
+    elif any(str(task.get("status") or "") == "done" for task in tasks):
+        phase["status"] = "running"
+    if finish:
+        phase["finished_at"] = now
+        if phase["status"] == "running":
+            phase["status"] = "completed"
+    projects.update_project(project_id, {"construction_phase": phase})
+
+
 def _render_project_outputs_sync(
     project_id: str,
     *,
@@ -165,6 +584,13 @@ def _render_project_outputs_sync(
     values: dict[str, Any],
     ai_result_raw: dict[str, Any],
 ) -> tuple[Path, Path]:
+    _set_construction_task(
+        project_id,
+        "payload",
+        status="running",
+        detail="Preparando y validando payload antes de enviar a GicaTesis.",
+        global_status="running",
+    )
     ai_payload = _adapt_ai_result_for_gicatesis(ai_result_raw)
     ai_sections = ai_payload.get("sections", [])
     sections_count = len(ai_sections)
@@ -191,6 +617,13 @@ def _render_project_outputs_sync(
             ai_result_raw=ai_result_raw,
         )
     except RenderPayloadValidationError as exc:
+        _set_construction_task(
+            project_id,
+            "payload",
+            status="error",
+            detail="El payload no paso la validacion previa a GicaTesis.",
+            global_status="error",
+        )
         _emit_project_trace(
             project_id,
             step="gicatesis.payload",
@@ -212,6 +645,20 @@ def _render_project_outputs_sync(
     pdf_path = out_dir / f"{project_id}.pdf"
 
     with httpx.Client(timeout=240.0) as client:
+        _set_construction_task(
+            project_id,
+            "payload",
+            status="done",
+            detail="Payload validado y enviado a GicaTesis.",
+            global_status="running",
+        )
+        _set_construction_task(
+            project_id,
+            "render_docx",
+            status="running",
+            detail="Construyendo DOCX final.",
+            global_status="running",
+        )
         _emit_project_trace(
             project_id,
             step="gicatesis.render.docx",
@@ -224,6 +671,13 @@ def _render_project_outputs_sync(
             docx_path.write_bytes(docx_response.content)
         except httpx.HTTPStatusError as exc:
             detail = _extract_upstream_detail(exc.response, "GicaTesis render/docx failed")
+            _set_construction_task(
+                project_id,
+                "render_docx",
+                status="error",
+                detail=detail,
+                global_status="error",
+            )
             _emit_project_trace(
                 project_id,
                 step="gicatesis.render.docx",
@@ -233,6 +687,20 @@ def _render_project_outputs_sync(
             )
             raise RenderStageError(detail, status_code=exc.response.status_code) from exc
 
+        _set_construction_task(
+            project_id,
+            "render_docx",
+            status="done",
+            detail=f"Archivo {docx_path.name} generado.",
+            global_status="running",
+        )
+        _set_construction_task(
+            project_id,
+            "render_pdf",
+            status="running",
+            detail="Construyendo PDF final.",
+            global_status="running",
+        )
         _emit_project_trace(
             project_id,
             step="gicatesis.render.docx",
@@ -253,6 +721,13 @@ def _render_project_outputs_sync(
             pdf_path.write_bytes(pdf_response.content)
         except httpx.HTTPStatusError as exc:
             detail = _extract_upstream_detail(exc.response, "GicaTesis render/pdf failed")
+            _set_construction_task(
+                project_id,
+                "render_pdf",
+                status="error",
+                detail=detail,
+                global_status="error",
+            )
             _emit_project_trace(
                 project_id,
                 step="gicatesis.render.pdf",
@@ -262,6 +737,13 @@ def _render_project_outputs_sync(
             )
             raise RenderStageError(detail, status_code=exc.response.status_code) from exc
 
+    _set_construction_task(
+        project_id,
+        "render_pdf",
+        status="done",
+        detail=f"Archivo {pdf_path.name} generado.",
+        global_status="running",
+    )
     _emit_project_trace(
         project_id,
         step="gicatesis.payload",
@@ -733,6 +1215,7 @@ def create_project_draft(payload: Optional[ProjectDraftIn] = None):
         "variables": draft_values,
         "values": draft_values,
         "status": "draft",
+        "wizard_state": payload.wizard_state,
     }
 
     project = projects.create_project(project_data)
@@ -797,10 +1280,15 @@ async def stream_project_trace(project_id: str, request: Request):
 
 @router.put("/projects/{project_id}")
 def update_project(project_id: str, payload: ProjectUpdateIn):
+    current_project = projects.get_project(project_id)
+    if not current_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     raw = payload.model_dump(exclude_unset=True)
     prompt_id = raw.get("prompt_id")
     prompt = prompts.get_prompt(prompt_id) if prompt_id else None
     variables = raw.get("variables") if "variables" in raw else None
+    reset_generated_state = bool(raw.get("reset_generated_state"))
 
     # --- Actualizamos secciones si cambia el prompt ---
     update_payload: Dict[str, Any] = {
@@ -815,6 +1303,7 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
         "format_name": raw.get("format_name"),
         "format_version": raw.get("format_version"),
         "status": raw.get("status"),
+        "wizard_state": raw.get("wizard_state"),
     }
 
     # Limpieza de valores nulos
@@ -828,12 +1317,67 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
         update_payload["variables"] = merged_values
         update_payload["values"] = merged_values
 
+    if reset_generated_state:
+        current_provider = ""
+        progress = current_project.get("progress")
+        if isinstance(progress, dict):
+            current_provider = str(progress.get("provider") or "")
+        update_payload.update(
+            {
+                "status": raw.get("status") or "draft",
+                "ai_result": None,
+                "artifacts": [],
+                "output_file": None,
+                "pdf_file": None,
+                "error": None,
+                "run_id": None,
+                "cancel_requested": False,
+                "token_usage": empty_token_usage_report(),
+                "progress": {
+                    "current": 0,
+                    "total": 0,
+                    "currentPath": "",
+                    "provider": current_provider,
+                    "tokenUsage": token_usage_snapshot(empty_token_usage_report()),
+                    "updatedAt": _utc_now_z(),
+                },
+                "generation_snapshot": _build_generation_snapshot(
+                    sections=[],
+                    total_sections=0,
+                    current_path="",
+                    token_usage_snapshot_data=token_usage_snapshot(empty_token_usage_report()),
+                    status="idle",
+                ),
+                "generation_phase": {
+                    **_empty_generation_phase(),
+                    "updated_at": _utc_now_z(),
+                },
+                "construction_phase": {
+                    **_empty_construction_phase(),
+                    "updated_at": _utc_now_z(),
+                },
+                "incidents": [],
+                "warnings_count": 0,
+                "resume": {
+                    "eligible": False,
+                    "saved_sections_count": 0,
+                    "resume_from_index": 0,
+                    "last_failed_section_path": "",
+                    "format_version": str(raw.get("format_version") or current_project.get("format_version") or ""),
+                    "base_run_id": "",
+                    "retry_count": 0,
+                    "reason": "",
+                    "updated_at": _utc_now_z(),
+                },
+            }
+        )
+
     updated = projects.update_project(
         project_id,
         update_payload,
     )
-    if not updated:
-        raise HTTPException(status_code=404, detail="Project not found")
+    if reset_generated_state:
+        projects.clear_trace(project_id)
     return updated
 
 
@@ -1125,6 +1669,37 @@ async def _ai_generation_job(
         or provider_selection.get("provider")
         or settings.AI_PRIMARY_PROVIDER.lower()
     )
+    initial_usage_report = (
+        normalize_token_usage_report(project.get("ai_result", {}).get("tokenUsage"))
+        if resume_from_partial and isinstance(project.get("ai_result"), dict)
+        else empty_token_usage_report()
+    )
+    initial_total_sections = int(project.get("progress", {}).get("total") or 0)
+    existing_generation_phase = _normalize_generation_phase_state(project.get("generation_phase"))
+    initial_generation_phase = (
+        {
+            **existing_generation_phase,
+            "status": "running",
+            "current_section_id": (
+                str(existing_generation_phase.get("sections", [])[-1].get("section_id") or "")
+                if existing_generation_phase.get("sections")
+                else ""
+            ),
+            "current_section_path": (
+                str(existing_generation_phase.get("sections", [])[-1].get("section_path") or "")
+                if existing_generation_phase.get("sections")
+                else ""
+            ),
+            "updated_at": _utc_now_z(),
+        }
+        if resume_from_partial and existing_generation_phase.get("sections")
+        else {
+            **_empty_generation_phase(total_sections=initial_total_sections),
+            "status": "running",
+            "started_at": _utc_now_z(),
+            "updated_at": _utc_now_z(),
+        }
+    )
     projects.update_project(
         project_id,
         {
@@ -1133,6 +1708,18 @@ async def _ai_generation_job(
             "cancel_requested": False,
             "incidents": [],
             "warnings_count": 0,
+            "generation_snapshot": _build_generation_snapshot(
+                sections=safe_seed_sections if resume_from_partial else [],
+                total_sections=initial_total_sections,
+                current_path=(
+                    safe_seed_sections[-1].get("path") or "" if resume_from_partial and safe_seed_sections else ""
+                ),
+                token_usage_snapshot_data=token_usage_snapshot(initial_usage_report),
+                run_id=run_id,
+                status="running" if resume_from_partial and safe_seed_sections else "idle",
+            ),
+            "generation_phase": initial_generation_phase,
+            "construction_phase": _empty_construction_phase(),
         },
     )
     projects.update_progress(
@@ -1141,6 +1728,8 @@ async def _ai_generation_job(
         total=0,
         current_path=(safe_seed_sections[-1].get("path") or "") if resume_from_partial and safe_seed_sections else "",
         provider=provider_hint,
+        token_usage_snapshot_data=token_usage_snapshot(initial_usage_report),
+        token_usage_report_data=initial_usage_report,
     )
     _emit_project_trace(
         project_id,
@@ -1173,6 +1762,37 @@ async def _ai_generation_job(
                     len(compile_definition_to_section_index(definition)) if isinstance(definition, dict) else 0
                 )
                 projects.update_progress(project_id, total=total_sections)
+                current_project_snapshot = projects.get_project(project_id) or {}
+                snapshot_raw = (
+                    current_project_snapshot.get("generation_snapshot")
+                    if isinstance(current_project_snapshot.get("generation_snapshot"), dict)
+                    else {}
+                )
+                completed_sections = snapshot_raw.get("completed_sections") if isinstance(snapshot_raw, dict) else []
+                projects.update_project(
+                    project_id,
+                    {
+                        "generation_snapshot": _build_generation_snapshot(
+                            sections=completed_sections if isinstance(completed_sections, list) else [],
+                            total_sections=total_sections,
+                            current_path=str(snapshot_raw.get("current_path") or ""),
+                            token_usage_snapshot_data=(
+                                snapshot_raw.get("tokenUsage")
+                                if isinstance(snapshot_raw.get("tokenUsage"), dict)
+                                else token_usage_snapshot(ai_service.get_token_usage_report())
+                            ),
+                            run_id=run_id,
+                            status="running" if resume_from_partial and safe_seed_sections else "idle",
+                        ),
+                        "generation_phase": {
+                            **_normalize_generation_phase_state(
+                                (projects.get_project(project_id) or {}).get("generation_phase")
+                            ),
+                            "total_sections": total_sections,
+                            "updated_at": _utc_now_z(),
+                        },
+                    },
+                )
                 _emit_project_trace(
                     project_id,
                     step="format.loaded",
@@ -1206,6 +1826,7 @@ async def _ai_generation_job(
         )
 
     def _on_trace(event: Dict[str, Any]) -> None:
+        _update_generation_phase_for_event(project_id, event)
         _emit_project_trace(
             project_id,
             step=str(event.get("step") or "ai.event"),
@@ -1223,16 +1844,32 @@ async def _ai_generation_job(
         provider: str,
         *,
         stage: str = "section_start",
+        payload: Optional[Dict[str, Any]] = None,
     ) -> None:
         safe_total = total if total >= 0 else 0
         safe_current = current if current >= 0 else 0
+        usage_report = ai_service.get_token_usage_report()
+        usage_snapshot = ai_service.get_token_usage_snapshot()
         projects.update_progress(
             project_id,
             current=safe_current,
             total=safe_total if safe_total > 0 else None,
             current_path=path or "",
             provider=provider or "",
+            token_usage_snapshot_data=usage_snapshot,
+            token_usage_report_data=usage_report,
         )
+        if isinstance(payload, dict) and payload.get("section_id"):
+            current_project = projects.get_project(project_id) or {}
+            generation_phase = _normalize_generation_phase_state(current_project.get("generation_phase"))
+            generation_phase["total_sections"] = max(
+                safe_total,
+                int(generation_phase.get("total_sections") or 0),
+            )
+            generation_phase["status"] = "running"
+            generation_phase["updated_at"] = _utc_now_z()
+            generation_phase = _upsert_generation_section(generation_phase, payload)
+            projects.update_project(project_id, {"generation_phase": generation_phase})
 
         if stage == "provider_fallback":
             _emit_project_trace(
@@ -1249,6 +1886,8 @@ async def _ai_generation_job(
                     "stage": stage,
                 },
             )
+            return
+        if stage == "cleanup_correction":
             return
 
         status = "running" if stage == "section_start" else "done"
@@ -1305,8 +1944,32 @@ async def _ai_generation_job(
         if not isinstance(partial_sections, list) or not partial_sections:
             return 0
 
+        usage_report = ai_service.get_token_usage_report()
+        usage_snapshot = ai_service.get_token_usage_snapshot()
         last_path = str(partial_sections[-1].get("path") or "")
-        projects.update_project(project_id, {"ai_result": partial_ai})
+        partial_ai["tokenUsage"] = usage_report
+        latest_project = projects.get_project(project_id) or {}
+        latest_progress = latest_project.get("progress") if isinstance(latest_project.get("progress"), dict) else {}
+        total_sections = (
+            len(compile_definition_to_section_index(format_detail_payload.get("definition", {})))
+            if isinstance(format_detail_payload, dict)
+            else int(latest_progress.get("total") or 0)
+        )
+        projects.update_project(
+            project_id,
+            {
+                "ai_result": partial_ai,
+                "token_usage": usage_report,
+                "generation_snapshot": _build_generation_snapshot(
+                    sections=partial_sections,
+                    total_sections=total_sections,
+                    current_path=last_path,
+                    token_usage_snapshot_data=usage_snapshot,
+                    run_id=run_id,
+                    status="resume_ready",
+                ),
+            },
+        )
         projects.mark_resume_checkpoint(
             project_id,
             saved_sections_count=len(partial_sections),
@@ -1317,11 +1980,11 @@ async def _ai_generation_job(
         projects.update_progress(
             project_id,
             current=len(partial_sections),
-            total=len(compile_definition_to_section_index(format_detail_payload.get("definition", {})))
-            if isinstance(format_detail_payload, dict)
-            else None,
+            total=total_sections or None,
             current_path=last_path,
             provider=provider_hint,
+            token_usage_snapshot_data=usage_snapshot,
+            token_usage_report_data=usage_report,
         )
         _emit_project_trace(
             project_id,
@@ -1354,7 +2017,12 @@ async def _ai_generation_job(
             )
             or "-"
         )
-        projects.update_progress(project_id, provider=provider)
+        projects.update_progress(
+            project_id,
+            provider=provider,
+            token_usage_snapshot_data=ai_service.get_token_usage_snapshot(),
+            token_usage_report_data=ai_service.get_token_usage_report(),
+        )
 
         run_incidents = ai_service.get_run_incidents()
         if run_incidents:
@@ -1378,6 +2046,19 @@ async def _ai_generation_job(
                 {"type": "docx", "downloadUrl": f"/api/download/{project_id}"},
                 {"type": "pdf", "downloadUrl": f"/api/download/{project_id}/pdf"},
             ],
+        )
+        current_project_after_ai = projects.get_project(project_id) or {}
+        generation_phase = _normalize_generation_phase_state(current_project_after_ai.get("generation_phase"))
+        generation_phase["status"] = "completed"
+        generation_phase["finished_at"] = _utc_now_z()
+        generation_phase["updated_at"] = _utc_now_z()
+        projects.update_project(project_id, {"generation_phase": generation_phase})
+        _set_construction_task(
+            project_id,
+            "handoff",
+            status="done",
+            detail="La generacion IA termino y el contenido validado quedo listo para construir el documento.",
+            global_status="running",
         )
         _emit_project_trace(
             project_id,
@@ -1441,6 +2122,14 @@ async def _ai_generation_job(
                 {"type": "pdf", "downloadUrl": f"/api/download/{project_id}/pdf"},
             ],
         )
+        _set_construction_task(
+            project_id,
+            "final_validation",
+            status="done",
+            detail="DOCX y PDF generados y validados para descarga.",
+            global_status="completed",
+            finish=True,
+        )
         finished_project = projects.get_project(project_id) or {}
         warnings_count = int(finished_project.get("warnings_count") or 0)
         has_incidents = warnings_count > 0
@@ -1464,6 +2153,13 @@ async def _ai_generation_job(
         _logger.info("AI generation completed for project %s using %s", project_id, provider)
     except RenderStageError as exc:
         projects.mark_render_failed(project_id, exc.detail_text)
+        _set_construction_task(
+            project_id,
+            "final_validation",
+            status="error",
+            detail="La construccion se detuvo por un error en render.",
+            global_status="error",
+        )
         _emit_project_trace(
             project_id,
             step="project.status.render_failed",
@@ -1484,6 +2180,11 @@ async def _ai_generation_job(
     except GenerationCancelledError as exc:
         _persist_partial_resume_snapshot("Generacion cancelada por usuario")
         projects.mark_blocked(project_id, str(exc), keep_ai_result=True)
+        current_project = projects.get_project(project_id) or {}
+        generation_phase = _normalize_generation_phase_state(current_project.get("generation_phase"))
+        generation_phase["status"] = "blocked"
+        generation_phase["updated_at"] = _utc_now_z()
+        projects.update_project(project_id, {"generation_phase": generation_phase})
         _emit_project_trace(
             project_id,
             step="generation.job",
@@ -1496,6 +2197,11 @@ async def _ai_generation_job(
     except QuotaExceededError as exc:
         partial_count = _persist_partial_resume_snapshot("Error de cuota del proveedor IA")
         projects.mark_failed(project_id, str(exc), keep_ai_result=partial_count > 0)
+        current_project = projects.get_project(project_id) or {}
+        generation_phase = _normalize_generation_phase_state(current_project.get("generation_phase"))
+        generation_phase["status"] = "failed"
+        generation_phase["updated_at"] = _utc_now_z()
+        projects.update_project(project_id, {"generation_phase": generation_phase})
         _emit_project_trace(
             project_id,
             step="generation.job",
@@ -1513,6 +2219,11 @@ async def _ai_generation_job(
     except Exception as exc:
         partial_count = _persist_partial_resume_snapshot("Error transitorio durante generacion IA")
         projects.mark_failed(project_id, str(exc), keep_ai_result=partial_count > 0)
+        current_project = projects.get_project(project_id) or {}
+        generation_phase = _normalize_generation_phase_state(current_project.get("generation_phase"))
+        generation_phase["status"] = "failed"
+        generation_phase["updated_at"] = _utc_now_z()
+        projects.update_project(project_id, {"generation_phase": generation_phase})
         _emit_project_trace(
             project_id,
             step="generation.job",
@@ -1552,6 +2263,13 @@ async def _render_saved_ai_job(project_id: str, run_id: str) -> None:
         )
 
     provider = str(project.get("progress", {}).get("provider") or "")
+    _set_construction_task(
+        project_id,
+        "handoff",
+        status="done",
+        detail="Se reutiliza el contenido IA guardado para reconstruir el documento.",
+        global_status="running",
+    )
 
     try:
         docx_path, pdf_path = await asyncio.to_thread(
@@ -1570,6 +2288,14 @@ async def _render_saved_ai_job(project_id: str, run_id: str) -> None:
                 {"type": "pdf", "downloadUrl": f"/api/download/{project_id}/pdf"},
             ],
         )
+        _set_construction_task(
+            project_id,
+            "final_validation",
+            status="done",
+            detail="Render reintentado con exito y artefactos listos.",
+            global_status="completed",
+            finish=True,
+        )
         _emit_project_trace(
             project_id,
             step="generation.job",
@@ -1580,6 +2306,13 @@ async def _render_saved_ai_job(project_id: str, run_id: str) -> None:
         )
     except RenderStageError as exc:
         projects.mark_render_failed(project_id, exc.detail_text)
+        _set_construction_task(
+            project_id,
+            "final_validation",
+            status="error",
+            detail="El reintento de construccion termino con error.",
+            global_status="error",
+        )
         _emit_project_trace(
             project_id,
             step="project.status.render_failed",
@@ -1720,6 +2453,7 @@ async def trigger_generation(
         )
         mode = str(project_selection.get("mode") or "auto").lower().strip()
         run_id = f"render-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        stored_usage_report = normalize_token_usage_report(stored_ai_result.get("tokenUsage"))
         total_sections = int(progress.get("total") or len(stored_ai_sections))
         current_sections = int(progress.get("current") or total_sections or len(stored_ai_sections))
         current_path = (
@@ -1738,7 +2472,23 @@ async def trigger_generation(
                     "total": total_sections,
                     "currentPath": current_path,
                     "provider": provider,
+                    "tokenUsage": token_usage_snapshot(stored_usage_report),
                     "updatedAt": _utc_now_z(),
+                },
+                "token_usage": stored_usage_report,
+                "generation_snapshot": _build_generation_snapshot(
+                    sections=stored_ai_sections,
+                    total_sections=total_sections,
+                    current_path=current_path,
+                    token_usage_snapshot_data=token_usage_snapshot(stored_usage_report),
+                    run_id=run_id,
+                    status="rendering",
+                ),
+                "construction_phase": {
+                    **_empty_construction_phase(),
+                    "status": "running",
+                    "started_at": _utc_now_z(),
+                    "updated_at": _utc_now_z(),
                 },
             },
         )
@@ -1801,6 +2551,20 @@ async def trigger_generation(
         if resolved_resume_mode == "restart":
             projects.update_project(projectId, {"ai_result": None})
             projects.clear_resume(projectId)
+            projects.clear_generation_snapshot(projectId)
+            projects.update_project(
+                projectId,
+                {
+                    "generation_phase": {
+                        **_empty_generation_phase(),
+                        "updated_at": _utc_now_z(),
+                    },
+                    "construction_phase": {
+                        **_empty_construction_phase(),
+                        "updated_at": _utc_now_z(),
+                    },
+                },
+            )
             resume_from_partial = False
             resume_seed_sections = []
             saved_sections = 0
@@ -1815,6 +2579,65 @@ async def trigger_generation(
         )
         mode = str(selection.get("mode") or "auto").lower().strip()
         run_id = f"{provider}-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        initial_usage_report = (
+            normalize_token_usage_report(stored_ai_result.get("tokenUsage"))
+            if resume_from_partial and isinstance(stored_ai_result, dict)
+            else empty_token_usage_report()
+        )
+        existing_progress = project.get("progress") if isinstance(project.get("progress"), dict) else {}
+        total_sections_hint = int(existing_progress.get("total") or 0)
+        existing_generation_phase = _normalize_generation_phase_state(project.get("generation_phase"))
+        if resume_from_partial:
+            seeded_generation_phase = {
+                **existing_generation_phase,
+                "status": "running",
+                "updated_at": _utc_now_z(),
+            }
+            if not seeded_generation_phase.get("sections") and resume_seed_sections:
+                seeded_generation_phase["sections"] = [
+                    {
+                        "section_id": str(item.get("sectionId") or ""),
+                        "section_path": str(item.get("path") or ""),
+                        "section_title": _section_title_from_path(str(item.get("path") or "")),
+                        "parent_section_path": _section_parent_path(str(item.get("path") or "")),
+                        "section_level": _section_level_from_path(str(item.get("path") or "")),
+                        "prompt_sent": "",
+                        "ai_output": "",
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "total_tokens": 0,
+                        "model": "",
+                        "provider": provider,
+                        "status": "ok",
+                        "duration_ms": 0,
+                        "estimated": False,
+                        "source": "",
+                        "attempt_count": 0,
+                        "attempts": [],
+                        "error": "",
+                        "started_at": "",
+                        "completed_at": "",
+                        "updated_at": _utc_now_z(),
+                    }
+                    for item in resume_seed_sections
+                    if isinstance(item, dict) and (item.get("sectionId") or item.get("path"))
+                ]
+                seeded_generation_phase["completed_sections"] = len(seeded_generation_phase["sections"])
+                if seeded_generation_phase["sections"]:
+                    seeded_generation_phase["current_section_id"] = str(
+                        seeded_generation_phase["sections"][-1].get("section_id") or ""
+                    )
+                    seeded_generation_phase["current_section_path"] = str(
+                        seeded_generation_phase["sections"][-1].get("section_path") or ""
+                    )
+            generation_phase_payload = seeded_generation_phase
+        else:
+            generation_phase_payload = {
+                **_empty_generation_phase(total_sections=total_sections_hint),
+                "status": "running",
+                "started_at": _utc_now_z(),
+                "updated_at": _utc_now_z(),
+            }
         projects.update_project(
             projectId,
             {
@@ -1830,7 +2653,26 @@ async def trigger_generation(
                         else ""
                     ),
                     "provider": provider,
+                    "tokenUsage": token_usage_snapshot(initial_usage_report),
                     "updatedAt": _utc_now_z(),
+                },
+                "token_usage": initial_usage_report,
+                "generation_snapshot": _build_generation_snapshot(
+                    sections=resume_seed_sections if resume_from_partial else [],
+                    total_sections=total_sections_hint,
+                    current_path=(
+                        str(resume_seed_sections[-1].get("path") or "")
+                        if resume_from_partial and resume_seed_sections
+                        else ""
+                    ),
+                    token_usage_snapshot_data=token_usage_snapshot(initial_usage_report),
+                    run_id=run_id,
+                    status="running" if resume_from_partial and resume_seed_sections else "idle",
+                ),
+                "generation_phase": (generation_phase_payload),
+                "construction_phase": {
+                    **_empty_construction_phase(),
+                    "updated_at": _utc_now_z(),
                 },
             },
         )

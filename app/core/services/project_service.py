@@ -3,6 +3,12 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Callable, Dict, List, Optional
 
+from app.core.services.ai.token_usage import (
+    empty_token_usage_report,
+    empty_token_usage_summary,
+    normalize_token_usage_report,
+    normalize_token_usage_snapshot,
+)
 from app.core.storage.json_store import JsonStore
 from app.core.utils.id import new_id
 
@@ -22,7 +28,48 @@ class ProjectService:
             "total": 0,
             "currentPath": "",
             "provider": provider,
+            "tokenUsage": empty_token_usage_summary(),
             "updatedAt": dt.datetime.now().isoformat(timespec="seconds"),
+        }
+
+    @staticmethod
+    def _empty_generation_snapshot() -> Dict[str, Any]:
+        return {
+            "saved_sections_count": 0,
+            "total_sections": 0,
+            "current_path": "",
+            "completed_sections": [],
+            "tokenUsage": empty_token_usage_summary(),
+            "source_run_id": "",
+            "status": "idle",
+            "updated_at": "",
+        }
+
+    @staticmethod
+    def _empty_generation_phase() -> Dict[str, Any]:
+        return {
+            "status": "idle",
+            "base_prompt": "",
+            "current_section_id": "",
+            "current_section_path": "",
+            "total_sections": 0,
+            "completed_sections": 0,
+            "planned_sections": [],
+            "sections": [],
+            "started_at": "",
+            "updated_at": "",
+            "finished_at": "",
+        }
+
+    @staticmethod
+    def _empty_construction_phase() -> Dict[str, Any]:
+        return {
+            "status": "idle",
+            "current_task": "",
+            "tasks": [],
+            "started_at": "",
+            "updated_at": "",
+            "finished_at": "",
         }
 
     @staticmethod
@@ -36,6 +83,15 @@ class ProjectService:
             "base_run_id": "",
             "retry_count": 0,
             "reason": "",
+            "updated_at": "",
+        }
+
+    @staticmethod
+    def _empty_wizard_state() -> Dict[str, Any]:
+        return {
+            "current_step": 1,
+            "last_completed_step": 1,
+            "last_open_mode": "new",
             "updated_at": "",
         }
 
@@ -60,6 +116,216 @@ class ProjectService:
                 "retry_count": max(0, int(resume_raw.get("retry_count") or 0)),
                 "reason": str(resume_raw.get("reason") or ""),
                 "updated_at": str(resume_raw.get("updated_at") or ""),
+            }
+        )
+        return base
+
+    @classmethod
+    def _normalize_wizard_state(cls, raw: Any) -> Dict[str, Any]:
+        base = cls._empty_wizard_state()
+        if not isinstance(raw, dict):
+            return base
+        current_step_raw = raw["current_step"] if "current_step" in raw else raw.get("currentStep")
+        last_completed_raw = (
+            raw["last_completed_step"] if "last_completed_step" in raw else raw.get("lastCompletedStep")
+        )
+        last_open_mode_raw = raw["last_open_mode"] if "last_open_mode" in raw else raw.get("lastOpenMode")
+        updated_at_raw = raw["updated_at"] if "updated_at" in raw else raw.get("updatedAt")
+        base.update(
+            {
+                "current_step": min(7, max(1, int(current_step_raw or 1))),
+                "last_completed_step": min(
+                    7,
+                    max(1, int(last_completed_raw or 1)),
+                ),
+                "last_open_mode": str(last_open_mode_raw or "new"),
+                "updated_at": str(updated_at_raw or ""),
+            }
+        )
+        if base["last_completed_step"] < base["current_step"]:
+            base["last_completed_step"] = base["current_step"]
+        return base
+
+    @classmethod
+    def _merge_wizard_state(cls, current_raw: Any, incoming_raw: Any) -> Dict[str, Any]:
+        current = cls._normalize_wizard_state(current_raw)
+        if not isinstance(incoming_raw, dict):
+            return current
+
+        if "current_step" in incoming_raw or "currentStep" in incoming_raw:
+            current["current_step"] = cls._normalize_wizard_state(incoming_raw)["current_step"]
+        if "last_completed_step" in incoming_raw or "lastCompletedStep" in incoming_raw:
+            current["last_completed_step"] = cls._normalize_wizard_state(incoming_raw)["last_completed_step"]
+        if "last_open_mode" in incoming_raw or "lastOpenMode" in incoming_raw:
+            current["last_open_mode"] = cls._normalize_wizard_state(incoming_raw)["last_open_mode"]
+        if "updated_at" in incoming_raw or "updatedAt" in incoming_raw:
+            current["updated_at"] = cls._normalize_wizard_state(incoming_raw)["updated_at"]
+        return cls._normalize_wizard_state(current)
+
+    @classmethod
+    def _normalize_generation_phase(cls, raw: Any) -> Dict[str, Any]:
+        base = cls._empty_generation_phase()
+        if not isinstance(raw, dict):
+            return base
+
+        normalized_sections: List[Dict[str, Any]] = []
+        planned_sections: List[Dict[str, Any]] = []
+        raw_planned_sections = raw.get("planned_sections")
+        if isinstance(raw_planned_sections, list):
+            for item in raw_planned_sections:
+                if not isinstance(item, dict):
+                    continue
+                section_id = str(item.get("section_id") or item.get("sectionId") or "").strip()
+                section_path = str(
+                    item.get("section_path") or item.get("sectionPath") or item.get("path") or ""
+                ).strip()
+                section_title = str(item.get("section_title") or item.get("sectionTitle") or "").strip() or (
+                    section_path.split("/")[-1].strip() if section_path else ""
+                )
+                if not section_id and not section_path:
+                    continue
+                planned_sections.append(
+                    {
+                        "section_id": section_id,
+                        "section_path": section_path,
+                        "section_title": section_title,
+                        "parent_section_path": str(
+                            item.get("parent_section_path") or item.get("sectionParentPath") or ""
+                        ),
+                        "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                    }
+                )
+        raw_sections = raw.get("sections")
+        if isinstance(raw_sections, list):
+            for item in raw_sections:
+                if not isinstance(item, dict):
+                    continue
+                section_id = str(item.get("section_id") or item.get("sectionId") or "").strip()
+                section_path = str(item.get("section_path") or item.get("path") or "").strip()
+                section_title = str(item.get("section_title") or "").strip() or (
+                    section_path.split("/")[-1].strip() if section_path else ""
+                )
+                if not section_id and not section_path:
+                    continue
+                attempts = item.get("attempts")
+                normalized_attempts = (
+                    [entry for entry in attempts if isinstance(entry, dict)] if isinstance(attempts, list) else []
+                )
+                normalized_sections.append(
+                    {
+                        "section_id": section_id,
+                        "section_path": section_path,
+                        "section_title": section_title,
+                        "parent_section_path": str(
+                            item.get("parent_section_path") or item.get("sectionParentPath") or ""
+                        ),
+                        "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                        "prompt_sent": str(item.get("prompt_sent") or ""),
+                        "ai_output": str(item.get("ai_output") or ""),
+                        "input_tokens": max(0, int(item.get("input_tokens") or 0)),
+                        "output_tokens": max(0, int(item.get("output_tokens") or 0)),
+                        "total_tokens": max(0, int(item.get("total_tokens") or 0)),
+                        "model": str(item.get("model") or ""),
+                        "provider": str(item.get("provider") or ""),
+                        "status": str(item.get("status") or "pending"),
+                        "duration_ms": max(0, int(item.get("duration_ms") or 0)),
+                        "estimated": bool(item.get("estimated")),
+                        "source": str(item.get("source") or ""),
+                        "attempt_count": max(0, int(item.get("attempt_count") or len(normalized_attempts) or 0)),
+                        "attempts": normalized_attempts,
+                        "error": str(item.get("error") or ""),
+                        "started_at": str(item.get("started_at") or ""),
+                        "completed_at": str(item.get("completed_at") or ""),
+                        "updated_at": str(item.get("updated_at") or ""),
+                    }
+                )
+
+        base.update(
+            {
+                "status": str(raw.get("status") or "idle"),
+                "base_prompt": str(raw.get("base_prompt") or ""),
+                "current_section_id": str(raw.get("current_section_id") or ""),
+                "current_section_path": str(raw.get("current_section_path") or ""),
+                "total_sections": max(0, int(raw.get("total_sections") or 0)),
+                "completed_sections": max(0, int(raw.get("completed_sections") or 0)),
+                "planned_sections": planned_sections,
+                "sections": normalized_sections,
+                "started_at": str(raw.get("started_at") or ""),
+                "updated_at": str(raw.get("updated_at") or ""),
+                "finished_at": str(raw.get("finished_at") or ""),
+            }
+        )
+        return base
+
+    @classmethod
+    def _normalize_construction_phase(cls, raw: Any) -> Dict[str, Any]:
+        base = cls._empty_construction_phase()
+        if not isinstance(raw, dict):
+            return base
+
+        tasks_raw = raw.get("tasks")
+        normalized_tasks: List[Dict[str, Any]] = []
+        if isinstance(tasks_raw, list):
+            for item in tasks_raw:
+                if not isinstance(item, dict):
+                    continue
+                task_id = str(item.get("id") or "").strip()
+                label = str(item.get("label") or "").strip()
+                if not task_id and not label:
+                    continue
+                normalized_tasks.append(
+                    {
+                        "id": task_id,
+                        "label": label,
+                        "status": str(item.get("status") or "pending"),
+                        "detail": str(item.get("detail") or ""),
+                        "updated_at": str(item.get("updated_at") or ""),
+                    }
+                )
+
+        base.update(
+            {
+                "status": str(raw.get("status") or "idle"),
+                "current_task": str(raw.get("current_task") or ""),
+                "tasks": normalized_tasks,
+                "started_at": str(raw.get("started_at") or ""),
+                "updated_at": str(raw.get("updated_at") or ""),
+                "finished_at": str(raw.get("finished_at") or ""),
+            }
+        )
+        return base
+
+    @classmethod
+    def _normalize_generation_snapshot(cls, raw: Any) -> Dict[str, Any]:
+        base = cls._empty_generation_snapshot()
+        if not isinstance(raw, dict):
+            return base
+        completed_sections_raw = raw.get("completed_sections")
+        completed_sections: List[Dict[str, str]] = []
+        if isinstance(completed_sections_raw, list):
+            for item in completed_sections_raw:
+                if not isinstance(item, dict):
+                    continue
+                section_id = str(item.get("sectionId") or item.get("section_id") or "").strip()
+                path = str(item.get("path") or item.get("section_path") or "").strip()
+                if not section_id and not path:
+                    continue
+                completed_sections.append(
+                    {
+                        "sectionId": section_id,
+                        "path": path,
+                    }
+                )
+        base.update(
+            {
+                "saved_sections_count": max(0, int(raw.get("saved_sections_count") or len(completed_sections) or 0)),
+                "total_sections": max(0, int(raw.get("total_sections") or 0)),
+                "current_path": str(raw.get("current_path") or ""),
+                "completed_sections": completed_sections,
+                "tokenUsage": normalize_token_usage_snapshot(raw.get("tokenUsage")),
+                "source_run_id": str(raw.get("source_run_id") or ""),
+                "status": str(raw.get("status") or "idle"),
+                "updated_at": str(raw.get("updated_at") or ""),
             }
         )
         return base
@@ -90,9 +356,14 @@ class ProjectService:
                 "total": int(progress.get("total") or 0),
                 "currentPath": str(progress.get("currentPath") or ""),
                 "provider": str(progress.get("provider") or ""),
+                "tokenUsage": normalize_token_usage_snapshot(progress.get("tokenUsage")),
                 "updatedAt": str(progress.get("updatedAt") or dt.datetime.now().isoformat(timespec="seconds")),
             }
         normalized["progress"] = progress
+        normalized["token_usage"] = normalize_token_usage_report(normalized.get("token_usage"))
+        normalized["generation_snapshot"] = cls._normalize_generation_snapshot(normalized.get("generation_snapshot"))
+        normalized["generation_phase"] = cls._normalize_generation_phase(normalized.get("generation_phase"))
+        normalized["construction_phase"] = cls._normalize_construction_phase(normalized.get("construction_phase"))
 
         incidents_raw = normalized.get("incidents")
         if isinstance(incidents_raw, list):
@@ -110,10 +381,44 @@ class ProjectService:
             resume_raw,
             format_version=str(normalized.get("format_version") or ""),
         )
+        normalized["wizard_state"] = cls._normalize_wizard_state(normalized.get("wizard_state"))
         return normalized
 
     def list_projects(self) -> List[Dict[str, Any]]:
-        return [self._normalize_project(item) for item in self.store.read_list()]
+        normalized = [self._normalize_project(item) for item in self.store.read_list()]
+
+        def _dt_key(project: Dict[str, Any]) -> dt.datetime:
+            raw = (
+                str(project.get("updated_at") or "").strip()
+                or str(project.get("created_at") or "").strip()
+                or "1970-01-01T00:00:00"
+            )
+            try:
+                return dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError:
+                return dt.datetime.min
+
+        status_priority = {
+            "generating": 6,
+            "rendering": 5,
+            "ai_received": 5,
+            "draft": 4,
+            "render_failed": 3,
+            "failed": 3,
+            "blocked": 3,
+            "cancel_requested": 3,
+            "completed_with_incidents": 2,
+            "completed": 2,
+            "simulated": 2,
+        }
+        normalized.sort(
+            key=lambda item: (
+                _dt_key(item),
+                status_priority.get(str(item.get("status") or "").lower().strip(), 0),
+            ),
+            reverse=True,
+        )
+        return normalized
 
     def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         for p in self.store.read_list():
@@ -178,6 +483,10 @@ class ProjectService:
             "events": [],
             "trace": [],
             "progress": self._default_progress(),
+            "token_usage": empty_token_usage_report(),
+            "generation_snapshot": self._empty_generation_snapshot(),
+            "generation_phase": self._empty_generation_phase(),
+            "construction_phase": self._empty_construction_phase(),
             "cancel_requested": False,
             "ai_selection": payload.get("ai_selection") if isinstance(payload.get("ai_selection"), dict) else None,
             "incidents": [],
@@ -186,6 +495,13 @@ class ProjectService:
                 **self._empty_resume(format_version=str(payload.get("format_version") or "")),
                 "updated_at": now,
             },
+            "wizard_state": self._merge_wizard_state(
+                {
+                    **self._empty_wizard_state(),
+                    "updated_at": now,
+                },
+                payload.get("wizard_state"),
+            ),
         }
         items.insert(0, project)
         self.store.write_list(items)
@@ -213,6 +529,12 @@ class ProjectService:
                 p["cancel_requested"] = bool(payload.get("cancel_requested"))
             if "run_id" in payload and payload.get("run_id") is not None:
                 p["run_id"] = payload.get("run_id")
+            if "output_file" in payload:
+                p["output_file"] = payload.get("output_file")
+            if "pdf_file" in payload:
+                p["pdf_file"] = payload.get("pdf_file")
+            if "error" in payload:
+                p["error"] = payload.get("error")
             if "ai_result" in payload:
                 ai_result = payload.get("ai_result")
                 p["ai_result"] = ai_result if isinstance(ai_result, dict) else None
@@ -224,6 +546,14 @@ class ProjectService:
             if "ai_selection" in payload:
                 selection = payload.get("ai_selection")
                 p["ai_selection"] = selection if isinstance(selection, dict) else None
+            if "token_usage" in payload:
+                p["token_usage"] = normalize_token_usage_report(payload.get("token_usage"))
+            if "generation_snapshot" in payload:
+                p["generation_snapshot"] = self._normalize_generation_snapshot(payload.get("generation_snapshot"))
+            if "generation_phase" in payload:
+                p["generation_phase"] = self._normalize_generation_phase(payload.get("generation_phase"))
+            if "construction_phase" in payload:
+                p["construction_phase"] = self._normalize_construction_phase(payload.get("construction_phase"))
             if "incidents" in payload:
                 incidents = payload.get("incidents")
                 if isinstance(incidents, list):
@@ -253,6 +583,15 @@ class ProjectService:
                         **self._empty_resume(format_version=str(p.get("format_version") or "")),
                         "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
                     }
+            if "wizard_state" in payload:
+                wizard_payload = payload.get("wizard_state")
+                if isinstance(wizard_payload, dict):
+                    p["wizard_state"] = self._merge_wizard_state(p.get("wizard_state"), wizard_payload)
+                else:
+                    p["wizard_state"] = {
+                        **self._empty_wizard_state(),
+                        "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+                    }
             if "progress" in payload and isinstance(payload.get("progress"), dict):
                 progress = self._default_progress(provider=str(payload["progress"].get("provider") or ""))
                 progress.update(
@@ -261,6 +600,7 @@ class ProjectService:
                         "total": int(payload["progress"].get("total") or 0),
                         "currentPath": str(payload["progress"].get("currentPath") or ""),
                         "provider": str(payload["progress"].get("provider") or ""),
+                        "tokenUsage": normalize_token_usage_snapshot(payload["progress"].get("tokenUsage")),
                         "updatedAt": str(
                             payload["progress"].get("updatedAt") or dt.datetime.now().isoformat(timespec="seconds")
                         ),
@@ -295,6 +635,15 @@ class ProjectService:
         def _mutate(p: Dict[str, Any]) -> None:
             p["resume"] = {
                 **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
+
+        return self._mutate_project(project_id, _mutate)
+
+    def clear_generation_snapshot(self, project_id: str) -> Optional[Dict[str, Any]]:
+        def _mutate(p: Dict[str, Any]) -> None:
+            p["generation_snapshot"] = {
+                **self._empty_generation_snapshot(),
                 "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
             }
 
@@ -371,6 +720,8 @@ class ProjectService:
         total: Optional[int] = None,
         current_path: Optional[str] = None,
         provider: Optional[str] = None,
+        token_usage_snapshot_data: Optional[Dict[str, Any]] = None,
+        token_usage_report_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
             progress = p.get("progress")
@@ -385,6 +736,10 @@ class ProjectService:
                 progress["currentPath"] = str(current_path)
             if provider is not None:
                 progress["provider"] = str(provider)
+            if token_usage_snapshot_data is not None:
+                progress["tokenUsage"] = normalize_token_usage_snapshot(token_usage_snapshot_data)
+            if token_usage_report_data is not None:
+                p["token_usage"] = normalize_token_usage_report(token_usage_report_data)
             progress["updatedAt"] = dt.datetime.now().isoformat(timespec="seconds")
             p["progress"] = progress
 
@@ -431,6 +786,10 @@ class ProjectService:
                 **self._empty_resume(format_version=str(p.get("format_version") or "")),
                 "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
             }
+            p["generation_snapshot"] = {
+                **self._empty_generation_snapshot(),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
             progress = p.get("progress")
             if isinstance(progress, dict):
                 total = int(progress.get("total") or 0)
@@ -459,6 +818,10 @@ class ProjectService:
                     **self._empty_resume(format_version=str(p.get("format_version") or "")),
                     "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
                 }
+                p["generation_snapshot"] = {
+                    **self._empty_generation_snapshot(),
+                    "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+                }
             p["artifacts"] = []
             p["output_file"] = None
             p["pdf_file"] = None
@@ -485,6 +848,10 @@ class ProjectService:
                 p["ai_result"] = None
                 p["run_id"] = None
                 p["artifacts"] = []
+                p["generation_snapshot"] = {
+                    **self._empty_generation_snapshot(),
+                    "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+                }
             p["output_file"] = None
             p["pdf_file"] = None
             progress = p.get("progress")
@@ -506,12 +873,17 @@ class ProjectService:
         def _mutate(p: Dict[str, Any]) -> None:
             p["status"] = "ai_received"
             p["ai_result"] = ai_result
+            p["token_usage"] = normalize_token_usage_report(ai_result.get("tokenUsage"))
             p["run_id"] = run_id
             p["artifacts"] = artifacts or []
             p["error"] = None
             p["cancel_requested"] = False
             p["resume"] = {
                 **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
+            p["generation_snapshot"] = {
+                **self._empty_generation_snapshot(),
                 "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
             }
             progress = p.get("progress")
@@ -570,6 +942,10 @@ class ProjectService:
             p["cancel_requested"] = False
             p["resume"] = {
                 **self._empty_resume(format_version=str(p.get("format_version") or "")),
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
+            p["generation_snapshot"] = {
+                **self._empty_generation_snapshot(),
                 "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
             }
             progress = p.get("progress")

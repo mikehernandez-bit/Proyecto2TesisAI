@@ -56,6 +56,7 @@ class ProjectDraftIn(BaseModel):
     # Snapshot del prompt en el borrador
     system_instruction: Optional[str] = None
     sections: Optional[List[PromptSection]] = None
+    wizard_state: Optional[Dict[str, Any]] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -73,6 +74,7 @@ class ProjectDraftIn(BaseModel):
             "values": "variables",
             "formatName": "format_name",
             "formatVersion": "format_version",
+            "wizardState": "wizard_state",
         }
         for src, dst in aliases.items():
             if src in remapped and dst not in remapped:
@@ -94,6 +96,8 @@ class ProjectUpdateIn(BaseModel):
     # Permitir actualizar secciones del borrador
     system_instruction: Optional[str] = None
     sections: Optional[List[PromptSection]] = None
+    wizard_state: Optional[Dict[str, Any]] = None
+    reset_generated_state: Optional[bool] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -109,6 +113,8 @@ class ProjectUpdateIn(BaseModel):
             "values": "variables",
             "formatName": "format_name",
             "formatVersion": "format_version",
+            "wizardState": "wizard_state",
+            "resetGeneratedState": "reset_generated_state",
         }
         for src, dst in aliases.items():
             if src in remapped and dst not in remapped:

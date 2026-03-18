@@ -15,6 +15,7 @@ from app.core.services.ai.error_classifier import LLMErrorType, classify_error, 
 from app.core.services.ai.limiter import LLMLimiter
 from app.core.services.ai.phase_policy import PhasePolicy
 from app.core.services.ai.retry_policy import compute_backoff, should_retry
+from app.core.services.ai.token_usage import build_usage_entry
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ class LLMResult:
     status: str  # ok | degraded
     incidents: List[Dict[str, Any]] = field(default_factory=list)
     retry_count: int = 0
+    usage: Dict[str, Any] = field(default_factory=dict)
+    attempts: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class LLMProviderRouter:
@@ -221,6 +224,7 @@ class LLMProviderRouter:
         incidents: List[Dict[str, Any]] = []
         total_retries = 0
         last_error: Optional[Exception] = None
+        usage_attempts: List[Dict[str, Any]] = []
 
         for provider_index, provider in enumerate(chain):
             provider_last_error_type: Optional[LLMErrorType] = None
@@ -244,6 +248,7 @@ class LLMProviderRouter:
                         status="degraded",
                         incidents=incidents,
                         retry_count=total_retries,
+                        attempts=usage_attempts,
                     )
                 continue
 
@@ -285,13 +290,35 @@ class LLMProviderRouter:
                 tokens_in = _estimate_tokens(bounded_prompt)
                 try:
                     with self._limiter.acquire_sync(provider, tenant_id=req.tenant_id):
-                        content = client.generate(
-                            bounded_prompt,
-                            model=model if model and model != "-" else None,
-                        )
+                        generate_with_usage = getattr(type(client), "generate_with_usage", None)
+                        if callable(generate_with_usage):
+                            content, provider_usage = client.generate_with_usage(
+                                bounded_prompt,
+                                model=model if model and model != "-" else None,
+                            )
+                        else:
+                            content = client.generate(
+                                bounded_prompt,
+                                model=model if model and model != "-" else None,
+                            )
+                            provider_usage = {}
                     latency_ms = int(round((self._time_fn() - started) * 1000))
                     self._breaker.on_success(provider)
                     tokens_out = _estimate_tokens(content)
+                    usage_entry = build_usage_entry(
+                        provider_usage,
+                        prompt=bounded_prompt,
+                        response=content,
+                        provider=provider,
+                        model=model,
+                        phase=req.phase,
+                        section_id=req.section_id,
+                        section_path=req.section_path,
+                        attempt=len(usage_attempts) + 1,
+                        success=True,
+                        duration_ms=latency_ms,
+                    )
+                    usage_attempts.append(usage_entry)
                     if self._provider_metrics is not None:
                         self._provider_metrics.record_success(
                             provider,
@@ -321,6 +348,8 @@ class LLMProviderRouter:
                         status="ok",
                         incidents=incidents,
                         retry_count=total_retries,
+                        usage=usage_entry,
+                        attempts=usage_attempts,
                     )
                 except Exception as exc:
                     last_error = exc
@@ -352,6 +381,22 @@ class LLMProviderRouter:
                                 kind=kind,
                             )
 
+                    usage_attempts.append(
+                        build_usage_entry(
+                            None,
+                            prompt=bounded_prompt,
+                            response="",
+                            provider=provider,
+                            model=model,
+                            phase=req.phase,
+                            section_id=req.section_id,
+                            section_path=req.section_path,
+                            attempt=len(usage_attempts) + 1,
+                            success=False,
+                            error=str(exc),
+                            duration_ms=latency_ms,
+                        )
+                    )
                     self._metric_inc(f"error:{provider}:{req.phase}:{reason}")
                     self._log_structured(
                         {
@@ -470,6 +515,7 @@ class LLMProviderRouter:
                 status="degraded",
                 incidents=incidents,
                 retry_count=total_retries,
+                attempts=usage_attempts,
             )
 
         if last_error is not None:

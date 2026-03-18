@@ -57,6 +57,16 @@ class MistralClient:
         return bool(settings.MISTRAL_API_KEY)
 
     def generate(self, prompt: str, *, timeout: int = 60, model: Optional[str] = None) -> str:
+        text, _usage = self.generate_with_usage(prompt, timeout=timeout, model=model)
+        return text
+
+    def generate_with_usage(
+        self,
+        prompt: str,
+        *,
+        timeout: int = 60,
+        model: Optional[str] = None,
+    ) -> tuple[str, dict[str, Any]]:
         if not self.is_configured():
             raise RuntimeError("MISTRAL_API_KEY is not configured")
 
@@ -109,7 +119,7 @@ class MistralClient:
                 response.raise_for_status()
                 text = self._extract_text(response)
                 if text.strip():
-                    return text
+                    return text, self._extract_usage(response)
 
                 last_error = RuntimeError("Mistral returned empty content")
                 logger.warning(
@@ -138,6 +148,22 @@ class MistralClient:
         raise RuntimeError(
             f"Mistral generation failed after {settings.MISTRAL_RETRY_MAX} attempts. Last error: {last_error}"
         )
+
+    @staticmethod
+    def _extract_usage(response: requests.Response) -> dict[str, Any]:
+        try:
+            payload = response.json()
+        except Exception:
+            payload = None
+        raw_usage = payload.get("usage") if isinstance(payload, dict) else None
+        usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
+        return {
+            "input_tokens": usage.get("prompt_tokens"),
+            "output_tokens": usage.get("completion_tokens"),
+            "total_tokens": usage.get("total_tokens"),
+            "estimated": False,
+            "source": "reported_by_provider",
+        }
 
     def probe(self, *, timeout: int = 8, model: Optional[str] = None) -> dict[str, Any]:
         """Run a minimal real request to validate provider availability."""

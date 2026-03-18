@@ -144,3 +144,50 @@ def test_resume_checkpoint_is_saved_and_cleared_on_complete(tmp_path):
     assert completed is not None
     assert completed["resume"]["eligible"] is False
     assert completed["resume"]["saved_sections_count"] == 0
+
+
+def test_list_projects_orders_by_recent_activity_and_status(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    draft = service.create_project({"title": "Draft project", "status": "draft"})
+    generating = service.create_project({"title": "Generating project", "status": "generating"})
+    completed = service.create_project({"title": "Completed project", "status": "completed"})
+
+    items = service.store.read_list()
+    for item in items:
+        if item["id"] == draft["id"]:
+            item["updated_at"] = "2026-03-18T10:00:00"
+            item["status"] = "draft"
+        elif item["id"] == generating["id"]:
+            item["updated_at"] = "2026-03-18T10:00:00"
+            item["status"] = "generating"
+        elif item["id"] == completed["id"]:
+            item["updated_at"] = "2026-03-18T11:00:00"
+            item["status"] = "completed"
+    service.store.write_list(items)
+
+    ordered = service.list_projects()
+    ordered_ids = [item["id"] for item in ordered[:3]]
+
+    assert ordered_ids[0] == completed["id"]
+    assert ordered_ids[1] == generating["id"]
+    assert ordered_ids[2] == draft["id"]
+
+
+def test_update_project_merges_wizard_state_without_losing_progress(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    project = service.create_project({"title": "Wizard state merge"})
+
+    updated = service.update_project(
+        project["id"],
+        {
+            "wizard_state": {
+                "current_step": 3,
+                "last_open_mode": "edit",
+            }
+        },
+    )
+
+    assert updated is not None
+    assert updated["wizard_state"]["current_step"] == 3
+    assert updated["wizard_state"]["last_completed_step"] == 3
+    assert updated["wizard_state"]["last_open_mode"] == "edit"

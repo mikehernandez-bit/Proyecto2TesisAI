@@ -5,11 +5,13 @@
  * 1) Select format
  * 2) Select prompt
  * 3) Fill details
- * 4) n8n simulation guide
- * 5) Simulated downloads
+ * 4) Select IA
+ * 5) IA generation
+ * 6) Construction / render
+ * 7) Downloads
  */
 const TesisAI = (() => {
-  const TOTAL_STEPS = 6;
+  const TOTAL_STEPS = 7;
 
   let currentView = "dashboard";
   let currentStep = 1;
@@ -17,14 +19,85 @@ const TesisAI = (() => {
   let selectedFormat = null;
   let selectedPrompt = null;
   let currentProject = null;
+  let currentWizardMode = "new";
   let n8nSpec = null;
   let simRunResult = null;
   let isPreparingGuide = false;
   let isRunningSimulation = false;
   let providerStatusCache = null;
   let gicatesisOnline = true;
+  let formatsCache = [];
+  let promptsCache = [];
 
   const $ = (id) => document.getElementById(id);
+  const INTL_INT_FORMAT = new Intl.NumberFormat("es-PE");
+
+  function formatInt(value) {
+    const numeric = Number(value || 0);
+    if (!Number.isFinite(numeric)) return "0";
+    return INTL_INT_FORMAT.format(Math.max(0, Math.round(numeric)));
+  }
+
+  function _parseDate(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function _formatProjectDate(project) {
+    return String(project?.updated_at || project?.created_at || "-");
+  }
+
+  function _projectValues(project) {
+    if (project?.values && typeof project.values === "object") return project.values;
+    if (project?.variables && typeof project.variables === "object") return project.variables;
+    return {};
+  }
+
+  function _hasMeaningfulProjectValues(project) {
+    const values = _projectValues(project);
+    return Object.entries(values).some(([key, value]) => {
+      if (key === "title") return false;
+      return String(value ?? "").trim().length > 0;
+    });
+  }
+
+  function _effectiveProjectStatus(project) {
+    const rawStatus = String(project?.status || "").toLowerCase().trim();
+    if (rawStatus === "draft" && project?.format_id && project?.prompt_id && _hasMeaningfulProjectValues(project)) {
+      return "ready";
+    }
+    if (rawStatus === "ai_received") return "rendering";
+    return rawStatus;
+  }
+
+  function _projectStatusPriority(project) {
+    const status = _effectiveProjectStatus(project);
+    const priorities = {
+      generating: 6,
+      rendering: 5,
+      ready: 4,
+      draft: 3,
+      render_failed: 3,
+      failed: 3,
+      blocked: 3,
+      cancel_requested: 3,
+      completed_with_incidents: 2,
+      completed: 2,
+      simulated: 2,
+    };
+    return priorities[status] || 0;
+  }
+
+  function _sortProjectsForProduct(items) {
+    return [...(Array.isArray(items) ? items : [])].sort((left, right) => {
+      const leftTs = _parseDate(left?.updated_at || left?.created_at)?.getTime() || 0;
+      const rightTs = _parseDate(right?.updated_at || right?.created_at)?.getTime() || 0;
+      if (leftTs !== rightTs) return rightTs - leftTs;
+      return _projectStatusPriority(right) - _projectStatusPriority(left);
+    });
+  }
 
   function escapeHtml(input) {
     return String(input ?? "").replace(/[&<>"']/g, (char) => ({
@@ -86,7 +159,1127 @@ const TesisAI = (() => {
     return response.json();
   }
 
-  function showView(viewId) {
+  function _renderTokenUsage(projectSnapshot) {
+    const usage = projectSnapshot?.progress?.tokenUsage || projectSnapshot?.token_usage || {};
+    const lastCall = usage?.last_call || {};
+    const currentSection = usage?.current_section || {};
+    const currentSectionLabel = currentSection.section_path || currentSection.section_title || "-";
+    const providerLabel = String(lastCall.provider || projectSnapshot?.progress?.provider || "").trim();
+    const modelLabel = String(lastCall.model || "").trim();
+    const callsTotal = Number(usage?.calls_total || 0);
+    const reportedCalls = Number(usage?.reported_calls || 0);
+    const estimatedCalls = Number(usage?.estimated_calls || 0);
+
+    let sourceLabel = "Sin uso IA";
+    if (callsTotal > 0 && reportedCalls > 0 && estimatedCalls > 0) sourceLabel = "Mixto";
+    else if (callsTotal > 0 && estimatedCalls > 0) sourceLabel = "Estimado";
+    else if (callsTotal > 0) sourceLabel = "Real";
+
+    if ($("gen-token-input-total")) $("gen-token-input-total").textContent = formatInt(usage?.input_tokens_total || 0);
+    if ($("gen-token-output-total")) $("gen-token-output-total").textContent = formatInt(usage?.output_tokens_total || 0);
+    if ($("gen-token-total")) $("gen-token-total").textContent = formatInt(usage?.total_tokens || 0);
+    if ($("gen-token-current-section")) $("gen-token-current-section").textContent = currentSectionLabel;
+    if ($("gen-token-current-model")) $("gen-token-current-model").textContent = modelLabel || "-";
+    if ($("gen-token-source")) $("gen-token-source").textContent = sourceLabel;
+    if ($("gen-token-calls")) $("gen-token-calls").textContent = formatInt(callsTotal);
+
+    if ($("gen-provider-badge")) {
+      if (providerLabel) {
+        $("gen-provider-badge").classList.remove("hidden");
+        if ($("gen-provider-name")) $("gen-provider-name").textContent = providerLabel;
+      } else {
+        $("gen-provider-badge").classList.add("hidden");
+        if ($("gen-provider-name")) $("gen-provider-name").textContent = "-";
+      }
+    }
+    if ($("gen-model-badge")) {
+      if (modelLabel) {
+        $("gen-model-badge").classList.remove("hidden");
+        if ($("gen-model-name")) $("gen-model-name").textContent = modelLabel;
+      } else {
+        $("gen-model-badge").classList.add("hidden");
+        if ($("gen-model-name")) $("gen-model-name").textContent = "-";
+      }
+    }
+  }
+
+  function _sectionKey(section) {
+    return String(section?.section_id || section?.sectionId || section?.section_path || section?.path || "").trim();
+  }
+
+  function _sectionTitleFromPath(path) {
+    const parts = String(path || "").split("/").map((item) => item.trim()).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : "";
+  }
+
+  function _sectionPathParts(path) {
+    return String(path || "").split("/").map((item) => item.trim()).filter(Boolean);
+  }
+
+  function _resolveSectionParentPath(section) {
+    const explicitParent = String(section?.parent_section_path || section?.sectionParentPath || "").trim();
+    if (explicitParent) return explicitParent;
+    const parts = _sectionPathParts(section?.section_path || section?.path || "");
+    if (parts.length <= 1) return "";
+    return parts.slice(0, -1).join("/");
+  }
+
+  function _resolveSectionLevel(section) {
+    const explicitLevel = Number(section?.section_level || section?.sectionLevel || 0);
+    if (Number.isFinite(explicitLevel) && explicitLevel > 0) return explicitLevel;
+    return Math.max(1, _sectionPathParts(section?.section_path || section?.path || "").length);
+  }
+
+  function _resolveSectionOrder(section, fallback = null) {
+    const explicitOrder = Number(section?.section_order ?? section?.sectionOrder);
+    if (Number.isFinite(explicitOrder) && explicitOrder >= 0) return explicitOrder;
+    return Number.isFinite(fallback) && fallback >= 0 ? fallback : null;
+  }
+
+  function _sortGenerationSections(sections) {
+    return [...(Array.isArray(sections) ? sections : [])].sort((left, right) => {
+      const leftOrder = _resolveSectionOrder(left, Number.MAX_SAFE_INTEGER);
+      const rightOrder = _resolveSectionOrder(right, Number.MAX_SAFE_INTEGER);
+      if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+
+      const leftLevel = _resolveSectionLevel(left);
+      const rightLevel = _resolveSectionLevel(right);
+      if (leftLevel !== rightLevel) return leftLevel - rightLevel;
+
+      return String(left?.section_path || left?.path || "").localeCompare(
+        String(right?.section_path || right?.path || ""),
+        "es",
+      );
+    });
+  }
+
+  function _stringifySectionOutput(value) {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (_) {
+      return String(value);
+    }
+  }
+
+  function _mergeGenerationSection(baseSection, incomingSection) {
+    const base = baseSection && typeof baseSection === "object" ? baseSection : {};
+    const incoming = incomingSection && typeof incomingSection === "object" ? incomingSection : {};
+    const statusRank = {
+      pending: 0,
+      generating: 1,
+      running: 1,
+      ok: 2,
+      done: 2,
+      completed: 2,
+      error: 3,
+      failed: 3,
+    };
+    const pickString = (...values) => values.find((item) => String(item || "").trim()) || "";
+    const pickNumber = (...values) => {
+      const numeric = values
+        .map((item) => Number(item || 0))
+        .filter((item) => Number.isFinite(item) && item > 0);
+      return numeric.length ? Math.max(...numeric) : 0;
+    };
+    const baseStatus = String(base.status || "").toLowerCase();
+    const incomingStatus = String(incoming.status || "").toLowerCase();
+    const mergedStatus = (statusRank[incomingStatus] || 0) >= (statusRank[baseStatus] || 0)
+      ? (incoming.status || base.status || "pending")
+      : (base.status || incoming.status || "pending");
+
+    return {
+      ...base,
+      ...incoming,
+      section_id: pickString(base.section_id, base.sectionId, incoming.section_id, incoming.sectionId),
+      section_path: pickString(base.section_path, base.path, incoming.section_path, incoming.path),
+      section_title: pickString(base.section_title, incoming.section_title),
+      parent_section_path: pickString(
+        base.parent_section_path,
+        base.sectionParentPath,
+        incoming.parent_section_path,
+        incoming.sectionParentPath,
+      ),
+      section_order: _resolveSectionOrder(
+        { section_order: base.section_order ?? base.sectionOrder },
+        _resolveSectionOrder({ section_order: incoming.section_order ?? incoming.sectionOrder }),
+      ),
+      section_level: pickNumber(base.section_level, base.sectionLevel, incoming.section_level, incoming.sectionLevel) || 1,
+      status: mergedStatus,
+      prompt_sent: pickString(base.prompt_sent, incoming.prompt_sent),
+      ai_output: pickString(base.ai_output, incoming.ai_output),
+      input_tokens: pickNumber(base.input_tokens, incoming.input_tokens),
+      output_tokens: pickNumber(base.output_tokens, incoming.output_tokens),
+      total_tokens: pickNumber(base.total_tokens, incoming.total_tokens),
+      provider: pickString(base.provider, incoming.provider),
+      model: pickString(base.model, incoming.model),
+      duration_ms: pickNumber(base.duration_ms, incoming.duration_ms),
+      estimated: Boolean(base.estimated || incoming.estimated),
+      source: pickString(base.source, incoming.source),
+      attempt_count: pickNumber(base.attempt_count, incoming.attempt_count),
+      error: pickString(base.error, incoming.error),
+    };
+  }
+
+  function _mergeGenerationSections(...collections) {
+    const sectionsByKey = new Map();
+    collections.flat().forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const key = _sectionKey(item);
+      if (!key) return;
+      const existing = sectionsByKey.get(key);
+      sectionsByKey.set(key, existing ? _mergeGenerationSection(existing, item) : item);
+    });
+    return _sortGenerationSections(Array.from(sectionsByKey.values()));
+  }
+
+  function _statusBadgeClass(status) {
+    const safe = String(status || "").toLowerCase();
+    if (safe === "ok" || safe === "done" || safe === "completed") {
+      return {
+        wrap: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        label: "OK",
+      };
+    }
+    if (safe === "generating" || safe === "running") {
+      return {
+        wrap: "bg-blue-50 text-blue-700 border-blue-200",
+        label: "GENERANDO",
+      };
+    }
+    if (safe === "error" || safe === "failed") {
+      return {
+        wrap: "bg-red-50 text-red-700 border-red-200",
+        label: "ERROR",
+      };
+    }
+    return {
+      wrap: "bg-slate-50 text-slate-600 border-slate-200",
+      label: "PENDIENTE",
+    };
+  }
+
+  function _normalizeGenerationPhase(projectSnapshot) {
+    const phase = projectSnapshot?.generation_phase && typeof projectSnapshot.generation_phase === "object"
+      ? projectSnapshot.generation_phase
+      : {};
+    const sections = Array.isArray(phase.sections) ? phase.sections.filter((item) => item && typeof item === "object") : [];
+    const planned = Array.isArray(phase.planned_sections)
+      ? phase.planned_sections.filter((item) => item && typeof item === "object")
+      : [];
+    const sectionsByKey = new Map();
+    sections.forEach((item) => {
+      sectionsByKey.set(_sectionKey(item), item);
+    });
+    const merged = [];
+    planned.forEach((item, index) => {
+      const key = _sectionKey(item);
+      const existing = sectionsByKey.get(key);
+      const plannedSection = {
+        section_id: item.section_id || item.sectionId || "",
+        section_path: item.section_path || item.sectionPath || item.path || "",
+        section_title: item.section_title || item.sectionTitle || "",
+        parent_section_path: item.parent_section_path || item.sectionParentPath || "",
+        section_order: _resolveSectionOrder(item, index),
+        section_level: Number(item.section_level || item.sectionLevel || 1),
+        status: "pending",
+        total_tokens: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        provider: "",
+        model: "",
+        prompt_sent: "",
+        ai_output: "",
+      };
+      merged.push(existing ? _mergeGenerationSection(existing, plannedSection) : plannedSection);
+      sectionsByKey.delete(key);
+    });
+    let nextSectionOrder = planned.length;
+    sectionsByKey.forEach((item) => {
+      merged.push({
+        ...item,
+        section_order: _resolveSectionOrder(item, nextSectionOrder),
+      });
+      nextSectionOrder += 1;
+    });
+    const orderedSections = _sortGenerationSections(merged);
+    const total = Number(phase.total_sections || orderedSections.length || 0);
+    const completed = orderedSections.filter((item) => String(item.status || "").toLowerCase() === "ok").length;
+    const currentKey = String(phase.current_section_id || phase.current_section_path || "").trim();
+    return {
+      status: String(phase.status || "idle"),
+      basePrompt: String(phase.base_prompt || ""),
+      totalSections: total,
+      completedSections: completed,
+      currentKey,
+      sections: orderedSections,
+    };
+  }
+
+  function _deriveGenerationPhaseFromTrace(projectSnapshot) {
+    const events = Array.isArray(projectSnapshot?.events)
+      ? projectSnapshot.events
+      : Array.isArray(projectSnapshot?.trace)
+        ? projectSnapshot.trace
+        : [];
+    const progress = projectSnapshot?.progress && typeof projectSnapshot.progress === "object"
+      ? projectSnapshot.progress
+      : {};
+    const generationSnapshot = projectSnapshot?.generation_snapshot && typeof projectSnapshot.generation_snapshot === "object"
+      ? projectSnapshot.generation_snapshot
+      : {};
+    const sectionsByKey = new Map();
+    let basePrompt = "";
+    let totalSections = Number(progress.total || generationSnapshot.total_sections || 0);
+
+    events.forEach((event) => {
+      if (!event || typeof event !== "object") return;
+      const step = String(event.step || "");
+      const meta = event.meta && typeof event.meta === "object" ? event.meta : {};
+      const preview = event.preview && typeof event.preview === "object" ? event.preview : {};
+
+      if (!basePrompt && (step === "prompt.base" || step === "prompt.render")) {
+        basePrompt = String(preview.prompt || "");
+      }
+
+      if (step === "format.section_index") {
+        totalSections = Math.max(totalSections, Number(meta.sectionTotal || 0));
+        const outline = Array.isArray(meta.sectionOutline) ? meta.sectionOutline : [];
+        outline.forEach((item, index) => {
+          if (!item || typeof item !== "object") return;
+          const normalized = {
+            section_id: String(item.sectionId || item.section_id || ""),
+            section_path: String(item.sectionPath || item.section_path || item.path || ""),
+            section_title: _sectionTitleFromPath(String(item.sectionPath || item.section_path || item.path || "")),
+            parent_section_path: String(item.sectionParentPath || item.parent_section_path || ""),
+            section_order: _resolveSectionOrder(item, index),
+            section_level: Number(item.sectionLevel || item.section_level || 1),
+            status: "pending",
+            total_tokens: 0,
+            input_tokens: 0,
+            output_tokens: 0,
+            provider: "",
+            model: "",
+            prompt_sent: "",
+            ai_output: "",
+            attempt_count: 0,
+            duration_ms: 0,
+            estimated: false,
+            source: "",
+          };
+          const key = _sectionKey(normalized);
+          if (key && !sectionsByKey.has(key)) sectionsByKey.set(key, normalized);
+        });
+      }
+
+      if (step === "ai.generate.section") {
+        const section = {
+          section_id: String(meta.sectionId || ""),
+          section_path: String(meta.sectionPath || ""),
+          section_title: _sectionTitleFromPath(String(meta.sectionPath || "")),
+          parent_section_path: String(meta.sectionParentPath || ""),
+          section_order: _resolveSectionOrder(
+            meta,
+            Math.max(0, Number(meta.sectionIndex || meta.section_index || 1) - 1),
+          ),
+          section_level: Number(meta.sectionLevel || 1),
+          status: String(event.status || "pending") === "done"
+            ? "ok"
+            : String(event.status || "pending") === "running"
+              ? "generating"
+              : String(event.status || "pending") === "error"
+                ? "error"
+                : "pending",
+          total_tokens: Number(meta.sectionUsage?.total_tokens || 0),
+          input_tokens: Number(meta.sectionUsage?.input_tokens_total || 0),
+          output_tokens: Number(meta.sectionUsage?.output_tokens_total || 0),
+          provider: String(meta.provider || ""),
+          model: String(meta.model || ""),
+          prompt_sent: String(preview.prompt || ""),
+          ai_output: String(preview.raw || ""),
+          attempt_count: Number((Array.isArray(meta.usageAttempts) ? meta.usageAttempts.length : 0) || 0),
+          duration_ms: Number(meta.durationMs || 0),
+          estimated: Boolean(meta.sectionUsage?.has_estimated_usage),
+          source: Number(meta.sectionUsage?.estimated_calls || 0) > 0
+            ? (Number(meta.sectionUsage?.reported_calls || 0) > 0 ? "mixed" : "estimated")
+            : "reported_by_provider",
+        };
+        const key = _sectionKey(section);
+        if (key) {
+          const existing = sectionsByKey.get(key) || {};
+          sectionsByKey.set(key, { ...existing, ...section });
+        }
+      }
+    });
+
+    const seededSections = Array.isArray(generationSnapshot.completed_sections)
+      ? generationSnapshot.completed_sections
+      : [];
+    seededSections.forEach((item, index) => {
+      if (!item || typeof item !== "object") return;
+      const normalized = {
+        section_id: String(item.sectionId || item.section_id || ""),
+        section_path: String(item.path || item.section_path || ""),
+        section_title: _sectionTitleFromPath(String(item.path || item.section_path || "")),
+        parent_section_path: _resolveSectionParentPath(item),
+        section_order: _resolveSectionOrder(item, totalSections + index),
+        section_level: _resolveSectionLevel(item),
+        status: "ok",
+        total_tokens: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        provider: "",
+        model: "",
+        prompt_sent: "",
+        ai_output: "",
+        attempt_count: 0,
+        duration_ms: 0,
+        estimated: false,
+        source: "",
+      };
+      const key = _sectionKey(normalized);
+      if (key && !sectionsByKey.has(key)) sectionsByKey.set(key, normalized);
+    });
+
+    const aiResultSections = Array.isArray(projectSnapshot?.ai_result?.sections)
+      ? projectSnapshot.ai_result.sections
+      : [];
+    aiResultSections.forEach((item, index) => {
+      if (!item || typeof item !== "object") return;
+      const normalized = {
+        section_id: String(item.sectionId || item.section_id || ""),
+        section_path: String(item.path || item.section_path || ""),
+        section_title: _sectionTitleFromPath(String(item.path || item.section_path || "")),
+        parent_section_path: _resolveSectionParentPath(item),
+        section_order: _resolveSectionOrder(item, totalSections + seededSections.length + index),
+        section_level: _resolveSectionLevel(item),
+        status: GEN_SUCCESS_STATUSES.includes(String(projectSnapshot?.status || "")) ? "ok" : "pending",
+        total_tokens: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        provider: "",
+        model: "",
+        prompt_sent: "",
+        ai_output: _stringifySectionOutput(item.content),
+        attempt_count: 0,
+        duration_ms: 0,
+        estimated: false,
+        source: "",
+      };
+      const key = _sectionKey(normalized);
+      if (!key) return;
+      const existing = sectionsByKey.get(key) || {};
+      sectionsByKey.set(key, _mergeGenerationSection(existing, normalized));
+    });
+
+    const sections = _sortGenerationSections(Array.from(sectionsByKey.values()));
+    const completedSections = sections.filter((item) => String(item.status || "") === "ok").length;
+    return {
+      status: sections.length ? "running" : "idle",
+      basePrompt: basePrompt || String(projectSnapshot?.prompt_template || ""),
+      totalSections: Math.max(totalSections, sections.length),
+      completedSections,
+      currentKey: String(progress.currentPath || generationSnapshot.current_path || ""),
+      sections,
+    };
+  }
+
+  function _resolveGenerationPhase(projectSnapshot) {
+    const direct = _normalizeGenerationPhase(projectSnapshot);
+    const derived = _deriveGenerationPhaseFromTrace(projectSnapshot);
+    const mergedSections = _mergeGenerationSections(derived.sections || [], direct.sections || []);
+    const completedSections = mergedSections.filter((item) => {
+      const safe = String(item.status || "").toLowerCase();
+      return safe === "ok" || safe === "done" || safe === "completed";
+    }).length;
+    return {
+      status: direct.status !== "idle" ? direct.status : derived.status,
+      basePrompt: direct.basePrompt || derived.basePrompt,
+      totalSections: Math.max(direct.totalSections || 0, derived.totalSections || 0, mergedSections.length),
+      completedSections: Math.max(direct.completedSections || 0, derived.completedSections || 0, completedSections),
+      currentKey: direct.currentKey || derived.currentKey,
+      sections: mergedSections,
+    };
+  }
+
+  function _collectGenerationNodeSections(node) {
+    if (!node || typeof node !== "object") return [];
+    const sections = [];
+    if (node.selfSection && typeof node.selfSection === "object") sections.push(node.selfSection);
+    (Array.isArray(node.children) ? node.children : []).forEach((child) => {
+      sections.push(..._collectGenerationNodeSections(child));
+    });
+    return sections;
+  }
+
+  function _aggregateGenerationSource(sections) {
+    const sources = new Set(
+      sections
+        .map((item) => String(item?.source || "").trim())
+        .filter(Boolean),
+    );
+    if (!sources.size) return "-";
+    if (sources.has("mixed") || sources.size > 1) return "mixed";
+    return Array.from(sources)[0];
+  }
+
+  function _summarizeGenerationNode(node) {
+    const sections = _collectGenerationNodeSections(node);
+    const statuses = sections.map((item) => String(item?.status || "").toLowerCase());
+    const completedCount = statuses.filter((item) => ["ok", "done", "completed"].includes(item)).length;
+    const errorCount = statuses.filter((item) => ["error", "failed"].includes(item)).length;
+    const generatingCount = statuses.filter((item) => ["generating", "running"].includes(item)).length;
+    let status = "pending";
+    if (errorCount > 0) status = "error";
+    else if (generatingCount > 0 || (completedCount > 0 && completedCount < sections.length)) status = "generating";
+    else if (sections.length > 0 && completedCount === sections.length) status = "ok";
+
+    const latestSection = [...sections]
+      .reverse()
+      .find((item) => item && (item.provider || item.model || item.ai_output || item.prompt_sent))
+      || sections[sections.length - 1]
+      || null;
+
+    return {
+      status,
+      totalCount: sections.length,
+      completedCount,
+      input_tokens: sections.reduce((sum, item) => sum + Number(item?.input_tokens || 0), 0),
+      output_tokens: sections.reduce((sum, item) => sum + Number(item?.output_tokens || 0), 0),
+      total_tokens: sections.reduce((sum, item) => sum + Number(item?.total_tokens || 0), 0),
+      duration_ms: sections.reduce((sum, item) => sum + Number(item?.duration_ms || 0), 0),
+      attempt_count: sections.reduce((sum, item) => sum + Number(item?.attempt_count || 0), 0),
+      latestSection,
+      source: _aggregateGenerationSource(sections),
+    };
+  }
+
+  function _buildGenerationTree(sections) {
+    const orderedSections = _sortGenerationSections(sections);
+    const root = {
+      key: "__root__",
+      path: "",
+      label: "",
+      depth: 0,
+      children: [],
+      childMap: new Map(),
+      selfSection: null,
+      order: 0,
+    };
+
+    orderedSections.forEach((rawSection, index) => {
+      if (!rawSection || typeof rawSection !== "object") return;
+      const section = {
+        ...rawSection,
+        section_path: String(rawSection.section_path || rawSection.path || "").trim(),
+        section_title: String(
+          rawSection.section_title || _sectionTitleFromPath(rawSection.section_path || rawSection.path || "")
+        ).trim(),
+        parent_section_path: _resolveSectionParentPath(rawSection),
+        section_order: _resolveSectionOrder(rawSection, index),
+        section_level: _resolveSectionLevel(rawSection),
+      };
+      const parts = _sectionPathParts(section.section_path);
+      if (!parts.length) return;
+      const sectionOrder = _resolveSectionOrder(section, index) ?? index;
+
+      let parentNode = root;
+      parts.forEach((part, depthIndex) => {
+        const currentPath = parts.slice(0, depthIndex + 1).join("/");
+        let currentNode = parentNode.childMap.get(currentPath);
+        if (!currentNode) {
+          currentNode = {
+            key: `group:${currentPath}`,
+            path: currentPath,
+            label: part,
+            depth: depthIndex + 1,
+            children: [],
+            childMap: new Map(),
+            selfSection: null,
+            order: sectionOrder,
+          };
+          parentNode.childMap.set(currentPath, currentNode);
+          parentNode.children.push(currentNode);
+        }
+        const currentOrder = Number.isFinite(Number(currentNode.order)) ? Number(currentNode.order) : sectionOrder;
+        currentNode.order = Math.min(currentOrder, sectionOrder);
+        if (depthIndex === parts.length - 1) {
+          currentNode.selfSection = currentNode.selfSection
+            ? _mergeGenerationSection(currentNode.selfSection, section)
+            : section;
+        }
+        parentNode = currentNode;
+      });
+    });
+
+    const finalize = (node) => {
+      node.children.sort((left, right) => {
+        const byOrder = _resolveSectionOrder({ section_order: left.order }, Number.MAX_SAFE_INTEGER)
+          - _resolveSectionOrder({ section_order: right.order }, Number.MAX_SAFE_INTEGER);
+        if (byOrder !== 0) return byOrder;
+        return String(left.label || "").localeCompare(String(right.label || ""), "es");
+      });
+      node.children.forEach((child) => {
+        finalize(child);
+        child.summary = _summarizeGenerationNode(child);
+      });
+      return node;
+    };
+
+    return finalize(root);
+  }
+
+  function _findGenerationNode(node, key) {
+    if (!node || !key) return null;
+    if (String(node.key || "") === String(key)) return node;
+    if (node.selfSection && _sectionKey(node.selfSection) === String(key)) return node;
+    for (const child of Array.isArray(node.children) ? node.children : []) {
+      const found = _findGenerationNode(child, key);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function _defaultExpandedGroupPath(treeRoot, phase) {
+    const currentSection = phase.sections.find((item) => String(item.status || "").toLowerCase() === "generating")
+      || phase.sections.find((item) => _sectionKey(item) === String(phase.currentKey || ""))
+      || phase.sections.find((item) => String(item.status || "").toLowerCase() === "ok")
+      || phase.sections[0];
+    if (!currentSection) return "";
+    return _resolveSectionParentPath(currentSection) || String(currentSection.section_path || "");
+  }
+
+  function _renderGenerationTreeNodes(nodes, selectedKey, expandedGroupPath) {
+    return nodes.map((node) => {
+      const summary = node.summary || _summarizeGenerationNode(node);
+      const badge = _statusBadgeClass(summary.status);
+      const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+      const isExpanded = hasChildren && String(expandedGroupPath || "").startsWith(String(node.path || ""));
+      const isSelected = String(selectedKey || "") === String(node.key || "");
+      const latestSection = summary.latestSection || node.selfSection || {};
+      const detail = hasChildren
+        ? `${formatInt(summary.completedCount)}/${formatInt(summary.totalCount)} subsecciones`
+        : `${latestSection.provider || "-"} · ${latestSection.model || "-"} · ${formatInt(summary.total_tokens)} tokens`;
+      const indent = Math.max(0, Number(node.depth || 1) - 1) * 16;
+
+      return `
+        <div class="space-y-2">
+          <button
+            class="w-full text-left rounded-2xl border p-3 transition ${isSelected ? "border-slate-900 bg-slate-50 shadow-sm" : "bg-white hover:shadow-sm"}"
+            data-ai-node-key="${escapeHtml(node.key)}"
+            data-ai-node-kind="${hasChildren ? "group" : "leaf"}"
+            data-ai-node-path="${escapeHtml(node.path)}"
+            style="margin-left:${indent}px"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold">
+                  ${hasChildren ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500">${isExpanded ? "−" : "+"}</span>` : '<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400">•</span>'}
+                  <span>${hasChildren ? "Bloque" : "Subseccion"}</span>
+                </div>
+                <div class="font-semibold text-slate-900 truncate">${escapeHtml(node.label || "Sin nombre")}</div>
+                <div class="mt-1 text-xs text-slate-500 truncate">${escapeHtml(detail || "Pendiente")}</div>
+              </div>
+              <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${badge.wrap}">
+                ${badge.label}
+              </span>
+            </div>
+          </button>
+          ${hasChildren && isExpanded
+            ? `<div class="space-y-2">${_renderGenerationTreeNodes(node.children, selectedKey, expandedGroupPath)}</div>`
+            : ""}
+        </div>
+      `;
+    }).join("");
+  }
+
+  function _syncWizardStepWithProject(projectSnapshot) {
+    if (!projectSnapshot || currentStep < 5) return;
+    const projectStatus = String(projectSnapshot.status || "");
+    const generationPhase = projectSnapshot?.generation_phase && typeof projectSnapshot.generation_phase === "object"
+      ? projectSnapshot.generation_phase
+      : {};
+    const generationStatus = String(generationPhase.status || "");
+    const constructionPhase = projectSnapshot?.construction_phase && typeof projectSnapshot.construction_phase === "object"
+      ? projectSnapshot.construction_phase
+      : {};
+    const constructionStatus = String(constructionPhase.status || "");
+
+    if (GEN_SUCCESS_STATUSES.includes(projectStatus)) {
+      simRunResult = _buildArtifacts(projectSnapshot);
+      if (currentWizardMode !== "review" && currentStep < 7) continueToSimDownloads();
+      return;
+    }
+    if (projectStatus === "render_failed") {
+      if (currentStep < 6) nextStep(6);
+      return;
+    }
+    if (
+      currentStep === 5
+      && (
+        ["completed", "failed", "blocked"].includes(generationStatus)
+        || ["running", "completed", "error"].includes(constructionStatus)
+      )
+    ) {
+      nextStep(6);
+    }
+  }
+
+  function _renderAIGeneration(projectSnapshot) {
+    const phase = _resolveGenerationPhase(projectSnapshot);
+    if (Array.isArray(phase.sections) && phase.sections.length > 0) {
+      _renderAIGenerationHierarchical(projectSnapshot, phase);
+      return;
+    }
+    const sectionList = $("gen-ai-section-list");
+    const basePrompt = $("gen-base-prompt");
+    const totalSections = Math.max(
+      Number(phase.totalSections || 0),
+      Number(projectSnapshot?.progress?.total || 0),
+      phase.sections.length,
+    );
+    const completedSections = Math.max(
+      Number(phase.completedSections || 0),
+      phase.sections.filter((item) => String(item.status || "").toLowerCase() === "ok").length,
+      Number(projectSnapshot?.progress?.current || 0),
+    );
+    const currentSectionPath = String(
+      phase.sections.find((item) => String(item.status || "").toLowerCase() === "generating")?.section_path
+      || projectSnapshot?.progress?.currentPath
+      || phase.sections[completedSections]?.section_path
+      || ""
+    );
+
+    if (basePrompt) {
+      basePrompt.textContent = phase.basePrompt || "Aun no disponible.";
+    }
+    if ($("gen-ai-count")) {
+      $("gen-ai-count").textContent = `${formatInt(completedSections)}/${formatInt(totalSections)}`;
+    }
+    if ($("gen-sections-progress")) {
+      $("gen-sections-progress").innerHTML = totalSections > 0
+        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` · ${escapeHtml(currentSectionPath)}` : ""}`
+        : "Secciones <b>0/0</b>";
+    }
+    if ($("gen-sections-bar")) {
+      const width = totalSections > 0 ? Math.min(100, Math.round((Math.min(completedSections, totalSections) / totalSections) * 100)) : 0;
+      $("gen-sections-bar").style.width = `${width}%`;
+    }
+    if ($("gen-queue-count")) {
+      $("gen-queue-count").textContent = String(Math.max(0, totalSections - completedSections));
+    }
+    if ($("gen-done-count")) {
+      $("gen-done-count").textContent = String(Math.max(0, completedSections));
+    }
+    if ($("gen-final-badge")) {
+      if (totalSections > 0 && completedSections >= totalSections) $("gen-final-badge").classList.remove("hidden");
+      else $("gen-final-badge").classList.add("hidden");
+    }
+    if (!phase.sections.length) {
+      if (sectionList) {
+        sectionList.innerHTML = '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay secciones registradas por la IA.</div>';
+      }
+      _genAiSelectedSectionKey = "";
+      if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin sección seleccionada";
+      if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una sección para auditar prompt, respuesta y tokens.";
+      if ($("gen-ai-detail-prompt")) $("gen-ai-detail-prompt").textContent = "Aun no disponible.";
+      if ($("gen-ai-detail-response")) $("gen-ai-detail-response").textContent = "Aun no disponible.";
+      if ($("gen-ai-detail-input")) $("gen-ai-detail-input").textContent = "0";
+      if ($("gen-ai-detail-output")) $("gen-ai-detail-output").textContent = "0";
+      if ($("gen-ai-detail-total")) $("gen-ai-detail-total").textContent = "0";
+      if ($("gen-ai-detail-duration")) $("gen-ai-detail-duration").textContent = "-";
+      if ($("gen-ai-detail-provider")) $("gen-ai-detail-provider").textContent = "-";
+      if ($("gen-ai-detail-model")) $("gen-ai-detail-model").textContent = "-";
+      if ($("gen-ai-detail-source")) $("gen-ai-detail-source").textContent = "-";
+      if ($("gen-ai-detail-status")) {
+        $("gen-ai-detail-status").className = "inline-flex items-center rounded-full border bg-slate-50 px-3 py-1 text-xs font-extrabold text-slate-700 border-slate-200";
+        $("gen-ai-detail-status").textContent = "PENDIENTE";
+      }
+      return;
+    }
+
+    if (!phase.sections.some((item) => _sectionKey(item) === _genAiSelectedSectionKey)) {
+      const preferred = phase.sections.find((item) => String(item.status || "").toLowerCase() === "generating")
+        || phase.sections.find((item) => String(item.status || "").toLowerCase() === "ok")
+        || phase.sections[0];
+      _genAiSelectedSectionKey = _sectionKey(preferred);
+    }
+
+    if (sectionList) {
+      sectionList.innerHTML = phase.sections.map((item, index) => {
+        const key = _sectionKey(item);
+        const badge = _statusBadgeClass(item.status);
+        const selected = key === _genAiSelectedSectionKey;
+        return `
+          <button class="w-full text-left rounded-2xl border p-3 transition ${selected ? "border-slate-900 bg-slate-50 shadow-sm" : "bg-white hover:shadow-sm"}"
+            data-ai-section-key="${escapeHtml(key)}">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-xs text-slate-400 font-semibold">Sección ${index + 1}</div>
+                <div class="font-semibold text-slate-900 truncate">${escapeHtml(item.section_path || item.section_title || "Sin nombre")}</div>
+                <div class="mt-1 text-xs text-slate-500 truncate">
+                  ${escapeHtml(item.provider || "-")} · ${escapeHtml(item.model || "-")} · ${formatInt(item.total_tokens || 0)} tokens
+                </div>
+              </div>
+              <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${badge.wrap}">
+                ${badge.label}
+              </span>
+            </div>
+          </button>
+        `;
+      }).join("");
+      sectionList.querySelectorAll("[data-ai-section-key]").forEach((button) => {
+        button.onclick = () => {
+          _genAiSelectedSectionKey = String(button.getAttribute("data-ai-section-key") || "");
+          _renderAIGeneration(projectSnapshot);
+        };
+      });
+    }
+
+    const selected = phase.sections.find((item) => _sectionKey(item) === _genAiSelectedSectionKey) || phase.sections[0];
+    const badge = _statusBadgeClass(selected.status);
+    if ($("gen-ai-detail-title")) {
+      $("gen-ai-detail-title").textContent = selected.section_path || selected.section_title || "Sin nombre";
+    }
+    if ($("gen-ai-detail-meta")) {
+      $("gen-ai-detail-meta").textContent = `Sección ${selected.section_id || "-"} · Intentos: ${formatInt(selected.attempt_count || 0)}`;
+    }
+    if ($("gen-ai-detail-status")) {
+      $("gen-ai-detail-status").className = `inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${badge.wrap}`;
+      $("gen-ai-detail-status").textContent = badge.label;
+    }
+    if ($("gen-ai-detail-input")) $("gen-ai-detail-input").textContent = formatInt(selected.input_tokens || 0);
+    if ($("gen-ai-detail-output")) $("gen-ai-detail-output").textContent = formatInt(selected.output_tokens || 0);
+    if ($("gen-ai-detail-total")) $("gen-ai-detail-total").textContent = formatInt(selected.total_tokens || 0);
+    if ($("gen-ai-detail-duration")) {
+      $("gen-ai-detail-duration").textContent = selected.duration_ms ? `${formatInt(selected.duration_ms)} ms` : "-";
+    }
+    if ($("gen-ai-detail-provider")) $("gen-ai-detail-provider").textContent = selected.provider || "-";
+    if ($("gen-ai-detail-model")) $("gen-ai-detail-model").textContent = selected.model || "-";
+    if ($("gen-ai-detail-source")) $("gen-ai-detail-source").textContent = selected.source || "-";
+    if ($("gen-ai-detail-prompt")) $("gen-ai-detail-prompt").textContent = selected.prompt_sent || "Aun no disponible.";
+    if ($("gen-ai-detail-response")) $("gen-ai-detail-response").textContent = selected.ai_output || "Aun no disponible.";
+  }
+
+  function _renderAIGenerationHierarchical(projectSnapshot, phase) {
+    const sectionList = $("gen-ai-section-list");
+    const basePrompt = $("gen-base-prompt");
+    const treeRoot = _buildGenerationTree(phase.sections || []);
+    const totalSections = Math.max(
+      Number(phase.totalSections || 0),
+      Number(projectSnapshot?.progress?.total || 0),
+      (phase.sections || []).length,
+    );
+    const completedSections = Math.max(
+      Number(phase.completedSections || 0),
+      (phase.sections || []).filter((item) => {
+        const status = String(item.status || "").toLowerCase();
+        return ["ok", "done", "completed"].includes(status);
+      }).length,
+    );
+    const currentSectionPath = String(
+      (phase.sections || []).find((item) => String(item.status || "").toLowerCase() === "generating")?.section_path
+      || projectSnapshot?.progress?.currentPath
+      || phase.currentKey
+      || ""
+    );
+
+    if (basePrompt) {
+      basePrompt.textContent = phase.basePrompt || "Aun no disponible.";
+    }
+    if ($("gen-ai-count")) {
+      $("gen-ai-count").textContent = `${formatInt(completedSections)}/${formatInt(totalSections)}`;
+    }
+    if ($("gen-sections-progress")) {
+      $("gen-sections-progress").innerHTML = totalSections > 0
+        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` · ${escapeHtml(currentSectionPath)}` : ""}`
+        : "Secciones <b>0/0</b>";
+    }
+    if ($("gen-sections-bar")) {
+      const width = totalSections > 0
+        ? Math.min(100, Math.round((Math.min(completedSections, totalSections) / totalSections) * 100))
+        : 0;
+      $("gen-sections-bar").style.width = `${width}%`;
+    }
+    if ($("gen-queue-count")) {
+      $("gen-queue-count").textContent = String(Math.max(0, totalSections - completedSections));
+    }
+    if ($("gen-done-count")) {
+      $("gen-done-count").textContent = String(Math.max(0, completedSections));
+    }
+    if ($("gen-final-badge")) {
+      if (totalSections > 0 && completedSections >= totalSections) $("gen-final-badge").classList.remove("hidden");
+      else $("gen-final-badge").classList.add("hidden");
+    }
+
+    if (_genAiExpandedGroupPath == null) {
+      _genAiExpandedGroupPath = _defaultExpandedGroupPath(treeRoot, phase);
+    }
+    if (!_findGenerationNode(treeRoot, _genAiSelectedSectionKey)) {
+      const preferred = (phase.sections || []).find((item) => String(item.status || "").toLowerCase() === "generating")
+        || (phase.sections || []).find((item) => String(item.status || "").toLowerCase() === "ok")
+        || (phase.sections || [])[0];
+      if (preferred) {
+        _genAiSelectedSectionKey = _sectionKey(preferred);
+        _genAiExpandedGroupPath = _resolveSectionParentPath(preferred) || String(preferred.section_path || "");
+      }
+    }
+
+    if (sectionList) {
+      sectionList.innerHTML = _renderGenerationTreeNodes(
+        treeRoot.children || [],
+        _genAiSelectedSectionKey,
+        _genAiExpandedGroupPath,
+      );
+      sectionList.querySelectorAll("[data-ai-node-key]").forEach((button) => {
+        button.onclick = () => {
+          const selectedKey = String(button.getAttribute("data-ai-node-key") || "");
+          const nodeKind = String(button.getAttribute("data-ai-node-kind") || "");
+          const nodePath = String(button.getAttribute("data-ai-node-path") || "");
+          _genAiSelectedSectionKey = selectedKey;
+          if (nodeKind === "group") {
+            _genAiExpandedGroupPath = _genAiExpandedGroupPath === nodePath
+              ? _resolveSectionParentPath({ section_path: nodePath })
+              : nodePath;
+          } else {
+            _genAiExpandedGroupPath = _resolveSectionParentPath({ section_path: nodePath }) || nodePath;
+          }
+          _renderAIGenerationHierarchical(projectSnapshot, phase);
+        };
+      });
+    }
+
+    const selectedNode = _findGenerationNode(treeRoot, _genAiSelectedSectionKey)
+      || _findGenerationNode(treeRoot, `group:${_defaultExpandedGroupPath(treeRoot, phase)}`)
+      || (treeRoot.children || [])[0];
+    const selectedSummary = _summarizeGenerationNode(selectedNode);
+    const selected = selectedNode?.selfSection || selectedSummary.latestSection || (phase.sections || [])[0] || {};
+    const isGroupSelection = Array.isArray(selectedNode?.children) && selectedNode.children.length > 0;
+    const badge = _statusBadgeClass(isGroupSelection ? selectedSummary.status : selected.status);
+
+    if ($("gen-ai-detail-title")) {
+      $("gen-ai-detail-title").textContent = isGroupSelection
+        ? (selectedNode?.path || selectedNode?.label || "Bloque")
+        : (selected.section_path || selected.section_title || "Sin nombre");
+    }
+    if ($("gen-ai-detail-meta")) {
+      $("gen-ai-detail-meta").textContent = isGroupSelection
+        ? `Bloque jerarquico · ${formatInt(selectedSummary.completedCount)}/${formatInt(selectedSummary.totalCount)} subsecciones completadas`
+        : `Seccion ${selected.section_id || "-"} · Padre: ${selected.parent_section_path || "raiz"} · Intentos: ${formatInt(selected.attempt_count || 0)}`;
+    }
+    if ($("gen-ai-detail-status")) {
+      $("gen-ai-detail-status").className = `inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${badge.wrap}`;
+      $("gen-ai-detail-status").textContent = badge.label;
+    }
+    if ($("gen-ai-detail-input")) {
+      $("gen-ai-detail-input").textContent = formatInt(isGroupSelection ? selectedSummary.input_tokens : selected.input_tokens || 0);
+    }
+    if ($("gen-ai-detail-output")) {
+      $("gen-ai-detail-output").textContent = formatInt(isGroupSelection ? selectedSummary.output_tokens : selected.output_tokens || 0);
+    }
+    if ($("gen-ai-detail-total")) {
+      $("gen-ai-detail-total").textContent = formatInt(isGroupSelection ? selectedSummary.total_tokens : selected.total_tokens || 0);
+    }
+    if ($("gen-ai-detail-duration")) {
+      const durationMs = isGroupSelection ? selectedSummary.duration_ms : selected.duration_ms || 0;
+      $("gen-ai-detail-duration").textContent = durationMs ? `${formatInt(durationMs)} ms` : "-";
+    }
+    if ($("gen-ai-detail-provider")) {
+      $("gen-ai-detail-provider").textContent = isGroupSelection
+        ? (selectedSummary.latestSection?.provider || "-")
+        : (selected.provider || "-");
+    }
+    if ($("gen-ai-detail-model")) {
+      $("gen-ai-detail-model").textContent = isGroupSelection
+        ? (selectedSummary.latestSection?.model || "-")
+        : (selected.model || "-");
+    }
+    if ($("gen-ai-detail-source")) {
+      $("gen-ai-detail-source").textContent = isGroupSelection
+        ? (selectedSummary.source || "-")
+        : (selected.source || "-");
+    }
+    if ($("gen-ai-detail-prompt")) {
+      $("gen-ai-detail-prompt").textContent = isGroupSelection
+        ? `Este bloque agrupa ${formatInt(selectedSummary.totalCount)} subsecciones.\nSelecciona una subseccion hija para ver el prompt exacto enviado por la IA.\n\nSubsecciones:\n${(selectedNode?.children || []).map((item) => `- ${item.label}`).join("\n") || "- Sin hijas registradas"}`
+        : (selected.prompt_sent || "Aun no disponible.");
+    }
+    if ($("gen-ai-detail-response")) {
+      $("gen-ai-detail-response").textContent = isGroupSelection
+        ? `Resumen del bloque:\n${(selectedNode?.children || []).map((item) => {
+          const childSummary = item.summary || _summarizeGenerationNode(item);
+          const childBadge = _statusBadgeClass(childSummary.status);
+          return `- ${item.label}: ${childBadge.label} (${formatInt(childSummary.completedCount)}/${formatInt(childSummary.totalCount)})`;
+        }).join("\n") || "Sin subsecciones registradas."}`
+        : (selected.ai_output || "Aun no disponible.");
+    }
+  }
+
+  function _normalizeConstructionPhase(projectSnapshot) {
+    const phase = projectSnapshot?.construction_phase && typeof projectSnapshot.construction_phase === "object"
+      ? projectSnapshot.construction_phase
+      : {};
+    const tasks = Array.isArray(phase.tasks) ? phase.tasks.filter((item) => item && typeof item === "object") : [];
+    return {
+      status: String(phase.status || "idle"),
+      currentTask: String(phase.current_task || ""),
+      tasks,
+    };
+  }
+
+  function _constructionEventKey(event) {
+    const step = String(event?.step || "").toLowerCase();
+    if (step === "project.status.ai_received") return "handoff";
+    if (step.startsWith("gicatesis.payload")) return "payload";
+    if (step.startsWith("gicatesis.render.docx")) return "render_docx";
+    if (step.startsWith("gicatesis.render.pdf")) return "render_pdf";
+    if (step.includes("validation")) return "final_validation";
+    return `${step}:${String(event?.title || "").trim()}`;
+  }
+
+  function _buildConstructionTimeline(projectSnapshot, phase) {
+    const events = Array.isArray(projectSnapshot?.events) ? projectSnapshot.events : [];
+    const relevantEvents = events.filter((event) => {
+      const step = String(event?.step || "").toLowerCase();
+      return step.startsWith("gicatesis.") || step.includes("render") || step === "project.status.ai_received";
+    });
+
+    const latestEventByKey = new Map();
+    relevantEvents.forEach((event, index) => {
+      if (!event || typeof event !== "object") return;
+      latestEventByKey.set(_constructionEventKey(event), { ...event, _order: index });
+    });
+
+    const timeline = [];
+    const taskOrder = ["handoff", "payload", "render_docx", "render_pdf", "final_validation"];
+    const taskAlias = {
+      handoff: {
+        label: "Contenido IA validado",
+        detail: "La generacion IA termino y el contenido validado quedo listo para construir el documento.",
+      },
+      payload: {
+        label: "Payload a GicaTesis",
+        detail: "Payload validado y enviado a GicaTesis.",
+      },
+      render_docx: {
+        label: "Render DOCX",
+        detail: "Construccion del DOCX final.",
+      },
+      render_pdf: {
+        label: "Render PDF",
+        detail: "Construccion del PDF final.",
+      },
+      final_validation: {
+        label: "Validacion final",
+        detail: "DOCX y PDF generados y validados para descarga.",
+      },
+    };
+
+    taskOrder.forEach((taskId, order) => {
+      const task = (phase.tasks || []).find((item) => String(item?.id || "") === taskId);
+      const event = latestEventByKey.get(taskId);
+      const status = String(task?.status || event?.status || "pending").toLowerCase();
+      if (status === "pending") return;
+      timeline.push({
+        ts: task?.updated_at || event?.ts || "",
+        status,
+        title: String(event?.title || task?.label || taskAlias[taskId]?.label || "Evento"),
+        detail: String(event?.detail || task?.detail || taskAlias[taskId]?.detail || ""),
+        _order: Number(event?._order ?? order),
+      });
+    });
+
+    return timeline.sort((left, right) => {
+      const leftOrder = Number(left?._order ?? 0);
+      const rightOrder = Number(right?._order ?? 0);
+      return leftOrder - rightOrder;
+    });
+  }
+
+  function _renderConstruction(projectSnapshot) {
+    const phase = _normalizeConstructionPhase(projectSnapshot);
+    const tasks = phase.tasks;
+    const doneCount = tasks.filter((item) => String(item.status || "") === "done").length;
+    const totalCount = tasks.length || 0;
+    const width = totalCount > 0 ? Math.min(100, Math.round((doneCount / totalCount) * 100)) : 0;
+    const statusBadge = _statusBadgeClass(
+      phase.status === "completed" ? "done" : phase.status === "running" ? "generating" : phase.status
+    );
+    if ($("construct-progress-count")) $("construct-progress-count").textContent = `${doneCount}/${totalCount}`;
+    if ($("construct-progress-bar")) $("construct-progress-bar").style.width = `${width}%`;
+    if ($("construct-status-badge")) {
+      $("construct-status-badge").className = `inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${statusBadge.wrap}`;
+      $("construct-status-badge").textContent = statusBadge.label;
+    }
+    if ($("construct-summary")) {
+      if (phase.status === "completed") $("construct-summary").textContent = "El contenido ya fue transformado en DOCX/PDF y validado para descarga.";
+      else if (phase.status === "running") $("construct-summary").textContent = "Armando el documento final a partir de la salida validada de IA.";
+      else if (phase.status === "error") $("construct-summary").textContent = "La construcción se detuvo por un error; revisa el timeline técnico.";
+      else $("construct-summary").textContent = "Aun no inicia la fase de construcción.";
+    }
+
+    const taskList = $("construct-task-list");
+    if (taskList) {
+      taskList.innerHTML = tasks.map((item) => {
+        const badge = _statusBadgeClass(item.status);
+        return `
+          <div class="rounded-2xl border bg-white p-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold text-slate-900">${escapeHtml(item.label || item.id || "Tarea")}</div>
+                <div class="mt-1 text-xs text-slate-500">${escapeHtml(item.detail || "Pendiente")}</div>
+              </div>
+              <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${badge.wrap}">
+                ${badge.label}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join("") || '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay tareas de construcción registradas.</div>';
+    }
+
+    const constructionEvents = _buildConstructionTimeline(projectSnapshot, phase);
+    const list = $("construct-trace-list");
+    const empty = $("construct-trace-empty");
+    if (list && empty) {
+      if (!constructionEvents.length) {
+        list.innerHTML = "";
+        empty.classList.remove("hidden");
+      } else {
+        empty.classList.add("hidden");
+        list.innerHTML = constructionEvents.map((event) => {
+          const status = String(event.status || "running");
+          const badge = _statusBadgeClass(status);
+          return `
+            <div class="rounded-2xl border bg-white p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-xs text-slate-400">${escapeHtml(_formatEventTime(event.ts))}</div>
+                  <div class="mt-1 font-semibold text-slate-900">${escapeHtml(event.title || event.message || event.step || "Evento")}</div>
+                  <div class="mt-1 text-xs text-slate-500">${escapeHtml(event.detail || event.message || "")}</div>
+                </div>
+                <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${badge.wrap}">
+                  ${badge.label}
+                </span>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    if ($("btn-go-construction")) {
+      if (phase.status !== "idle") $("btn-go-construction").classList.remove("hidden");
+      else $("btn-go-construction").classList.add("hidden");
+    }
+    if ($("btn-step6-downloads")) {
+      if (String(projectSnapshot?.status || "").startsWith("completed")) $("btn-step6-downloads").classList.remove("hidden");
+      else $("btn-step6-downloads").classList.add("hidden");
+    }
+  }
+
+  function showView(viewId, options = {}) {
     document.querySelectorAll(".view-section").forEach((el) => el.classList.add("hidden"));
     const selected = $("view-" + viewId);
     if (selected) selected.classList.remove("hidden");
@@ -104,12 +1297,13 @@ const TesisAI = (() => {
 
     currentView = viewId;
     if (viewId === "dashboard") refreshDashboard().catch(console.error);
-    if (viewId === "wizard") initWizard().catch(console.error);
+    if (viewId === "wizard") initWizard(options).catch(console.error);
     if (viewId === "admin-prompts") refreshPromptsAdmin().catch(console.error);
     if (viewId === "history") refreshHistory().catch(console.error);
   }
 
   function statusBadge(status) {
+    if (status === "ready") return '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-semibold">Listo para generar</span>';
     if (status === "draft") return '<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-semibold">Borrador</span>';
     if (status === "generating") return '<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">Generando</span>';
     if (status === "rendering") return '<span class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">Renderizando</span>';
@@ -125,12 +1319,119 @@ const TesisAI = (() => {
     return '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold">N/A</span>';
   }
 
+  function _inferDraftStep(project) {
+    if (!project?.format_id) return 1;
+    if (!project?.prompt_id) return 2;
+    if (!_hasMeaningfulProjectValues(project)) return 3;
+    return 4;
+  }
+
+  function _inferProjectStep(project, mode = "continue") {
+    const requestedMode = String(mode || "continue").toLowerCase();
+    const status = _effectiveProjectStatus(project);
+    if (requestedMode === "review") {
+      if (status === "rendering" || status === "render_failed") return 6;
+      if (["completed", "completed_with_incidents", "simulated"].includes(status)) return 5;
+      if (status === "generating" || status === "processing" || status === "sending" || status === "cancel_requested") {
+        return 5;
+      }
+    }
+    if (requestedMode === "edit-format") return 1;
+    if (requestedMode === "edit-prompt") return 2;
+    if (requestedMode === "edit-details") return 3;
+    if (requestedMode === "edit-ia") return 4;
+
+    if (status === "generating" || status === "processing" || status === "sending" || status === "cancel_requested") return 5;
+    if (status === "rendering" || status === "render_failed") return 6;
+    if (["completed", "completed_with_incidents", "simulated"].includes(status)) return 7;
+    if (status === "failed" || status === "blocked") return 5;
+
+    const wizardStep = Number(project?.wizard_state?.current_step || 0);
+    if (wizardStep >= 1 && wizardStep <= 4) return wizardStep;
+    return _inferDraftStep(project);
+  }
+
+  function _projectPrimaryAction(project) {
+    const status = _effectiveProjectStatus(project);
+    if (status === "draft" || status === "ready") {
+      return { label: "Continuar", mode: "continue", icon: "fa-solid fa-play" };
+    }
+    if (status === "generating" || status === "rendering" || status === "cancel_requested") {
+      return { label: "Abrir", mode: "continue", icon: "fa-solid fa-wave-square" };
+    }
+    if (status === "render_failed") {
+      return { label: "Revisar", mode: "review", icon: "fa-solid fa-triangle-exclamation" };
+    }
+    if (status === "failed" || status === "blocked") {
+      return { label: "Reintentar", mode: "continue", icon: "fa-solid fa-rotate-right" };
+    }
+    return { label: "Revisar", mode: "review", icon: "fa-solid fa-folder-open" };
+  }
+
+  function _renderProjectActions(project, variant = "table") {
+    const primary = _projectPrimaryAction(project);
+    const canDownload = (project.status === "completed" || project.status === "completed_with_incidents") && project.output_file;
+    const baseClasses = variant === "hero"
+      ? {
+        primary: "rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-extrabold hover:bg-slate-950",
+        secondary: "rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50",
+        tertiary: "rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-extrabold text-emerald-700 hover:bg-emerald-100",
+      }
+      : {
+        primary: "inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-950",
+        secondary: "inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50",
+        tertiary: "inline-flex items-center gap-2 rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50",
+      };
+
+    return `
+      <button class="${baseClasses.primary}" onclick="TesisAI.openProject('${escapeHtml(project.id)}', { mode: '${escapeHtml(primary.mode)}' })">
+        <i class="${escapeHtml(primary.icon)}"></i>
+        ${escapeHtml(primary.label)}
+      </button>
+      ${canDownload
+        ? `<a class="${baseClasses.tertiary}" href="/api/download/${encodeURIComponent(project.id)}"><i class="fa-solid fa-download"></i> Descargar</a>`
+        : ""}
+    `;
+  }
+
   async function refreshDashboard() {
-    const items = await apiGet("/api/projects");
+    const items = _sortProjectsForProduct(await apiGet("/api/projects"));
     $("stat-total-projects").innerText = String(items.length);
 
     const tbody = $("dashboard-recent-projects");
     tbody.innerHTML = "";
+
+    const latestCard = $("dashboard-latest-card");
+    const latestProject = items[0] || null;
+    if (latestCard && latestProject) {
+      latestCard.classList.remove("hidden");
+      if ($("dashboard-latest-title")) $("dashboard-latest-title").textContent = latestProject.title || "Proyecto sin título";
+      if ($("dashboard-latest-meta")) {
+        $("dashboard-latest-meta").textContent = `${latestProject.format_name || latestProject.format_id || "-"} · ${latestProject.prompt_name || "Sin prompt"} · ${_formatProjectDate(latestProject)}`;
+      }
+      if ($("dashboard-latest-status")) $("dashboard-latest-status").innerHTML = statusBadge(_effectiveProjectStatus(latestProject));
+      if ($("dashboard-latest-summary")) {
+        $("dashboard-latest-summary").innerHTML = `
+          <div class="rounded-2xl border bg-slate-50 px-4 py-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Estado real</div>
+            <div class="mt-1 font-semibold text-slate-900">${escapeHtml(String(_effectiveProjectStatus(latestProject) || "-").replaceAll("_", " "))}</div>
+          </div>
+          <div class="rounded-2xl border bg-slate-50 px-4 py-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Paso sugerido</div>
+            <div class="mt-1 font-semibold text-slate-900">Paso ${_inferProjectStep(latestProject)}</div>
+          </div>
+          <div class="rounded-2xl border bg-slate-50 px-4 py-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Última actividad</div>
+            <div class="mt-1 font-semibold text-slate-900">${escapeHtml(_formatProjectDate(latestProject))}</div>
+          </div>
+        `;
+      }
+      if ($("dashboard-latest-actions")) {
+        $("dashboard-latest-actions").innerHTML = _renderProjectActions(latestProject, "hero");
+      }
+    } else if (latestCard) {
+      latestCard.classList.add("hidden");
+    }
 
     if (!items.length) {
       $("dashboard-empty").classList.remove("hidden");
@@ -139,11 +1440,6 @@ const TesisAI = (() => {
     $("dashboard-empty").classList.add("hidden");
 
     items.slice(0, 5).forEach((project) => {
-      const canDownload = (project.status === "completed" || project.status === "completed_with_incidents") && project.output_file;
-      const downloadBtn = canDownload
-        ? `<a class="text-blue-600 hover:text-blue-800" href="/api/download/${encodeURIComponent(project.id)}" title="Descargar"><i class="fa-solid fa-download"></i></a>`
-        : `<span class="text-gray-300" title="No disponible"><i class="fa-solid fa-download"></i></span>`;
-
       const row = document.createElement("tr");
       row.className = "hover:bg-gray-50";
       row.innerHTML = `
@@ -152,9 +1448,11 @@ const TesisAI = (() => {
           <div class="text-xs text-gray-400">${escapeHtml(project.prompt_name || "")}</div>
         </td>
         <td class="px-6 py-4 text-gray-600">${escapeHtml(project.format_name || project.format_id || "")}</td>
-        <td class="px-6 py-4">${statusBadge(project.status)}</td>
-        <td class="px-6 py-4 text-gray-500">${escapeHtml(project.created_at || "")}</td>
-        <td class="px-6 py-4 text-right">${downloadBtn}</td>
+        <td class="px-6 py-4">${statusBadge(_effectiveProjectStatus(project))}</td>
+        <td class="px-6 py-4 text-gray-500">${escapeHtml(_formatProjectDate(project))}</td>
+        <td class="px-6 py-4 text-right">
+          <div class="flex items-center justify-end gap-2">${_renderProjectActions(project)}</div>
+        </td>
       `;
       tbody.appendChild(row);
     });
@@ -204,6 +1502,7 @@ const TesisAI = (() => {
 
   function resetStepper() {
     currentStep = 1;
+    currentWizardMode = "new";
     selectedFormat = null;
     selectedPrompt = null;
     currentProject = null;
@@ -230,21 +1529,26 @@ const TesisAI = (() => {
 
     updateStepperUI();
     showStep(1);
+    _renderWizardContext(null);
   }
 
-  function nextStep(step) {
+  function nextStep(step, options = {}) {
     currentStep = step;
     updateStepperUI();
     showStep(step);
+    _renderWizardContext(currentProject);
     if (step === 4) {
       loadProviderStatus(currentProject?.id || null, { autoProbe: true }).catch(console.error);
     }
+    _persistWizardState(step, String(options?.mode || "continue")).catch(() => { });
   }
 
   function prevStep(step) {
     currentStep = step;
     updateStepperUI();
     showStep(step);
+    _renderWizardContext(currentProject);
+    _persistWizardState(step, "edit").catch(() => { });
   }
 
   function getCategoryLabel(rawCategory) {
@@ -259,9 +1563,12 @@ const TesisAI = (() => {
   }
 
   async function initWizard() {
+    const options = arguments[0] && typeof arguments[0] === "object" ? arguments[0] : {};
+    currentWizardMode = String(options?.mode || "new").toLowerCase();
     resetStepper();
+    currentWizardMode = String(options?.mode || "new").toLowerCase();
     await loadFormats();
-    await loadPromptsForWizard();
+    await loadPromptsForWizard(options?.project?.prompt_id || "");
     if ($("btn-step3-next-provider")) {
       $("btn-step3-next-provider").onclick = (event) => {
         if (event) event.preventDefault();
@@ -281,6 +1588,14 @@ const TesisAI = (() => {
     if ($("btn-provider-refresh")) {
       $("btn-provider-refresh").onclick = () => probeProviderStatus(currentProject?.id || null).catch(console.error);
     }
+    document.querySelectorAll("[data-wizard-jump]").forEach((button) => {
+      button.onclick = () => goToProjectStep(Number(button.getAttribute("data-wizard-jump") || 1));
+    });
+    if (options?.project) {
+      await _rehydrateWizardProject(options.project, options);
+      return;
+    }
+    _renderWizardContext(null);
     await loadProviderStatus();
   }
 
@@ -294,6 +1609,7 @@ const TesisAI = (() => {
 
     const response = await raw.json();
     const items = response.formats || [];
+    formatsCache = items;
 
     // Show / hide the offline banner
     const banner = $("gicatesis-offline-banner");
@@ -336,6 +1652,7 @@ const TesisAI = (() => {
       filtered.forEach((format) => {
         const card = document.createElement("div");
         card.className = "format-card border-2 border-gray-100 hover:border-blue-400 p-4 rounded-lg cursor-pointer transition group relative bg-white";
+        card.dataset.formatId = String(format.id || "");
         card.onclick = () => selectFormat(format, card);
 
         const docType = format.documentType ? ` (${format.documentType})` : "";
@@ -369,6 +1686,7 @@ const TesisAI = (() => {
 
         grid.appendChild(card);
       });
+      _syncSelectedFormatCard();
     }
 
     uniSel.onchange = render;
@@ -378,27 +1696,48 @@ const TesisAI = (() => {
 
   function selectFormat(formatObj, cardEl) {
     document.querySelectorAll(".format-card").forEach((c) => c.classList.remove("border-blue-500", "bg-blue-50"));
-    cardEl.classList.remove("border-gray-100");
-    cardEl.classList.add("border-blue-500", "bg-blue-50");
     selectedFormat = formatObj;
+    if (cardEl) {
+      cardEl.classList.remove("border-gray-100");
+      cardEl.classList.add("border-blue-500", "bg-blue-50");
+    } else {
+      _syncSelectedFormatCard();
+    }
     $("btn-step1-next").disabled = false;
   }
 
-  async function loadPromptsForWizard() {
+  function _syncSelectedFormatCard() {
+    document.querySelectorAll(".format-card").forEach((card) => {
+      const isSelected = String(card.dataset.formatId || "") === String(selectedFormat?.id || "");
+      card.classList.remove("border-blue-500", "bg-blue-50");
+      if (isSelected) {
+        card.classList.add("border-blue-500", "bg-blue-50");
+      }
+    });
+  }
+
+  async function loadPromptsForWizard(includePromptId = "") {
     const items = await apiGet("/api/prompts");
+    promptsCache = items;
     const active = items.filter((p) => p.is_active);
+    const selectedPromptId = String(includePromptId || currentProject?.prompt_id || "").trim();
+    const selectedPromptEntry = items.find((item) => String(item?.id || "") === selectedPromptId);
+    const visiblePrompts = selectedPromptEntry && !active.some((item) => item.id === selectedPromptEntry.id)
+      ? [selectedPromptEntry, ...active]
+      : active;
 
     const grid = $("prompts-grid");
     grid.innerHTML = "";
 
-    if (!active.length) {
+    if (!visiblePrompts.length) {
       grid.innerHTML = '<div class="text-sm text-gray-500">No hay prompts activos. Ve a Gestion prompts.</div>';
       return;
     }
 
-    active.forEach((prompt, idx) => {
+    visiblePrompts.forEach((prompt, idx) => {
       const card = document.createElement("div");
       card.className = "prompt-card border-2 border-gray-100 hover:border-blue-500 p-5 rounded-lg cursor-pointer transition bg-white text-center";
+      card.dataset.promptId = String(prompt.id || "");
       card.onclick = () => selectPrompt(prompt, card);
 
       const badge = idx === 0
@@ -416,15 +1755,30 @@ const TesisAI = (() => {
 
       grid.appendChild(card);
     });
+    _syncSelectedPromptCard();
   }
 
   function selectPrompt(promptObj, cardEl) {
     document.querySelectorAll(".prompt-card").forEach((c) => c.classList.remove("border-blue-500", "ring-2", "ring-blue-200"));
-    cardEl.classList.remove("border-gray-100");
-    cardEl.classList.add("border-blue-500", "ring-2", "ring-blue-200");
     selectedPrompt = promptObj;
+    if (cardEl) {
+      cardEl.classList.remove("border-gray-100");
+      cardEl.classList.add("border-blue-500", "ring-2", "ring-blue-200");
+    } else {
+      _syncSelectedPromptCard();
+    }
     $("btn-step2-next").disabled = false;
     renderDynamicForm();
+  }
+
+  function _syncSelectedPromptCard() {
+    document.querySelectorAll(".prompt-card").forEach((card) => {
+      const isSelected = String(card.dataset.promptId || "") === String(selectedPrompt?.id || "");
+      card.classList.remove("border-blue-500", "ring-2", "ring-blue-200");
+      if (isSelected) {
+        card.classList.add("border-blue-500", "ring-2", "ring-blue-200");
+      }
+    });
   }
 
   function renderDynamicForm() {
@@ -653,6 +2007,149 @@ const TesisAI = (() => {
 
     const title = $("var_title")?.value || values.tema || "Proyecto";
     return { title, values };
+  }
+
+  function _resolveProjectFormat(project) {
+    const formatId = String(project?.format_id || "").trim();
+    if (!formatId) return null;
+    return formatsCache.find((item) => String(item?.id || "") === formatId)
+      || {
+        id: formatId,
+        title: project?.format_name || formatId,
+        name: project?.format_name || formatId,
+        version: project?.format_version || "",
+      };
+  }
+
+  function _resolveProjectPrompt(project) {
+    const promptId = String(project?.prompt_id || "").trim();
+    if (!promptId) return null;
+    return promptsCache.find((item) => String(item?.id || "") === promptId) || null;
+  }
+
+  function _populateWizardValues(project) {
+    const values = _projectValues(project);
+    if ($("var_title")) {
+      $("var_title").value = String(project?.title || values.title || values.tema || "");
+    }
+    (selectedPrompt?.variables || []).forEach((variable) => {
+      const input = $("var_" + variable);
+      if (!input) return;
+      input.value = String(values?.[variable] ?? "");
+    });
+  }
+
+  async function _persistWizardState(step, mode = "continue") {
+    if (!currentProject?.id) return;
+    try {
+      const currentWizardState = currentProject?.wizard_state && typeof currentProject.wizard_state === "object"
+        ? currentProject.wizard_state
+        : {};
+      const updated = await apiSend(`/api/projects/${encodeURIComponent(currentProject.id)}`, "PUT", {
+        wizardState: {
+          currentStep: step,
+          lastCompletedStep: Math.max(
+            Number(currentWizardState?.last_completed_step || currentWizardState?.lastCompletedStep || 1),
+            step,
+          ),
+          lastOpenMode: mode,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+      currentProject = { ...(updated || currentProject), id: currentProject.id };
+    } catch (_) {
+      // El flujo principal no debe bloquearse si solo falla la persistencia de step.
+    }
+  }
+
+  function _renderWizardContext(project) {
+    const panel = $("wizard-context-panel");
+    if (!panel) return;
+    if (!project?.id || currentWizardMode === "review") {
+      panel.classList.add("hidden");
+      return;
+    }
+
+    panel.classList.remove("hidden");
+    if ($("wizard-context-title")) {
+      $("wizard-context-title").textContent = project.title || "Proyecto existente";
+    }
+    if ($("wizard-context-text")) {
+      $("wizard-context-text").textContent = `Proyecto ${project.id} · ${project.prompt_name || "Sin prompt"} · ${project.format_name || project.format_id || "Sin formato"}. Si modificas pasos previos y guardas, la generación posterior se reiniciará de forma explícita.`;
+    }
+    if ($("wizard-context-status")) {
+      $("wizard-context-status").innerHTML = statusBadge(_effectiveProjectStatus(project));
+    }
+    document.querySelectorAll("[data-wizard-jump]").forEach((button) => {
+      const buttonStep = Number(button.getAttribute("data-wizard-jump") || 1);
+      button.classList.remove("bg-amber-100", "border-amber-400");
+      if (buttonStep === currentStep) {
+        button.classList.add("bg-amber-100", "border-amber-400");
+      }
+    });
+  }
+
+  async function _rehydrateWizardProject(project, options = {}) {
+    currentProject = project;
+    selectedFormat = _resolveProjectFormat(project);
+    if (selectedFormat) {
+      _syncSelectedFormatCard();
+      if ($("btn-step1-next")) $("btn-step1-next").disabled = false;
+    }
+
+    selectedPrompt = _resolveProjectPrompt(project);
+    if (selectedPrompt) {
+      _syncSelectedPromptCard();
+      if ($("btn-step2-next")) $("btn-step2-next").disabled = false;
+      renderDynamicForm();
+      _populateWizardValues(project);
+    } else {
+      renderDynamicForm();
+    }
+
+    _renderWizardContext(project);
+
+    const targetStep = Math.max(1, Math.min(7, Number(options?.step || _inferProjectStep(project, options?.mode))));
+    currentStep = targetStep;
+    updateStepperUI();
+    showStep(targetStep);
+
+    if (targetStep >= 4) {
+      await loadProviderStatus(project.id || null);
+    }
+    if (targetStep >= 5) {
+      await _renderLiveTrace(project.id);
+    }
+    if (targetStep === 7) {
+      simRunResult = _buildArtifacts(project);
+      continueToSimDownloads();
+    }
+    await _persistWizardState(targetStep, String(options?.mode || "continue"));
+  }
+
+  async function openProject(projectId, options = {}) {
+    const project = await apiGet(`/api/projects/${encodeURIComponent(projectId)}`);
+    const step = Math.max(1, Math.min(7, Number(options?.step || _inferProjectStep(project, options?.mode))));
+    showView("wizard", { ...options, project, step });
+  }
+
+  function goToProjectStep(step) {
+    const targetStep = Math.max(1, Math.min(4, Number(step || 1)));
+    nextStep(targetStep, { mode: "edit" });
+  }
+
+  function _hasProjectCoreChanges(project, wizardPayload) {
+    if (!project) return false;
+    const currentValues = _projectValues(project);
+    const nextValues = wizardPayload?.values || {};
+    const currentKeys = Array.from(new Set([...Object.keys(currentValues), ...Object.keys(nextValues)])).sort();
+    const valuesChanged = currentKeys.some((key) => String(currentValues?.[key] ?? "") !== String(nextValues?.[key] ?? ""));
+    return (
+      String(project?.format_id || "") !== String(selectedFormat?.id || "")
+      || String(project?.prompt_id || "") !== String(selectedPrompt?.id || "")
+      || String(project?.title || "") !== String(wizardPayload?.title || "")
+      || valuesChanged
+    );
   }
 
   function setStep3Error(message) {
@@ -1244,6 +2741,8 @@ const TesisAI = (() => {
   let _genElapsed = 0;
   let _lastRenderedTraceCount = 0;
   let _lastTraceState = null;
+  let _genAiSelectedSectionKey = "";
+  let _genAiExpandedGroupPath = null;
 
   function _sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -1575,7 +3074,42 @@ const TesisAI = (() => {
     }
   }
 
-  function _deriveTraceState(events, progress = null, projectStatus = "") {
+  function _normalizeGenerationSnapshot(projectSnapshot) {
+    const rawSnapshot = projectSnapshot?.generation_snapshot;
+    const snapshot = rawSnapshot && typeof rawSnapshot === "object" ? rawSnapshot : {};
+    let completedSections = Array.isArray(snapshot.completed_sections)
+      ? snapshot.completed_sections
+      : [];
+    if (!completedSections.length) {
+      const aiSections = Array.isArray(projectSnapshot?.ai_result?.sections)
+        ? projectSnapshot.ai_result.sections
+        : [];
+      completedSections = aiSections
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          sectionId: String(item.sectionId || item.section_id || ""),
+          path: String(item.path || item.section_path || ""),
+        }))
+        .filter((item) => item.sectionId || item.path);
+    }
+    const completedPaths = completedSections
+      .map((item) => String(item?.path || "").trim())
+      .filter(Boolean);
+    return {
+      savedSectionsCount: Math.max(
+        0,
+        Number(snapshot.saved_sections_count || completedSections.length || 0),
+      ),
+      totalSections: Math.max(0, Number(snapshot.total_sections || 0)),
+      currentPath: String(snapshot.current_path || ""),
+      completedSections,
+      completedPaths,
+      tokenUsage: snapshot.tokenUsage && typeof snapshot.tokenUsage === "object" ? snapshot.tokenUsage : null,
+      status: String(snapshot.status || "idle"),
+    };
+  }
+
+  function _deriveTraceState(events, progress = null, projectStatus = "", projectSnapshot = null) {
     const nodes = {
       format: { state: "pending", detail: "Pendiente" },
       variables: { state: "pending", detail: "Pendiente" },
@@ -1596,6 +3130,7 @@ const TesisAI = (() => {
     let docxDone = false;
     let pdfDone = false;
     let quotaRetrying = false;
+    const generationSnapshot = _normalizeGenerationSnapshot(projectSnapshot);
 
     const applyNode = (nodeId, status, detail) => {
       const node = nodes[nodeId];
@@ -1611,6 +3146,34 @@ const TesisAI = (() => {
       }
       if (detail) node.detail = detail;
     };
+
+    if (generationSnapshot.completedPaths.length || generationSnapshot.savedSectionsCount > 0) {
+      sections.current = Math.max(sections.current, generationSnapshot.savedSectionsCount);
+      if (generationSnapshot.totalSections > 0) {
+        sections.total = Math.max(sections.total, generationSnapshot.totalSections);
+      }
+      generationSnapshot.completedPaths.forEach((path) => {
+        if (!sections.paths.includes(path)) sections.paths.push(path);
+        if (path.toUpperCase().includes("ABREVIATURAS")) sections.hasAbbreviations = true;
+      });
+      if (generationSnapshot.currentPath) {
+        sections.currentPath = generationSnapshot.currentPath;
+        if (!sections.paths.includes(generationSnapshot.currentPath)) {
+          sections.paths.push(generationSnapshot.currentPath);
+        }
+      }
+      applyNode("format", "done", "Formato JSON cargado");
+      applyNode("variables", "done", "Variables del proyecto preparadas");
+      applyNode("prompt", "done", "Prompt final armado");
+      if (projectStatus === "generating") {
+        const resumeTarget = generationSnapshot.savedSectionsCount + 1;
+        applyNode("ai", "running", `Reanudando desde seccion ${resumeTarget}`);
+      } else if (projectStatus === "failed" || projectStatus === "blocked" || projectStatus === "cancel_requested") {
+        applyNode("ai", "warn", "Avance parcial conservado para reintento");
+      } else {
+        applyNode("ai", "done", "Secciones parciales conservadas");
+      }
+    }
 
     events.forEach((event) => {
       const step = String(event.step || event.stage || "");
@@ -1757,6 +3320,8 @@ const TesisAI = (() => {
     _lastTraceState = null;
     _collapsedTimelineEvents = [];
     _activeTimelineFilter = "all";
+    _genAiSelectedSectionKey = "";
+    _genAiExpandedGroupPath = null;
     _setLiveSummary("Preparando ejecucion...", "neutral");
     _updateLiveBadge("live");
     if ($("gen-pipeline-count")) $("gen-pipeline-count").textContent = "0/7";
@@ -1769,6 +3334,43 @@ const TesisAI = (() => {
     // Reset counters
     if ($("gen-queue-count")) $("gen-queue-count").textContent = "0";
     if ($("gen-done-count")) $("gen-done-count").textContent = "0";
+    if ($("gen-token-input-total")) $("gen-token-input-total").textContent = "0";
+    if ($("gen-token-output-total")) $("gen-token-output-total").textContent = "0";
+    if ($("gen-token-total")) $("gen-token-total").textContent = "0";
+    if ($("gen-token-current-section")) $("gen-token-current-section").textContent = "-";
+    if ($("gen-token-current-model")) $("gen-token-current-model").textContent = "-";
+    if ($("gen-token-source")) $("gen-token-source").textContent = "Sin uso IA";
+    if ($("gen-token-calls")) $("gen-token-calls").textContent = "0";
+    if ($("gen-base-prompt")) $("gen-base-prompt").textContent = "Aun no disponible.";
+    if ($("gen-ai-count")) $("gen-ai-count").textContent = "0/0";
+    if ($("gen-ai-section-list")) $("gen-ai-section-list").innerHTML = "";
+    if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin sección seleccionada";
+    if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una sección para auditar prompt, respuesta y tokens.";
+    if ($("gen-ai-detail-input")) $("gen-ai-detail-input").textContent = "0";
+    if ($("gen-ai-detail-output")) $("gen-ai-detail-output").textContent = "0";
+    if ($("gen-ai-detail-total")) $("gen-ai-detail-total").textContent = "0";
+    if ($("gen-ai-detail-duration")) $("gen-ai-detail-duration").textContent = "-";
+    if ($("gen-ai-detail-provider")) $("gen-ai-detail-provider").textContent = "-";
+    if ($("gen-ai-detail-model")) $("gen-ai-detail-model").textContent = "-";
+    if ($("gen-ai-detail-source")) $("gen-ai-detail-source").textContent = "-";
+    if ($("gen-ai-detail-prompt")) $("gen-ai-detail-prompt").textContent = "Aun no disponible.";
+    if ($("gen-ai-detail-response")) $("gen-ai-detail-response").textContent = "Aun no disponible.";
+    if ($("gen-ai-detail-status")) {
+      $("gen-ai-detail-status").className = "inline-flex items-center rounded-full border bg-slate-50 px-3 py-1 text-xs font-extrabold text-slate-700 border-slate-200";
+      $("gen-ai-detail-status").textContent = "PENDIENTE";
+    }
+    if ($("btn-go-construction")) $("btn-go-construction").classList.add("hidden");
+    if ($("btn-step6-downloads")) $("btn-step6-downloads").classList.add("hidden");
+    if ($("construct-summary")) $("construct-summary").textContent = "Transformando la salida de IA en artefactos finales del documento.";
+    if ($("construct-progress-count")) $("construct-progress-count").textContent = "0/5";
+    if ($("construct-progress-bar")) $("construct-progress-bar").style.width = "0%";
+    if ($("construct-status-badge")) {
+      $("construct-status-badge").className = "inline-flex items-center rounded-full border bg-white px-3 py-1 text-xs font-extrabold text-slate-700";
+      $("construct-status-badge").textContent = "Pendiente";
+    }
+    if ($("construct-task-list")) $("construct-task-list").innerHTML = "";
+    if ($("construct-trace-list")) $("construct-trace-list").innerHTML = "";
+    if ($("construct-trace-empty")) $("construct-trace-empty").classList.remove("hidden");
     // Reset doc tab to 'doc'
     _switchDocTab("doc");
     // Reset search
@@ -1803,6 +3405,7 @@ const TesisAI = (() => {
         hasAbbreviations: false,
       },
     });
+    _renderTokenUsage(null);
     _renderTimeline([]);
     if ($("gen-pipeline-fallback")) {
       $("gen-pipeline-fallback").classList.add("hidden");
@@ -1817,6 +3420,7 @@ const TesisAI = (() => {
     }
     if ($("gen-success")) $("gen-success").classList.add("hidden");
     if ($("btn-gen-retry")) $("btn-gen-retry").classList.add("hidden");
+    if ($("btn-construct-retry")) $("btn-construct-retry").classList.add("hidden");
     if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.remove("hidden");
   }
 
@@ -1828,6 +3432,7 @@ const TesisAI = (() => {
       if (span) span.textContent = msg;
     }
     if ($("btn-gen-retry")) $("btn-gen-retry").classList.remove("hidden");
+    if ($("btn-construct-retry")) $("btn-construct-retry").classList.remove("hidden");
     if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.add("hidden");
     _updateLiveBadge("error");
     _setLiveSummary(msg, "error");
@@ -1859,24 +3464,13 @@ const TesisAI = (() => {
       : Array.isArray(projectSnapshot?.trace)
         ? projectSnapshot.trace
         : [];
+    currentProject = projectSnapshot;
     _lastRenderedTraceCount = events.length;
-    const state = _deriveTraceState(
-      events,
-      projectSnapshot?.progress || null,
-      String(projectSnapshot?.status || ""),
-    );
-    _lastTraceState = state;
-    _renderPipelineNodes(state.nodes);
-    _renderDocBlocks(state);
-    _renderTimeline(events);
-
-    if (state.fallbackText && $("gen-pipeline-fallback")) {
-      $("gen-pipeline-fallback").classList.remove("hidden");
-      $("gen-pipeline-fallback").textContent = state.fallbackText;
-    } else if ($("gen-pipeline-fallback")) {
-      $("gen-pipeline-fallback").classList.add("hidden");
-      $("gen-pipeline-fallback").textContent = "";
-    }
+    _lastTraceState = null;
+    _syncWizardStepWithProject(projectSnapshot);
+    _renderAIGeneration(projectSnapshot);
+    _renderConstruction(projectSnapshot);
+    _renderTokenUsage(projectSnapshot);
     return projectSnapshot;
   }
 
@@ -1915,6 +3509,25 @@ const TesisAI = (() => {
       const project = await _renderLiveTrace(projectId);
       if (project) currentProject = project;
 
+      const generationPhase = project?.generation_phase && typeof project.generation_phase === "object"
+        ? project.generation_phase
+        : null;
+      const generationStatus = String(generationPhase?.status || "");
+      const constructionPhase = project?.construction_phase && typeof project.construction_phase === "object"
+        ? project.construction_phase
+        : null;
+      const constructionStatus = String(constructionPhase?.status || "");
+      if (
+        project
+        && currentStep === 5
+        && (
+          ["completed", "failed", "blocked"].includes(generationStatus)
+          || ["running", "completed", "error"].includes(constructionStatus)
+        )
+      ) {
+        nextStep(6);
+      }
+
       if (project && GEN_SUCCESS_STATUSES.includes(project.status)) {
         _stopGenTimer();
         simRunResult = _buildArtifacts(project);
@@ -1932,7 +3545,9 @@ const TesisAI = (() => {
         }
         if ($("gen-success")) $("gen-success").classList.remove("hidden");
         if ($("btn-gen-downloads")) $("btn-gen-downloads").classList.remove("hidden");
+        if ($("btn-construct-retry")) $("btn-construct-retry").classList.add("hidden");
         if ($("btn-gen-cancel")) $("btn-gen-cancel").classList.add("hidden");
+        if (currentStep < 7) continueToSimDownloads();
         refreshDashboard().catch(() => { });
         refreshHistory().catch(() => { });
         return;
@@ -1943,6 +3558,7 @@ const TesisAI = (() => {
         const errMsg = project.status === "render_failed"
           ? (project.error || "Render fallido. El contenido IA se conserva; reintenta para ejecutar solo render.")
           : (project.error || `Generacion fallida (${project.status})`);
+        if (project.status === "render_failed" && currentStep < 6) nextStep(6);
         _showGenError(errMsg);
         return;
       }
@@ -1972,6 +3588,13 @@ const TesisAI = (() => {
   async function _upsertProjectDraftFromWizard() {
     const wizard = collectWizardPayload();
     let projectId = currentProject?.id;
+    const resetGeneratedState = _hasProjectCoreChanges(currentProject, wizard);
+    const wizardStatePayload = {
+      currentStep: currentStep,
+      lastCompletedStep: Math.max(Number(currentProject?.wizard_state?.last_completed_step || 1), currentStep),
+      lastOpenMode: currentProject?.id ? "edit" : "new",
+      updatedAt: new Date().toISOString(),
+    };
 
     if (!projectId) {
       const draft = await apiSend("/api/projects/draft", "POST", {
@@ -1981,6 +3604,7 @@ const TesisAI = (() => {
         formatVersion: selectedFormat.version,
         promptId: selectedPrompt.id,
         values: wizard.values,
+        wizardState: wizardStatePayload,
       });
       projectId = draft?.id || draft?.projectId;
       currentProject = { ...(draft || {}), id: projectId };
@@ -1993,6 +3617,8 @@ const TesisAI = (() => {
         promptId: selectedPrompt.id,
         values: wizard.values,
         status: "draft",
+        wizardState: wizardStatePayload,
+        resetGeneratedState,
       });
       currentProject = { ...(updated || {}), id: projectId };
     }
@@ -2161,7 +3787,7 @@ const TesisAI = (() => {
     if ($("sim-project-id")) $("sim-project-id").textContent = id;
     if ($("sim-download-docx")) $("sim-download-docx").setAttribute("href", docxUrl);
     if ($("sim-download-pdf")) $("sim-download-pdf").setAttribute("href", pdfUrl);
-    nextStep(6);
+    nextStep(7);
   }
 
   async function runN8nSimulation() {
@@ -2330,7 +3956,7 @@ const TesisAI = (() => {
   }
 
   async function refreshHistory() {
-    const items = await apiGet("/api/projects");
+    const items = _sortProjectsForProduct(await apiGet("/api/projects"));
     const tbody = $("history-table");
     tbody.innerHTML = "";
 
@@ -2347,11 +3973,6 @@ const TesisAI = (() => {
     $("history-empty").classList.add("hidden");
 
     filtered.forEach((project) => {
-      const canDownload = (project.status === "completed" || project.status === "completed_with_incidents") && project.output_file;
-      const actions = canDownload
-        ? `<a class="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded" title="Descargar DOCX" href="/api/download/${encodeURIComponent(project.id)}"><i class="fa-solid fa-file-word"></i></a>`
-        : `<span class="p-2 text-gray-300 rounded" title="No disponible"><i class="fa-solid fa-file-word"></i></span>`;
-
       const row = document.createElement("tr");
       row.className = "hover:bg-gray-50 transition";
       row.innerHTML = `
@@ -2362,9 +3983,11 @@ const TesisAI = (() => {
           </div>
         </td>
         <td class="px-6 py-4 text-gray-600">${escapeHtml(project.format_name || project.format_id || "")}</td>
-        <td class="px-6 py-4">${statusBadge(project.status)}</td>
-        <td class="px-6 py-4 text-gray-500">${escapeHtml(project.created_at || "")}</td>
-        <td class="px-6 py-4 text-right flex justify-end gap-2">${actions}</td>
+        <td class="px-6 py-4">${statusBadge(_effectiveProjectStatus(project))}</td>
+        <td class="px-6 py-4 text-gray-500">${escapeHtml(_formatProjectDate(project))}</td>
+        <td class="px-6 py-4 text-right">
+          <div class="flex justify-end gap-2">${_renderProjectActions(project)}</div>
+        </td>
       `;
       tbody.appendChild(row);
     });
@@ -2409,6 +4032,8 @@ const TesisAI = (() => {
     goToDownloads,
     runN8nSimulation,
     continueToSimDownloads,
+    openProject,
+    goToProjectStep,
     openPromptModal,
     closePromptModal,
     savePrompt,
