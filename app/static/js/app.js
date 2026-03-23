@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GicaGen frontend SPA.
  *
  * Wizard flow:
@@ -897,7 +897,7 @@ const TesisAI = (() => {
       const latestSection = summary.latestSection || node.selfSection || {};
       const detail = hasChildren
         ? `${formatInt(summary.completedCount)}/${formatInt(summary.totalCount)} subsecciones`
-        : `${latestSection.provider || "-"} Â· ${latestSection.model || "-"} Â· ${formatInt(summary.total_tokens)} tokens`;
+        : `${latestSection.provider || "-"} · ${latestSection.model || "-"} · ${formatInt(summary.total_tokens)} tokens`;
       const indent = Math.max(0, Number(node.depth || 1) - 1) * 16;
 
       return `
@@ -912,7 +912,7 @@ const TesisAI = (() => {
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold">
-                  ${hasChildren ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500">${isExpanded ? "âˆ’" : "+"}</span>` : '<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400">â€¢</span>'}
+                  ${hasChildren ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500">${isExpanded ? "-" : "+"}</span>` : '<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400">•</span>'}
                   <span>${hasChildren ? "Bloque" : "Subseccion"}</span>
                 </div>
                 <div class="font-semibold text-slate-900 truncate">${escapeHtml(node.label || "Sin nombre")}</div>
@@ -996,7 +996,7 @@ const TesisAI = (() => {
     }
     if ($("gen-sections-progress")) {
       $("gen-sections-progress").innerHTML = totalSections > 0
-        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` Â· ${escapeHtml(currentSectionPath)}` : ""}`
+        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` · ${escapeHtml(currentSectionPath)}` : ""}`
         : "Secciones <b>0/0</b>";
     }
     if ($("gen-sections-bar")) {
@@ -1018,8 +1018,8 @@ const TesisAI = (() => {
         sectionList.innerHTML = '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay secciones registradas por la IA.</div>';
       }
       _genAiSelectedSectionKey = "";
-      if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin secciÃ³n seleccionada";
-      if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una secciÃ³n para auditar prompt, respuesta y tokens.";
+      if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin sección seleccionada";
+      if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una sección para auditar prompt, respuesta y tokens.";
       if ($("gen-ai-detail-prompt")) $("gen-ai-detail-prompt").textContent = "Aun no disponible.";
       if ($("gen-ai-detail-response")) $("gen-ai-detail-response").textContent = "Aun no disponible.";
       if ($("gen-ai-detail-input")) $("gen-ai-detail-input").textContent = "0";
@@ -1055,10 +1055,10 @@ const TesisAI = (() => {
             data-ai-section-key="${escapeHtml(key)}">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <div class="text-xs text-slate-400 font-semibold">SecciÃ³n ${index + 1}</div>
+                <div class="text-xs text-slate-400 font-semibold">Sección ${index + 1}</div>
                 <div class="font-semibold text-slate-900 truncate">${escapeHtml(item.section_path || item.section_title || "Sin nombre")}</div>
                 <div class="mt-1 text-xs text-slate-500 truncate">
-                  ${escapeHtml(item.provider || "-")} Â· ${escapeHtml(item.model || "-")} Â· ${formatInt(item.total_tokens || 0)} tokens
+                  ${escapeHtml(item.provider || "-")} · ${escapeHtml(item.model || "-")} · ${formatInt(item.total_tokens || 0)} tokens
                 </div>
               </div>
               <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${badge.wrap}">
@@ -1082,7 +1082,7 @@ const TesisAI = (() => {
       $("gen-ai-detail-title").textContent = selected.section_path || selected.section_title || "Sin nombre";
     }
     if ($("gen-ai-detail-meta")) {
-      $("gen-ai-detail-meta").textContent = `SecciÃ³n ${selected.section_id || "-"} Â· Intentos: ${formatInt(selected.attempt_count || 0)}`;
+      $("gen-ai-detail-meta").textContent = `Sección ${selected.section_id || "-"} · Intentos: ${formatInt(selected.attempt_count || 0)}`;
     }
     if ($("gen-ai-detail-status")) {
       $("gen-ai-detail-status").className = `inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${badge.wrap}`;
@@ -1136,7 +1136,7 @@ const TesisAI = (() => {
     }
     if ($("gen-sections-progress")) {
       $("gen-sections-progress").innerHTML = totalSections > 0
-        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` Â· ${escapeHtml(currentSectionPath)}` : ""}`
+        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` · ${escapeHtml(currentSectionPath)}` : ""}`
         : "Secciones <b>0/0</b>";
     }
     if ($("gen-sections-bar")) {
@@ -1208,8 +1208,8 @@ const TesisAI = (() => {
     }
     if ($("gen-ai-detail-meta")) {
       $("gen-ai-detail-meta").textContent = isGroupSelection
-        ? `Bloque jerarquico Â· ${formatInt(selectedSummary.completedCount)}/${formatInt(selectedSummary.totalCount)} subsecciones completadas`
-        : `Seccion ${selected.section_id || "-"} Â· Padre: ${selected.parent_section_path || "raiz"} Â· Intentos: ${formatInt(selected.attempt_count || 0)}`;
+        ? `Bloque jerarquico · ${formatInt(selectedSummary.completedCount)}/${formatInt(selectedSummary.totalCount)} subsecciones completadas`
+        : `Seccion ${selected.section_id || "-"} · Padre: ${selected.parent_section_path || "raiz"} · Intentos: ${formatInt(selected.attempt_count || 0)}`;
     }
     if ($("gen-ai-detail-status")) {
       $("gen-ai-detail-status").className = `inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${badge.wrap}`;
@@ -1368,8 +1368,8 @@ const TesisAI = (() => {
     if ($("construct-summary")) {
       if (phase.status === "completed") $("construct-summary").textContent = "El contenido ya fue transformado en DOCX/PDF y validado para descarga.";
       else if (phase.status === "running") $("construct-summary").textContent = "Armando el documento final a partir de la salida validada de IA.";
-      else if (phase.status === "error") $("construct-summary").textContent = "La construcciÃ³n se detuvo por un error; revisa el timeline tÃ©cnico.";
-      else $("construct-summary").textContent = "Aun no inicia la fase de construcciÃ³n.";
+      else if (phase.status === "error") $("construct-summary").textContent = "La construcción se detuvo por un error; revisa el timeline técnico.";
+      else $("construct-summary").textContent = "Aun no inicia la fase de construcción.";
     }
 
     const taskList = $("construct-task-list");
@@ -1389,7 +1389,7 @@ const TesisAI = (() => {
             </div>
           </div>
         `;
-      }).join("") || '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay tareas de construcciÃ³n registradas.</div>';
+      }).join("") || '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay tareas de construcción registradas.</div>';
     }
 
     const constructionEvents = _buildConstructionTimeline(projectSnapshot, phase);
@@ -1583,9 +1583,9 @@ const TesisAI = (() => {
     const latestProject = items[0] || null;
     if (latestCard && latestProject) {
       latestCard.classList.remove("hidden");
-      if ($("dashboard-latest-title")) $("dashboard-latest-title").textContent = latestProject.title || "Proyecto sin tÃ­tulo";
+      if ($("dashboard-latest-title")) $("dashboard-latest-title").textContent = latestProject.title || "Proyecto sin título";
       if ($("dashboard-latest-meta")) {
-        $("dashboard-latest-meta").textContent = `${latestProject.format_name || latestProject.format_id || "-"} Â· ${latestProject.prompt_name || "Sin prompt"} Â· ${_formatProjectDate(latestProject)}`;
+        $("dashboard-latest-meta").textContent = `${latestProject.format_name || latestProject.format_id || "-"} · ${latestProject.prompt_name || "Sin prompt"} · ${_formatProjectDate(latestProject)}`;
       }
       if ($("dashboard-latest-status")) $("dashboard-latest-status").innerHTML = statusBadge(_effectiveProjectStatus(latestProject));
       if ($("dashboard-latest-summary")) {
@@ -1599,7 +1599,7 @@ const TesisAI = (() => {
             <div class="mt-1 font-semibold text-slate-900">Paso ${_inferProjectStep(latestProject)}</div>
           </div>
           <div class="rounded-2xl border bg-slate-50 px-4 py-3">
-            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ãšltima actividad</div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">àšltima actividad</div>
             <div class="mt-1 font-semibold text-slate-900">${escapeHtml(_formatProjectDate(latestProject))}</div>
           </div>
         `;
@@ -1767,7 +1767,7 @@ const TesisAI = (() => {
       $("btn-step4-generate").onclick = (event) => {
         if (event) event.preventDefault();
         triggerGeneration().catch((error) => {
-          setStep4Error(error?.message || "No se pudo iniciar la generaciÃ³n.");
+          setStep4Error(error?.message || "No se pudo iniciar la generación.");
         });
       };
     }
@@ -1846,7 +1846,7 @@ const TesisAI = (() => {
         const universityCode = String(format.university || "generic").toLowerCase();
         const logoUrl = `/api/assets/logos/${universityCode}.png`;
 
-        // When GicaTesis is offline, skip loading remote logos â€” use text fallback.
+        // When GicaTesis is offline, skip loading remote logos — use text fallback.
         const logoHtml = gicatesisOnline
           ? `<img src="${logoUrl}" alt="${escapeHtml(universityCode)}" class="w-full h-full object-contain"
               onerror="this.onerror=null;this.parentNode.innerHTML='<span class=&quot;text-blue-700 font-bold&quot;>${escapeHtml(String(universityCode).toUpperCase())}</span>'">`
@@ -1974,106 +1974,106 @@ const TesisAI = (() => {
     container.innerHTML = "";
 
     if (!selectedPrompt) {
-      container.innerHTML = '<div class="text-sm text-gray-500 text-center py-10 font-medium font-inter">Selecciona un formato para activar la guÃ­a.</div>';
+      container.innerHTML = '<div class="text-sm text-gray-500 text-center py-10 font-medium font-inter">Selecciona un formato para activar la guía.</div>';
       return;
     }
 
-    // 1. DICCIONARIO DE AYUDA ACADÃ‰MICA
+    // 1. DICCIONARIO DE AYUDA ACADà‰MICA
     const academicHelp = {
-      "diagnostico_local": "Describe fallas, demoras o sÃ­ntomas detectados en la empresa. Es obligatorio usar herramientas como Ishikawa o Pareto para el sustento tÃ©cnico.",
-      "problema_principal": "Formula la gran pregunta de investigaciÃ³n: Â¿De quÃ© manera la propuesta X mejora la situaciÃ³n Y?",
-      "autor": "Tus nombres y apellidos completos tal como deben aparecer en la carÃ¡tula oficial.",
+      "diagnostico_local": "Describe fallas, demoras o síntomas detectados en la empresa. Es obligatorio usar herramientas como Ishikawa o Pareto para el sustento técnico.",
+      "problema_principal": "Formula la gran pregunta de investigación: Â¿De qué manera la propuesta X mejora la situación Y?",
+      "autor": "Tus nombres y apellidos completos tal como deben aparecer en la carátula oficial.",
       "asesor": "Nombre del mentor asignado por la facultad. Comparte la responsabilidad de la autenticidad del trabajo.",
-      "facultad": "Nombre completo de la facultad (ej: Facultad de IngenierÃ­a ElÃ©ctrica y ElectrÃ³nica).",
-      "escuela": "Tu carrera profesional especÃ­fica dentro de la UNAC.",
-      "linea_investigacion": "Debe ser una de las lÃ­neas oficiales aprobadas por tu Escuela Profesional.",
-      "anio": "El aÃ±o de sustentaciÃ³n o presentaciÃ³n del informe.",
-      "herramienta_ingenieria": "Es obligatorio segÃºn el reglamento: utiliza un Diagrama de Ishikawa (Causa-Efecto), Pareto (80/20), Ãrbol de problemas o Matriz de Vester para diagnosticar tÃ©cnicamente el origen del problema.",
-      "datos_evidencia": "Presenta el sustento numÃ©rico real: estadÃ­sticas de fallas, reportes de mermas, horas de parada de mÃ¡quina o costos actuales por inactividad.",
-      "objetivo_general": "Define tu meta final. Debe iniciar con un verbo fuerte en infinitivo (Determinar, DiseÃ±ar, Implementar) y responder directamente a tu pregunta de investigaciÃ³n principal.",
-      "impacto_economico": "Â¿CuÃ¡nto dinero ahorrarÃ¡ la empresa o cuÃ¡l es el beneficio costo-beneficio de tu propuesta?",
+      "facultad": "Nombre completo de la facultad (ej: Facultad de Ingeniería Eléctrica y Electrónica).",
+      "escuela": "Tu carrera profesional específica dentro de la UNAC.",
+      "linea_investigacion": "Debe ser una de las líneas oficiales aprobadas por tu Escuela Profesional.",
+      "anio": "El año de sustentación o presentación del informe.",
+      "herramienta_ingenieria": "Es obligatorio segàºn el reglamento: utiliza un Diagrama de Ishikawa (Causa-Efecto), Pareto (80/20), àrbol de problemas o Matriz de Vester para diagnosticar técnicamente el origen del problema.",
+      "datos_evidencia": "Presenta el sustento numérico real: estadísticas de fallas, reportes de mermas, horas de parada de máquina o costos actuales por inactividad.",
+      "objetivo_general": "Define tu meta final. Debe iniciar con un verbo fuerte en infinitivo (Determinar, Diseñar, Implementar) y responder directamente a tu pregunta de investigación principal.",
+      "impacto_economico": "Â¿Cuánto dinero ahorrará la empresa o cuál es el beneficio costo-beneficio de tu propuesta?",
       "variable_independiente": "Es tu propuesta o 'el remedio': el sistema, software, algoritmo o plan de mantenimiento que vas a aplicar.",
-      "variable_dependiente": "Es el 'paciente' que quieres curar: el indicador tÃ©cnico que se verÃ¡ afectado positivamente por tu propuesta.",
-      "resumen_antecedentes": "Resume investigaciones indexadas de los Ãºltimos 5 a 10 aÃ±os. Menciona: Autor, AÃ±o, Objetivo, MetodologÃ­a y resultados numÃ©ricos.",
+      "variable_dependiente": "Es el 'paciente' que quieres curar: el indicador técnico que se verá afectado positivamente por tu propuesta.",
+      "resumen_antecedentes": "Resume investigaciones indexadas de los àºltimos 5 a 10 años. Menciona: Autor, Año, Objetivo, Metodología y resultados numéricos.",
       "dimensiones_variables": "Son los grandes componentes en los que divides tus variables para poder medirlas.",
       "indicadores_medida": "Es la unidad de medida exacta y observable de tus dimensiones. Ejemplos: Porcentaje (%), Horas (h), Soles (S/).",
-      "poblacion_total": "El universo completo de elementos con caracterÃ­sticas comunes para tu estudio.",
+      "poblacion_total": "El universo completo de elementos con características comunes para tu estudio.",
       "muestra_estudio": "Es la parte representativa que vas a medir realmente.",
       "instrumentos_utilizados": "Son tus herramientas de captura: cuestionarios validados, fichas de registro, sensores calibrados.",
-      "datos_recolectados": "Ingresa aquÃ­ los resultados de tus mediciones o el resumen estadÃ­stico descriptivo.",
-      "resultados_pruebas_estadisticas": "Ingresa el p-valor (Sig.) obtenido en SPSS o Minitab. Si es menor a 0.05, tu hipÃ³tesis ha sido demostrada.",
-      "conclusiones_numÃ©ricas": "Responde a tus objetivos con hallazgos directos. No uses opiniones, usa cifras reales.",
-      "propuestas_accion": "Acciones prÃ¡cticas y viables dirigidas a la empresa.",
-      "problema_general": "Es la interrogante maestra que busca comprender el fenÃ³meno y las categorÃ­as centrales de tu estudio. Debe ser una pregunta abierta que invite a profundizar en significados.",
-      "problemas_especificos": "Son las sub-preguntas que desglosan tus categorÃ­as preliminares para analizar procesos o vivencias especÃ­ficas.",
-      "objetivos_especificos": "Indica los pasos para analizar cada categorÃ­a. Â¡Importante! Debes iniciar con verbos como: Comprender, Interpretar, Analizar o Describir.",
-      "justificacion_estudio": "Explica la utilidad de tu tesis: Â¿CÃ³mo ayuda a la empresa a entender sus procesos y quÃ© nuevos conceptos aporta?",
-      "delimitacion_espacial": "Indica el lugar exacto (empresa, Ã¡rea o instituciÃ³n) donde realizarÃ¡s la toma de datos.",
-      "delimitacion_temporal": "Define con claridad el periodo de tiempo (meses o aÃ±os) que abarca tu recolecciÃ³n de informaciÃ³n.",
-      "antecedentes": "Resume investigaciones similares de los Ãºltimos 5-10 aÃ±os. Menciona autor, aÃ±o, diseÃ±o y hallazgos.",
-      "bases_teoricas": "Es el sustento cientÃ­fico de tu tesis. Analiza las teorÃ­as y modelos que explican tus categorÃ­as.",
-      "marco_conceptual": "Define conceptualmente tus categorÃ­as y subcategorÃ­as basÃ¡ndote en la literatura revisada.",
-      "escenario_estudio": "Describe el ambiente fÃ­sico y social donde realizarÃ¡s el estudio.",
-      "informantes_clave": "Identifica a las personas que te darÃ¡n la informaciÃ³n y menciona el 'muestreo por saturaciÃ³n'.",
+      "datos_recolectados": "Ingresa aquí los resultados de tus mediciones o el resumen estadístico descriptivo.",
+      "resultados_pruebas_estadisticas": "Ingresa el p-valor (Sig.) obtenido en SPSS o Minitab. Si es menor a 0.05, tu hipótesis ha sido demostrada.",
+      "conclusiones_numéricas": "Responde a tus objetivos con hallazgos directos. No uses opiniones, usa cifras reales.",
+      "propuestas_accion": "Acciones prácticas y viables dirigidas a la empresa.",
+      "problema_general": "Es la interrogante maestra que busca comprender el fenómeno y las categorías centrales de tu estudio. Debe ser una pregunta abierta que invite a profundizar en significados.",
+      "problemas_especificos": "Son las sub-preguntas que desglosan tus categorías preliminares para analizar procesos o vivencias específicas.",
+      "objetivos_especificos": "Indica los pasos para analizar cada categoría. Â¡Importante! Debes iniciar con verbos como: Comprender, Interpretar, Analizar o Describir.",
+      "justificacion_estudio": "Explica la utilidad de tu tesis: Â¿Cómo ayuda a la empresa a entender sus procesos y qué nuevos conceptos aporta?",
+      "delimitacion_espacial": "Indica el lugar exacto (empresa, área o institución) donde realizarás la toma de datos.",
+      "delimitacion_temporal": "Define con claridad el periodo de tiempo (meses o años) que abarca tu recolección de información.",
+      "antecedentes": "Resume investigaciones similares de los àºltimos 5-10 años. Menciona autor, año, diseño y hallazgos.",
+      "bases_teoricas": "Es el sustento científico de tu tesis. Analiza las teorías y modelos que explican tus categorías.",
+      "marco_conceptual": "Define conceptualmente tus categorías y subcategorías basándote en la literatura revisada.",
+      "escenario_estudio": "Describe el ambiente físico y social donde realizarás el estudio.",
+      "informantes_clave": "Identifica a las personas que te darán la información y menciona el 'muestreo por saturación'.",
       "aspectos_eticos": "Declara el respeto al anonimato, la justicia y el uso de consentimientos informados.",
       "categorias_emergentes": "Presenta los grandes hallazgos encontrados. Incluye fragmentos de entrevistas (citas textuales).",
       "conclusiones_cualitativas": "Redacta reflexiones finales sobre las comprensiones logradas.",
       "conclusiones_numericas": "Son las respuestas directas y numeradas a tus objetivos.",
-      "diseno_cualitativo": "Define si tu investigaciÃ³n es FenomenolÃ³gica, EtnogrÃ¡fica, de TeorÃ­a Fundamentada o un Estudio de Caso.",
-      "matriz_categorizacion": "Es la tabla que organiza tus CategorÃ­as ApriorÃ­sticas y sus componentes (SubcategorÃ­as).",
-      "cronograma_actividades": "Muestra la secuencia de todos los pasos de tu investigaciÃ³n.",
+      "diseno_cualitativo": "Define si tu investigación es Fenomenológica, Etnográfica, de Teoría Fundamentada o un Estudio de Caso.",
+      "matriz_categorizacion": "Es la tabla que organiza tus Categorías Apriorísticas y sus componentes (Subcategorías).",
+      "cronograma_actividades": "Muestra la secuencia de todos los pasos de tu investigación.",
       "presupuesto_soles": "Presenta el detalle de los recursos humanos, materiales y financieros.",
-      "delimitacion_teorica": "Especifica las teorÃ­as, normas tÃ©cnicas (ISO, IEEE, ANSI) o modelos de ingenierÃ­a.",
+      "delimitacion_teorica": "Especifica las teorías, normas técnicas (ISO, IEEE, ANSI) o modelos de ingeniería.",
       "hipotesis_general": "Es la respuesta tentativa y probable a tu problema principal.",
-      "hipotesis_especificas": "Son las respuestas probables a cada uno de tus problemas especÃ­ficos.",
-      "descripcion_problema": "Es el pilar de tu tesis UNI. Debes plantear el problema tÃ©cnico a resolver de manera detallada, sentando las bases para tu hipÃ³tesis tÃ©cnica.",
-      "justificacion_cientifica": "Prioridad tÃ©cnica: Describe el problema como un anÃ¡lisis de causa y efecto. Debe seÃ±alar por quÃ© tu investigaciÃ³n es relevante acadÃ©mica y econÃ³micamente.",
+      "hipotesis_especificas": "Son las respuestas probables a cada uno de tus problemas específicos.",
+      "descripcion_problema": "Es el pilar de tu tesis UNI. Debes plantear el problema técnico a resolver de manera detallada, sentando las bases para tu hipótesis técnica.",
+      "justificacion_cientifica": "Prioridad técnica: Describe el problema como un análisis de causa y efecto. Debe señalar por qué tu investigación es relevante académica y económicamente.",
       "metas_cuantitativas": "Obligatorio en objetivos: Indica resultados medibles que esperas alcanzar a corto, mediano y largo plazo.",
-      "resumen_proyecto": "UNI: Describe brevemente las caracterÃ­sticas generales del proyecto. No incluyas objetivos, metas ni bibliografÃ­a aquÃ­.",
-      "hipotesis_trabajo": "Propuesta tÃ©cnica lÃ³gica que responde al problema planteado.",
-      "infraestructura_requerida": "DescripciÃ³n de los laboratorios, talleres o instalaciones fÃ­sicas necesarias.",
-      "metodologia_etapas": "Pasos secuenciales del proyecto. La UNI exige distinguir entre las etapas de fundamentaciÃ³n teÃ³rica y las experimentales.",
-      "procedimientos_tecnicos": "Detalle de los mÃ©todos, algoritmos o protocolos de ingenierÃ­a que aplicarÃ¡s.",
-      "usuarios_finales": "Identifica a las personas o sectores que usarÃ¡n el producto de tu investigaciÃ³n.",
-      "productos_tangibles": "Resultados fÃ­sicos o digitales que entregarÃ¡s: patentes, prototipos, hardware o software.",
-      "recursos_humanos": "Lista del personal tÃ©cnico involucrado, detallando su calificaciÃ³n y funciÃ³n.",
-      "recursos_materiales": "Instrumentos, equipos y materiales necesarios, indicando especificaciones tÃ©cnicas.",
+      "resumen_proyecto": "UNI: Describe brevemente las características generales del proyecto. No incluyas objetivos, metas ni bibliografía aquí.",
+      "hipotesis_trabajo": "Propuesta técnica lógica que responde al problema planteado.",
+      "infraestructura_requerida": "Descripción de los laboratorios, talleres o instalaciones físicas necesarias.",
+      "metodologia_etapas": "Pasos secuenciales del proyecto. La UNI exige distinguir entre las etapas de fundamentación teórica y las experimentales.",
+      "procedimientos_tecnicos": "Detalle de los métodos, algoritmos o protocolos de ingeniería que aplicarás.",
+      "usuarios_finales": "Identifica a las personas o sectores que usarán el producto de tu investigación.",
+      "productos_tangibles": "Resultados físicos o digitales que entregarás: patentes, prototipos, hardware o software.",
+      "recursos_humanos": "Lista del personal técnico involucrado, detallando su calificación y función.",
+      "recursos_materiales": "Instrumentos, equipos y materiales necesarios, indicando especificaciones técnicas.",
       "cronograma_detallado": "Calendario de actividades que debe incluir las fechas de entrega de informes de avance.",
-      "partidas_presupuestales": "ClasificaciÃ³n de gastos segÃºn el formato fiscal: subvenciones, bienes, servicios, equipos.",
-      "calendario_gastos": "Cronograma financiero que especifica en quÃ© periodos se realizarÃ¡ cada desembolso.",
-      "antecedentes_cientificos": "UNI: Describe la evoluciÃ³n del conocimiento tÃ©cnico y el estado del arte de tu tema.",
+      "partidas_presupuestales": "Clasificación de gastos segàºn el formato fiscal: subvenciones, bienes, servicios, equipos.",
+      "calendario_gastos": "Cronograma financiero que especifica en qué periodos se realizará cada desembolso.",
+      "antecedentes_cientificos": "UNI: Describe la evolución del conocimiento técnico y el estado del arte de tu tema.",
       "carrera": "Escribe el nombre de tu especialidad tal como figura en los registros oficiales.",
-      "programa_maestria": "Escribe el nombre exacto de tu menciÃ³n o programa.",
+      "programa_maestria": "Escribe el nombre exacto de tu mención o programa.",
       "unidad_posgrado": "Nombre de la Unidad de Posgrado de tu facultad correspondiente.",
-      "grado_academico": "Grado al que optas (ej: Maestro en Ciencias de la IngenierÃ­a).",
-      "codigo_ocde": "CÃ³digo y descripciÃ³n segÃºn la clasificaciÃ³n OCDE para Ã¡reas de ciencia y tecnologÃ­a.",
-      "propuesta_solucion": "Menciona la mejora tÃ©cnica o el modelo interpretativo que propones para el problema.",
-      "justificacion_importancia": "Sustenta la relevancia teÃ³rica, prÃ¡ctica y social. Indica quiÃ©nes son los beneficiarios.",
+      "grado_academico": "Grado al que optas (ej: Maestro en Ciencias de la Ingeniería).",
+      "codigo_ocde": "Código y descripción segàºn la clasificación OCDE para áreas de ciencia y tecnología.",
+      "propuesta_solucion": "Menciona la mejora técnica o el modelo interpretativo que propones para el problema.",
+      "justificacion_importancia": "Sustenta la relevancia teórica, práctica y social. Indica quiénes son los beneficiarios.",
       "limitaciones_estudio": "Indica factores (tiempo, acceso a datos) que restringen el estudio.",
-      "antecedentes_internacionales": "Resumen exhaustivo de investigaciones extranjeras (autor, aÃ±o, metodologÃ­a y hallazgos).",
-      "antecedentes_nacionales": "Investigaciones peruanas previas. Detalla quÃ© aportan a tu tesis actual.",
-      "terminos_basicos": "Glosario de conceptos tÃ©cnicos y categorÃ­as operativas alineadas al contexto de tu investigaciÃ³n.",
-      "participantes_muestreo": "Describe a tus informantes clave, criterios de selecciÃ³n y sustenta el tamaÃ±o de muestra.",
-      "instrumentos_recoleccion": "Detalla las tÃ©cnicas (entrevista, focus group) y herramientas, incluyendo su validez.",
-      "procedimiento_analisis": "Explica el paso a paso: inmersiÃ³n en campo, transcripciÃ³n y procesamiento de datos.",
-      "rigor_cientifico": "Explica cÃ³mo garantizas la credibilidad, transferibilidad, dependencia y confirmabilidad.",
-      "metodo_analisis_datos": "Enfoque de anÃ¡lisis (temÃ¡tico, contenido) y uso de software como Atlas.ti o NVivo.",
-      "aspectos_eticos_investigacion": "Detalla el uso de consentimiento informado, confidencialidad y aprobaciÃ³n institucional.",
-      "presentacion_resultados": "Hallazgos ordenados por categorÃ­as con evidencias (citas textuales) y figuras numeradas.",
-      "discusion_hallazgos": "Interpreta tus resultados contrastÃ¡ndolos con la literatura y antecedentes revisados.",
-      "conclusiones_estudio": "Sentencias directas y numeradas que responden a los objetivos e hipÃ³tesis planteadas.",
-      "recomendaciones_estudio": "Sugerencias aplicables para la instituciÃ³n o sector y nuevas lÃ­neas de investigaciÃ³n.",
-      "orcid_asesor": "CÃ³digo ORCID de 16 dÃ­gitos que identifica a tu asesor como investigador a nivel internacional.",
-      "lugar_ejecucion": "Nombre de la empresa, instituciÃ³n o Ã¡rea geogrÃ¡fica donde realizarÃ¡s la recolecciÃ³n de datos.",
-      "unidad_analisis": "Es el objeto, proceso, persona o grupo del cual vas a extraer la informaciÃ³n para tu estudio.",
+      "antecedentes_internacionales": "Resumen exhaustivo de investigaciones extranjeras (autor, año, metodología y hallazgos).",
+      "antecedentes_nacionales": "Investigaciones peruanas previas. Detalla qué aportan a tu tesis actual.",
+      "terminos_basicos": "Glosario de conceptos técnicos y categorías operativas alineadas al contexto de tu investigación.",
+      "participantes_muestreo": "Describe a tus informantes clave, criterios de selección y sustenta el tamaño de muestra.",
+      "instrumentos_recoleccion": "Detalla las técnicas (entrevista, focus group) y herramientas, incluyendo su validez.",
+      "procedimiento_analisis": "Explica el paso a paso: inmersión en campo, transcripción y procesamiento de datos.",
+      "rigor_cientifico": "Explica cómo garantizas la credibilidad, transferibilidad, dependencia y confirmabilidad.",
+      "metodo_analisis_datos": "Enfoque de análisis (temático, contenido) y uso de software como Atlas.ti o NVivo.",
+      "aspectos_eticos_investigacion": "Detalla el uso de consentimiento informado, confidencialidad y aprobación institucional.",
+      "presentacion_resultados": "Hallazgos ordenados por categorías con evidencias (citas textuales) y figuras numeradas.",
+      "discusion_hallazgos": "Interpreta tus resultados contrastándolos con la literatura y antecedentes revisados.",
+      "conclusiones_estudio": "Sentencias directas y numeradas que responden a los objetivos e hipótesis planteadas.",
+      "recomendaciones_estudio": "Sugerencias aplicables para la institución o sector y nuevas líneas de investigación.",
+      "orcid_asesor": "Código ORCID de 16 dígitos que identifica a tu asesor como investigador a nivel internacional.",
+      "lugar_ejecucion": "Nombre de la empresa, institución o área geográfica donde realizarás la recolección de datos.",
+      "unidad_analisis": "Es el objeto, proceso, persona o grupo del cual vas a extraer la información para tu estudio.",
       "mencion": "Nombre exacto de la especialidad del programa de posgrado.",
-      "introduccion_tesis": "VisiÃ³n general que contextualiza el tema de investigaciÃ³n y describe la estructura del documento.",
-      "metodologia_posgrado": "DescripciÃ³n tÃ©cnica de la estrategia de investigaciÃ³n, incluyendo tÃ©cnicas e instrumentos.",
-      "definicion_terminos": "Glosario especializado que define los conceptos tÃ©cnicos clave.",
-      "analisis_resultados": "PresentaciÃ³n y examen minucioso de los datos recolectados y resultados tÃ©cnicos.",
-      "contrastacion_hipotesis": "Proceso tÃ©cnico y estadÃ­stico donde se valida o rechaza la hipÃ³tesis de investigaciÃ³n.",
-      "conclusiones_posgrado": "Sentencias directas y numeradas que sintetizan los hallazgos mÃ¡s relevantes.",
-      "recomendaciones_posgrado": "Propuestas de acciÃ³n tÃ©cnica para el sector productivo o nuevas lÃ­neas de investigaciÃ³n."
+      "introduccion_tesis": "Visión general que contextualiza el tema de investigación y describe la estructura del documento.",
+      "metodologia_posgrado": "Descripción técnica de la estrategia de investigación, incluyendo técnicas e instrumentos.",
+      "definicion_terminos": "Glosario especializado que define los conceptos técnicos clave.",
+      "analisis_resultados": "Presentación y examen minucioso de los datos recolectados y resultados técnicos.",
+      "contrastacion_hipotesis": "Proceso técnico y estadístico donde se valida o rechaza la hipótesis de investigación.",
+      "conclusiones_posgrado": "Sentencias directas y numeradas que sintetizan los hallazgos más relevantes.",
+      "recomendaciones_posgrado": "Propuestas de acción técnica para el sector productivo o nuevas líneas de investigación."
     };
 
     const vars = Array.isArray(selectedPrompt.variables) ? selectedPrompt.variables : [];
@@ -2092,28 +2092,28 @@ const TesisAI = (() => {
     const mainVars = cleanVars.filter(v => mainKeys.includes(v));
     const secondaryVars = cleanVars.filter(v => !mainKeys.includes(v));
 
-    // --- SECCIÃ“N 1: PILARES MAESTROS ---
+    // --- SECCIà“N 1: PILARES MAESTROS ---
     const sectionRequired = document.createElement("div");
     sectionRequired.className = "mb-8 space-y-6";
     sectionRequired.innerHTML = `
         <div class="flex items-center gap-3 mb-6">
             <div class="h-6 w-1 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"></div>
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">1. Pilares de la InvestigaciÃ³n</h3>
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">1. Pilares de la Investigación</h3>
         </div>
     `;
     container.appendChild(sectionRequired);
 
-    // BLOQUE DE TÃTULO
+    // BLOQUE DE TàTULO
     const titleBlock = document.createElement("div");
     titleBlock.className = "p-6 bg-blue-50 rounded-3xl border-2 border-blue-100 shadow-sm mb-6 group transition-all";
     titleBlock.innerHTML = `
         <div class="flex justify-between items-center mb-3 px-1">
-            <label class="block text-[10px] font-black text-blue-900 uppercase tracking-widest">TÃ­tulo del Proyecto</label>
+            <label class="block text-[10px] font-black text-blue-900 uppercase tracking-widest">Título del Proyecto</label>
             <span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">OBLIGATORIO</span>
         </div>
-        <input id="var_title" type="text" class="w-full p-4 border-2 border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none bg-white font-bold text-slate-800 shadow-inner" placeholder="Ej: ImplementaciÃ³n de un sistema para mejorar...">
+        <input id="var_title" type="text" class="w-full p-4 border-2 border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none bg-white font-bold text-slate-800 shadow-inner" placeholder="Ej: Implementación de un sistema para mejorar...">
         <p class="mt-3 text-[10px] text-slate-400 italic group-hover:text-blue-700 group-focus-within:text-blue-700 transition-all px-1">
-            <i class="fa-solid fa-lightbulb mr-1"></i> FÃ³rmula: [SoluciÃ³n] + [Variable/Problema] + [Lugar de estudio].
+            <i class="fa-solid fa-lightbulb mr-1"></i> Fórmula: [Solución] + [Variable/Problema] + [Lugar de estudio].
         </p>
     `;
     sectionRequired.appendChild(titleBlock);
@@ -2121,7 +2121,7 @@ const TesisAI = (() => {
     // Renderizar Pilares
     mainVars.forEach(v => renderField(v, sectionRequired, true));
 
-    // --- SECCIÃ“N 2: DATOS COMPLEMENTARIOS (COLAPSABLE) ---
+    // --- SECCIà“N 2: DATOS COMPLEMENTARIOS (COLAPSABLE) ---
     if (secondaryVars.length > 0) {
       const accordionWrapper = document.createElement("div");
       accordionWrapper.className = "mt-10 border-t border-slate-100 pt-6";
@@ -2135,7 +2135,7 @@ const TesisAI = (() => {
                 </div>
                 <div class="text-left">
                     <span class="block text-[11px] font-black text-slate-700 uppercase tracking-tight">DATOS COMPLEMENTARIOS</span>
-                    <span class="block text-[9px] text-slate-500 font-medium">InformaciÃ³n opcional para la carÃ¡tula oficial.</span>
+                    <span class="block text-[9px] text-slate-500 font-medium">Información opcional para la carátula oficial.</span>
                 </div>
             </div>
             <i class="fa-solid fa-chevron-down text-slate-400 group-hover:translate-y-1 transition-all mr-2"></i>
@@ -2160,7 +2160,7 @@ const TesisAI = (() => {
     function renderField(variable, target, isMain) {
       const id = "var_" + variable;
       const cleanLabel = variable.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-      const helpText = academicHelp[variable] || `Dato requerido de ${cleanLabel.toLowerCase()} para el rigor tÃ©cnico.`;
+      const helpText = academicHelp[variable] || `Dato requerido de ${cleanLabel.toLowerCase()} para el rigor técnico.`;
       const isLong = /(diagnostico|problema|resumen|conclusiones|propuestas|objetivo|metodologia|hipotesis|justificacion|antecedentes|bases_teoricas|marco|descripcion|introduccion|analisis|contrastacion|discusion|resultados)/i.test(variable);
 
       const block = document.createElement("div");
@@ -2172,7 +2172,7 @@ const TesisAI = (() => {
           </div>
           <div class="relative">
             ${isLong
-          ? `<textarea id="${id}" rows="3" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Redacta aquÃ­..."></textarea>`
+          ? `<textarea id="${id}" rows="3" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Redacta aquí..."></textarea>`
           : `<input id="${id}" type="text" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Ingresa el dato...">`
         }
           </div>
@@ -2263,7 +2263,7 @@ const TesisAI = (() => {
       $("wizard-context-title").textContent = project.title || "Proyecto existente";
     }
     if ($("wizard-context-text")) {
-      $("wizard-context-text").textContent = `Proyecto ${project.id} Â· ${project.prompt_name || "Sin prompt"} Â· ${project.format_name || project.format_id || "Sin formato"}. Si modificas pasos previos y guardas, la generaciÃ³n posterior se reiniciarÃ¡ de forma explÃ­cita.`;
+      $("wizard-context-text").textContent = `Proyecto ${project.id} · ${project.prompt_name || "Sin prompt"} · ${project.format_name || project.format_id || "Sin formato"}. Si modificas pasos previos y guardas, la generación posterior se reiniciará de forma explícita.`;
     }
     if ($("wizard-context-status")) {
       $("wizard-context-status").innerHTML = statusBadge(_effectiveProjectStatus(project));
@@ -2326,7 +2326,7 @@ const TesisAI = (() => {
 
   async function deleteProject(projectId) {
     if (!projectId) return;
-    if (!confirm("Â¿Eliminar este proyecto? Esta acciÃ³n no se puede deshacer.")) return;
+    if (!confirm("Â¿Eliminar este proyecto? Esta acción no se puede deshacer.")) return;
     await apiSend(`/api/projects/${encodeURIComponent(projectId)}`, "DELETE");
     if (currentProject?.id === projectId) {
       currentProject = null;
@@ -2390,7 +2390,7 @@ const TesisAI = (() => {
       const tokenLabel = formatInt(_projectTokenTotal(project));
       return `
         <option value="${escapeHtml(project.id || "")}">
-          ${escapeHtml(`${title} Â· ${formatName} Â· ${tokenLabel} tokens`)}
+          ${escapeHtml(`${title} · ${formatName} · ${tokenLabel} tokens`)}
         </option>
       `;
     }).join("");
@@ -2402,7 +2402,7 @@ const TesisAI = (() => {
     const selectedProject = items.find((project) => String(project?.id || "") === String(projectSelect.value || "")) || items[0];
     if (helper) {
       const status = String(_effectiveProjectStatus(selectedProject) || "-").replaceAll("_", " ");
-      helper.textContent = `${status} Â· Actualizado ${_formatProjectDate(selectedProject)}`;
+      helper.textContent = `${status} · Actualizado ${_formatProjectDate(selectedProject)}`;
     }
     return String(projectSelect.value || "");
   }
@@ -3294,7 +3294,7 @@ const TesisAI = (() => {
         : state === "running" ? "â–¶"
           : state === "warn" ? "!"
             : state === "error" ? "âœ•"
-              : "Â·";
+              : "·";
       const pillClass = state === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
         : state === "running" ? "bg-blue-50 text-blue-700 border-blue-200"
           : state === "warn" ? "bg-amber-50 text-amber-700 border-amber-200"
@@ -3379,7 +3379,7 @@ const TesisAI = (() => {
 
     // Update progress card text + bar
     const progressText = total > 0
-      ? `Secciones <b>${Math.min(current, total)}/${total}</b>${currentPath ? ` Â· ${currentPath}` : ""}`
+      ? `Secciones <b>${Math.min(current, total)}/${total}</b>${currentPath ? ` · ${currentPath}` : ""}`
       : "Secciones <b>0/0</b>";
     if ($("gen-sections-progress")) $("gen-sections-progress").innerHTML = progressText;
     const width = total > 0 ? Math.min(100, Math.round((Math.min(current, total) / total) * 100)) : 0;
@@ -3818,8 +3818,8 @@ const TesisAI = (() => {
     if ($("gen-base-prompt")) $("gen-base-prompt").textContent = "Aun no disponible.";
     if ($("gen-ai-count")) $("gen-ai-count").textContent = "0/0";
     if ($("gen-ai-section-list")) $("gen-ai-section-list").innerHTML = "";
-    if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin secciÃ³n seleccionada";
-    if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una secciÃ³n para auditar prompt, respuesta y tokens.";
+    if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin sección seleccionada";
+    if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una sección para auditar prompt, respuesta y tokens.";
     if ($("gen-ai-detail-input")) $("gen-ai-detail-input").textContent = "0";
     if ($("gen-ai-detail-output")) $("gen-ai-detail-output").textContent = "0";
     if ($("gen-ai-detail-total")) $("gen-ai-detail-total").textContent = "0";

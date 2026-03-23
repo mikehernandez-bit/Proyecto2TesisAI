@@ -319,7 +319,8 @@ class PricingService:
                 return self._enrich_openrouter_record(cached)
             return cached
 
-        self._refresh_provider("openrouter")
+        if provider == "openrouter" and not self._has_fresh_records(origin="openrouter_api", providers=None):
+            self._refresh_provider("openrouter")
         refreshed = self._pick_best_candidate(self._collect_candidates(provider, model))
         if refreshed and self._is_fresh(refreshed):
             latest = dict(refreshed)
@@ -333,7 +334,8 @@ class PricingService:
 
         fallback_provider = self._official_fallback_provider(provider)
         if fallback_provider:
-            self._refresh_provider(fallback_provider)
+            if not self._has_fresh_records(origin=None, providers=[fallback_provider]):
+                self._refresh_provider(fallback_provider)
             official = self._pick_best_candidate(self._collect_candidates(provider, model))
             if official and self._is_fresh(official):
                 official_record = dict(official)
