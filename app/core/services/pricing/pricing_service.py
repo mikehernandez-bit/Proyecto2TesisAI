@@ -373,8 +373,7 @@ class PricingService:
 
         if source_mode == "openrouter":
             if refresh or not self._has_fresh_records(origin="openrouter_api", providers=provider_filters or None):
-                if provider == "openrouter" and not self._has_fresh_records(origin="openrouter_api", providers=None):
-            self._refresh_provider("openrouter")
+                self._refresh_provider("openrouter")
 
         records = self._collect_catalog_records(
             providers=provider_filters or None,
