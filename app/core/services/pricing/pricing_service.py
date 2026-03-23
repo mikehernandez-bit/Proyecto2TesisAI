@@ -319,7 +319,7 @@ class PricingService:
                 return self._enrich_openrouter_record(cached)
             return cached
 
-        if not self._has_fresh_records(origin="openrouter_api", providers=None):
+        if provider == "openrouter" and not self._has_fresh_records(origin="openrouter_api", providers=None):
             self._refresh_provider("openrouter")
         refreshed = self._pick_best_candidate(self._collect_candidates(provider, model))
         if refreshed and self._is_fresh(refreshed):
@@ -373,7 +373,7 @@ class PricingService:
 
         if source_mode == "openrouter":
             if refresh or not self._has_fresh_records(origin="openrouter_api", providers=provider_filters or None):
-                if not self._has_fresh_records(origin="openrouter_api", providers=None):
+                if provider == "openrouter" and not self._has_fresh_records(origin="openrouter_api", providers=None):
             self._refresh_provider("openrouter")
 
         records = self._collect_catalog_records(
