@@ -912,7 +912,7 @@ const TesisAI = (() => {
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold">
-                  ${hasChildren ? `\u003cspan class=\"inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500\"\u003e${isExpanded ? \"-\" : \"+\"}\u003c/span\u003e` : '\u003cspan class=\"inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400\"\u003e•\u003c/span\u003e'}
+                  ${hasChildren ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500">${isExpanded ? "-" : "+"}</span>` : '<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400">•</span>'}
                   <span>${hasChildren ? "Bloque" : "Subseccion"}</span>
                 </div>
                 <div class="font-semibold text-slate-900 truncate">${escapeHtml(node.label || "Sin nombre")}</div>
