@@ -1,113 +1,101 @@
 # Pruebas - GicaGen
 
-Este documento resume la estrategia de validacion para el flujo code-first
-(GicaGen -> IA -> GicaTesis render) y los gates de calidad.
+> Estado actual de testing del proyecto.
+> Actualizado: 2026-03-23.
 
-## Suites y comandos base
+---
 
-| Suite | Comando | Objetivo |
-|---|---|---|
-| Lint + format check | `.venv\Scripts\python scripts/quality_gate.py lint` | Detectar errores estaticos y baseline de estilo |
-| Typecheck | `.venv\Scripts\python scripts/quality_gate.py typecheck` | Validar tipos en modulos criticos |
-| Unit + integration | `.venv\Scripts\python -m pytest tests -v` | Validar API y servicios |
-| Encoding | `.venv\Scripts\python scripts/check_encoding.py` | Detectar archivos con encoding invalido |
-| Mojibake | `.venv\Scripts\python scripts/check_mojibake.py` | Detectar corrupcion de caracteres |
+## Estado Actual
 
-## Flujo equivalente a CI en local
+**29 archivos de test** con 200+ casos automatizados cubriendo todos los modulos criticos.
 
-1. Instala dependencias.
+---
 
-```powershell
-.venv\Scripts\python -m pip install -r requirements-dev.txt
+## Suite de Tests
+
+### Capa IA
+
+| Archivo | Cobertura |
+|---------|-----------|
+| `test_ai_service.py` | Pipeline completo de generacion: secciones, fallback, trace, cancelacion |
+| `test_gemini_client.py` | Cliente Gemini: llamadas, errores, quota |
+| `test_mistral_client.py` | Cliente Mistral |
+| `test_openrouter_client.py` | Cliente OpenRouter |
+| `test_resilience_router_openrouter.py` | Fallback entre proveedores |
+| `test_circuit_breaker.py` | Apertura/cierre de circuit breaker |
+| `test_output_validator.py` | Sanitizacion de output IA |
+| `test_completeness_validator.py` | Deteccion y reparacion de placeholders |
+| `test_prompt_renderer.py` | Renderizado de templates `{{variables}}` |
+| `test_prompt_flow.py` | Flujo completo: carga prompt → render → llega al LLM (47 tests) |
+| `test_ai_correction.py` | Pase de correccion post-generacion |
+| `test_fallback.py` | Comportamiento con proveedor caido |
+| `test_limiter.py` | Rate limiting |
+| `test_retry_policy.py` | Politica de reintentos |
+| `test_error_classifier.py` | Clasificacion de errores (quota, timeout, etc.) |
+| `test_figure_recommendations.py` | Recomendaciones de figuras |
+| `test_reference_proposals.py` | Propuestas de referencias |
+| `test_pricing_service.py` | Calculo de costos por proveedor |
+| `test_provider_indicator_semantics.py` | Semantica de indicadores de proveedor |
+| `test_router_ai_adapter.py` | Adaptador del router IA |
+
+### Capa Core
+
+| Archivo | Cobertura |
+|---------|-----------|
+| `test_api_integration.py` | Tests de integracion de endpoints REST |
+| `test_definition_compiler.py` | Compilador de definiciones |
+| `test_indices_contract.py` | Contrato de exclusion de indices |
+| `test_pipeline_toc_exclusion.py` | Exclusion de TOC en pipeline IA |
+| `test_toc_detector.py` | Deteccion de secciones de indice |
+| `test_project_service_events.py` | Eventos y trace de proyectos |
+| `test_docx_toc.py` | TOC en documentos DOCX |
+| `test_gicatesis_offline.py` | Comportamiento sin GicaTesis disponible |
+
+---
+
+## CI/CD (GitHub Actions)
+
+3 checks automaticos en cada Pull Request:
+
+```yaml
+jobs:
+  lint:    ruff check (imports, formato, style)
+  typecheck: mypy (verificacion de tipos)
+  pytest:  suite completa de tests
 ```
 
-2. Ejecuta quality gates.
+**Pasar lint + typecheck + pytest es requisito para merge.**
+
+---
+
+## Ejecutar Localmente
 
 ```powershell
-.venv\Scripts\python scripts/quality_gate.py all
+# Instalar dependencias de dev
+.venv\Scripts\activate
+pip install -r requirements-dev.txt
+
+# Todos los tests
+python -m pytest tests -v
+
+# Tests especificos
+python -m pytest tests/test_prompt_flow.py -v
+python -m pytest tests/test_ai_service.py -v
+
+# Con cobertura
+python -m pytest tests --cov=app --cov-report=term
+
+# Quality gate completo (como CI)
+python scripts/quality_gate.py all
+python scripts/quality_gate.py lint
+python scripts/quality_gate.py typecheck
 ```
 
-3. Ejecuta pruebas funcionales.
+---
 
-```powershell
-.venv\Scripts\python -m pytest tests -v
-```
+## E2E (Scaffold - P1)
 
-## Casos clave cubiertos
-
-Cobertura relevante en:
-
-- `tests/test_definition_compiler.py`
-- `tests/test_gemini_client.py`
-- `tests/test_ai_service.py`
-- `tests/test_api_integration.py`
-- `tests/test_output_validator.py`
-- `tests/test_router_ai_adapter.py`
-
-Escenarios criticos:
-
-1. Cuota/fallback de proveedor en capa IA.
-2. Endpoint `POST /api/projects/{id}/generate` acepta ejecucion (`202`) y
-   no congela UI.
-3. Endpoint `GET /api/projects/{id}/trace` devuelve timeline real.
-4. Eventos de pipeline para secciones, payload a GicaTesis y render DOCX/PDF.
-5. `GET /api/projects/{id}` incluye `progress` y `events` para polling.
-6. La cola de eventos rota correctamente (maximo 200 eventos).
-
-## Validacion manual del trace en vivo
-
-1. Crea borrador desde wizard (pasos 1-3).
-2. Dispara generacion en paso 4.
-3. Verifica que `POST /api/projects/{id}/generate` responde `202`.
-4. Consulta `GET /api/projects/{id}` y confirma:
-   `status=generating`, avance en `progress.current/total` y eventos nuevos.
-5. Consulta `GET /api/projects/{id}/trace` y confirma eventos de:
-   `generation.request.received`, `ai.generate.section`,
-   `gicatesis.payload`, `gicatesis.render.docx`, `gicatesis.render.pdf`.
-6. Verifica estado final de proyecto y enlaces de descarga.
-
-## Pruebas nuevas del contrato async
-
-Archivo: `tests/test_api_integration.py`
-
-- `test_generate_returns_accepted_quickly`
-- `test_background_job_updates_progress`
-- `test_fallback_event_recorded_on_quota_error`
-
-Archivo: `tests/test_project_service_events.py`
-
-- `test_append_event_truncates_to_200`
-
-Archivo: `tests/test_definition_compiler.py`
-
-- `test_section_index_excludes_preliminaries_indexes_and_keeps_body`
-- `test_section_index_skips_figure_and_table_placeholder_nodes`
-
-Archivo: `tests/test_output_validator.py`
-
-- `test_sanitizes_markdown_and_placeholders`
-- `test_index_path_forces_empty_content`
-- `test_skip_section_token_is_normalized_to_empty`
-- `test_abbreviations_are_normalized_to_tab_format`
-
-## CI (GitHub Actions)
-
-Archivo: `.github/workflows/ci.yml`.
-
-Jobs bloqueantes de PR:
-
-1. `lint`
-2. `typecheck`
-3. `pytest`
-
-## Plan E2E runnable minimo (scaffold)
-
-Se mantiene scaffold Playwright para UX del wizard:
-
-- `e2e/tests/wizard.demo.spec.ts`
-- `e2e/tests/wizard.quota.spec.ts`
-
-Comandos:
+Existe scaffold de tests E2E con Playwright pero sin fixtures de backend real.
 
 ```powershell
 npm install
@@ -115,9 +103,7 @@ npm run e2e:install
 npm run e2e
 ```
 
-## Known gaps / TODO
-
-- P1: extender pruebas de trace a SSE (`/trace/stream`) en cliente web.
-- P1: convertir E2E mockeado a E2E con backend real y fixtures.
-- P1: agregar reporte de cobertura pytest en pipeline.
-- P2: evaluar job E2E no bloqueante en CI.
+Archivos:
+- `playwright.config.ts`
+- `e2e/tests/wizard.demo.spec.ts`
+- `e2e/tests/wizard.quota.spec.ts`

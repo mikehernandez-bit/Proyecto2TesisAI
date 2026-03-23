@@ -98,6 +98,7 @@ class ProjectUpdateIn(BaseModel):
     sections: Optional[List[PromptSection]] = None
     wizard_state: Optional[Dict[str, Any]] = None
     reset_generated_state: Optional[bool] = None
+    touch_project_timestamp: Optional[bool] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -115,6 +116,7 @@ class ProjectUpdateIn(BaseModel):
             "formatVersion": "format_version",
             "wizardState": "wizard_state",
             "resetGeneratedState": "reset_generated_state",
+            "touchProjectTimestamp": "touch_project_timestamp",
         }
         for src, dst in aliases.items():
             if src in remapped and dst not in remapped:

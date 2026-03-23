@@ -7,13 +7,26 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.services.pricing import PricingService
+from app.core.services.project_service import ProjectService
 from app.main import app
 
 
 @pytest.fixture
-def client():
+def client(tmp_path):
     """Provide a TestClient instance for the FastAPI app."""
-    return TestClient(app)
+    from app.modules.api import router as router_module
+
+    original_projects = router_module.projects
+    original_pricing = router_module.pricing_service
+    router_module.projects = ProjectService(str(tmp_path / "projects.json"))
+    router_module.pricing_service = PricingService(path=str(tmp_path / "model_pricing.json"))
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        router_module.projects = original_projects
+        router_module.pricing_service = original_pricing
 
 
 # =============================================================================
@@ -376,6 +389,171 @@ class TestProjectsEndpoints:
         assert r.json()["id"] == project_id
         assert r.json()["title"] == "Get Test"
 
+    def test_project_budget_uses_historical_tokens_and_selected_model(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Proyecto presupuesto",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Costo historico"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        router_module.projects.update_project(
+            project_id,
+            {
+                "status": "completed",
+                "token_usage": {
+                    "attempts": [
+                        {
+                            "provider": "mistral",
+                            "model": "mistral-medium-2505",
+                            "section_id": "sec-1",
+                            "section_path": "Introduccion",
+                            "section_title": "Introduccion",
+                            "input_tokens": 1000,
+                            "output_tokens": 350,
+                            "total_tokens": 1350,
+                            "attempt": 1,
+                            "timestamp": "2026-03-20T10:00:00Z",
+                            "estimated": False,
+                            "source": "reported_by_provider",
+                            "success": True,
+                        },
+                        {
+                            "provider": "mistral",
+                            "model": "mistral-medium-2505",
+                            "section_id": "sec-2",
+                            "section_path": "Marco teorico",
+                            "section_title": "Marco teorico",
+                            "input_tokens": 1400,
+                            "output_tokens": 550,
+                            "total_tokens": 1950,
+                            "attempt": 1,
+                            "timestamp": "2026-03-20T10:01:00Z",
+                            "estimated": False,
+                            "source": "reported_by_provider",
+                            "success": True,
+                        },
+                    ],
+                    "current_section": {
+                        "section_id": "sec-2",
+                        "section_path": "Marco teorico",
+                        "section_title": "Marco teorico",
+                    },
+                    "input_tokens_total": 2400,
+                    "output_tokens_total": 900,
+                    "total_tokens": 3300,
+                    "calls_total": 2,
+                    "reported_calls": 2,
+                    "estimated_calls": 0,
+                    "has_estimated_usage": False,
+                    "sections": [
+                        {
+                            "section_id": "sec-1",
+                            "section_path": "Introduccion",
+                            "section_title": "Introduccion",
+                            "input_tokens_total": 1000,
+                            "output_tokens_total": 350,
+                            "total_tokens": 1350,
+                        }
+                    ],
+                    "providers": [
+                        {
+                            "provider": "mistral",
+                            "model": "mistral-medium-2505",
+                            "input_tokens_total": 2400,
+                            "output_tokens_total": 900,
+                            "total_tokens": 3300,
+                        }
+                    ],
+                },
+            },
+        )
+
+        with (
+            patch.object(
+                router_module.pricing_service,
+                "list_pricing_catalog",
+                return_value=[
+                    {
+                        "provider": "openai",
+                        "model": "gpt-5.4-mini",
+                        "input_price_per_1m_tokens": 0.4,
+                        "output_price_per_1m_tokens": 3.2,
+                        "cached_input_price_per_1m_tokens": 0.04,
+                        "currency": "USD",
+                        "pricing_mode": "cached_input_supported",
+                        "threshold_rule": "",
+                        "modality": "text",
+                        "source_url": "https://openai.com/es-419/api/pricing/",
+                        "fetched_at": "2026-03-20T10:00:00Z",
+                        "pricing_source": "updated",
+                        "is_cached_fallback": False,
+                        "available": True,
+                    },
+                    {
+                        "provider": "google",
+                        "model": "gemini-2.0-flash",
+                        "canonical_model_id": "google/gemini-2.0-flash",
+                        "display_name": "Google: Gemini 2.0 Flash",
+                        "input_price_per_1m_tokens": 0.1,
+                        "output_price_per_1m_tokens": 0.4,
+                        "cached_input_price_per_1m_tokens": 0.025,
+                        "currency": "USD",
+                        "pricing_mode": "tiered",
+                        "threshold_rule": "texto <= 200000 tokens",
+                        "modality": "text",
+                        "source_url": "https://openrouter.ai/api/v1/models",
+                        "fetched_at": "2026-03-20T10:00:00Z",
+                        "pricing_source": "updated",
+                        "pricing_origin": "openrouter_api",
+                        "is_cached_fallback": False,
+                        "available": True,
+                    },
+                ],
+            ),
+            patch.object(
+                router_module.pricing_service,
+                "get_pricing",
+                return_value={
+                    "provider": "google",
+                    "model": "gemini-2.0-flash",
+                    "canonical_model_id": "google/gemini-2.0-flash",
+                    "display_name": "Google: Gemini 2.0 Flash",
+                    "input_price_per_1m_tokens": 0.1,
+                    "output_price_per_1m_tokens": 0.4,
+                    "cached_input_price_per_1m_tokens": 0.025,
+                    "currency": "USD",
+                    "pricing_mode": "tiered",
+                    "threshold_rule": "texto <= 200000 tokens",
+                    "modality": "text",
+                    "source_url": "https://openrouter.ai/api/v1/models",
+                    "fetched_at": "2026-03-20T10:00:00Z",
+                    "pricing_source": "updated",
+                    "pricing_origin": "openrouter_api",
+                    "is_cached_fallback": False,
+                    "available": True,
+                },
+            ),
+        ):
+            budget_response = client.get(f"/api/projects/{project_id}/budget?provider=gemini&model=gemini-2.0-flash")
+
+        assert budget_response.status_code == 200
+        budget = budget_response.json()
+        assert budget["project"]["id"] == project_id
+        assert budget["usage"]["input_tokens_total"] == 2400
+        assert budget["usage"]["output_tokens_total"] == 900
+        assert budget["selected_pricing"]["provider"] == "google"
+        assert budget["selected_pricing"]["model"] == "gemini-2.0-flash"
+        assert budget["selected_pricing"]["pricing_origin"] == "openrouter_api"
+        assert budget["estimate"]["estimated_total_cost"] == pytest.approx(0.0006)
+        assert budget["comparisons"][0]["provider"] == "google"
+        assert budget["comparisons"][0]["estimated_total_cost"] == pytest.approx(0.0006)
+        assert budget["usage"]["sections"][0]["section_path"] == "Introduccion"
+
     def test_update_project_can_reset_generated_state_and_keep_wizard_state(self, client):
         from app.modules.api import router as router_module
 
@@ -437,6 +615,91 @@ class TestProjectsEndpoints:
         assert updated["wizard_state"]["last_completed_step"] == 4
         trace = client.get(f"/api/projects/{project_id}/trace").json()
         assert trace["events"] == []
+
+    def test_review_navigation_does_not_touch_project_updated_at(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Proyecto navegable",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Sin cambios"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        items = router_module.projects.store.read_list()
+        for item in items:
+            if item["id"] == project_id:
+                item["updated_at"] = "2026-03-18T10:00:00"
+        router_module.projects.store.write_list(items)
+
+        update_response = client.put(
+            f"/api/projects/{project_id}",
+            json={
+                "wizardState": {
+                    "currentStep": 5,
+                    "lastCompletedStep": 5,
+                    "lastOpenMode": "review",
+                    "updatedAt": "2026-03-19T08:00:00",
+                },
+                "touchProjectTimestamp": False,
+            },
+        )
+
+        assert update_response.status_code == 200
+        updated = update_response.json()
+        assert updated["updated_at"] == "2026-03-18T10:00:00"
+        assert updated["wizard_state"]["current_step"] == 5
+        assert updated["wizard_state"]["last_open_mode"] == "review"
+
+    def test_download_project_does_not_touch_updated_at(self, client, tmp_path):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Proyecto descargable",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Documento final"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        output_path = tmp_path / "sample.docx"
+        output_path.write_bytes(b"docx")
+        router_module.projects.update_project(
+            project_id,
+            {"status": "completed", "output_file": str(output_path)},
+        )
+
+        items = router_module.projects.store.read_list()
+        for item in items:
+            if item["id"] == project_id:
+                item["updated_at"] = "2026-03-18T09:30:00"
+        router_module.projects.store.write_list(items)
+
+        download_response = client.get(f"/api/download/{project_id}")
+
+        assert download_response.status_code == 200
+        project = client.get(f"/api/projects/{project_id}").json()
+        assert project["updated_at"] == "2026-03-18T09:30:00"
+
+    def test_delete_project_removes_row_from_listing(self, client):
+        payload = {
+            "title": "Proyecto eliminable",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Eliminar"},
+        }
+        response = client.post("/api/projects/draft", json=payload)
+        project_id = response.json()["id"]
+
+        delete_response = client.delete(f"/api/projects/{project_id}")
+
+        assert delete_response.status_code == 200
+        assert delete_response.json()["ok"] is True
+        missing = client.get(f"/api/projects/{project_id}")
+        assert missing.status_code == 404
 
     def test_home_includes_dashboard_resume_controls(self, client):
         response = client.get("/")
@@ -1090,10 +1353,22 @@ class TestGenerationEndpoint:
         response = client.get("/")
         assert response.status_code == 200
         html = response.text
+        assert 'id="modal-project-budget"' in html
+        assert 'id="budget-project-select"' in html
+        assert 'id="budget-provider-select"' in html
+        assert 'id="budget-model-select"' in html
+        assert 'id="budget-calculate-button"' in html
+        assert 'id="budget-estimate-pending"' in html
+        assert 'id="budget-estimate-results"' in html
+        assert 'id="stat-total-tokens"' in html
         assert 'id="gen-token-input-total"' in html
         assert 'id="gen-token-output-total"' in html
         assert 'id="gen-token-total"' in html
         assert 'id="gen-token-source"' in html
+        assert 'id="sidebar-budget-total"' not in html
+        assert 'id="gen-cost-total"' not in html
+        assert 'id="gen-ai-detail-cost"' not in html
+        assert 'id="gen-ai-detail-pricing"' not in html
         assert 'id="gen-ai-section-list"' in html
         assert 'id="construct-task-list"' in html
         assert 'id="step-7-content"' in html
@@ -1286,6 +1561,26 @@ class TestGenerationEndpoint:
             patch("app.modules.api.router.ai_service.generate", side_effect=_fake_generate),
             patch.object(router_module.ai_service, "get_token_usage_snapshot", return_value=usage_report),
             patch.object(router_module.ai_service, "get_token_usage_report", return_value=usage_report),
+            patch.object(
+                router_module.pricing_service,
+                "get_pricing",
+                return_value={
+                    "provider": "mistral",
+                    "model": "mistral-medium-2505",
+                    "input_price_per_1m_tokens": 2.0,
+                    "output_price_per_1m_tokens": 6.0,
+                    "cached_input_price_per_1m_tokens": None,
+                    "currency": "USD",
+                    "pricing_mode": "standard",
+                    "threshold_rule": "",
+                    "modality": "text",
+                    "source_url": "https://example.com/pricing",
+                    "fetched_at": "2026-03-18T10:00:00Z",
+                    "pricing_source": "cached",
+                    "is_cached_fallback": False,
+                    "available": True,
+                },
+            ),
             patch("app.modules.api.router._render_project_outputs_sync", side_effect=_fake_render),
         ):
             asyncio.run(router_module._ai_generation_job(project_id, "split-run-001"))
@@ -1301,6 +1596,10 @@ class TestGenerationEndpoint:
             project["generation_phase"]["planned_sections"][0]["parent_section_path"] == "I. PLANTEAMIENTO DEL PROBLEMA"
         )
         assert project["generation_phase"]["sections"][0]["total_tokens"] == 285
+        assert project["generation_phase"]["sections"][0]["estimated_cost_usd"] == pytest.approx(0.00087)
+        assert project["generation_phase"]["cost_summary"]["total_cost_usd"] == pytest.approx(0.00087)
+        assert project["generation_cost"]["total_cost_usd"] == pytest.approx(0.00087)
+        assert project["progress"]["costUsage"]["total_cost_usd"] == pytest.approx(0.00087)
         assert project["construction_phase"]["status"] == "completed"
         tasks = {item["id"]: item for item in project["construction_phase"]["tasks"]}
         assert tasks["payload"]["status"] == "done"

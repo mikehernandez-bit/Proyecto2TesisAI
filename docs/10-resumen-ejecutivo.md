@@ -1,118 +1,83 @@
-# Resumen Ejecutivo
+# Resumen Ejecutivo - GicaGen
 
-> Hallazgos, riesgos y recomendaciones del analisis de GicaGen.
-
----
-
-## Que Encontre
-
-### Estructura del Proyecto
-
-| Componente | Descripcion |
-|------------|-------------|
-| **Entrypoint** | `app/main.py` - FastAPI app configurada correctamente |
-| **Core** | 8 servicios (formats, prompts, projects, docx, n8n client, n8n integration, definition compiler, simulation artifacts) |
-| **Integrations** | Modulo `integrations/gicatesis/` con cliente HTTP, cache ETag, DTOs y errores custom |
-| **Storage** | JSON files con locks (MVP funcional) |
-| **API** | 21+ endpoints REST en router de 730 lineas, 5 modelos Pydantic |
-| **UI** | SPA JavaScript (898 lineas) + Jinja templates |
-| **Datos** | 4 archivos JSON en `/data` (incluyendo cache GicaTesis) |
-
-### Estadisticas
-
-> **Fuente:** Conteo real del repositorio verificado
-
-- **Archivos totales:** 73 (sin `.venv`, `__pycache__`, `.git`, `.cca`, `outputs`)
-- **Archivos Python:** 33
-- **Lineas Python:** 2875
-- **Lineas JavaScript:** 898
-- **Lineas HTML:** 464 (base.html: 31, app.html: 433)
-- **Dependencias:** 7 paquetes Python (+ python-dotenv implicito)
+> Actualizado: 2026-03-23.
+> Para stakeholders y revisores externos.
 
 ---
 
-## Riesgos Identificados
+## Que es
 
-| Riesgo | Severidad | Mitigacion |
-|--------|-----------|------------|
-| Persistencia JSON no escala | Media | Documentado como adapter reemplazable |
-| Servicios como globals en router | Media | Plan de inyeccion de dependencias |
-| Sin tests automatizados | Media | Estructura propuesta en docs |
-| Frontend en archivo unico (898 lineas) | Baja | Funcional para MVP, modularizar si crece |
-| Python 3.14 incompatible | Baja | Documentado en troubleshooting |
-| Dependencia de GicaTesis para formatos | Baja | Cache ETag + fallback demo mode |
+**GicaGen** es un sistema de generacion automatica de documentos academicos (tesis, proyectos de investigacion, informes) usando inteligencia artificial.
+
+El usuario selecciona el tipo de documento, completa un formulario con los datos del proyecto, y el sistema genera el contenido seccion por seccion usando modelos de IA (Gemini, Mistral, OpenRouter). El documento final se descarga en formato DOCX o PDF.
 
 ---
 
-## Que Esta Bien
+## Estado del Proyecto (Marzo 2026)
 
-- **Arquitectura modular:** Separacion `core/integrations/modules/data` legible
-- **Integracion GicaTesis implementada:** BFF con cache ETag, DTOs tipados, errores custom
-- **Compilador de definiciones:** IR para generacion estructurada de documentos
-- **Simulacion completa:** DOCX/PDF generados desde estructura de formato
-- **Codigo limpio:** Archivos con responsabilidades definidas
-- **FastAPI moderno:** Tipado, async, documentacion automatica
-- **MVP funcional:** Wizard 5 pasos operativo
-- **Modo demo:** Funciona sin dependencias externas
-
----
-
-## Que Debe Cambiar Si o Si
-
-> [!IMPORTANT]
-> Cambios recomendados antes de produccion:
-
-1. **Usar `Depends()` para servicios** en `api/router.py`
-   - Impacto: Testing, mantenibilidad
-   - Esfuerzo: Bajo
-
-2. **Agregar tests basicos**
-   - Impacto: Confiabilidad
-   - Esfuerzo: Medio
-
-3. **Validar archivos JSON al iniciar**
-   - Impacto: Estabilidad
-   - Esfuerzo: Bajo
-
-4. **Agregar `python-dotenv` a requirements.txt**
-   - Impacto: Reproducibilidad del setup
-   - Esfuerzo: Trivial
+| Area | Estado |
+|------|--------|
+| Generacion IA real | ✅ Implementado (Gemini + Mistral + OpenRouter) |
+| Fallback multi-proveedor | ✅ Implementado |
+| 10 plantillas de prompts reales | ✅ Implementado (UNAC + UNI) |
+| Validador de completitud | ✅ Implementado |
+| Wizard de 5 pasos con UI | ✅ Implementado |
+| Trace en vivo (SSE) | ✅ Implementado |
+| 29 archivos de tests | ✅ Implementado |
+| CI/CD (GitHub Actions) | ✅ Implementado |
+| Integracion GicaTesis | ✅ Implementado |
+| Base de datos | ❌ Pendiente (usa JSON local) |
+| Autenticacion de usuarios | ❌ Pendiente |
 
 ---
 
-## Que Es Opcional
+## Tecnologia
 
-| Mejora | Beneficio | Esfuerzo |
-|--------|-----------|----------|
-| Separar ports/adapters | Mejor arquitectura | Medio |
-| Limpiar cliente legacy `core/clients/` | Menos codigo muerto | Bajo |
-| Migrar a PostgreSQL | Escalabilidad | Alto |
-| Modularizar JS | Mantenibilidad | Medio |
-| Docker | Deploy simplificado | Bajo |
-
----
-
-## Documentacion Generada
-
-| Documento | Proposito |
-|-----------|-----------|
-| [00-indice.md](00-indice.md) | Navegacion |
-| [01-vision-y-alcance.md](01-vision-y-alcance.md) | Que es GicaGen |
-| [02-arquitectura.md](02-arquitectura.md) | Arquitectura actual con 8 servicios e integraciones |
-| [03-catalogo-repo.md](03-catalogo-repo.md) | Mapa del repo |
-| [04-integracion-gicatesis.md](04-integracion-gicatesis.md) | Contratos API y simulacion |
-| [catalogo/carpetas.md](catalogo/carpetas.md) | 17 carpetas |
-| [catalogo/archivos.md](catalogo/archivos.md) | 73 archivos |
-| [05-plan-de-cambios.md](05-plan-de-cambios.md) | Plan de desacoplo |
-| + 6 documentos operativos | Setup, tests, deploy, troubleshooting |
+| Capa | Tecnologia |
+|------|------------|
+| Backend | Python + FastAPI |
+| IA | Google Gemini (primario), Mistral (fallback), OpenRouter (fallback) |
+| Frontend | JavaScript (SPA), HTML/CSS |
+| Render documentos | GicaTesis (sistema hermano) |
+| Tests | pytest (200+ casos) + GitHub Actions CI |
 
 ---
 
-## Proximos Pasos Recomendados
+## Tipos de Documentos Soportados
 
-1. Revisar documentacion actualizada
-2. Validar checklist de [11-checklist-validacion.md](11-checklist-validacion.md)
-3. Implementar inyeccion de dependencias (bajo riesgo)
-4. Agregar `python-dotenv` a `requirements.txt`
-5. Agregar tests unitarios basicos
-6. Evaluar eliminacion de `core/clients/` legacy
+| Universidad | Tipos |
+|-------------|-------|
+| UNAC | Maestria Cuantitativa, Maestria Cualitativa, Proyecto Cuantitativo, Proyecto Cualitativo, Informe Cuantitativo, Informe Cualitativo |
+| UNI | Posgrado (Maestria/Doctorado), Plan de Trabajo de Tesis, Informe de Ingenieria |
+
+---
+
+## Como funciona la generacion
+
+1. El usuario elige el formato (ej: "Informe de Tesis Cuantitativo UNAC")
+2. Selecciona el prompt de IA correspondiente
+3. Completa datos: tema, objetivo, hipotesis, metodologia, etc.
+4. El sistema genera cada seccion del documento con IA
+5. Si un proveedor falla, cambia automaticamente al siguiente
+6. El resultado se descarga como DOCX o PDF
+
+---
+
+## Riegos Actuales
+
+| Riesgo | Mitigacion |
+|--------|-----------|
+| Cuota de IA agotada | Fallback automatico a otros proveedores |
+| GicaTesis no disponible | Cache local + modo demo |
+| Output de IA incompleto | Validador de completitud + corrector post-generacion |
+| Cambios rompiendo funcionalidad | CI/CD con 200+ tests automatizados |
+
+---
+
+## Proximas Mejoras Priorizadas
+
+1. **P1**: Actualizar SDK de Gemini a version mas reciente
+2. **P1**: Ampliar tests End-to-End con escenarios reales
+3. **P2**: Implementar base de datos (dejar JSON local)
+4. **P2**: Agregar autenticacion de usuarios
+5. **P2**: Metricas y observabilidad (dashboards)

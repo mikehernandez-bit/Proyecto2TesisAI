@@ -1,6 +1,6 @@
 # Indice de Documentacion - GicaGen
 
-> Navegacion principal de la documentacion tecnica.
+> Actualizado: 2026-03-23. Para navegar la documentacion del proyecto.
 
 ---
 

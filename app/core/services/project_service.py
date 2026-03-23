@@ -9,6 +9,12 @@ from app.core.services.ai.token_usage import (
     normalize_token_usage_report,
     normalize_token_usage_snapshot,
 )
+from app.core.services.pricing import (
+    empty_generation_cost_report,
+    empty_generation_cost_snapshot,
+    normalize_generation_cost_report,
+    normalize_generation_cost_snapshot,
+)
 from app.core.storage.json_store import JsonStore
 from app.core.utils.id import new_id
 
@@ -29,6 +35,7 @@ class ProjectService:
             "currentPath": "",
             "provider": provider,
             "tokenUsage": empty_token_usage_summary(),
+            "costUsage": empty_generation_cost_snapshot(),
             "updatedAt": dt.datetime.now().isoformat(timespec="seconds"),
         }
 
@@ -40,6 +47,7 @@ class ProjectService:
             "current_path": "",
             "completed_sections": [],
             "tokenUsage": empty_token_usage_summary(),
+            "costUsage": empty_generation_cost_snapshot(),
             "source_run_id": "",
             "status": "idle",
             "updated_at": "",
@@ -56,6 +64,7 @@ class ProjectService:
             "completed_sections": 0,
             "planned_sections": [],
             "sections": [],
+            "cost_summary": empty_generation_cost_snapshot(),
             "started_at": "",
             "updated_at": "",
             "finished_at": "",
@@ -225,6 +234,11 @@ class ProjectService:
                         "input_tokens": max(0, int(item.get("input_tokens") or 0)),
                         "output_tokens": max(0, int(item.get("output_tokens") or 0)),
                         "total_tokens": max(0, int(item.get("total_tokens") or 0)),
+                        "estimated_cost_usd": float(item.get("estimated_cost_usd") or 0.0),
+                        "pricing_source": str(item.get("pricing_source") or "unavailable"),
+                        "pricing_fetched_at": str(item.get("pricing_fetched_at") or ""),
+                        "currency": str(item.get("currency") or "USD"),
+                        "pricing_available": bool(item.get("pricing_available")),
                         "model": str(item.get("model") or ""),
                         "provider": str(item.get("provider") or ""),
                         "status": str(item.get("status") or "pending"),
@@ -250,6 +264,7 @@ class ProjectService:
                 "completed_sections": max(0, int(raw.get("completed_sections") or 0)),
                 "planned_sections": planned_sections,
                 "sections": normalized_sections,
+                "cost_summary": normalize_generation_cost_snapshot(raw.get("cost_summary")),
                 "started_at": str(raw.get("started_at") or ""),
                 "updated_at": str(raw.get("updated_at") or ""),
                 "finished_at": str(raw.get("finished_at") or ""),
@@ -323,6 +338,7 @@ class ProjectService:
                 "current_path": str(raw.get("current_path") or ""),
                 "completed_sections": completed_sections,
                 "tokenUsage": normalize_token_usage_snapshot(raw.get("tokenUsage")),
+                "costUsage": normalize_generation_cost_snapshot(raw.get("costUsage")),
                 "source_run_id": str(raw.get("source_run_id") or ""),
                 "status": str(raw.get("status") or "idle"),
                 "updated_at": str(raw.get("updated_at") or ""),
@@ -357,10 +373,12 @@ class ProjectService:
                 "currentPath": str(progress.get("currentPath") or ""),
                 "provider": str(progress.get("provider") or ""),
                 "tokenUsage": normalize_token_usage_snapshot(progress.get("tokenUsage")),
+                "costUsage": normalize_generation_cost_snapshot(progress.get("costUsage")),
                 "updatedAt": str(progress.get("updatedAt") or dt.datetime.now().isoformat(timespec="seconds")),
             }
         normalized["progress"] = progress
         normalized["token_usage"] = normalize_token_usage_report(normalized.get("token_usage"))
+        normalized["generation_cost"] = normalize_generation_cost_report(normalized.get("generation_cost"))
         normalized["generation_snapshot"] = cls._normalize_generation_snapshot(normalized.get("generation_snapshot"))
         normalized["generation_phase"] = cls._normalize_generation_phase(normalized.get("generation_phase"))
         normalized["construction_phase"] = cls._normalize_construction_phase(normalized.get("construction_phase"))
@@ -430,6 +448,8 @@ class ProjectService:
         self,
         project_id: str,
         mutator: Callable[[Dict[str, Any]], None],
+        *,
+        touch_updated_at: bool = True,
     ) -> Optional[Dict[str, Any]]:
         items = self.store.read_list()
         for i, p in enumerate(items):
@@ -437,7 +457,8 @@ class ProjectService:
                 continue
             p = self._normalize_project(p)
             mutator(p)
-            p["updated_at"] = dt.datetime.now().isoformat(timespec="seconds")
+            if touch_updated_at:
+                p["updated_at"] = dt.datetime.now().isoformat(timespec="seconds")
             items[i] = p
             self.store.write_list(items)
             return p
@@ -484,6 +505,7 @@ class ProjectService:
             "trace": [],
             "progress": self._default_progress(),
             "token_usage": empty_token_usage_report(),
+            "generation_cost": empty_generation_cost_report(),
             "generation_snapshot": self._empty_generation_snapshot(),
             "generation_phase": self._empty_generation_phase(),
             "construction_phase": self._empty_construction_phase(),
@@ -507,7 +529,13 @@ class ProjectService:
         self.store.write_list(items)
         return self._normalize_project(project)
 
-    def update_project(self, project_id: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def update_project(
+        self,
+        project_id: str,
+        payload: Dict[str, Any],
+        *,
+        touch_updated_at: bool = True,
+    ) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
             if "title" in payload and payload.get("title") is not None:
                 p["title"] = payload.get("title") or p.get("title")
@@ -548,6 +576,8 @@ class ProjectService:
                 p["ai_selection"] = selection if isinstance(selection, dict) else None
             if "token_usage" in payload:
                 p["token_usage"] = normalize_token_usage_report(payload.get("token_usage"))
+            if "generation_cost" in payload:
+                p["generation_cost"] = normalize_generation_cost_report(payload.get("generation_cost"))
             if "generation_snapshot" in payload:
                 p["generation_snapshot"] = self._normalize_generation_snapshot(payload.get("generation_snapshot"))
             if "generation_phase" in payload:
@@ -601,6 +631,7 @@ class ProjectService:
                         "currentPath": str(payload["progress"].get("currentPath") or ""),
                         "provider": str(payload["progress"].get("provider") or ""),
                         "tokenUsage": normalize_token_usage_snapshot(payload["progress"].get("tokenUsage")),
+                        "costUsage": normalize_generation_cost_snapshot(payload["progress"].get("costUsage")),
                         "updatedAt": str(
                             payload["progress"].get("updatedAt") or dt.datetime.now().isoformat(timespec="seconds")
                         ),
@@ -615,7 +646,15 @@ class ProjectService:
                 p["variables"] = values or {}
                 p["values"] = values or {}
 
-        return self._mutate_project(project_id, _mutate)
+        return self._mutate_project(project_id, _mutate, touch_updated_at=touch_updated_at)
+
+    def delete_project(self, project_id: str) -> bool:
+        items = self.store.read_list()
+        remaining = [item for item in items if item.get("id") != project_id]
+        if len(remaining) == len(items):
+            return False
+        self.store.write_list(remaining)
+        return True
 
     def clear_trace(self, project_id: str) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
@@ -722,6 +761,8 @@ class ProjectService:
         provider: Optional[str] = None,
         token_usage_snapshot_data: Optional[Dict[str, Any]] = None,
         token_usage_report_data: Optional[Dict[str, Any]] = None,
+        cost_usage_snapshot_data: Optional[Dict[str, Any]] = None,
+        generation_cost_report_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
             progress = p.get("progress")
@@ -740,6 +781,10 @@ class ProjectService:
                 progress["tokenUsage"] = normalize_token_usage_snapshot(token_usage_snapshot_data)
             if token_usage_report_data is not None:
                 p["token_usage"] = normalize_token_usage_report(token_usage_report_data)
+            if cost_usage_snapshot_data is not None:
+                progress["costUsage"] = normalize_generation_cost_snapshot(cost_usage_snapshot_data)
+            if generation_cost_report_data is not None:
+                p["generation_cost"] = normalize_generation_cost_report(generation_cost_report_data)
             progress["updatedAt"] = dt.datetime.now().isoformat(timespec="seconds")
             p["progress"] = progress
 
@@ -874,6 +919,7 @@ class ProjectService:
             p["status"] = "ai_received"
             p["ai_result"] = ai_result
             p["token_usage"] = normalize_token_usage_report(ai_result.get("tokenUsage"))
+            p["generation_cost"] = normalize_generation_cost_report(ai_result.get("generationCost"))
             p["run_id"] = run_id
             p["artifacts"] = artifacts or []
             p["error"] = None
@@ -891,6 +937,7 @@ class ProjectService:
                 total = int(progress.get("total") or 0)
                 if total > 0:
                     progress["current"] = total
+                progress["costUsage"] = normalize_generation_cost_snapshot(ai_result.get("generationCost"))
                 progress["updatedAt"] = dt.datetime.now().isoformat(timespec="seconds")
                 p["progress"] = progress
 

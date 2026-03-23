@@ -32,6 +32,15 @@ from app.core.services.ai.token_usage import (
 )
 from app.core.services.definition_compiler import compile_definition_to_section_index
 from app.core.services.format_service import FormatService
+from app.core.services.pricing import (
+    PricingService,
+    build_generation_cost_report,
+    build_project_budget_report,
+    empty_generation_cost_report,
+    generation_cost_snapshot,
+    normalize_generation_cost_report,
+    normalize_generation_cost_snapshot,
+)
 from app.core.services.project_service import ProjectService
 from app.core.services.prompt_service import PromptService
 from app.core.utils.docx_builder import build_demo_docx
@@ -98,6 +107,7 @@ projects = ProjectService()
 n8n = N8NClient()
 n8n_specs = N8NIntegrationService()
 ai_service = AIService()
+pricing_service = PricingService()
 STARTED_AT = dt.datetime.now(dt.timezone.utc).isoformat()
 TRACE_MAX_PREVIEW_CHARS = 520
 TRACE_TERMINAL_STATUSES = {
@@ -169,6 +179,7 @@ def _build_generation_snapshot(
     total_sections: int = 0,
     current_path: str = "",
     token_usage_snapshot_data: Optional[Dict[str, Any]] = None,
+    cost_usage_snapshot_data: Optional[Dict[str, Any]] = None,
     run_id: str = "",
     status: str = "idle",
 ) -> Dict[str, Any]:
@@ -191,6 +202,7 @@ def _build_generation_snapshot(
         "current_path": snapshot_current_path,
         "completed_sections": completed_sections,
         "tokenUsage": token_usage_snapshot_data or token_usage_snapshot(empty_token_usage_report()),
+        "costUsage": cost_usage_snapshot_data or generation_cost_snapshot(empty_generation_cost_report()),
         "source_run_id": str(run_id or "").strip(),
         "status": str(status or "idle").strip() or "idle",
         "updated_at": _utc_now_z(),
@@ -216,6 +228,7 @@ def _empty_generation_phase(*, total_sections: int = 0) -> Dict[str, Any]:
         "completed_sections": 0,
         "planned_sections": [],
         "sections": [],
+        "cost_summary": generation_cost_snapshot(empty_generation_cost_report()),
         "started_at": "",
         "updated_at": "",
         "finished_at": "",
@@ -258,6 +271,7 @@ def _normalize_generation_phase_state(raw: Any) -> Dict[str, Any]:
             "current_section_path": str(raw.get("current_section_path") or ""),
             "total_sections": max(0, int(raw.get("total_sections") or 0)),
             "completed_sections": max(0, int(raw.get("completed_sections") or 0)),
+            "cost_summary": normalize_generation_cost_snapshot(raw.get("cost_summary")),
             "started_at": str(raw.get("started_at") or ""),
             "updated_at": str(raw.get("updated_at") or ""),
             "finished_at": str(raw.get("finished_at") or ""),
@@ -351,6 +365,45 @@ def _aggregate_attempt_usage(attempts: list[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _apply_generation_costs_to_phase(
+    phase: Dict[str, Any],
+    cost_report: Dict[str, Any],
+) -> Dict[str, Any]:
+    normalized = _normalize_generation_phase_state(phase)
+    normalized["cost_summary"] = normalize_generation_cost_snapshot(cost_report)
+    section_costs = (
+        {
+            (str(item.get("section_id") or "").strip() or str(item.get("section_path") or "").strip()): item
+            for item in cost_report.get("sections", [])
+            if isinstance(item, dict)
+        }
+        if isinstance(cost_report, dict)
+        else {}
+    )
+
+    updated_sections: list[Dict[str, Any]] = []
+    for item in normalized.get("sections") or []:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("section_id") or "").strip() or str(item.get("section_path") or "").strip()
+        cost_entry = section_costs.get(key, {})
+        updated = dict(item)
+        updated["estimated_cost_usd"] = float(
+            cost_entry.get("estimated_cost_usd") or item.get("estimated_cost_usd") or 0.0
+        )
+        updated["pricing_source"] = str(cost_entry.get("pricing_source") or item.get("pricing_source") or "unavailable")
+        updated["pricing_fetched_at"] = str(
+            cost_entry.get("pricing_fetched_at") or item.get("pricing_fetched_at") or ""
+        )
+        updated["currency"] = str(cost_entry.get("currency") or item.get("currency") or "USD")
+        updated["pricing_available"] = bool(
+            cost_entry.get("available") if "available" in cost_entry else item.get("pricing_available")
+        )
+        updated_sections.append(updated)
+    normalized["sections"] = updated_sections
+    return normalized
+
+
 def _upsert_generation_section(
     phase: Dict[str, Any],
     section_payload: Dict[str, Any],
@@ -416,6 +469,17 @@ def _upsert_generation_section(
         "input_tokens": int(merged_payload.get("input_tokens") or current.get("input_tokens") or 0),
         "output_tokens": int(merged_payload.get("output_tokens") or current.get("output_tokens") or 0),
         "total_tokens": int(merged_payload.get("total_tokens") or current.get("total_tokens") or 0),
+        "estimated_cost_usd": float(
+            merged_payload.get("estimated_cost_usd") or current.get("estimated_cost_usd") or 0.0
+        ),
+        "pricing_source": str(merged_payload.get("pricing_source") or current.get("pricing_source") or "unavailable"),
+        "pricing_fetched_at": str(merged_payload.get("pricing_fetched_at") or current.get("pricing_fetched_at") or ""),
+        "currency": str(merged_payload.get("currency") or current.get("currency") or "USD"),
+        "pricing_available": bool(
+            merged_payload.get("pricing_available")
+            if "pricing_available" in merged_payload
+            else current.get("pricing_available")
+        ),
         "model": str(merged_payload.get("model") or current.get("model") or ""),
         "provider": str(merged_payload.get("provider") or current.get("provider") or ""),
         "status": str(merged_payload.get("status") or current.get("status") or "pending"),
@@ -1236,6 +1300,33 @@ def get_project(project_id: str):
     return p
 
 
+@router.get("/projects/{project_id}/budget")
+def get_project_budget(
+    project_id: str,
+    provider: Optional[str] = Query(default=None),
+    model: Optional[str] = Query(default=None),
+    refresh_pricing: bool = Query(default=False, alias="refreshPricing"),
+):
+    project = projects.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return build_project_budget_report(
+        project,
+        pricing_service=pricing_service,
+        selected_provider=str(provider or ""),
+        selected_model=str(model or ""),
+        refresh_pricing=bool(refresh_pricing),
+    )
+
+
+@router.delete("/projects/{project_id}")
+def delete_project(project_id: str):
+    ok = projects.delete_project(project_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"ok": True, "projectId": project_id}
+
+
 @router.get("/projects/{project_id}/trace")
 def get_project_trace(project_id: str):
     project = projects.get_project(project_id)
@@ -1289,6 +1380,9 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
     prompt = prompts.get_prompt(prompt_id) if prompt_id else None
     variables = raw.get("variables") if "variables" in raw else None
     reset_generated_state = bool(raw.get("reset_generated_state"))
+    touch_project_timestamp = raw.get("touch_project_timestamp")
+    if touch_project_timestamp is None:
+        touch_project_timestamp = True
 
     # --- Actualizamos secciones si cambia el prompt ---
     update_payload: Dict[str, Any] = {
@@ -1333,12 +1427,14 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
                 "run_id": None,
                 "cancel_requested": False,
                 "token_usage": empty_token_usage_report(),
+                "generation_cost": empty_generation_cost_report(),
                 "progress": {
                     "current": 0,
                     "total": 0,
                     "currentPath": "",
                     "provider": current_provider,
                     "tokenUsage": token_usage_snapshot(empty_token_usage_report()),
+                    "costUsage": generation_cost_snapshot(empty_generation_cost_report()),
                     "updatedAt": _utc_now_z(),
                 },
                 "generation_snapshot": _build_generation_snapshot(
@@ -1346,6 +1442,7 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
                     total_sections=0,
                     current_path="",
                     token_usage_snapshot_data=token_usage_snapshot(empty_token_usage_report()),
+                    cost_usage_snapshot_data=generation_cost_snapshot(empty_generation_cost_report()),
                     status="idle",
                 ),
                 "generation_phase": {
@@ -1375,6 +1472,7 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
     updated = projects.update_project(
         project_id,
         update_payload,
+        touch_updated_at=bool(touch_project_timestamp),
     )
     if reset_generated_state:
         projects.clear_trace(project_id)
@@ -1850,6 +1948,8 @@ async def _ai_generation_job(
         safe_current = current if current >= 0 else 0
         usage_report = ai_service.get_token_usage_report()
         usage_snapshot = ai_service.get_token_usage_snapshot()
+        cost_report = build_generation_cost_report(usage_report, pricing_service=pricing_service)
+        cost_snapshot = generation_cost_snapshot(cost_report)
         projects.update_progress(
             project_id,
             current=safe_current,
@@ -1858,6 +1958,8 @@ async def _ai_generation_job(
             provider=provider or "",
             token_usage_snapshot_data=usage_snapshot,
             token_usage_report_data=usage_report,
+            cost_usage_snapshot_data=cost_snapshot,
+            generation_cost_report_data=cost_report,
         )
         if isinstance(payload, dict) and payload.get("section_id"):
             current_project = projects.get_project(project_id) or {}
@@ -1869,6 +1971,7 @@ async def _ai_generation_job(
             generation_phase["status"] = "running"
             generation_phase["updated_at"] = _utc_now_z()
             generation_phase = _upsert_generation_section(generation_phase, payload)
+            generation_phase = _apply_generation_costs_to_phase(generation_phase, cost_report)
             projects.update_project(project_id, {"generation_phase": generation_phase})
 
         if stage == "provider_fallback":
@@ -1946,8 +2049,11 @@ async def _ai_generation_job(
 
         usage_report = ai_service.get_token_usage_report()
         usage_snapshot = ai_service.get_token_usage_snapshot()
+        cost_report = build_generation_cost_report(usage_report, pricing_service=pricing_service)
+        cost_snapshot = generation_cost_snapshot(cost_report)
         last_path = str(partial_sections[-1].get("path") or "")
         partial_ai["tokenUsage"] = usage_report
+        partial_ai["generationCost"] = cost_report
         latest_project = projects.get_project(project_id) or {}
         latest_progress = latest_project.get("progress") if isinstance(latest_project.get("progress"), dict) else {}
         total_sections = (
@@ -1960,11 +2066,13 @@ async def _ai_generation_job(
             {
                 "ai_result": partial_ai,
                 "token_usage": usage_report,
+                "generation_cost": cost_report,
                 "generation_snapshot": _build_generation_snapshot(
                     sections=partial_sections,
                     total_sections=total_sections,
                     current_path=last_path,
                     token_usage_snapshot_data=usage_snapshot,
+                    cost_usage_snapshot_data=cost_snapshot,
                     run_id=run_id,
                     status="resume_ready",
                 ),
@@ -1985,6 +2093,8 @@ async def _ai_generation_job(
             provider=provider_hint,
             token_usage_snapshot_data=usage_snapshot,
             token_usage_report_data=usage_report,
+            cost_usage_snapshot_data=cost_snapshot,
+            generation_cost_report_data=cost_report,
         )
         _emit_project_trace(
             project_id,
@@ -2017,11 +2127,18 @@ async def _ai_generation_job(
             )
             or "-"
         )
+        usage_report = ai_service.get_token_usage_report()
+        usage_snapshot = ai_service.get_token_usage_snapshot()
+        cost_report = build_generation_cost_report(usage_report, pricing_service=pricing_service)
+        cost_snapshot = generation_cost_snapshot(cost_report)
+        ai_result["generationCost"] = cost_report
         projects.update_progress(
             project_id,
             provider=provider,
-            token_usage_snapshot_data=ai_service.get_token_usage_snapshot(),
-            token_usage_report_data=ai_service.get_token_usage_report(),
+            token_usage_snapshot_data=usage_snapshot,
+            token_usage_report_data=usage_report,
+            cost_usage_snapshot_data=cost_snapshot,
+            generation_cost_report_data=cost_report,
         )
 
         run_incidents = ai_service.get_run_incidents()
@@ -2052,6 +2169,7 @@ async def _ai_generation_job(
         generation_phase["status"] = "completed"
         generation_phase["finished_at"] = _utc_now_z()
         generation_phase["updated_at"] = _utc_now_z()
+        generation_phase = _apply_generation_costs_to_phase(generation_phase, cost_report)
         projects.update_project(project_id, {"generation_phase": generation_phase})
         _set_construction_task(
             project_id,
@@ -2584,6 +2702,19 @@ async def trigger_generation(
             if resume_from_partial and isinstance(stored_ai_result, dict)
             else empty_token_usage_report()
         )
+        initial_cost_report = (
+            normalize_generation_cost_report(stored_ai_result.get("generationCost"))
+            if resume_from_partial and isinstance(stored_ai_result, dict)
+            else empty_generation_cost_report()
+        )
+        if (
+            resume_from_partial
+            and isinstance(stored_ai_result, dict)
+            and not initial_cost_report.get("priced_calls")
+            and initial_usage_report.get("calls_total")
+        ):
+            initial_cost_report = build_generation_cost_report(initial_usage_report, pricing_service=pricing_service)
+        initial_cost_snapshot = generation_cost_snapshot(initial_cost_report)
         existing_progress = project.get("progress") if isinstance(project.get("progress"), dict) else {}
         total_sections_hint = int(existing_progress.get("total") or 0)
         existing_generation_phase = _normalize_generation_phase_state(project.get("generation_phase"))
@@ -2638,6 +2769,7 @@ async def trigger_generation(
                 "started_at": _utc_now_z(),
                 "updated_at": _utc_now_z(),
             }
+        generation_phase_payload = _apply_generation_costs_to_phase(generation_phase_payload, initial_cost_report)
         projects.update_project(
             projectId,
             {
@@ -2654,9 +2786,11 @@ async def trigger_generation(
                     ),
                     "provider": provider,
                     "tokenUsage": token_usage_snapshot(initial_usage_report),
+                    "costUsage": initial_cost_snapshot,
                     "updatedAt": _utc_now_z(),
                 },
                 "token_usage": initial_usage_report,
+                "generation_cost": initial_cost_report,
                 "generation_snapshot": _build_generation_snapshot(
                     sections=resume_seed_sections if resume_from_partial else [],
                     total_sections=total_sections_hint,
@@ -2666,6 +2800,7 @@ async def trigger_generation(
                         else ""
                     ),
                     token_usage_snapshot_data=token_usage_snapshot(initial_usage_report),
+                    cost_usage_snapshot_data=initial_cost_snapshot,
                     run_id=run_id,
                     status="running" if resume_from_partial and resume_seed_sections else "idle",
                 ),
