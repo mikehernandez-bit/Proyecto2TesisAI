@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GicaGen frontend SPA.
  *
  * Wizard flow:
@@ -28,14 +28,38 @@ const TesisAI = (() => {
   let gicatesisOnline = true;
   let formatsCache = [];
   let promptsCache = [];
+  let currentBudgetProjectId = "";
+  let currentBudgetProjects = [];
+  let currentBudgetPayload = null;
+  let budgetEstimateVisible = false;
+  let wizardNavigationVersion = 0;
+  let wizardSessionVersion = 0;
 
   const $ = (id) => document.getElementById(id);
   const INTL_INT_FORMAT = new Intl.NumberFormat("es-PE");
+  const INTL_USD_FORMAT = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 6,
+  });
 
   function formatInt(value) {
     const numeric = Number(value || 0);
     if (!Number.isFinite(numeric)) return "0";
     return INTL_INT_FORMAT.format(Math.max(0, Math.round(numeric)));
+  }
+
+  function formatUsd(value) {
+    const numeric = Number(value || 0);
+    if (!Number.isFinite(numeric)) return "USD -";
+    return INTL_USD_FORMAT.format(Math.max(0, numeric));
+  }
+
+  function formatUsdRate(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "No disponible";
+    return `${INTL_USD_FORMAT.format(Math.max(0, numeric))} / 1M tokens`;
   }
 
   function _parseDate(value) {
@@ -88,6 +112,39 @@ const TesisAI = (() => {
       simulated: 2,
     };
     return priorities[status] || 0;
+  }
+
+  function _projectTokenTotal(project) {
+    const usage = project?.token_usage && typeof project.token_usage === "object"
+      ? project.token_usage
+      : project?.progress?.tokenUsage || {};
+    const total = Number(usage?.total_tokens || 0);
+    return Number.isFinite(total) ? Math.max(0, total) : 0;
+  }
+
+  function _projectBudgetTotal(project) {
+    const cost = project?.generation_cost && typeof project.generation_cost === "object"
+      ? project.generation_cost
+      : project?.progress?.costUsage || {};
+    const total = Number(cost?.total_cost_usd || 0);
+    return Number.isFinite(total) ? Math.max(0, total) : 0;
+  }
+
+  function _portfolioUsageSummary(items) {
+    return (Array.isArray(items) ? items : []).reduce(
+      (summary, project) => {
+        summary.totalTokens += _projectTokenTotal(project);
+        summary.totalBudget += _projectBudgetTotal(project);
+        return summary;
+      },
+      { totalTokens: 0, totalBudget: 0 },
+    );
+  }
+
+  function _renderPortfolioMetrics(items) {
+    const usageSummary = _portfolioUsageSummary(items);
+    if ($("stat-total-projects")) $("stat-total-projects").innerText = String(items.length);
+    if ($("stat-total-tokens")) $("stat-total-tokens").innerText = formatInt(usageSummary.totalTokens);
   }
 
   function _sortProjectsForProduct(items) {
@@ -312,6 +369,11 @@ const TesisAI = (() => {
       input_tokens: pickNumber(base.input_tokens, incoming.input_tokens),
       output_tokens: pickNumber(base.output_tokens, incoming.output_tokens),
       total_tokens: pickNumber(base.total_tokens, incoming.total_tokens),
+      estimated_cost_usd: Math.max(Number(base.estimated_cost_usd || 0), Number(incoming.estimated_cost_usd || 0), 0),
+      pricing_source: pickString(base.pricing_source, incoming.pricing_source),
+      pricing_fetched_at: pickString(base.pricing_fetched_at, incoming.pricing_fetched_at),
+      currency: pickString(base.currency, incoming.currency) || "USD",
+      pricing_available: Boolean(base.pricing_available || incoming.pricing_available),
       provider: pickString(base.provider, incoming.provider),
       model: pickString(base.model, incoming.model),
       duration_ms: pickNumber(base.duration_ms, incoming.duration_ms),
@@ -387,6 +449,11 @@ const TesisAI = (() => {
         total_tokens: 0,
         input_tokens: 0,
         output_tokens: 0,
+        estimated_cost_usd: 0,
+        pricing_source: "unavailable",
+        pricing_fetched_at: "",
+        currency: "USD",
+        pricing_available: false,
         provider: "",
         model: "",
         prompt_sent: "",
@@ -413,6 +480,9 @@ const TesisAI = (() => {
       totalSections: total,
       completedSections: completed,
       currentKey,
+      costSummary: phase.cost_summary && typeof phase.cost_summary === "object"
+        ? phase.cost_summary
+        : (projectSnapshot?.progress?.costUsage || projectSnapshot?.generation_cost || {}),
       sections: orderedSections,
     };
   }
@@ -459,6 +529,11 @@ const TesisAI = (() => {
             total_tokens: 0,
             input_tokens: 0,
             output_tokens: 0,
+            estimated_cost_usd: 0,
+            pricing_source: "unavailable",
+            pricing_fetched_at: "",
+            currency: "USD",
+            pricing_available: false,
             provider: "",
             model: "",
             prompt_sent: "",
@@ -494,6 +569,11 @@ const TesisAI = (() => {
           total_tokens: Number(meta.sectionUsage?.total_tokens || 0),
           input_tokens: Number(meta.sectionUsage?.input_tokens_total || 0),
           output_tokens: Number(meta.sectionUsage?.output_tokens_total || 0),
+          estimated_cost_usd: Number(meta.sectionCost?.estimated_cost_usd || 0),
+          pricing_source: String(meta.sectionCost?.pricing_source || "unavailable"),
+          pricing_fetched_at: String(meta.sectionCost?.pricing_fetched_at || ""),
+          currency: String(meta.sectionCost?.currency || "USD"),
+          pricing_available: Boolean(meta.sectionCost?.available),
           provider: String(meta.provider || ""),
           model: String(meta.model || ""),
           prompt_sent: String(preview.prompt || ""),
@@ -529,6 +609,11 @@ const TesisAI = (() => {
         total_tokens: 0,
         input_tokens: 0,
         output_tokens: 0,
+        estimated_cost_usd: 0,
+        pricing_source: "unavailable",
+        pricing_fetched_at: "",
+        currency: "USD",
+        pricing_available: false,
         provider: "",
         model: "",
         prompt_sent: "",
@@ -558,6 +643,11 @@ const TesisAI = (() => {
         total_tokens: 0,
         input_tokens: 0,
         output_tokens: 0,
+        estimated_cost_usd: 0,
+        pricing_source: "unavailable",
+        pricing_fetched_at: "",
+        currency: "USD",
+        pricing_available: false,
         provider: "",
         model: "",
         prompt_sent: "",
@@ -573,6 +663,28 @@ const TesisAI = (() => {
       sectionsByKey.set(key, _mergeGenerationSection(existing, normalized));
     });
 
+    const costSections = Array.isArray(projectSnapshot?.generation_cost?.sections)
+      ? projectSnapshot.generation_cost.sections
+      : [];
+    costSections.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const normalized = {
+        section_id: String(item.section_id || item.sectionId || ""),
+        section_path: String(item.section_path || item.sectionPath || item.path || ""),
+        estimated_cost_usd: Number(item.estimated_cost_usd || 0),
+        pricing_source: String(item.pricing_source || "unavailable"),
+        pricing_fetched_at: String(item.pricing_fetched_at || ""),
+        currency: String(item.currency || "USD"),
+        pricing_available: Boolean(item.available),
+        provider: String(item.provider || ""),
+        model: String(item.model || ""),
+      };
+      const key = _sectionKey(normalized);
+      if (!key) return;
+      const existing = sectionsByKey.get(key) || {};
+      sectionsByKey.set(key, _mergeGenerationSection(existing, normalized));
+    });
+
     const sections = _sortGenerationSections(Array.from(sectionsByKey.values()));
     const completedSections = sections.filter((item) => String(item.status || "") === "ok").length;
     return {
@@ -581,6 +693,7 @@ const TesisAI = (() => {
       totalSections: Math.max(totalSections, sections.length),
       completedSections,
       currentKey: String(progress.currentPath || generationSnapshot.current_path || ""),
+      costSummary: projectSnapshot?.progress?.costUsage || projectSnapshot?.generation_cost || {},
       sections,
     };
   }
@@ -599,6 +712,9 @@ const TesisAI = (() => {
       totalSections: Math.max(direct.totalSections || 0, derived.totalSections || 0, mergedSections.length),
       completedSections: Math.max(direct.completedSections || 0, derived.completedSections || 0, completedSections),
       currentKey: direct.currentKey || derived.currentKey,
+      costSummary: direct.costSummary && Object.keys(direct.costSummary || {}).length
+        ? direct.costSummary
+        : derived.costSummary,
       sections: mergedSections,
     };
   }
@@ -622,6 +738,25 @@ const TesisAI = (() => {
     if (!sources.size) return "-";
     if (sources.has("mixed") || sources.size > 1) return "mixed";
     return Array.from(sources)[0];
+  }
+
+  function _pricingSourceLabel(values) {
+    const sources = new Set(
+      (Array.isArray(values) ? values : [])
+        .map((item) => String(item || "").trim().toLowerCase())
+        .filter(Boolean),
+    );
+    if (!sources.size) return "unavailable";
+    if (sources.has("mixed") || sources.size > 1) return "mixed";
+    return Array.from(sources)[0];
+  }
+
+  function _humanizePricingSource(value) {
+    const safe = String(value || "").trim().toLowerCase();
+    if (safe === "updated") return "Actualizado";
+    if (safe === "cached") return "Cacheado";
+    if (safe === "mixed") return "Mixto";
+    return "No disponible";
   }
 
   function _summarizeGenerationNode(node) {
@@ -648,10 +783,12 @@ const TesisAI = (() => {
       input_tokens: sections.reduce((sum, item) => sum + Number(item?.input_tokens || 0), 0),
       output_tokens: sections.reduce((sum, item) => sum + Number(item?.output_tokens || 0), 0),
       total_tokens: sections.reduce((sum, item) => sum + Number(item?.total_tokens || 0), 0),
+      estimated_cost_usd: sections.reduce((sum, item) => sum + Number(item?.estimated_cost_usd || 0), 0),
       duration_ms: sections.reduce((sum, item) => sum + Number(item?.duration_ms || 0), 0),
       attempt_count: sections.reduce((sum, item) => sum + Number(item?.attempt_count || 0), 0),
       latestSection,
       source: _aggregateGenerationSource(sections),
+      pricing_source: _pricingSourceLabel(sections.map((item) => item?.pricing_source)),
     };
   }
 
@@ -760,7 +897,7 @@ const TesisAI = (() => {
       const latestSection = summary.latestSection || node.selfSection || {};
       const detail = hasChildren
         ? `${formatInt(summary.completedCount)}/${formatInt(summary.totalCount)} subsecciones`
-        : `${latestSection.provider || "-"} · ${latestSection.model || "-"} · ${formatInt(summary.total_tokens)} tokens`;
+        : `${latestSection.provider || "-"} Â· ${latestSection.model || "-"} Â· ${formatInt(summary.total_tokens)} tokens`;
       const indent = Math.max(0, Number(node.depth || 1) - 1) * 16;
 
       return `
@@ -775,7 +912,7 @@ const TesisAI = (() => {
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold">
-                  ${hasChildren ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500">${isExpanded ? "−" : "+"}</span>` : '<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400">•</span>'}
+                  ${hasChildren ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500">${isExpanded ? "âˆ’" : "+"}</span>` : '<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400">â€¢</span>'}
                   <span>${hasChildren ? "Bloque" : "Subseccion"}</span>
                 </div>
                 <div class="font-semibold text-slate-900 truncate">${escapeHtml(node.label || "Sin nombre")}</div>
@@ -859,7 +996,7 @@ const TesisAI = (() => {
     }
     if ($("gen-sections-progress")) {
       $("gen-sections-progress").innerHTML = totalSections > 0
-        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` · ${escapeHtml(currentSectionPath)}` : ""}`
+        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` Â· ${escapeHtml(currentSectionPath)}` : ""}`
         : "Secciones <b>0/0</b>";
     }
     if ($("gen-sections-bar")) {
@@ -881,17 +1018,19 @@ const TesisAI = (() => {
         sectionList.innerHTML = '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay secciones registradas por la IA.</div>';
       }
       _genAiSelectedSectionKey = "";
-      if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin sección seleccionada";
-      if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una sección para auditar prompt, respuesta y tokens.";
+      if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin secciÃ³n seleccionada";
+      if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una secciÃ³n para auditar prompt, respuesta y tokens.";
       if ($("gen-ai-detail-prompt")) $("gen-ai-detail-prompt").textContent = "Aun no disponible.";
       if ($("gen-ai-detail-response")) $("gen-ai-detail-response").textContent = "Aun no disponible.";
       if ($("gen-ai-detail-input")) $("gen-ai-detail-input").textContent = "0";
       if ($("gen-ai-detail-output")) $("gen-ai-detail-output").textContent = "0";
       if ($("gen-ai-detail-total")) $("gen-ai-detail-total").textContent = "0";
       if ($("gen-ai-detail-duration")) $("gen-ai-detail-duration").textContent = "-";
+      if ($("gen-ai-detail-cost")) $("gen-ai-detail-cost").textContent = formatUsd(0);
       if ($("gen-ai-detail-provider")) $("gen-ai-detail-provider").textContent = "-";
       if ($("gen-ai-detail-model")) $("gen-ai-detail-model").textContent = "-";
       if ($("gen-ai-detail-source")) $("gen-ai-detail-source").textContent = "-";
+      if ($("gen-ai-detail-pricing")) $("gen-ai-detail-pricing").textContent = "No disponible";
       if ($("gen-ai-detail-status")) {
         $("gen-ai-detail-status").className = "inline-flex items-center rounded-full border bg-slate-50 px-3 py-1 text-xs font-extrabold text-slate-700 border-slate-200";
         $("gen-ai-detail-status").textContent = "PENDIENTE";
@@ -916,10 +1055,10 @@ const TesisAI = (() => {
             data-ai-section-key="${escapeHtml(key)}">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <div class="text-xs text-slate-400 font-semibold">Sección ${index + 1}</div>
+                <div class="text-xs text-slate-400 font-semibold">SecciÃ³n ${index + 1}</div>
                 <div class="font-semibold text-slate-900 truncate">${escapeHtml(item.section_path || item.section_title || "Sin nombre")}</div>
                 <div class="mt-1 text-xs text-slate-500 truncate">
-                  ${escapeHtml(item.provider || "-")} · ${escapeHtml(item.model || "-")} · ${formatInt(item.total_tokens || 0)} tokens
+                  ${escapeHtml(item.provider || "-")} Â· ${escapeHtml(item.model || "-")} Â· ${formatInt(item.total_tokens || 0)} tokens
                 </div>
               </div>
               <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${badge.wrap}">
@@ -943,7 +1082,7 @@ const TesisAI = (() => {
       $("gen-ai-detail-title").textContent = selected.section_path || selected.section_title || "Sin nombre";
     }
     if ($("gen-ai-detail-meta")) {
-      $("gen-ai-detail-meta").textContent = `Sección ${selected.section_id || "-"} · Intentos: ${formatInt(selected.attempt_count || 0)}`;
+      $("gen-ai-detail-meta").textContent = `SecciÃ³n ${selected.section_id || "-"} Â· Intentos: ${formatInt(selected.attempt_count || 0)}`;
     }
     if ($("gen-ai-detail-status")) {
       $("gen-ai-detail-status").className = `inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${badge.wrap}`;
@@ -955,9 +1094,13 @@ const TesisAI = (() => {
     if ($("gen-ai-detail-duration")) {
       $("gen-ai-detail-duration").textContent = selected.duration_ms ? `${formatInt(selected.duration_ms)} ms` : "-";
     }
+    if ($("gen-ai-detail-cost")) $("gen-ai-detail-cost").textContent = formatUsd(selected.estimated_cost_usd || 0);
     if ($("gen-ai-detail-provider")) $("gen-ai-detail-provider").textContent = selected.provider || "-";
     if ($("gen-ai-detail-model")) $("gen-ai-detail-model").textContent = selected.model || "-";
     if ($("gen-ai-detail-source")) $("gen-ai-detail-source").textContent = selected.source || "-";
+    if ($("gen-ai-detail-pricing")) {
+      $("gen-ai-detail-pricing").textContent = _humanizePricingSource(selected.pricing_source);
+    }
     if ($("gen-ai-detail-prompt")) $("gen-ai-detail-prompt").textContent = selected.prompt_sent || "Aun no disponible.";
     if ($("gen-ai-detail-response")) $("gen-ai-detail-response").textContent = selected.ai_output || "Aun no disponible.";
   }
@@ -993,7 +1136,7 @@ const TesisAI = (() => {
     }
     if ($("gen-sections-progress")) {
       $("gen-sections-progress").innerHTML = totalSections > 0
-        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` · ${escapeHtml(currentSectionPath)}` : ""}`
+        ? `Secciones <b>${formatInt(Math.min(completedSections, totalSections))}/${formatInt(totalSections)}</b>${currentSectionPath ? ` Â· ${escapeHtml(currentSectionPath)}` : ""}`
         : "Secciones <b>0/0</b>";
     }
     if ($("gen-sections-bar")) {
@@ -1065,8 +1208,8 @@ const TesisAI = (() => {
     }
     if ($("gen-ai-detail-meta")) {
       $("gen-ai-detail-meta").textContent = isGroupSelection
-        ? `Bloque jerarquico · ${formatInt(selectedSummary.completedCount)}/${formatInt(selectedSummary.totalCount)} subsecciones completadas`
-        : `Seccion ${selected.section_id || "-"} · Padre: ${selected.parent_section_path || "raiz"} · Intentos: ${formatInt(selected.attempt_count || 0)}`;
+        ? `Bloque jerarquico Â· ${formatInt(selectedSummary.completedCount)}/${formatInt(selectedSummary.totalCount)} subsecciones completadas`
+        : `Seccion ${selected.section_id || "-"} Â· Padre: ${selected.parent_section_path || "raiz"} Â· Intentos: ${formatInt(selected.attempt_count || 0)}`;
     }
     if ($("gen-ai-detail-status")) {
       $("gen-ai-detail-status").className = `inline-flex items-center rounded-full border px-3 py-1 text-xs font-extrabold ${badge.wrap}`;
@@ -1085,6 +1228,11 @@ const TesisAI = (() => {
       const durationMs = isGroupSelection ? selectedSummary.duration_ms : selected.duration_ms || 0;
       $("gen-ai-detail-duration").textContent = durationMs ? `${formatInt(durationMs)} ms` : "-";
     }
+    if ($("gen-ai-detail-cost")) {
+      $("gen-ai-detail-cost").textContent = formatUsd(
+        isGroupSelection ? selectedSummary.estimated_cost_usd : selected.estimated_cost_usd || 0,
+      );
+    }
     if ($("gen-ai-detail-provider")) {
       $("gen-ai-detail-provider").textContent = isGroupSelection
         ? (selectedSummary.latestSection?.provider || "-")
@@ -1099,6 +1247,11 @@ const TesisAI = (() => {
       $("gen-ai-detail-source").textContent = isGroupSelection
         ? (selectedSummary.source || "-")
         : (selected.source || "-");
+    }
+    if ($("gen-ai-detail-pricing")) {
+      $("gen-ai-detail-pricing").textContent = _humanizePricingSource(
+        isGroupSelection ? selectedSummary.pricing_source : selected.pricing_source,
+      );
     }
     if ($("gen-ai-detail-prompt")) {
       $("gen-ai-detail-prompt").textContent = isGroupSelection
@@ -1215,8 +1368,8 @@ const TesisAI = (() => {
     if ($("construct-summary")) {
       if (phase.status === "completed") $("construct-summary").textContent = "El contenido ya fue transformado en DOCX/PDF y validado para descarga.";
       else if (phase.status === "running") $("construct-summary").textContent = "Armando el documento final a partir de la salida validada de IA.";
-      else if (phase.status === "error") $("construct-summary").textContent = "La construcción se detuvo por un error; revisa el timeline técnico.";
-      else $("construct-summary").textContent = "Aun no inicia la fase de construcción.";
+      else if (phase.status === "error") $("construct-summary").textContent = "La construcciÃ³n se detuvo por un error; revisa el timeline tÃ©cnico.";
+      else $("construct-summary").textContent = "Aun no inicia la fase de construcciÃ³n.";
     }
 
     const taskList = $("construct-task-list");
@@ -1236,7 +1389,7 @@ const TesisAI = (() => {
             </div>
           </div>
         `;
-      }).join("") || '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay tareas de construcción registradas.</div>';
+      }).join("") || '<div class="rounded-2xl border border-dashed p-4 text-sm text-slate-500">Aun no hay tareas de construcciÃ³n registradas.</div>';
     }
 
     const constructionEvents = _buildConstructionTimeline(projectSnapshot, phase);
@@ -1280,6 +1433,12 @@ const TesisAI = (() => {
   }
 
   function showView(viewId, options = {}) {
+    const nextOptions = options && typeof options === "object" ? { ...options } : {};
+    if (viewId === "wizard" && !nextOptions._navVersion) {
+      wizardNavigationVersion += 1;
+      nextOptions._navVersion = wizardNavigationVersion;
+    }
+
     document.querySelectorAll(".view-section").forEach((el) => el.classList.add("hidden"));
     const selected = $("view-" + viewId);
     if (selected) selected.classList.remove("hidden");
@@ -1297,7 +1456,7 @@ const TesisAI = (() => {
 
     currentView = viewId;
     if (viewId === "dashboard") refreshDashboard().catch(console.error);
-    if (viewId === "wizard") initWizard(options).catch(console.error);
+    if (viewId === "wizard") initWizard(nextOptions).catch(console.error);
     if (viewId === "admin-prompts") refreshPromptsAdmin().catch(console.error);
     if (viewId === "history") refreshHistory().catch(console.error);
   }
@@ -1373,30 +1532,49 @@ const TesisAI = (() => {
     const canDownload = (project.status === "completed" || project.status === "completed_with_incidents") && project.output_file;
     const baseClasses = variant === "hero"
       ? {
-        primary: "rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-extrabold hover:bg-slate-950",
-        secondary: "rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50",
-        tertiary: "rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-extrabold text-emerald-700 hover:bg-emerald-100",
+        primary: "inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-sm text-white shadow-sm transition hover:bg-slate-950",
+        tertiary: "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 text-sm text-emerald-700 transition hover:bg-emerald-100",
+        danger: "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-300 bg-rose-50 text-sm text-rose-700 transition hover:bg-rose-100",
       }
       : {
-        primary: "inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-950",
-        secondary: "inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50",
-        tertiary: "inline-flex items-center gap-2 rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50",
+        primary: "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-xs text-white transition hover:bg-slate-950",
+        tertiary: "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 text-xs text-emerald-700 transition hover:bg-emerald-100",
+        danger: "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 text-xs text-rose-700 transition hover:bg-rose-100",
       };
 
     return `
-      <button class="${baseClasses.primary}" onclick="TesisAI.openProject('${escapeHtml(project.id)}', { mode: '${escapeHtml(primary.mode)}' })">
+      <button
+        type="button"
+        class="${baseClasses.primary}"
+        title="${escapeHtml(primary.label)}"
+        aria-label="${escapeHtml(primary.label)}"
+        onclick="TesisAI.openProject('${escapeHtml(project.id)}', { mode: '${escapeHtml(primary.mode)}' })"
+      >
         <i class="${escapeHtml(primary.icon)}"></i>
-        ${escapeHtml(primary.label)}
       </button>
       ${canDownload
-        ? `<a class="${baseClasses.tertiary}" href="/api/download/${encodeURIComponent(project.id)}"><i class="fa-solid fa-download"></i> Descargar</a>`
+        ? `<a
+            class="${baseClasses.tertiary}"
+            href="/api/download/${encodeURIComponent(project.id)}"
+            title="Descargar"
+            aria-label="Descargar"
+          ><i class="fa-solid fa-download"></i></a>`
         : ""}
+      <button
+        type="button"
+        class="${baseClasses.danger}"
+        title="Eliminar"
+        aria-label="Eliminar"
+        onclick="TesisAI.deleteProject('${escapeHtml(project.id)}')"
+      >
+        <i class="fa-solid fa-trash"></i>
+      </button>
     `;
   }
 
   async function refreshDashboard() {
     const items = _sortProjectsForProduct(await apiGet("/api/projects"));
-    $("stat-total-projects").innerText = String(items.length);
+    _renderPortfolioMetrics(items);
 
     const tbody = $("dashboard-recent-projects");
     tbody.innerHTML = "";
@@ -1405,9 +1583,9 @@ const TesisAI = (() => {
     const latestProject = items[0] || null;
     if (latestCard && latestProject) {
       latestCard.classList.remove("hidden");
-      if ($("dashboard-latest-title")) $("dashboard-latest-title").textContent = latestProject.title || "Proyecto sin título";
+      if ($("dashboard-latest-title")) $("dashboard-latest-title").textContent = latestProject.title || "Proyecto sin tÃ­tulo";
       if ($("dashboard-latest-meta")) {
-        $("dashboard-latest-meta").textContent = `${latestProject.format_name || latestProject.format_id || "-"} · ${latestProject.prompt_name || "Sin prompt"} · ${_formatProjectDate(latestProject)}`;
+        $("dashboard-latest-meta").textContent = `${latestProject.format_name || latestProject.format_id || "-"} Â· ${latestProject.prompt_name || "Sin prompt"} Â· ${_formatProjectDate(latestProject)}`;
       }
       if ($("dashboard-latest-status")) $("dashboard-latest-status").innerHTML = statusBadge(_effectiveProjectStatus(latestProject));
       if ($("dashboard-latest-summary")) {
@@ -1421,7 +1599,7 @@ const TesisAI = (() => {
             <div class="mt-1 font-semibold text-slate-900">Paso ${_inferProjectStep(latestProject)}</div>
           </div>
           <div class="rounded-2xl border bg-slate-50 px-4 py-3">
-            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Última actividad</div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ãšltima actividad</div>
             <div class="mt-1 font-semibold text-slate-900">${escapeHtml(_formatProjectDate(latestProject))}</div>
           </div>
         `;
@@ -1501,6 +1679,7 @@ const TesisAI = (() => {
   }
 
   function resetStepper() {
+    wizardSessionVersion += 1;
     currentStep = 1;
     currentWizardMode = "new";
     selectedFormat = null;
@@ -1510,6 +1689,10 @@ const TesisAI = (() => {
     simRunResult = null;
     isPreparingGuide = false;
     isRunningSimulation = false;
+    _genCancelled = true;
+    _stopGenTimer();
+    _lastRenderedTraceCount = 0;
+    _lastTraceState = null;
 
     if ($("btn-step1-next")) $("btn-step1-next").disabled = true;
     if ($("btn-step2-next")) $("btn-step2-next").disabled = true;
@@ -1564,11 +1747,14 @@ const TesisAI = (() => {
 
   async function initWizard() {
     const options = arguments[0] && typeof arguments[0] === "object" ? arguments[0] : {};
+    const navVersion = Number(options?._navVersion || 0);
     currentWizardMode = String(options?.mode || "new").toLowerCase();
     resetStepper();
     currentWizardMode = String(options?.mode || "new").toLowerCase();
     await loadFormats();
+    if (navVersion && navVersion !== wizardNavigationVersion) return;
     await loadPromptsForWizard(options?.project?.prompt_id || "");
+    if (navVersion && navVersion !== wizardNavigationVersion) return;
     if ($("btn-step3-next-provider")) {
       $("btn-step3-next-provider").onclick = (event) => {
         if (event) event.preventDefault();
@@ -1581,7 +1767,7 @@ const TesisAI = (() => {
       $("btn-step4-generate").onclick = (event) => {
         if (event) event.preventDefault();
         triggerGeneration().catch((error) => {
-          setStep4Error(error?.message || "No se pudo iniciar la generación.");
+          setStep4Error(error?.message || "No se pudo iniciar la generaciÃ³n.");
         });
       };
     }
@@ -1591,6 +1777,7 @@ const TesisAI = (() => {
     document.querySelectorAll("[data-wizard-jump]").forEach((button) => {
       button.onclick = () => goToProjectStep(Number(button.getAttribute("data-wizard-jump") || 1));
     });
+    if (navVersion && navVersion !== wizardNavigationVersion) return;
     if (options?.project) {
       await _rehydrateWizardProject(options.project, options);
       return;
@@ -1659,7 +1846,7 @@ const TesisAI = (() => {
         const universityCode = String(format.university || "generic").toLowerCase();
         const logoUrl = `/api/assets/logos/${universityCode}.png`;
 
-        // When GicaTesis is offline, skip loading remote logos — use text fallback.
+        // When GicaTesis is offline, skip loading remote logos â€” use text fallback.
         const logoHtml = gicatesisOnline
           ? `<img src="${logoUrl}" alt="${escapeHtml(universityCode)}" class="w-full h-full object-contain"
               onerror="this.onerror=null;this.parentNode.innerHTML='<span class=&quot;text-blue-700 font-bold&quot;>${escapeHtml(String(universityCode).toUpperCase())}</span>'">`
@@ -1787,106 +1974,106 @@ const TesisAI = (() => {
     container.innerHTML = "";
 
     if (!selectedPrompt) {
-      container.innerHTML = '<div class="text-sm text-gray-500 text-center py-10 font-medium font-inter">Selecciona un formato para activar la guía.</div>';
+      container.innerHTML = '<div class="text-sm text-gray-500 text-center py-10 font-medium font-inter">Selecciona un formato para activar la guÃ­a.</div>';
       return;
     }
 
-    // 1. DICCIONARIO DE AYUDA ACADÉMICA
+    // 1. DICCIONARIO DE AYUDA ACADÃ‰MICA
     const academicHelp = {
-      "diagnostico_local": "Describe fallas, demoras o síntomas detectados en la empresa. Es obligatorio usar herramientas como Ishikawa o Pareto para el sustento técnico.",
-      "problema_principal": "Formula la gran pregunta de investigación: ¿De qué manera la propuesta X mejora la situación Y?",
-      "autor": "Tus nombres y apellidos completos tal como deben aparecer en la carátula oficial.",
+      "diagnostico_local": "Describe fallas, demoras o sÃ­ntomas detectados en la empresa. Es obligatorio usar herramientas como Ishikawa o Pareto para el sustento tÃ©cnico.",
+      "problema_principal": "Formula la gran pregunta de investigaciÃ³n: Â¿De quÃ© manera la propuesta X mejora la situaciÃ³n Y?",
+      "autor": "Tus nombres y apellidos completos tal como deben aparecer en la carÃ¡tula oficial.",
       "asesor": "Nombre del mentor asignado por la facultad. Comparte la responsabilidad de la autenticidad del trabajo.",
-      "facultad": "Nombre completo de la facultad (ej: Facultad de Ingeniería Eléctrica y Electrónica).",
-      "escuela": "Tu carrera profesional específica dentro de la UNAC.",
-      "linea_investigacion": "Debe ser una de las líneas oficiales aprobadas por tu Escuela Profesional.",
-      "anio": "El año de sustentación o presentación del informe.",
-      "herramienta_ingenieria": "Es obligatorio según el reglamento: utiliza un Diagrama de Ishikawa (Causa-Efecto), Pareto (80/20), Árbol de problemas o Matriz de Vester para diagnosticar técnicamente el origen del problema.",
-      "datos_evidencia": "Presenta el sustento numérico real: estadísticas de fallas, reportes de mermas, horas de parada de máquina o costos actuales por inactividad.",
-      "objetivo_general": "Define tu meta final. Debe iniciar con un verbo fuerte en infinitivo (Determinar, Diseñar, Implementar) y responder directamente a tu pregunta de investigación principal.",
-      "impacto_economico": "¿Cuánto dinero ahorrará la empresa o cuál es el beneficio costo-beneficio de tu propuesta?",
+      "facultad": "Nombre completo de la facultad (ej: Facultad de IngenierÃ­a ElÃ©ctrica y ElectrÃ³nica).",
+      "escuela": "Tu carrera profesional especÃ­fica dentro de la UNAC.",
+      "linea_investigacion": "Debe ser una de las lÃ­neas oficiales aprobadas por tu Escuela Profesional.",
+      "anio": "El aÃ±o de sustentaciÃ³n o presentaciÃ³n del informe.",
+      "herramienta_ingenieria": "Es obligatorio segÃºn el reglamento: utiliza un Diagrama de Ishikawa (Causa-Efecto), Pareto (80/20), Ãrbol de problemas o Matriz de Vester para diagnosticar tÃ©cnicamente el origen del problema.",
+      "datos_evidencia": "Presenta el sustento numÃ©rico real: estadÃ­sticas de fallas, reportes de mermas, horas de parada de mÃ¡quina o costos actuales por inactividad.",
+      "objetivo_general": "Define tu meta final. Debe iniciar con un verbo fuerte en infinitivo (Determinar, DiseÃ±ar, Implementar) y responder directamente a tu pregunta de investigaciÃ³n principal.",
+      "impacto_economico": "Â¿CuÃ¡nto dinero ahorrarÃ¡ la empresa o cuÃ¡l es el beneficio costo-beneficio de tu propuesta?",
       "variable_independiente": "Es tu propuesta o 'el remedio': el sistema, software, algoritmo o plan de mantenimiento que vas a aplicar.",
-      "variable_dependiente": "Es el 'paciente' que quieres curar: el indicador técnico que se verá afectado positivamente por tu propuesta.",
-      "resumen_antecedentes": "Resume investigaciones indexadas de los últimos 5 a 10 años. Menciona: Autor, Año, Objetivo, Metodología y resultados numéricos.",
+      "variable_dependiente": "Es el 'paciente' que quieres curar: el indicador tÃ©cnico que se verÃ¡ afectado positivamente por tu propuesta.",
+      "resumen_antecedentes": "Resume investigaciones indexadas de los Ãºltimos 5 a 10 aÃ±os. Menciona: Autor, AÃ±o, Objetivo, MetodologÃ­a y resultados numÃ©ricos.",
       "dimensiones_variables": "Son los grandes componentes en los que divides tus variables para poder medirlas.",
       "indicadores_medida": "Es la unidad de medida exacta y observable de tus dimensiones. Ejemplos: Porcentaje (%), Horas (h), Soles (S/).",
-      "poblacion_total": "El universo completo de elementos con características comunes para tu estudio.",
+      "poblacion_total": "El universo completo de elementos con caracterÃ­sticas comunes para tu estudio.",
       "muestra_estudio": "Es la parte representativa que vas a medir realmente.",
       "instrumentos_utilizados": "Son tus herramientas de captura: cuestionarios validados, fichas de registro, sensores calibrados.",
-      "datos_recolectados": "Ingresa aquí los resultados de tus mediciones o el resumen estadístico descriptivo.",
-      "resultados_pruebas_estadisticas": "Ingresa el p-valor (Sig.) obtenido en SPSS o Minitab. Si es menor a 0.05, tu hipótesis ha sido demostrada.",
-      "conclusiones_numéricas": "Responde a tus objetivos con hallazgos directos. No uses opiniones, usa cifras reales.",
-      "propuestas_accion": "Acciones prácticas y viables dirigidas a la empresa.",
-      "problema_general": "Es la interrogante maestra que busca comprender el fenómeno y las categorías centrales de tu estudio. Debe ser una pregunta abierta que invite a profundizar en significados.",
-      "problemas_especificos": "Son las sub-preguntas que desglosan tus categorías preliminares para analizar procesos o vivencias específicas.",
-      "objetivos_especificos": "Indica los pasos para analizar cada categoría. ¡Importante! Debes iniciar con verbos como: Comprender, Interpretar, Analizar o Describir.",
-      "justificacion_estudio": "Explica la utilidad de tu tesis: ¿Cómo ayuda a la empresa a entender sus procesos y qué nuevos conceptos aporta?",
-      "delimitacion_espacial": "Indica el lugar exacto (empresa, área o institución) donde realizarás la toma de datos.",
-      "delimitacion_temporal": "Define con claridad el periodo de tiempo (meses o años) que abarca tu recolección de información.",
-      "antecedentes": "Resume investigaciones similares de los últimos 5-10 años. Menciona autor, año, diseño y hallazgos.",
-      "bases_teoricas": "Es el sustento científico de tu tesis. Analiza las teorías y modelos que explican tus categorías.",
-      "marco_conceptual": "Define conceptualmente tus categorías y subcategorías basándote en la literatura revisada.",
-      "escenario_estudio": "Describe el ambiente físico y social donde realizarás el estudio.",
-      "informantes_clave": "Identifica a las personas que te darán la información y menciona el 'muestreo por saturación'.",
+      "datos_recolectados": "Ingresa aquÃ­ los resultados de tus mediciones o el resumen estadÃ­stico descriptivo.",
+      "resultados_pruebas_estadisticas": "Ingresa el p-valor (Sig.) obtenido en SPSS o Minitab. Si es menor a 0.05, tu hipÃ³tesis ha sido demostrada.",
+      "conclusiones_numÃ©ricas": "Responde a tus objetivos con hallazgos directos. No uses opiniones, usa cifras reales.",
+      "propuestas_accion": "Acciones prÃ¡cticas y viables dirigidas a la empresa.",
+      "problema_general": "Es la interrogante maestra que busca comprender el fenÃ³meno y las categorÃ­as centrales de tu estudio. Debe ser una pregunta abierta que invite a profundizar en significados.",
+      "problemas_especificos": "Son las sub-preguntas que desglosan tus categorÃ­as preliminares para analizar procesos o vivencias especÃ­ficas.",
+      "objetivos_especificos": "Indica los pasos para analizar cada categorÃ­a. Â¡Importante! Debes iniciar con verbos como: Comprender, Interpretar, Analizar o Describir.",
+      "justificacion_estudio": "Explica la utilidad de tu tesis: Â¿CÃ³mo ayuda a la empresa a entender sus procesos y quÃ© nuevos conceptos aporta?",
+      "delimitacion_espacial": "Indica el lugar exacto (empresa, Ã¡rea o instituciÃ³n) donde realizarÃ¡s la toma de datos.",
+      "delimitacion_temporal": "Define con claridad el periodo de tiempo (meses o aÃ±os) que abarca tu recolecciÃ³n de informaciÃ³n.",
+      "antecedentes": "Resume investigaciones similares de los Ãºltimos 5-10 aÃ±os. Menciona autor, aÃ±o, diseÃ±o y hallazgos.",
+      "bases_teoricas": "Es el sustento cientÃ­fico de tu tesis. Analiza las teorÃ­as y modelos que explican tus categorÃ­as.",
+      "marco_conceptual": "Define conceptualmente tus categorÃ­as y subcategorÃ­as basÃ¡ndote en la literatura revisada.",
+      "escenario_estudio": "Describe el ambiente fÃ­sico y social donde realizarÃ¡s el estudio.",
+      "informantes_clave": "Identifica a las personas que te darÃ¡n la informaciÃ³n y menciona el 'muestreo por saturaciÃ³n'.",
       "aspectos_eticos": "Declara el respeto al anonimato, la justicia y el uso de consentimientos informados.",
       "categorias_emergentes": "Presenta los grandes hallazgos encontrados. Incluye fragmentos de entrevistas (citas textuales).",
       "conclusiones_cualitativas": "Redacta reflexiones finales sobre las comprensiones logradas.",
       "conclusiones_numericas": "Son las respuestas directas y numeradas a tus objetivos.",
-      "diseno_cualitativo": "Define si tu investigación es Fenomenológica, Etnográfica, de Teoría Fundamentada o un Estudio de Caso.",
-      "matriz_categorizacion": "Es la tabla que organiza tus Categorías Apriorísticas y sus componentes (Subcategorías).",
-      "cronograma_actividades": "Muestra la secuencia de todos los pasos de tu investigación.",
+      "diseno_cualitativo": "Define si tu investigaciÃ³n es FenomenolÃ³gica, EtnogrÃ¡fica, de TeorÃ­a Fundamentada o un Estudio de Caso.",
+      "matriz_categorizacion": "Es la tabla que organiza tus CategorÃ­as ApriorÃ­sticas y sus componentes (SubcategorÃ­as).",
+      "cronograma_actividades": "Muestra la secuencia de todos los pasos de tu investigaciÃ³n.",
       "presupuesto_soles": "Presenta el detalle de los recursos humanos, materiales y financieros.",
-      "delimitacion_teorica": "Especifica las teorías, normas técnicas (ISO, IEEE, ANSI) o modelos de ingeniería.",
+      "delimitacion_teorica": "Especifica las teorÃ­as, normas tÃ©cnicas (ISO, IEEE, ANSI) o modelos de ingenierÃ­a.",
       "hipotesis_general": "Es la respuesta tentativa y probable a tu problema principal.",
-      "hipotesis_especificas": "Son las respuestas probables a cada uno de tus problemas específicos.",
-      "descripcion_problema": "Es el pilar de tu tesis UNI. Debes plantear el problema técnico a resolver de manera detallada, sentando las bases para tu hipótesis técnica.",
-      "justificacion_cientifica": "Prioridad técnica: Describe el problema como un análisis de causa y efecto. Debe señalar por qué tu investigación es relevante académica y económicamente.",
+      "hipotesis_especificas": "Son las respuestas probables a cada uno de tus problemas especÃ­ficos.",
+      "descripcion_problema": "Es el pilar de tu tesis UNI. Debes plantear el problema tÃ©cnico a resolver de manera detallada, sentando las bases para tu hipÃ³tesis tÃ©cnica.",
+      "justificacion_cientifica": "Prioridad tÃ©cnica: Describe el problema como un anÃ¡lisis de causa y efecto. Debe seÃ±alar por quÃ© tu investigaciÃ³n es relevante acadÃ©mica y econÃ³micamente.",
       "metas_cuantitativas": "Obligatorio en objetivos: Indica resultados medibles que esperas alcanzar a corto, mediano y largo plazo.",
-      "resumen_proyecto": "UNI: Describe brevemente las características generales del proyecto. No incluyas objetivos, metas ni bibliografía aquí.",
-      "hipotesis_trabajo": "Propuesta técnica lógica que responde al problema planteado.",
-      "infraestructura_requerida": "Descripción de los laboratorios, talleres o instalaciones físicas necesarias.",
-      "metodologia_etapas": "Pasos secuenciales del proyecto. La UNI exige distinguir entre las etapas de fundamentación teórica y las experimentales.",
-      "procedimientos_tecnicos": "Detalle de los métodos, algoritmos o protocolos de ingeniería que aplicarás.",
-      "usuarios_finales": "Identifica a las personas o sectores que usarán el producto de tu investigación.",
-      "productos_tangibles": "Resultados físicos o digitales que entregarás: patentes, prototipos, hardware o software.",
-      "recursos_humanos": "Lista del personal técnico involucrado, detallando su calificación y función.",
-      "recursos_materiales": "Instrumentos, equipos y materiales necesarios, indicando especificaciones técnicas.",
+      "resumen_proyecto": "UNI: Describe brevemente las caracterÃ­sticas generales del proyecto. No incluyas objetivos, metas ni bibliografÃ­a aquÃ­.",
+      "hipotesis_trabajo": "Propuesta tÃ©cnica lÃ³gica que responde al problema planteado.",
+      "infraestructura_requerida": "DescripciÃ³n de los laboratorios, talleres o instalaciones fÃ­sicas necesarias.",
+      "metodologia_etapas": "Pasos secuenciales del proyecto. La UNI exige distinguir entre las etapas de fundamentaciÃ³n teÃ³rica y las experimentales.",
+      "procedimientos_tecnicos": "Detalle de los mÃ©todos, algoritmos o protocolos de ingenierÃ­a que aplicarÃ¡s.",
+      "usuarios_finales": "Identifica a las personas o sectores que usarÃ¡n el producto de tu investigaciÃ³n.",
+      "productos_tangibles": "Resultados fÃ­sicos o digitales que entregarÃ¡s: patentes, prototipos, hardware o software.",
+      "recursos_humanos": "Lista del personal tÃ©cnico involucrado, detallando su calificaciÃ³n y funciÃ³n.",
+      "recursos_materiales": "Instrumentos, equipos y materiales necesarios, indicando especificaciones tÃ©cnicas.",
       "cronograma_detallado": "Calendario de actividades que debe incluir las fechas de entrega de informes de avance.",
-      "partidas_presupuestales": "Clasificación de gastos según el formato fiscal: subvenciones, bienes, servicios, equipos.",
-      "calendario_gastos": "Cronograma financiero que especifica en qué periodos se realizará cada desembolso.",
-      "antecedentes_cientificos": "UNI: Describe la evolución del conocimiento técnico y el estado del arte de tu tema.",
+      "partidas_presupuestales": "ClasificaciÃ³n de gastos segÃºn el formato fiscal: subvenciones, bienes, servicios, equipos.",
+      "calendario_gastos": "Cronograma financiero que especifica en quÃ© periodos se realizarÃ¡ cada desembolso.",
+      "antecedentes_cientificos": "UNI: Describe la evoluciÃ³n del conocimiento tÃ©cnico y el estado del arte de tu tema.",
       "carrera": "Escribe el nombre de tu especialidad tal como figura en los registros oficiales.",
-      "programa_maestria": "Escribe el nombre exacto de tu mención o programa.",
+      "programa_maestria": "Escribe el nombre exacto de tu menciÃ³n o programa.",
       "unidad_posgrado": "Nombre de la Unidad de Posgrado de tu facultad correspondiente.",
-      "grado_academico": "Grado al que optas (ej: Maestro en Ciencias de la Ingeniería).",
-      "codigo_ocde": "Código y descripción según la clasificación OCDE para áreas de ciencia y tecnología.",
-      "propuesta_solucion": "Menciona la mejora técnica o el modelo interpretativo que propones para el problema.",
-      "justificacion_importancia": "Sustenta la relevancia teórica, práctica y social. Indica quiénes son los beneficiarios.",
+      "grado_academico": "Grado al que optas (ej: Maestro en Ciencias de la IngenierÃ­a).",
+      "codigo_ocde": "CÃ³digo y descripciÃ³n segÃºn la clasificaciÃ³n OCDE para Ã¡reas de ciencia y tecnologÃ­a.",
+      "propuesta_solucion": "Menciona la mejora tÃ©cnica o el modelo interpretativo que propones para el problema.",
+      "justificacion_importancia": "Sustenta la relevancia teÃ³rica, prÃ¡ctica y social. Indica quiÃ©nes son los beneficiarios.",
       "limitaciones_estudio": "Indica factores (tiempo, acceso a datos) que restringen el estudio.",
-      "antecedentes_internacionales": "Resumen exhaustivo de investigaciones extranjeras (autor, año, metodología y hallazgos).",
-      "antecedentes_nacionales": "Investigaciones peruanas previas. Detalla qué aportan a tu tesis actual.",
-      "terminos_basicos": "Glosario de conceptos técnicos y categorías operativas alineadas al contexto de tu investigación.",
-      "participantes_muestreo": "Describe a tus informantes clave, criterios de selección y sustenta el tamaño de muestra.",
-      "instrumentos_recoleccion": "Detalla las técnicas (entrevista, focus group) y herramientas, incluyendo su validez.",
-      "procedimiento_analisis": "Explica el paso a paso: inmersión en campo, transcripción y procesamiento de datos.",
-      "rigor_cientifico": "Explica cómo garantizas la credibilidad, transferibilidad, dependencia y confirmabilidad.",
-      "metodo_analisis_datos": "Enfoque de análisis (temático, contenido) y uso de software como Atlas.ti o NVivo.",
-      "aspectos_eticos_investigacion": "Detalla el uso de consentimiento informado, confidencialidad y aprobación institucional.",
-      "presentacion_resultados": "Hallazgos ordenados por categorías con evidencias (citas textuales) y figuras numeradas.",
-      "discusion_hallazgos": "Interpreta tus resultados contrastándolos con la literatura y antecedentes revisados.",
-      "conclusiones_estudio": "Sentencias directas y numeradas que responden a los objetivos e hipótesis planteadas.",
-      "recomendaciones_estudio": "Sugerencias aplicables para la institución o sector y nuevas líneas de investigación.",
-      "orcid_asesor": "Código ORCID de 16 dígitos que identifica a tu asesor como investigador a nivel internacional.",
-      "lugar_ejecucion": "Nombre de la empresa, institución o área geográfica donde realizarás la recolección de datos.",
-      "unidad_analisis": "Es el objeto, proceso, persona o grupo del cual vas a extraer la información para tu estudio.",
+      "antecedentes_internacionales": "Resumen exhaustivo de investigaciones extranjeras (autor, aÃ±o, metodologÃ­a y hallazgos).",
+      "antecedentes_nacionales": "Investigaciones peruanas previas. Detalla quÃ© aportan a tu tesis actual.",
+      "terminos_basicos": "Glosario de conceptos tÃ©cnicos y categorÃ­as operativas alineadas al contexto de tu investigaciÃ³n.",
+      "participantes_muestreo": "Describe a tus informantes clave, criterios de selecciÃ³n y sustenta el tamaÃ±o de muestra.",
+      "instrumentos_recoleccion": "Detalla las tÃ©cnicas (entrevista, focus group) y herramientas, incluyendo su validez.",
+      "procedimiento_analisis": "Explica el paso a paso: inmersiÃ³n en campo, transcripciÃ³n y procesamiento de datos.",
+      "rigor_cientifico": "Explica cÃ³mo garantizas la credibilidad, transferibilidad, dependencia y confirmabilidad.",
+      "metodo_analisis_datos": "Enfoque de anÃ¡lisis (temÃ¡tico, contenido) y uso de software como Atlas.ti o NVivo.",
+      "aspectos_eticos_investigacion": "Detalla el uso de consentimiento informado, confidencialidad y aprobaciÃ³n institucional.",
+      "presentacion_resultados": "Hallazgos ordenados por categorÃ­as con evidencias (citas textuales) y figuras numeradas.",
+      "discusion_hallazgos": "Interpreta tus resultados contrastÃ¡ndolos con la literatura y antecedentes revisados.",
+      "conclusiones_estudio": "Sentencias directas y numeradas que responden a los objetivos e hipÃ³tesis planteadas.",
+      "recomendaciones_estudio": "Sugerencias aplicables para la instituciÃ³n o sector y nuevas lÃ­neas de investigaciÃ³n.",
+      "orcid_asesor": "CÃ³digo ORCID de 16 dÃ­gitos que identifica a tu asesor como investigador a nivel internacional.",
+      "lugar_ejecucion": "Nombre de la empresa, instituciÃ³n o Ã¡rea geogrÃ¡fica donde realizarÃ¡s la recolecciÃ³n de datos.",
+      "unidad_analisis": "Es el objeto, proceso, persona o grupo del cual vas a extraer la informaciÃ³n para tu estudio.",
       "mencion": "Nombre exacto de la especialidad del programa de posgrado.",
-      "introduccion_tesis": "Visión general que contextualiza el tema de investigación y describe la estructura del documento.",
-      "metodologia_posgrado": "Descripción técnica de la estrategia de investigación, incluyendo técnicas e instrumentos.",
-      "definicion_terminos": "Glosario especializado que define los conceptos técnicos clave.",
-      "analisis_resultados": "Presentación y examen minucioso de los datos recolectados y resultados técnicos.",
-      "contrastacion_hipotesis": "Proceso técnico y estadístico donde se valida o rechaza la hipótesis de investigación.",
-      "conclusiones_posgrado": "Sentencias directas y numeradas que sintetizan los hallazgos más relevantes.",
-      "recomendaciones_posgrado": "Propuestas de acción técnica para el sector productivo o nuevas líneas de investigación."
+      "introduccion_tesis": "VisiÃ³n general que contextualiza el tema de investigaciÃ³n y describe la estructura del documento.",
+      "metodologia_posgrado": "DescripciÃ³n tÃ©cnica de la estrategia de investigaciÃ³n, incluyendo tÃ©cnicas e instrumentos.",
+      "definicion_terminos": "Glosario especializado que define los conceptos tÃ©cnicos clave.",
+      "analisis_resultados": "PresentaciÃ³n y examen minucioso de los datos recolectados y resultados tÃ©cnicos.",
+      "contrastacion_hipotesis": "Proceso tÃ©cnico y estadÃ­stico donde se valida o rechaza la hipÃ³tesis de investigaciÃ³n.",
+      "conclusiones_posgrado": "Sentencias directas y numeradas que sintetizan los hallazgos mÃ¡s relevantes.",
+      "recomendaciones_posgrado": "Propuestas de acciÃ³n tÃ©cnica para el sector productivo o nuevas lÃ­neas de investigaciÃ³n."
     };
 
     const vars = Array.isArray(selectedPrompt.variables) ? selectedPrompt.variables : [];
@@ -1905,28 +2092,28 @@ const TesisAI = (() => {
     const mainVars = cleanVars.filter(v => mainKeys.includes(v));
     const secondaryVars = cleanVars.filter(v => !mainKeys.includes(v));
 
-    // --- SECCIÓN 1: PILARES MAESTROS ---
+    // --- SECCIÃ“N 1: PILARES MAESTROS ---
     const sectionRequired = document.createElement("div");
     sectionRequired.className = "mb-8 space-y-6";
     sectionRequired.innerHTML = `
         <div class="flex items-center gap-3 mb-6">
             <div class="h-6 w-1 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"></div>
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">1. Pilares de la Investigación</h3>
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">1. Pilares de la InvestigaciÃ³n</h3>
         </div>
     `;
     container.appendChild(sectionRequired);
 
-    // BLOQUE DE TÍTULO
+    // BLOQUE DE TÃTULO
     const titleBlock = document.createElement("div");
     titleBlock.className = "p-6 bg-blue-50 rounded-3xl border-2 border-blue-100 shadow-sm mb-6 group transition-all";
     titleBlock.innerHTML = `
         <div class="flex justify-between items-center mb-3 px-1">
-            <label class="block text-[10px] font-black text-blue-900 uppercase tracking-widest">Título del Proyecto</label>
+            <label class="block text-[10px] font-black text-blue-900 uppercase tracking-widest">TÃ­tulo del Proyecto</label>
             <span class="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">OBLIGATORIO</span>
         </div>
-        <input id="var_title" type="text" class="w-full p-4 border-2 border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none bg-white font-bold text-slate-800 shadow-inner" placeholder="Ej: Implementación de un sistema para mejorar...">
+        <input id="var_title" type="text" class="w-full p-4 border-2 border-blue-200 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none bg-white font-bold text-slate-800 shadow-inner" placeholder="Ej: ImplementaciÃ³n de un sistema para mejorar...">
         <p class="mt-3 text-[10px] text-slate-400 italic group-hover:text-blue-700 group-focus-within:text-blue-700 transition-all px-1">
-            <i class="fa-solid fa-lightbulb mr-1"></i> Fórmula: [Solución] + [Variable/Problema] + [Lugar de estudio].
+            <i class="fa-solid fa-lightbulb mr-1"></i> FÃ³rmula: [SoluciÃ³n] + [Variable/Problema] + [Lugar de estudio].
         </p>
     `;
     sectionRequired.appendChild(titleBlock);
@@ -1934,7 +2121,7 @@ const TesisAI = (() => {
     // Renderizar Pilares
     mainVars.forEach(v => renderField(v, sectionRequired, true));
 
-    // --- SECCIÓN 2: DATOS COMPLEMENTARIOS (COLAPSABLE) ---
+    // --- SECCIÃ“N 2: DATOS COMPLEMENTARIOS (COLAPSABLE) ---
     if (secondaryVars.length > 0) {
       const accordionWrapper = document.createElement("div");
       accordionWrapper.className = "mt-10 border-t border-slate-100 pt-6";
@@ -1948,7 +2135,7 @@ const TesisAI = (() => {
                 </div>
                 <div class="text-left">
                     <span class="block text-[11px] font-black text-slate-700 uppercase tracking-tight">DATOS COMPLEMENTARIOS</span>
-                    <span class="block text-[9px] text-slate-500 font-medium">Información opcional para la carátula oficial.</span>
+                    <span class="block text-[9px] text-slate-500 font-medium">InformaciÃ³n opcional para la carÃ¡tula oficial.</span>
                 </div>
             </div>
             <i class="fa-solid fa-chevron-down text-slate-400 group-hover:translate-y-1 transition-all mr-2"></i>
@@ -1973,7 +2160,7 @@ const TesisAI = (() => {
     function renderField(variable, target, isMain) {
       const id = "var_" + variable;
       const cleanLabel = variable.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-      const helpText = academicHelp[variable] || `Dato requerido de ${cleanLabel.toLowerCase()} para el rigor técnico.`;
+      const helpText = academicHelp[variable] || `Dato requerido de ${cleanLabel.toLowerCase()} para el rigor tÃ©cnico.`;
       const isLong = /(diagnostico|problema|resumen|conclusiones|propuestas|objetivo|metodologia|hipotesis|justificacion|antecedentes|bases_teoricas|marco|descripcion|introduccion|analisis|contrastacion|discusion|resultados)/i.test(variable);
 
       const block = document.createElement("div");
@@ -1985,7 +2172,7 @@ const TesisAI = (() => {
           </div>
           <div class="relative">
             ${isLong
-          ? `<textarea id="${id}" rows="3" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Redacta aquí..."></textarea>`
+          ? `<textarea id="${id}" rows="3" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Redacta aquÃ­..."></textarea>`
           : `<input id="${id}" type="text" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Ingresa el dato...">`
         }
           </div>
@@ -2055,6 +2242,7 @@ const TesisAI = (() => {
           lastOpenMode: mode,
           updatedAt: new Date().toISOString(),
         },
+        touchProjectTimestamp: false,
       });
       currentProject = { ...(updated || currentProject), id: currentProject.id };
     } catch (_) {
@@ -2075,7 +2263,7 @@ const TesisAI = (() => {
       $("wizard-context-title").textContent = project.title || "Proyecto existente";
     }
     if ($("wizard-context-text")) {
-      $("wizard-context-text").textContent = `Proyecto ${project.id} · ${project.prompt_name || "Sin prompt"} · ${project.format_name || project.format_id || "Sin formato"}. Si modificas pasos previos y guardas, la generación posterior se reiniciará de forma explícita.`;
+      $("wizard-context-text").textContent = `Proyecto ${project.id} Â· ${project.prompt_name || "Sin prompt"} Â· ${project.format_name || project.format_id || "Sin formato"}. Si modificas pasos previos y guardas, la generaciÃ³n posterior se reiniciarÃ¡ de forma explÃ­cita.`;
     }
     if ($("wizard-context-status")) {
       $("wizard-context-status").innerHTML = statusBadge(_effectiveProjectStatus(project));
@@ -2128,9 +2316,346 @@ const TesisAI = (() => {
   }
 
   async function openProject(projectId, options = {}) {
+    wizardNavigationVersion += 1;
+    const navVersion = wizardNavigationVersion;
     const project = await apiGet(`/api/projects/${encodeURIComponent(projectId)}`);
+    if (navVersion !== wizardNavigationVersion) return;
     const step = Math.max(1, Math.min(7, Number(options?.step || _inferProjectStep(project, options?.mode))));
-    showView("wizard", { ...options, project, step });
+    showView("wizard", { ...options, project, step, _navVersion: navVersion });
+  }
+
+  async function deleteProject(projectId) {
+    if (!projectId) return;
+    if (!confirm("Â¿Eliminar este proyecto? Esta acciÃ³n no se puede deshacer.")) return;
+    await apiSend(`/api/projects/${encodeURIComponent(projectId)}`, "DELETE");
+    if (currentProject?.id === projectId) {
+      currentProject = null;
+    }
+    await refreshDashboard();
+    await refreshHistory();
+  }
+
+  function closeBudgetModal() {
+    currentBudgetProjectId = "";
+    currentBudgetProjects = [];
+    currentBudgetPayload = null;
+    budgetEstimateVisible = false;
+    if ($("modal-project-budget")) $("modal-project-budget").classList.add("hidden");
+    if ($("budget-loading")) $("budget-loading").classList.add("hidden");
+    if ($("budget-error")) {
+      $("budget-error").classList.add("hidden");
+      $("budget-error").textContent = "";
+    }
+  }
+
+  function _showBudgetError(message) {
+    if ($("modal-project-budget")) $("modal-project-budget").classList.remove("hidden");
+    if ($("budget-loading")) $("budget-loading").classList.add("hidden");
+    if ($("budget-error")) {
+      $("budget-error").classList.remove("hidden");
+      $("budget-error").textContent = String(message || "No se pudo abrir Presupuesto IA.");
+    }
+  }
+
+  function _resolveBudgetProjectId(projects, preferredProjectId = "") {
+    const items = Array.isArray(projects) ? projects : [];
+    const preferred = String(preferredProjectId || "").trim();
+    if (preferred && items.some((item) => String(item?.id || "") === preferred)) return preferred;
+
+    const currentId = String(currentProject?.id || "").trim();
+    if (currentId && items.some((item) => String(item?.id || "") === currentId)) return currentId;
+
+    const tokenCandidate = items.find((item) => _projectTokenTotal(item) > 0);
+    if (tokenCandidate?.id) return String(tokenCandidate.id);
+
+    return String(items[0]?.id || "").trim();
+  }
+
+  function _renderBudgetProjectOptions(projects, selectedProjectId = "") {
+    const projectSelect = $("budget-project-select");
+    const helper = $("budget-project-helper");
+    if (!projectSelect) return "";
+
+    const items = Array.isArray(projects) ? projects : [];
+    if (!items.length) {
+      projectSelect.innerHTML = '<option value="">Sin proyectos disponibles</option>';
+      projectSelect.disabled = true;
+      if (helper) helper.textContent = "No hay proyectos registrados para calcular presupuesto.";
+      return "";
+    }
+
+    projectSelect.innerHTML = items.map((project) => {
+      const title = String(project?.title || "Proyecto sin titulo").trim();
+      const formatName = String(project?.format_name || project?.format_id || "Sin formato").trim();
+      const tokenLabel = formatInt(_projectTokenTotal(project));
+      return `
+        <option value="${escapeHtml(project.id || "")}">
+          ${escapeHtml(`${title} Â· ${formatName} Â· ${tokenLabel} tokens`)}
+        </option>
+      `;
+    }).join("");
+    projectSelect.disabled = false;
+
+    const resolvedId = _resolveBudgetProjectId(items, selectedProjectId);
+    if (resolvedId) projectSelect.value = resolvedId;
+
+    const selectedProject = items.find((project) => String(project?.id || "") === String(projectSelect.value || "")) || items[0];
+    if (helper) {
+      const status = String(_effectiveProjectStatus(selectedProject) || "-").replaceAll("_", " ");
+      helper.textContent = `${status} Â· Actualizado ${_formatProjectDate(selectedProject)}`;
+    }
+    return String(projectSelect.value || "");
+  }
+
+  async function _prepareBudgetProjects(preferredProjectId = "") {
+    const items = _sortProjectsForProduct(await apiGet("/api/projects"));
+    currentBudgetProjects = items;
+    return _renderBudgetProjectOptions(items, preferredProjectId);
+  }
+
+  function _renderBudgetEstimateVisibility() {
+    $("budget-estimate-pending")?.classList.toggle("hidden", budgetEstimateVisible);
+    $("budget-estimate-results")?.classList.toggle("hidden", !budgetEstimateVisible);
+    $("budget-compare-pending")?.classList.toggle("hidden", budgetEstimateVisible);
+    $("budget-compare-results")?.classList.toggle("hidden", !budgetEstimateVisible);
+    $("budget-sections-pending")?.classList.toggle("hidden", budgetEstimateVisible);
+    $("budget-sections-results")?.classList.toggle("hidden", !budgetEstimateVisible);
+    if ($("budget-calculate-button")) {
+      $("budget-calculate-button").innerHTML = budgetEstimateVisible
+        ? '<i class="fa-solid fa-rotate-right"></i> Recalcular presupuesto'
+        : '<i class="fa-solid fa-calculator"></i> Calcular presupuesto';
+    }
+  }
+
+  function _renderBudgetProviderOptions(catalogProviders, selectedProvider, selectedModel) {
+    const providerSelect = $("budget-provider-select");
+    const modelSelect = $("budget-model-select");
+    if (!providerSelect || !modelSelect) return;
+
+    const providers = Array.isArray(catalogProviders) ? catalogProviders : [];
+    providerSelect.innerHTML = providers.map((item) => `
+      <option value="${escapeHtml(item.id || "")}">${escapeHtml(item.label || item.id || "-")}</option>
+    `).join("");
+
+    if (selectedProvider) providerSelect.value = selectedProvider;
+    const currentProvider = providers.find((item) => String(item.id || "") === String(providerSelect.value || "")) || providers[0];
+    const models = Array.isArray(currentProvider?.models) ? currentProvider.models : [];
+    modelSelect.innerHTML = models.map((item) => `
+      <option value="${escapeHtml(item.model || "")}">${escapeHtml(item.display_name || item.model || "-")}</option>
+    `).join("");
+    if (selectedModel && models.some((item) => String(item.model || "") === String(selectedModel))) {
+      modelSelect.value = selectedModel;
+    }
+  }
+
+  function _renderBudgetPayload(payload) {
+    currentBudgetPayload = payload || null;
+    const project = payload?.project || {};
+    const usage = payload?.usage || {};
+    const pricing = payload?.selected_pricing || {};
+    const estimate = payload?.estimate || {};
+    const comparisons = Array.isArray(payload?.comparisons) ? payload.comparisons : [];
+    const catalogProviders = Array.isArray(payload?.catalog?.providers) ? payload.catalog.providers : [];
+
+    _renderBudgetProviderOptions(
+      catalogProviders,
+      pricing?.provider || estimate?.provider || "",
+      pricing?.model || estimate?.model || "",
+    );
+    _renderBudgetProjectOptions(currentBudgetProjects, project?.id || currentBudgetProjectId);
+
+    if ($("budget-project-title")) $("budget-project-title").textContent = project.title || "Proyecto sin titulo";
+    if ($("budget-project-meta")) {
+      $("budget-project-meta").textContent = `${project.format_name || "-"} - ${String(project.status || "-").replaceAll("_", " ")}`;
+    }
+    if ($("budget-project-origin")) {
+      const originalProvider = String(project.original_provider || "").trim();
+      const originalModel = String(project.original_model || "").trim();
+      $("budget-project-origin").textContent = originalProvider && originalModel
+        ? `Modelo original usado: ${originalProvider} - ${originalModel}`
+        : "Aun no hay un modelo historico dominante registrado para este proyecto.";
+    }
+
+    if ($("budget-usage-input")) $("budget-usage-input").textContent = formatInt(usage.input_tokens_total || 0);
+    if ($("budget-usage-output")) $("budget-usage-output").textContent = formatInt(usage.output_tokens_total || 0);
+    if ($("budget-usage-total")) $("budget-usage-total").textContent = formatInt(usage.total_tokens || 0);
+    if ($("budget-usage-meta")) {
+      const usageSource = String(usage.usage_source || "unavailable");
+      $("budget-usage-meta").textContent = `Llamadas: ${formatInt(usage.calls_total || 0)} - Fuente: ${usageSource} - Estimadas: ${formatInt(usage.estimated_calls || 0)}`;
+    }
+
+    if ($("budget-pricing-state")) {
+      const providerLabel = pricing.provider_label || pricing.provider || "-";
+      const modelLabel = pricing.display_name || pricing.model || "Sin modelo";
+      $("budget-pricing-state").textContent = `${providerLabel} - ${modelLabel}`;
+    }
+    if ($("budget-pricing-meta")) {
+      const sourceState = String(pricing.pricing_source || "unavailable");
+      const sourceOrigin = String(pricing.pricing_origin || "unavailable").replaceAll("_", " ");
+      const endpointProvider = String(pricing.endpoint_provider || "").trim();
+      const endpointSuffix = endpointProvider ? ` - Endpoint: ${endpointProvider}` : "";
+      const cacheSuffix = pricing.is_cached_fallback ? " - usando cache valida" : "";
+      $("budget-pricing-meta").textContent = `Fuente: ${sourceOrigin} - Estado: ${sourceState}${endpointSuffix}${cacheSuffix}`;
+    }
+    if ($("budget-price-check-note")) {
+      const providerLabel = pricing.provider_label || pricing.provider || "Sin proveedor";
+      const modelLabel = pricing.display_name || pricing.model || "Sin modelo";
+      const sourceOrigin = String(pricing.pricing_origin || "unavailable").replaceAll("_", " ");
+      $("budget-price-check-note").textContent = `Precio actual extraido para ${providerLabel} - ${modelLabel} desde ${sourceOrigin}. Verificalo antes de aplicar la simulacion.`;
+    }
+
+    if ($("budget-price-input")) $("budget-price-input").textContent = formatUsdRate(pricing.input_price_per_1m_tokens);
+    if ($("budget-price-output")) $("budget-price-output").textContent = formatUsdRate(pricing.output_price_per_1m_tokens);
+    if ($("budget-price-cached-input")) $("budget-price-cached-input").textContent = formatUsdRate(pricing.cached_input_price_per_1m_tokens);
+    if ($("budget-price-meta")) {
+      const requestPrice = Number(pricing.request_price);
+      const requestSuffix = Number.isFinite(requestPrice) && requestPrice > 0 ? ` - Req: ${formatUsd(requestPrice)}` : "";
+      $("budget-price-meta").textContent = `${pricing.currency || "USD"} - ${pricing.pricing_mode || "unavailable"}${requestSuffix}`;
+    }
+    if ($("budget-price-rule")) {
+      const extras = [];
+      if (Number.isFinite(Number(pricing.image_price)) && Number(pricing.image_price) > 0) {
+        extras.push(`Imagen: ${formatUsd(Number(pricing.image_price))}`);
+      }
+      if (Number.isFinite(Number(pricing.web_search_price)) && Number(pricing.web_search_price) > 0) {
+        extras.push(`Web search: ${formatUsd(Number(pricing.web_search_price))}`);
+      }
+      if (String(pricing.endpoint_tag || "").trim()) {
+        extras.push(`Tag endpoint: ${pricing.endpoint_tag}`);
+      }
+      const ruleText = pricing.threshold_rule || "Sin reglas adicionales informadas para este modelo.";
+      $("budget-price-rule").textContent = extras.length ? `${ruleText} - ${extras.join(" - ")}` : ruleText;
+    }
+    if ($("budget-price-fetched")) {
+      $("budget-price-fetched").textContent = pricing.fetched_at
+        ? `Actualizado: ${pricing.fetched_at}`
+        : "Fecha de pricing no disponible";
+    }
+    if ($("budget-price-source")) {
+      $("budget-price-source").setAttribute("href", pricing.source_url || "#");
+      $("budget-price-source").classList.toggle("pointer-events-none", !pricing.source_url);
+      $("budget-price-source").classList.toggle("opacity-50", !pricing.source_url);
+    }
+
+    if ($("budget-cost-input")) $("budget-cost-input").textContent = formatUsd(estimate.estimated_input_cost || 0);
+    if ($("budget-cost-output")) $("budget-cost-output").textContent = formatUsd(estimate.estimated_output_cost || 0);
+    if ($("budget-cost-total")) $("budget-cost-total").textContent = formatUsd(estimate.estimated_total_cost || 0);
+    _renderBudgetEstimateVisibility();
+
+    if ($("budget-compare-table")) {
+      $("budget-compare-table").innerHTML = comparisons.map((item) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3">
+            <div class="font-semibold text-slate-800">${escapeHtml(item.provider_label || item.provider || "-")}</div>
+            <div class="text-xs text-slate-400">${escapeHtml(item.pricing_source || "unavailable")}</div>
+          </td>
+          <td class="px-4 py-3 text-slate-700">${escapeHtml(item.display_name || item.model || "-")}</td>
+          <td class="px-4 py-3 text-right font-bold ${item.available ? "text-slate-900" : "text-slate-400"}">${item.available ? escapeHtml(formatUsd(item.estimated_total_cost || 0)) : "No disponible"}</td>
+        </tr>
+      `).join("") || '<tr><td colspan="3" class="px-4 py-4 text-sm text-slate-500">No hay modelos disponibles para comparar.</td></tr>';
+    }
+
+    if ($("budget-sections-table")) {
+      const rows = Array.isArray(estimate.sections) ? estimate.sections : [];
+      $("budget-sections-table").innerHTML = rows.map((item) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3">
+            <div class="font-semibold text-slate-800">${escapeHtml(item.section_path || item.section_title || "Seccion")}</div>
+          </td>
+          <td class="px-4 py-3 text-right text-slate-600">${escapeHtml(formatInt(item.input_tokens || 0))}</td>
+          <td class="px-4 py-3 text-right text-slate-600">${escapeHtml(formatInt(item.output_tokens || 0))}</td>
+          <td class="px-4 py-3 text-right text-slate-600">${escapeHtml(formatInt(item.total_tokens || 0))}</td>
+          <td class="px-4 py-3 text-right font-semibold text-slate-900">${escapeHtml(formatUsd(item.estimated_total_cost || 0))}</td>
+        </tr>
+      `).join("") || '<tr><td colspan="5" class="px-4 py-4 text-sm text-slate-500">No hay secciones historicas con tokens registrados para este proyecto.</td></tr>';
+    }
+  }
+
+  async function _loadBudget(projectId, options = {}) {
+    if (!projectId) return;
+    currentBudgetProjectId = projectId;
+    _renderBudgetProjectOptions(currentBudgetProjects, projectId);
+    const params = new URLSearchParams();
+    if (options.provider) params.set("provider", String(options.provider));
+    if (options.model) params.set("model", String(options.model));
+    if (options.refreshPricing) params.set("refreshPricing", "true");
+
+    if ($("budget-loading")) $("budget-loading").classList.remove("hidden");
+    if ($("budget-error")) {
+      $("budget-error").classList.add("hidden");
+      $("budget-error").textContent = "";
+    }
+
+    try {
+      const payload = await apiGet(`/api/projects/${encodeURIComponent(projectId)}/budget${params.toString() ? `?${params.toString()}` : ""}`);
+      _renderBudgetPayload(payload);
+    } catch (error) {
+      if ($("budget-error")) {
+        $("budget-error").classList.remove("hidden");
+        $("budget-error").textContent = error?.message || "No se pudo calcular el presupuesto IA.";
+      }
+    } finally {
+      if ($("budget-loading")) $("budget-loading").classList.add("hidden");
+    }
+  }
+
+  async function openBudgetModal(projectId) {
+    if ($("modal-project-budget")) $("modal-project-budget").classList.remove("hidden");
+    if ($("budget-project-select")) {
+      $("budget-project-select").onchange = async () => {
+        budgetEstimateVisible = false;
+        _renderBudgetEstimateVisibility();
+        const nextProjectId = String($("budget-project-select")?.value || "").trim();
+        if (!nextProjectId) return;
+        await _loadBudget(nextProjectId);
+      };
+    }
+    if ($("budget-provider-select")) {
+      $("budget-provider-select").onchange = async () => {
+        budgetEstimateVisible = false;
+        _renderBudgetEstimateVisibility();
+        _renderBudgetProviderOptions(currentBudgetPayload?.catalog?.providers || [], $("budget-provider-select")?.value || "", "");
+        const provider = $("budget-provider-select")?.value || "";
+        const model = $("budget-model-select")?.value || "";
+        await _loadBudget(currentBudgetProjectId, { provider, model });
+      };
+    }
+    if ($("budget-model-select")) {
+      $("budget-model-select").onchange = async () => {
+        budgetEstimateVisible = false;
+        _renderBudgetEstimateVisibility();
+        const provider = $("budget-provider-select")?.value || "";
+        const model = $("budget-model-select")?.value || "";
+        await _loadBudget(currentBudgetProjectId, { provider, model });
+      };
+    }
+    budgetEstimateVisible = false;
+    _renderBudgetEstimateVisibility();
+    const selectedProjectId = await _prepareBudgetProjects(projectId);
+    if (!selectedProjectId) {
+      _showBudgetError("Aun no hay proyectos registrados para calcular un presupuesto IA.");
+      return;
+    }
+    await _loadBudget(selectedProjectId);
+  }
+
+  async function openSidebarBudget() {
+    await openBudgetModal(String(currentProject?.id || "").trim());
+  }
+
+  async function refreshBudgetPricing() {
+    if (!currentBudgetProjectId) return;
+    budgetEstimateVisible = false;
+    _renderBudgetEstimateVisibility();
+    const provider = $("budget-provider-select")?.value || "";
+    const model = $("budget-model-select")?.value || "";
+    await _loadBudget(currentBudgetProjectId, { provider, model, refreshPricing: true });
+  }
+
+  function calculateBudgetEstimate() {
+    if (!currentBudgetPayload) return;
+    budgetEstimateVisible = true;
+    _renderBudgetPayload(currentBudgetPayload);
   }
 
   function goToProjectStep(step) {
@@ -2254,30 +2779,6 @@ const TesisAI = (() => {
       ring: "#64748b",
       chip: "bg-slate-50 text-slate-700 border-slate-200",
     };
-  }
-
-  function _ringMarkup({ valueText, percent, color, label, subLabel }) {
-    const safePercent = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0;
-    const radius = 24;
-    const circumference = 2 * Math.PI * radius;
-    const dash = (safePercent / 100) * circumference;
-    return `
-      <div class="provider-ring flex flex-col items-center">
-        <svg viewBox="0 0 64 64" role="img" aria-label="${escapeHtml(label)}">
-          <circle cx="32" cy="32" r="${radius}" fill="none" stroke="#e2e8f0" stroke-width="6"></circle>
-          <circle
-            cx="32" cy="32" r="${radius}" fill="none" stroke="${escapeHtml(color)}" stroke-width="6"
-            stroke-linecap="round"
-            stroke-dasharray="${dash} ${circumference - dash}"
-            transform="rotate(-90 32 32)"
-          ></circle>
-          <text x="32" y="31" text-anchor="middle" font-size="10" fill="#0f172a">${escapeHtml(valueText)}</text>
-          <text x="32" y="42" text-anchor="middle" font-size="7.5" fill="#64748b">${safePercent}%</text>
-        </svg>
-        <div class="provider-ring-label">${escapeHtml(label)}</div>
-        <div class="text-[10px] text-slate-500">${escapeHtml(subLabel || "")}</div>
-      </div>
-    `;
   }
 
   function _findProvider(providerId) {
@@ -2479,20 +2980,6 @@ const TesisAI = (() => {
       const online = provider?.online === true;
       const blocked = !configured || !online || probeStatus === "EXHAUSTED" || probeStatus === "AUTH_ERROR";
 
-      const rlRemaining = Number(provider?.rate_limit?.remaining ?? 0);
-      const rlLimit = Number(provider?.rate_limit?.limit ?? 0);
-      const rlReset = Number(provider?.rate_limit?.reset_seconds ?? 0);
-      const rlPercent = rlLimit > 0 ? Math.round((Math.max(0, rlRemaining) / rlLimit) * 100) : 0;
-      const rlText = rlLimit > 0 ? `${Math.max(0, rlRemaining)}/${rlLimit}` : "N/D";
-      const rlSub = rlReset > 0 ? `Reset: ${rlReset}s` : "Sin espera";
-
-      const quotaRemaining = provider?.quota?.remaining ?? provider?.quota?.remaining_tokens;
-      const quotaLimit = provider?.quota?.limit ?? provider?.quota?.limit_tokens;
-      const hasQuota = Number.isFinite(quotaRemaining) && Number.isFinite(quotaLimit) && quotaLimit > 0;
-      const quotaPercent = hasQuota ? Math.round((Math.max(0, quotaRemaining) / quotaLimit) * 100) : 0;
-      const quotaText = hasQuota ? `${quotaRemaining}/${quotaLimit}` : "No disp.";
-      const quotaSub = hasQuota ? (provider?.quota?.period || "month") : "Estimacion";
-
       const warningParts = [];
       if (provider?.probe?.detail || provider?.last_probe_detail) {
         warningParts.push(`Probe: ${escapeHtml(provider?.probe?.detail || provider?.last_probe_detail)}`);
@@ -2514,22 +3001,6 @@ const TesisAI = (() => {
             <span class="text-[11px] border rounded-full px-2 py-1 ${health.chip}">
               ${health.icon} ${escapeHtml(health.label)}
             </span>
-          </div>
-          <div class="mt-3 flex items-center justify-center gap-4">
-            ${_ringMarkup({
-        valueText: rlText,
-        percent: rlPercent,
-        color: health.ring,
-        label: "Rate-limit",
-        subLabel: rlSub,
-      })}
-            ${_ringMarkup({
-        valueText: quotaText,
-        percent: quotaPercent,
-        color: hasQuota ? health.ring : "#94a3b8",
-        label: "Cuota",
-        subLabel: quotaSub,
-      })}
           </div>
           <div class="mt-3 flex items-center justify-between gap-2">
             <div class="text-[11px] text-slate-500">
@@ -2819,11 +3290,11 @@ const TesisAI = (() => {
           : state === "warn" ? "text-amber-700"
             : state === "error" ? "text-red-700"
               : "text-slate-400";
-      const iconChar = state === "done" ? "✓"
-        : state === "running" ? "▶"
+      const iconChar = state === "done" ? "âœ“"
+        : state === "running" ? "â–¶"
           : state === "warn" ? "!"
-            : state === "error" ? "✕"
-              : "·";
+            : state === "error" ? "âœ•"
+              : "Â·";
       const pillClass = state === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
         : state === "running" ? "bg-blue-50 text-blue-700 border-blue-200"
           : state === "warn" ? "bg-amber-50 text-amber-700 border-amber-200"
@@ -2908,7 +3379,7 @@ const TesisAI = (() => {
 
     // Update progress card text + bar
     const progressText = total > 0
-      ? `Secciones <b>${Math.min(current, total)}/${total}</b>${currentPath ? ` · ${currentPath}` : ""}`
+      ? `Secciones <b>${Math.min(current, total)}/${total}</b>${currentPath ? ` Â· ${currentPath}` : ""}`
       : "Secciones <b>0/0</b>";
     if ($("gen-sections-progress")) $("gen-sections-progress").innerHTML = progressText;
     const width = total > 0 ? Math.min(100, Math.round((Math.min(current, total) / total) * 100)) : 0;
@@ -3337,22 +3808,27 @@ const TesisAI = (() => {
     if ($("gen-token-input-total")) $("gen-token-input-total").textContent = "0";
     if ($("gen-token-output-total")) $("gen-token-output-total").textContent = "0";
     if ($("gen-token-total")) $("gen-token-total").textContent = "0";
+    if ($("gen-cost-total")) $("gen-cost-total").textContent = formatUsd(0);
     if ($("gen-token-current-section")) $("gen-token-current-section").textContent = "-";
     if ($("gen-token-current-model")) $("gen-token-current-model").textContent = "-";
     if ($("gen-token-source")) $("gen-token-source").textContent = "Sin uso IA";
     if ($("gen-token-calls")) $("gen-token-calls").textContent = "0";
+    if ($("gen-token-current-cost")) $("gen-token-current-cost").textContent = formatUsd(0);
+    if ($("gen-token-pricing-source")) $("gen-token-pricing-source").textContent = "No disponible";
     if ($("gen-base-prompt")) $("gen-base-prompt").textContent = "Aun no disponible.";
     if ($("gen-ai-count")) $("gen-ai-count").textContent = "0/0";
     if ($("gen-ai-section-list")) $("gen-ai-section-list").innerHTML = "";
-    if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin sección seleccionada";
-    if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una sección para auditar prompt, respuesta y tokens.";
+    if ($("gen-ai-detail-title")) $("gen-ai-detail-title").textContent = "Sin secciÃ³n seleccionada";
+    if ($("gen-ai-detail-meta")) $("gen-ai-detail-meta").textContent = "Selecciona una secciÃ³n para auditar prompt, respuesta y tokens.";
     if ($("gen-ai-detail-input")) $("gen-ai-detail-input").textContent = "0";
     if ($("gen-ai-detail-output")) $("gen-ai-detail-output").textContent = "0";
     if ($("gen-ai-detail-total")) $("gen-ai-detail-total").textContent = "0";
     if ($("gen-ai-detail-duration")) $("gen-ai-detail-duration").textContent = "-";
+    if ($("gen-ai-detail-cost")) $("gen-ai-detail-cost").textContent = formatUsd(0);
     if ($("gen-ai-detail-provider")) $("gen-ai-detail-provider").textContent = "-";
     if ($("gen-ai-detail-model")) $("gen-ai-detail-model").textContent = "-";
     if ($("gen-ai-detail-source")) $("gen-ai-detail-source").textContent = "-";
+    if ($("gen-ai-detail-pricing")) $("gen-ai-detail-pricing").textContent = "No disponible";
     if ($("gen-ai-detail-prompt")) $("gen-ai-detail-prompt").textContent = "Aun no disponible.";
     if ($("gen-ai-detail-response")) $("gen-ai-detail-response").textContent = "Aun no disponible.";
     if ($("gen-ai-detail-status")) {
@@ -3451,11 +3927,16 @@ const TesisAI = (() => {
     if (_genTimerHandle) { clearInterval(_genTimerHandle); _genTimerHandle = null; }
   }
 
-  async function _renderLiveTrace(projectId) {
+  async function _renderLiveTrace(projectId, options = {}) {
+    const renderSessionVersion = Number(options?.sessionVersion || wizardSessionVersion);
     let projectSnapshot = null;
     try {
       projectSnapshot = await apiGet(`/api/projects/${encodeURIComponent(projectId)}`);
     } catch (_) {
+      return null;
+    }
+
+    if (renderSessionVersion !== wizardSessionVersion) {
       return null;
     }
 
@@ -3498,15 +3979,20 @@ const TesisAI = (() => {
   }
 
   async function _waitForGeneration(projectId) {
+    const trackingSessionVersion = wizardSessionVersion;
     _startGenTimer();
     let missingProjectPolls = 0;
     while (true) {
-      if (_genCancelled) {
+      if (_genCancelled || trackingSessionVersion !== wizardSessionVersion) {
         _stopGenTimer();
         return;
       }
 
-      const project = await _renderLiveTrace(projectId);
+      const project = await _renderLiveTrace(projectId, { sessionVersion: trackingSessionVersion });
+      if (trackingSessionVersion !== wizardSessionVersion) {
+        _stopGenTimer();
+        return;
+      }
       if (project) currentProject = project;
 
       const generationPhase = project?.generation_phase && typeof project.generation_phase === "object"
@@ -3957,6 +4443,7 @@ const TesisAI = (() => {
 
   async function refreshHistory() {
     const items = _sortProjectsForProduct(await apiGet("/api/projects"));
+    _renderPortfolioMetrics(items);
     const tbody = $("history-table");
     tbody.innerHTML = "";
 
@@ -4033,6 +4520,12 @@ const TesisAI = (() => {
     runN8nSimulation,
     continueToSimDownloads,
     openProject,
+    deleteProject,
+    openBudgetModal,
+    openSidebarBudget,
+    closeBudgetModal,
+    refreshBudgetPricing,
+    calculateBudgetEstimate,
     goToProjectStep,
     openPromptModal,
     closePromptModal,
@@ -4052,4 +4545,5 @@ const TesisAI = (() => {
 
 window.TesisAI = TesisAI;
 window.addEventListener("DOMContentLoaded", () => TesisAI.boot().catch(console.error));
+
 

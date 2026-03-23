@@ -90,5 +90,19 @@ class Settings:
     OPENROUTER_HTTP_REFERER: str = _get("OPENROUTER_HTTP_REFERER", "http://localhost:8001")
     OPENROUTER_TIMEOUT_SECONDS: int = int(_get("OPENROUTER_TIMEOUT_SECONDS", "30"))
 
+    # Pricing / cost estimation
+    PRICING_CACHE_TTL_SECONDS: int = int(_get("PRICING_CACHE_TTL_SECONDS", "86400"))
+    PRICING_HTTP_TIMEOUT_SECONDS: int = int(_get("PRICING_HTTP_TIMEOUT_SECONDS", "20"))
+    PRICING_STORE_PATH: str = _get("PRICING_STORE_PATH", "data/model_pricing.json")
+    PRICING_OPENAI_URL: str = _get("PRICING_OPENAI_URL", "https://openai.com/es-419/api/pricing/")
+    PRICING_OPENAI_FALLBACK_URL: str = _get(
+        "PRICING_OPENAI_FALLBACK_URL",
+        "https://developers.openai.com/api/docs/pricing",
+    )
+    PRICING_GEMINI_URL: str = _get(
+        "PRICING_GEMINI_URL",
+        "https://ai.google.dev/gemini-api/docs/pricing?hl=es-419",
+    )
+
 
 settings = Settings()

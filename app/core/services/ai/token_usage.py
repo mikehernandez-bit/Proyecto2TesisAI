@@ -323,7 +323,27 @@ def normalize_token_usage_report(raw: Mapping[str, Any] | None) -> dict[str, Any
         return empty_token_usage_report()
     attempts = raw.get("attempts")
     if not isinstance(attempts, list):
-        return empty_token_usage_report()
+        report = empty_token_usage_report()
+        report["input_tokens_total"] = _to_int(raw.get("input_tokens_total"))
+        report["output_tokens_total"] = _to_int(raw.get("output_tokens_total"))
+        report["total_tokens"] = _to_int(raw.get("total_tokens"))
+        report["calls_total"] = _to_int(raw.get("calls_total"))
+        report["reported_calls"] = _to_int(raw.get("reported_calls"))
+        report["estimated_calls"] = _to_int(raw.get("estimated_calls"))
+        report["has_estimated_usage"] = _to_bool(raw.get("has_estimated_usage"))
+        report["current_section"] = (
+            raw.get("current_section") if isinstance(raw.get("current_section"), Mapping) else None
+        )
+        report["last_call"] = raw.get("last_call") if isinstance(raw.get("last_call"), Mapping) else None
+        sections = raw.get("sections")
+        providers = raw.get("providers")
+        report["sections"] = (
+            [item for item in sections if isinstance(item, Mapping)] if isinstance(sections, list) else []
+        )
+        report["providers"] = (
+            [item for item in providers if isinstance(item, Mapping)] if isinstance(providers, list) else []
+        )
+        return report
     current_section = raw.get("current_section")
     if not isinstance(current_section, Mapping):
         current_section = {}

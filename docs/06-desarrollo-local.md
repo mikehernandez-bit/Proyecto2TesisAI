@@ -1,84 +1,117 @@
-﻿# Desarrollo local
+# Desarrollo Local - GicaGen
 
-Esta guía te deja el entorno listo para ejecutar GicaGen y validar generación
-code-first con Gemini.
+> Actualizado: 2026-03-23
+
+---
 
 ## Prerrequisitos
 
-- Python 3.10 a 3.14.
-- Entorno virtual local.
-- Opcional: instancia local de GicaTesis para validaciones live.
+- **Python**: 3.10 — 3.14 (recomendado 3.12)
+- **GicaTesis** corriendo en port 8000 (o usar `GICAGEN_DEMO_MODE=true`)
+- **API Keys**: al menos una de Gemini, Mistral u OpenRouter
 
-## Setup de GicaGen
+---
+
+## Instalacion
 
 ```powershell
+# 1. Clonar/navegar al repo
+cd C:\Users\jhoan\Documents\gicagen_tesis-main
+
+# 2. Crear entorno virtual
 python -m venv .venv
+
+# 3. Activar (Windows)
 .venv\Scripts\activate
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-python -m uvicorn app.main:app --port 8001 --reload
+
+# 4. Instalar dependencias
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # Para tests y lint
+
+# 5. Copiar y editar config
+copy .env.example .env
+# Editar .env con API keys y URLs
 ```
 
-Abre `http://127.0.0.1:8001/`.
+---
 
-## Variables críticas
-
-| Variable | Requerida | Default | Notas |
-|---|---|---|---|
-| `GEMINI_API_KEY` | Sí (IA real) | `""` | Sin key no hay generación real |
-| `GEMINI_MODEL` | No | `gemini-2.0-flash` | Modelo actual |
-| `GICATESIS_BASE_URL` | No | `http://localhost:8000/api/v1` | API de formatos/render |
-| `GICAGEN_DEMO_MODE` | No | `false` | Fallback de catálogo demo |
-
-## Runbook: GicaTesis local
-
-Usa este runbook cuando necesites validar rutas que dependen de GicaTesis
-(render DOCX/PDF o catálogo live).
-
-1. Levanta GicaTesis con su comando oficial de ese repo.
-2. Verifica que responda en su health endpoint (puerto 8000).
-3. Revisa que `GICATESIS_BASE_URL` apunte a `http://localhost:8000/api/v1`.
-4. Reinicia GicaGen.
-
-Si usas estructura local estándar de ambos repos:
-
-```powershell
-# terminal GicaTesis (repo gicatesis)
-python -m uvicorn app.main:app --port 8000 --reload
-
-# terminal GicaGen (este repo)
-python -m uvicorn app.main:app --port 8001 --reload
-```
-
-## Alternativa: DEMO MODE
-
-Si no tienes GicaTesis disponible, puedes usar:
+## Variables de Entorno Minimas (.env)
 
 ```dotenv
-GICAGEN_DEMO_MODE="true"
+GEMINI_API_KEY="tu-api-key-aqui"
+GEMINI_MODEL="gemini-2.0-flash"
+MISTRAL_API_KEY=""          # Opcional (fallback)
+OPENROUTER_API_KEY=""       # Opcional (fallback)
+AI_PRIMARY_PROVIDER="gemini"
+AI_FALLBACK_ON_QUOTA="true"
+GICATESIS_BASE_URL="http://localhost:8000/api/v1"
+GICAGEN_PORT="8001"
+GICAGEN_DEMO_MODE="false"   # true si no tienes GicaTesis
 ```
 
-Qué cubre:
-- catálogo demo (`data/formats_sample.json`).
+---
 
-Qué no cubre:
-- render real proxy DOCX/PDF de GicaTesis.
-
-## Verificación rápida
+## Levantar el Sistema
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8001/healthz
-Invoke-RestMethod http://127.0.0.1:8001/api/ai/health
-Invoke-RestMethod http://127.0.0.1:8001/api/_meta/build
+# 1. Levantar GicaTesis primero (port 8000)
+# (desde el directorio gicateca_tesis)
+python -m uvicorn app.main:app --port 8000 --reload
+
+# 2. Levantar GicaGen (port 8001)
+python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-## Error común: "No Cloud Projects Available"
+**Abrir:** http://127.0.0.1:8001/
 
-Si AI Studio no muestra proyectos:
+---
 
-1. Crea/selecciona proyecto en Google Cloud.
-2. En AI Studio usa **Dashboard -> Projects -> Import projects**.
-3. Crea la API key e incorpórala en `.env`.
+## Verificacion Basica
 
-Referencia:
-- https://ai.google.dev/gemini-api/docs/api-key
+| Check | URL/Comando | Esperado |
+|-------|------------|----------|
+| App inicia | Terminal | `Uvicorn running on http://127.0.0.1:8001` |
+| Health | `GET /healthz` | `{"ok": true}` |
+| UI carga | http://127.0.0.1:8001/ | Wizard 5 pasos |
+| Tests pasan | `pytest tests -q` | `passed` |
+
+---
+
+## Comandos de Desarrollo
+
+```powershell
+# Tests
+python -m pytest tests -v
+python -m pytest tests/test_prompt_flow.py -v
+
+# Quality gate (como CI)
+python scripts/quality_gate.py all
+python scripts/quality_gate.py lint
+python scripts/quality_gate.py typecheck
+
+# Verificar encoding
+python scripts/check_encoding.py
+python scripts/check_mojibake.py
+```
+
+---
+
+## Obtener API Key de Gemini
+
+1. Ir a https://ai.google.dev/gemini-api/docs/api-key
+2. Crear o seleccionar proyecto en Google Cloud
+3. Generar API key en AI Studio
+4. Guardar SOLO en `.env` local (nunca commitear)
+
+```dotenv
+GEMINI_API_KEY="tu-key-aqui"
+```
+
+---
+
+## Si GicaTesis no esta disponible
+
+Opciones:
+1. **Demo mode**: `GICAGEN_DEMO_MODE=true` — usa `data/formats_sample.json`
+2. **Cache**: si ya se cargo antes, usa `data/gicatesis_cache.json`
+3. Las rutas de render/proxy devuelven `503` con mensaje de remediacion

@@ -191,3 +191,29 @@ def test_update_project_merges_wizard_state_without_losing_progress(tmp_path):
     assert updated["wizard_state"]["current_step"] == 3
     assert updated["wizard_state"]["last_completed_step"] == 3
     assert updated["wizard_state"]["last_open_mode"] == "edit"
+
+
+def test_update_project_can_skip_top_level_updated_at_for_navigation(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    project = service.create_project({"title": "Readonly navigation"})
+
+    items = service.store.read_list()
+    items[0]["updated_at"] = "2026-03-18T10:00:00"
+    service.store.write_list(items)
+
+    updated = service.update_project(
+        project["id"],
+        {
+            "wizard_state": {
+                "current_step": 5,
+                "last_open_mode": "review",
+                "updated_at": "2026-03-19T08:00:00",
+            }
+        },
+        touch_updated_at=False,
+    )
+
+    assert updated is not None
+    assert updated["updated_at"] == "2026-03-18T10:00:00"
+    assert updated["wizard_state"]["current_step"] == 5
+    assert updated["wizard_state"]["last_open_mode"] == "review"
