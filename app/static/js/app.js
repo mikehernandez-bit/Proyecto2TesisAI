@@ -43,13 +43,24 @@ const TesisAI = (() => {
     minimumFractionDigits: 4,
     maximumFractionDigits: 6,
   });
-  const USD_TO_PEN_RATE = 3.72;
+  let USD_TO_PEN_RATE = 3.72;
   const INTL_PEN_FORMAT = new Intl.NumberFormat("es-PE", {
     style: "currency",
     currency: "PEN",
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
   });
+
+  async function fetchExchangeRate() {
+    try {
+      const resp = await fetch("/api/exchange-rate");
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.rate && Number(data.rate) > 0) {
+        USD_TO_PEN_RATE = Number(data.rate);
+      }
+    } catch (_) { /* use fallback */ }
+  }
 
   function formatInt(value) {
     const numeric = Number(value || 0);
@@ -2615,6 +2626,7 @@ const TesisAI = (() => {
   }
 
   async function openBudgetModal(projectId) {
+    await fetchExchangeRate();
     if ($("modal-project-budget")) $("modal-project-budget").classList.remove("hidden");
     if ($("budget-project-select")) {
       $("budget-project-select").onchange = async () => {
