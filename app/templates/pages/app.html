@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 
 <!-- SIDEBAR (Navegación) -->
@@ -974,7 +974,7 @@ El objetivo: {{objetivo_general}}
               Cuando confirmes que el precio es correcto, pulsa <span class="font-semibold">Calcular presupuesto</span> para aplicar ese modelo a los tokens históricos del proyecto.
             </div>
 
-            <div id="budget-estimate-results" class="mt-4 hidden grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div id="budget-estimate-results" class="mt-4 hidden grid grid-cols-1 md:grid-cols-4 gap-3">
               <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 min-h-[112px]">
                 <div class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Costo input</div>
                 <div id="budget-cost-input" class="mt-2 text-xl font-extrabold text-emerald-900">USD 0.000000</div>
@@ -986,6 +986,11 @@ El objetivo: {{objetivo_general}}
               <div class="rounded-2xl border border-slate-200 bg-slate-900 px-4 py-4 text-white min-h-[112px]">
                 <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-300">Costo total estimado</div>
                 <div id="budget-cost-total" class="mt-2 text-xl font-extrabold">USD 0.000000</div>
+              </div>
+              <div class="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 min-h-[112px]">
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Total en Soles</div>
+                <div id="budget-cost-total-pen" class="mt-2 text-xl font-extrabold text-amber-900">PEN 0.0000</div>
+                <div id="budget-pen-rate" class="mt-1 text-[10px] text-amber-600">TC: 1 USD = 3.72 PEN</div>
               </div>
             </div>
           </section>
