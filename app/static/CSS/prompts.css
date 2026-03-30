@@ -1,0 +1,59 @@
+/* ============================================================
+   prompts.css — estilos del modal: LLENADO PROMPTS
+   ============================================================ */
+
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 99px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Variable fija — bloqueada */
+.var-fixed {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Variable editable */
+.var-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  transition: border-color 0.15s;
+}
+.var-tag:focus-within {
+  border-color: #3b82f6;
+}
+.var-tag input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  min-width: 60px;
+  max-width: 140px;
+  width: auto;
+}
+
+/* Bloque de prompt — animación al añadir */
+.prompt-block {
+  animation: fadeSlideIn 0.25s ease forwards;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
