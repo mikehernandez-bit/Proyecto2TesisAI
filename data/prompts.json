@@ -5,7 +5,7 @@
     "docType": "tesis",
     "template": "Escribe un informe cuantitativo sobre {{tema}} usando análisis estadístico con {{herramienta_ingenieria}} en {{diagnostico_local}}. Incluye cuantitativo, estadística descriptiva e inferencial.",
     "variables": ["tema", "herramienta_ingenieria", "diagnostico_local"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_fc13e3c0d8",
@@ -13,7 +13,7 @@
     "docType": "tesis",
     "template": "Escribe un informe cualitativo sobre {{tema}} con categorías apriorísticas. El estudio se realizó en {{escenario_estudio}} con {{informantes_clave}} como informantes clave.",
     "variables": ["tema", "escenario_estudio", "informantes_clave"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_17595d0ce3",
@@ -21,7 +21,7 @@
     "docType": "tesis",
     "template": "Redacta un informe para la Universidad Nacional de Ingeniería (UNI) sobre {{tema}}, siguiendo sus lineamientos específicos de formato.",
     "variables": ["tema"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_29aa7778cc",
@@ -29,7 +29,7 @@
     "docType": "maestria",
     "template": "Elabora una tesis de maestría con enfoque cuantitativo sobre {{tema}}. Debe incluir Alfa de Cronbach y análisis estadístico avanzado.",
     "variables": ["tema"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_7cf94e7523",
@@ -37,7 +37,7 @@
     "docType": "maestria",
     "template": "Redacta una tesis de maestría con enfoque cualitativo sobre {{tema}}. Incluye categorías emergentes y triangulación de datos.",
     "variables": ["tema"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_9f0764d149",
@@ -45,7 +45,7 @@
     "docType": "proyecto",
     "template": "Diseña un proyecto de investigación cuantitativo sobre {{tema}}. Debe contener matriz de consistencia y variables medibles.",
     "variables": ["tema"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_c90ea886b7",
@@ -53,7 +53,7 @@
     "docType": "proyecto",
     "template": "Diseña un proyecto de investigación cualitativo sobre {{tema}}. Incluye categorías apriorísticas y técnicas de recolección de datos.",
     "variables": ["tema"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_6bc6fb0e9f",
@@ -61,7 +61,7 @@
     "docType": "plan",
     "template": "Elabora un plan de trabajo técnico para {{tema}}. Especifica aportes tangibles, patentes y beneficiarios del proyecto.",
     "variables": ["tema"],
-    "active": true
+    "is_active": true
   },
   {
     "id": "prompt_45c88af464",
@@ -69,6 +69,6 @@
     "docType": "posgrado",
     "template": "Redacta un documento de posgrado para UNI sobre {{tema}}, dividido en capítulos específicos del protocolo de investigación.",
     "variables": ["tema"],
-    "active": true
+    "is_active": true
   }
 ]
