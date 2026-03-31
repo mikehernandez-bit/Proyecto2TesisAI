@@ -1,64 +1,74 @@
 [
   {
-    "id_unico": "UNAC_INF_CUALI_CAPITULO_I",
-    "universidad": "UNAC",
-    "metodologia": "INF",
-    "categoria": "CUALI",
-    "prompts": [
-      {
-        "numero_prompt": 1,
-        "capitulo_nombre": "INTRODUCCION",
-        "titulo_cabecera": "sad",
-        "instrucciones_ia": "dasds",
-        "variables_locales": [
-          "variable_dependiente"
-        ]
-      },
-      {
-        "numero_prompt": 2,
-        "capitulo_nombre": "sss",
-        "titulo_cabecera": "",
-        "instrucciones_ia": "",
-        "variables_locales": [
-          "variable_dependiente"
-        ]
-      },
-      {
-        "numero_prompt": 3,
-        "capitulo_nombre": "sss",
-        "titulo_cabecera": "",
-        "instrucciones_ia": "",
-        "variables_locales": [
-          "variable_dependiente"
-        ]
-      }
-    ],
-    "config_ia": {
-      "modelo": "GPT-4o (Omni)",
-      "temperatura": 0.7,
-      "max_tokens": 4096
-    }
+    "id": "prompt_1936b2172c",
+    "name": "Informe Cuantitativo UNAC",
+    "docType": "tesis",
+    "template": "Escribe un informe cuantitativo sobre {{tema}} usando análisis estadístico con {{herramienta_ingenieria}} en {{diagnostico_local}}. Incluye cuantitativo, estadística descriptiva e inferencial.",
+    "variables": ["tema", "herramienta_ingenieria", "diagnostico_local"],
+    "active": true
   },
   {
-    "id_unico": "UNAC_INF_CUALI_CAPITULO_III",
-    "universidad": "UNAC",
-    "metodologia": "INF",
-    "categoria": "CUALI",
-    "prompts": [
-      {
-        "numero_prompt": 1,
-        "capitulo_nombre": "MARCO TEORICO",
-        "titulo_cabecera": "dsdsds",
-        "instrucciones_ia": "saf",
-        "variables_locales": [
-          "variable_dependiente"
-        ]
-      }
-    ],
-    "config_ia": {
-      "modelo": "GPT-4o (Omni)",
-      "temperatura": 0.7,
-      "max_tokens": 4096
-    }
+    "id": "prompt_fc13e3c0d8",
+    "name": "Informe Cualitativo UNAC",
+    "docType": "tesis",
+    "template": "Escribe un informe cualitativo sobre {{tema}} con categorías apriorísticas. El estudio se realizó en {{escenario_estudio}} con {{informantes_clave}} como informantes clave.",
+    "variables": ["tema", "escenario_estudio", "informantes_clave"],
+    "active": true
+  },
+  {
+    "id": "prompt_17595d0ce3",
+    "name": "Informe UNI",
+    "docType": "tesis",
+    "template": "Redacta un informe para la Universidad Nacional de Ingeniería (UNI) sobre {{tema}}, siguiendo sus lineamientos específicos de formato.",
+    "variables": ["tema"],
+    "active": true
+  },
+  {
+    "id": "prompt_29aa7778cc",
+    "name": "Maestría Cuantitativa UNAC",
+    "docType": "maestria",
+    "template": "Elabora una tesis de maestría con enfoque cuantitativo sobre {{tema}}. Debe incluir Alfa de Cronbach y análisis estadístico avanzado.",
+    "variables": ["tema"],
+    "active": true
+  },
+  {
+    "id": "prompt_7cf94e7523",
+    "name": "Maestría Cualitativa UNAC",
+    "docType": "maestria",
+    "template": "Redacta una tesis de maestría con enfoque cualitativo sobre {{tema}}. Incluye categorías emergentes y triangulación de datos.",
+    "variables": ["tema"],
+    "active": true
+  },
+  {
+    "id": "prompt_9f0764d149",
+    "name": "Proyecto Cuantitativo UNAC",
+    "docType": "proyecto",
+    "template": "Diseña un proyecto de investigación cuantitativo sobre {{tema}}. Debe contener matriz de consistencia y variables medibles.",
+    "variables": ["tema"],
+    "active": true
+  },
+  {
+    "id": "prompt_c90ea886b7",
+    "name": "Proyecto Cualitativo UNAC",
+    "docType": "proyecto",
+    "template": "Diseña un proyecto de investigación cualitativo sobre {{tema}}. Incluye categorías apriorísticas y técnicas de recolección de datos.",
+    "variables": ["tema"],
+    "active": true
+  },
+  {
+    "id": "prompt_6bc6fb0e9f",
+    "name": "Plan de Trabajo UNI",
+    "docType": "plan",
+    "template": "Elabora un plan de trabajo técnico para {{tema}}. Especifica aportes tangibles, patentes y beneficiarios del proyecto.",
+    "variables": ["tema"],
+    "active": true
+  },
+  {
+    "id": "prompt_45c88af464",
+    "name": "Posgrado UNI",
+    "docType": "posgrado",
+    "template": "Redacta un documento de posgrado para UNI sobre {{tema}}, dividido en capítulos específicos del protocolo de investigación.",
+    "variables": ["tema"],
+    "active": true
   }
 ]
