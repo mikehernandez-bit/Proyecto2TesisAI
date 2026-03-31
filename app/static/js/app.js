@@ -49,6 +49,24 @@ const TesisAI = (() => {
     minimumFractionDigits: 4,
     maximumFractionDigits: 6,
   });
+  let USD_TO_PEN_RATE = 3.72;
+  const INTL_PEN_FORMAT = new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: "PEN",
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  });
+
+  async function fetchExchangeRate() {
+    try {
+      const resp = await fetch("/api/exchange-rate");
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.rate && Number(data.rate) > 0) {
+        USD_TO_PEN_RATE = Number(data.rate);
+      }
+    } catch (_) { /* use fallback */ }
+  }
 
   function formatInt(value) {
     const numeric = Number(value || 0);
@@ -60,6 +78,12 @@ const TesisAI = (() => {
     const numeric = Number(value || 0);
     if (!Number.isFinite(numeric)) return "USD -";
     return INTL_USD_FORMAT.format(Math.max(0, numeric));
+  }
+
+  function formatPen(usdValue) {
+    const numeric = Number(usdValue || 0);
+    if (!Number.isFinite(numeric)) return "PEN -";
+    return INTL_PEN_FORMAT.format(Math.max(0, numeric * USD_TO_PEN_RATE));
   }
 
   function formatUsdRate(value) {
@@ -2674,6 +2698,8 @@ const TesisAI = (() => {
     if ($("budget-cost-input")) $("budget-cost-input").textContent = formatUsd(estimate.estimated_input_cost || 0);
     if ($("budget-cost-output")) $("budget-cost-output").textContent = formatUsd(estimate.estimated_output_cost || 0);
     if ($("budget-cost-total")) $("budget-cost-total").textContent = formatUsd(estimate.estimated_total_cost || 0);
+    if ($("budget-cost-total-pen")) $("budget-cost-total-pen").textContent = formatPen(estimate.estimated_total_cost || 0);
+    if ($("budget-pen-rate")) $("budget-pen-rate").textContent = `TC: 1 USD = ${USD_TO_PEN_RATE} PEN`;
     _renderBudgetEstimateVisibility();
 
     if ($("budget-compare-table")) {
@@ -2734,6 +2760,7 @@ const TesisAI = (() => {
   }
 
   async function openBudgetModal(projectId) {
+    await fetchExchangeRate();
     if ($("modal-project-budget")) $("modal-project-budget").classList.remove("hidden");
     if ($("budget-project-select")) {
       $("budget-project-select").onchange = async () => {

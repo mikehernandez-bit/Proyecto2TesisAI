@@ -108,6 +108,7 @@ n8n = N8NClient()
 n8n_specs = N8NIntegrationService()
 ai_service = AIService()
 pricing_service = PricingService()
+_exchange_rate_cache: Dict[str, Any] = {"rate": 3.72, "fetched_at": "", "source": "default"}
 STARTED_AT = dt.datetime.now(dt.timezone.utc).isoformat()
 TRACE_MAX_PREVIEW_CHARS = 520
 TRACE_TERMINAL_STATUSES = {
@@ -1317,6 +1318,43 @@ def get_project_budget(
         selected_model=str(model or ""),
         refresh_pricing=bool(refresh_pricing),
     )
+
+
+@router.get("/exchange-rate")
+def get_exchange_rate():
+    """Return cached USD to PEN exchange rate, refreshing from API every 12 hours."""
+    cache = _exchange_rate_cache
+    now = dt.datetime.now(dt.timezone.utc)
+    needs_refresh = True
+    if cache.get("fetched_at"):
+        try:
+            last = dt.datetime.fromisoformat(cache["fetched_at"].replace("Z", "+00:00"))
+            age_hours = (now - last).total_seconds() / 3600
+            if age_hours < 12:
+                needs_refresh = False
+        except Exception:
+            pass
+
+    if needs_refresh:
+        try:
+            resp = httpx.get("https://open.er-api.com/v6/latest/USD", timeout=8)
+            data = resp.json()
+            pen_rate = data.get("rates", {}).get("PEN")
+            if pen_rate and float(pen_rate) > 0:
+                cache["rate"] = round(float(pen_rate), 4)
+                cache["fetched_at"] = now.isoformat()
+                cache["source"] = "exchangerate-api.com"
+                _logger.info("Exchange rate updated: 1 USD = %s PEN", cache["rate"])
+        except Exception as exc:
+            _logger.warning("Failed to fetch exchange rate: %s", exc)
+
+    return {
+        "base": "USD",
+        "target": "PEN",
+        "rate": cache["rate"],
+        "fetched_at": cache.get("fetched_at", ""),
+        "source": cache.get("source", "default"),
+    }
 
 
 @router.delete("/projects/{project_id}")
