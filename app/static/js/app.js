@@ -19,6 +19,12 @@ const TesisAI = (() => {
   let selectedFormat = null;
   let selectedPrompt = null;
   let currentProject = null;
+  // --- AGREGAR ESTO ---
+  let wizardState = {
+      module: '',
+      enfoque: '',
+      chapters: [] // Aquí guardaremos los bloques seleccionados
+  };
   let currentWizardMode = "new";
   let n8nSpec = null;
   let simRunResult = null;
@@ -1744,6 +1750,13 @@ const TesisAI = (() => {
     updateStepperUI();
     showStep(step);
     _renderWizardContext(currentProject);
+
+    // --- AGREGAR ESTE BLOQUE ---
+    if (step === 2) {
+      loadPromptsForWizard().catch(console.error);
+    }
+    // ---------------------------
+
     if (step === 4) {
       loadProviderStatus(currentProject?.id || null, { autoProbe: true }).catch(console.error);
     }
@@ -1903,6 +1916,111 @@ const TesisAI = (() => {
     uniSel.onchange = render;
     catSel.onchange = render;
     await render();
+  }
+
+  // Variable para manejar los sub-pasos del paso 2
+  let wizardState2 = { module: '', enfoque: '', chapters: [] };
+
+  async function loadPromptsForWizard() {
+    const items = await apiGet("/api/prompts");
+    promptsCache = items;
+    
+    // Obtener la universidad del formato seleccionado en el paso 1
+    // Si usas el selector de logos, asegúrate de que Step 1 guarde la univ en selectedFormat
+    const univ = selectedFormat?.university || ""; 
+    const univPrompts = promptsCache.filter(p => p.universidad === univ);
+
+    const modulesGrid = $("modules-grid");
+    if (!modulesGrid) return;
+    
+    modulesGrid.innerHTML = "";
+    $("sub-step-enfoque").classList.add("hidden");
+    $("sub-step-chapters").classList.add("hidden");
+    if ($("btn-step2-next")) $("btn-step2-next").disabled = true;
+
+    if (!univPrompts.length) {
+      modulesGrid.innerHTML = `<div class="col-span-full p-10 text-center text-slate-400">No hay configuraciones para ${univ}</div>`;
+      return;
+    }
+
+    // Renderizar Nivel 1: Módulos
+    const modules = [...new Set(univPrompts.map(p => p.metodologia))];
+    modules.forEach(mod => {
+      const label = mod === 'INF' ? 'Informe' : mod === 'PROY' ? 'Proyecto' : 'Maestría';
+      const card = document.createElement("div");
+      card.className = "p-6 border-2 border-slate-100 rounded-3xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all text-center bg-white shadow-sm group";
+      card.innerHTML = `
+        <i class="fa-solid fa-file-invoice fa-2x mb-3 text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+        <div class="font-black text-slate-700 uppercase text-[10px] tracking-widest">${label}</div>
+      `;
+      card.onclick = () => {
+        // Estética de selección
+        modulesGrid.querySelectorAll('div').forEach(d => d.classList.replace('border-blue-500', 'border-slate-100'));
+        card.classList.replace('border-slate-100', 'border-blue-500');
+        
+        wizardState2.module = mod;
+        renderEnfoques(univPrompts.filter(p => p.metodologia === mod));
+      };
+      modulesGrid.appendChild(card);
+    });
+  }
+
+  function renderEnfoques(filtered) {
+    const grid = $("enfoque-grid");
+    grid.innerHTML = "";
+    $("sub-step-enfoque").classList.remove("hidden");
+    $("sub-step-chapters").classList.add("hidden");
+
+    const enfoques = [...new Set(filtered.map(p => p.categoria))];
+    enfoques.forEach(enf => {
+      const card = document.createElement("div");
+      card.className = "px-8 py-4 border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-blue-500 bg-white font-bold text-slate-600 uppercase text-xs transition-all";
+      card.textContent = enf;
+      card.onclick = () => {
+        grid.querySelectorAll('div').forEach(d => d.classList.replace('border-blue-500', 'border-slate-100'));
+        card.classList.replace('border-slate-100', 'border-blue-500');
+        
+        wizardState2.enfoque = enf;
+        renderChapters(filtered.filter(p => p.categoria === enf));
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  function renderChapters(final) {
+    const grid = $("chapters-selection-grid");
+    grid.innerHTML = "";
+    $("sub-step-chapters").classList.remove("hidden");
+
+    final.forEach(pack => {
+      pack.prompts.forEach(block => {
+        const card = document.createElement("div");
+        card.className = "flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-emerald-400 transition-all group";
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-slate-50 border flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:text-emerald-600 transition-colors">${block.numero_prompt}</div>
+            <div>
+              <div class="text-[9px] font-black text-blue-500 uppercase">${block.capitulo_nombre}</div>
+              <div class="text-xs font-bold text-slate-700">${block.titulo_cabecera}</div>
+            </div>
+          </div>
+          <div class="check-icon w-6 h-6 rounded-full border-2 border-slate-100 flex items-center justify-center"><i class="fa-solid fa-check text-white text-[10px]"></i></div>
+        `;
+        card.onclick = () => {
+          const isSelected = card.classList.toggle('border-emerald-500');
+          card.classList.toggle('bg-emerald-50/30');
+          card.querySelector('.check-icon').classList.toggle('bg-emerald-500');
+          card.querySelector('.check-icon').classList.toggle('border-emerald-500');
+
+          if (isSelected) wizardState2.chapters.push(block);
+          else wizardState2.chapters = wizardState2.chapters.filter(c => c.numero_prompt !== block.numero_prompt);
+          
+          $("btn-step2-next").disabled = wizardState2.chapters.length === 0;
+          selectedPrompt = pack; // Guardamos el pack principal para las variables del Step 3
+        };
+        grid.appendChild(card);
+      });
+    });
   }
 
   function selectFormat(formatObj, cardEl) {
@@ -2211,13 +2329,29 @@ const TesisAI = (() => {
 
   function collectWizardPayload() {
     const values = {};
-    (selectedPrompt?.variables || []).forEach((variable) => {
+    
+    // Recolectar variables de TODOS los capítulos seleccionados
+    const allVariables = [];
+    wizardState.chapters.forEach(ch => {
+        // Suponiendo que cada bloque tiene su lista de variables
+        if(ch.variables) allVariables.push(...ch.variables);
+    });
+    
+    // Variables globales del prompt (las que mapeamos en el modal)
+    const uniqueVars = [...new Set(allVariables)];
+
+    uniqueVars.forEach((variable) => {
       const el = $("var_" + variable);
-      values[variable] = el ? el.value : "";
+      if (el) values[variable] = el.value;
     });
 
-    const title = $("var_title")?.value || values.tema || "Proyecto";
-    return { title, values };
+    const title = $("var_title")?.value || "Proyecto Tesis";
+    return { 
+        title, 
+        values,
+        // ENVIAR LOS BLOQUES SELECCIONADOS AL BACKEND
+        selected_blocks: wizardState.chapters 
+    };
   }
 
   function _resolveProjectFormat(project) {
@@ -4431,6 +4565,92 @@ const TesisAI = (() => {
     await loadPromptsForWizard();
   }
 
+  function renderModules(availablePrompts) {
+    const grid = $("prompts-grid"); // Usamos el contenedor existente
+    grid.innerHTML = "";
+    
+    // Obtener módulos únicos (INF, PROY, MAES)
+    const modules = [...new Set(availablePrompts.map(p => p.metodologia))];
+
+    modules.forEach(mod => {
+      const card = document.createElement("div");
+      card.className = "p-4 border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all font-bold text-slate-700 text-center uppercase text-sm";
+      card.textContent = mod === 'INF' ? 'Informe de Tesis' : mod === 'PROY' ? 'Proyecto de Tesis' : 'Tesis de Maestría';
+      card.onclick = () => {
+          wizardState.module = mod;
+          renderEnfoques(availablePrompts.filter(p => p.metodologia === mod));
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  function renderEnfoques(filteredPrompts) {
+    const grid = $("prompts-grid");
+    grid.innerHTML = `
+        <div class="col-span-full mb-4">
+            <button onclick="TesisAI.loadPromptsForWizard()" class="text-xs text-blue-600 font-bold underline"> 
+                <i class="fa-solid fa-arrow-left"></i> Cambiar tipo
+            </button>
+            <h4 class="text-sm font-black text-slate-800 mt-2 uppercase">Selecciona el Enfoque:</h4>
+        </div>
+    `;
+
+    const enfoques = [...new Set(filteredPrompts.map(p => p.categoria))];
+
+    enfoques.forEach(enf => {
+      const card = document.createElement("div");
+      card.className = "p-4 border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-blue-500 transition-all font-black text-xs text-slate-500 text-center uppercase";
+      card.textContent = enf;
+      card.onclick = () => {
+          wizardState.enfoque = enf;
+          renderChapters(filteredPrompts.filter(p => p.categoria === enf));
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  function renderChapters(finalPrompts) {
+    const grid = $("prompts-grid");
+    grid.innerHTML = `
+        <div class="col-span-full mb-4">
+            <button onclick="TesisAI.loadPromptsForWizard()" class="text-xs text-blue-600 font-bold underline"> 
+                <i class="fa-solid fa-arrow-left"></i> Reiniciar selección
+            </button>
+            <h4 class="text-sm font-black text-slate-800 mt-2 uppercase">Selecciona los Capítulos a generar:</h4>
+        </div>
+    `;
+
+    finalPrompts.forEach(pack => {
+      pack.prompts.forEach(block => {
+        const card = document.createElement("div");
+        card.className = "chapter-option flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl cursor-pointer hover:border-emerald-400 transition-all group";
+        card.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-slate-50 border flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:text-emerald-600 transition-colors">
+                    ${block.numero_prompt}
+                </div>
+                <div>
+                    <div class="text-[9px] font-black text-blue-500 uppercase">${block.capitulo_nombre}</div>
+                    <div class="text-xs font-bold text-slate-700">${block.titulo_cabecera}</div>
+                </div>
+            </div>
+            <div class="check-icon hidden text-emerald-500"><i class="fa-solid fa-circle-check"></i></div>
+        `;
+        
+        card.onclick = () => {
+            const isSelected = card.classList.toggle('border-emerald-500');
+            card.querySelector('.check-icon').classList.toggle('hidden');
+            
+            if(isSelected) wizardState.chapters.push(block);
+            else wizardState.chapters = wizardState.chapters.filter(c => c !== block);
+            
+            $("btn-step2-next").disabled = wizardState.chapters.length === 0;
+        };
+        grid.appendChild(card);
+      });
+    });
+  }
+
   async function refreshPromptsAdmin() {
     const items = await apiGet("/api/prompts");
     const tbody = $("prompts-table");
@@ -4563,6 +4783,7 @@ const TesisAI = (() => {
     exportN8nGuide,
     _switchDocTab,
     _filterTimeline,
+    loadPromptsForWizard,
     async boot() {
       wireHistorySearch();
       await refreshDashboard();
