@@ -4,7 +4,11 @@
     "name": "Informe Cuantitativo UNAC",
     "docType": "tesis",
     "template": "Escribe un informe cuantitativo sobre {{tema}} usando análisis estadístico con {{herramienta_ingenieria}} en {{diagnostico_local}}. Incluye cuantitativo, estadística descriptiva e inferencial.",
-    "variables": ["tema", "herramienta_ingenieria", "diagnostico_local"],
+    "variables": [
+      "tema",
+      "herramienta_ingenieria",
+      "diagnostico_local"
+    ],
     "is_active": true
   },
   {
@@ -12,7 +16,11 @@
     "name": "Informe Cualitativo UNAC",
     "docType": "tesis",
     "template": "Escribe un informe cualitativo sobre {{tema}} con categorías apriorísticas. El estudio se realizó en {{escenario_estudio}} con {{informantes_clave}} como informantes clave.",
-    "variables": ["tema", "escenario_estudio", "informantes_clave"],
+    "variables": [
+      "tema",
+      "escenario_estudio",
+      "informantes_clave"
+    ],
     "is_active": true
   },
   {
@@ -20,7 +28,9 @@
     "name": "Informe UNI",
     "docType": "tesis",
     "template": "Redacta un informe para la Universidad Nacional de Ingeniería (UNI) sobre {{tema}}, siguiendo sus lineamientos específicos de formato.",
-    "variables": ["tema"],
+    "variables": [
+      "tema"
+    ],
     "is_active": true
   },
   {
@@ -28,7 +38,9 @@
     "name": "Maestría Cuantitativa UNAC",
     "docType": "maestria",
     "template": "Elabora una tesis de maestría con enfoque cuantitativo sobre {{tema}}. Debe incluir Alfa de Cronbach y análisis estadístico avanzado.",
-    "variables": ["tema"],
+    "variables": [
+      "tema"
+    ],
     "is_active": true
   },
   {
@@ -36,7 +48,9 @@
     "name": "Maestría Cualitativa UNAC",
     "docType": "maestria",
     "template": "Redacta una tesis de maestría con enfoque cualitativo sobre {{tema}}. Incluye categorías emergentes y triangulación de datos.",
-    "variables": ["tema"],
+    "variables": [
+      "tema"
+    ],
     "is_active": true
   },
   {
@@ -44,7 +58,9 @@
     "name": "Proyecto Cuantitativo UNAC",
     "docType": "proyecto",
     "template": "Diseña un proyecto de investigación cuantitativo sobre {{tema}}. Debe contener matriz de consistencia y variables medibles.",
-    "variables": ["tema"],
+    "variables": [
+      "tema"
+    ],
     "is_active": true
   },
   {
@@ -52,7 +68,9 @@
     "name": "Proyecto Cualitativo UNAC",
     "docType": "proyecto",
     "template": "Diseña un proyecto de investigación cualitativo sobre {{tema}}. Incluye categorías apriorísticas y técnicas de recolección de datos.",
-    "variables": ["tema"],
+    "variables": [
+      "tema"
+    ],
     "is_active": true
   },
   {
@@ -60,7 +78,9 @@
     "name": "Plan de Trabajo UNI",
     "docType": "plan",
     "template": "Elabora un plan de trabajo técnico para {{tema}}. Especifica aportes tangibles, patentes y beneficiarios del proyecto.",
-    "variables": ["tema"],
+    "variables": [
+      "tema"
+    ],
     "is_active": true
   },
   {
@@ -68,7 +88,163 @@
     "name": "Posgrado UNI",
     "docType": "posgrado",
     "template": "Redacta un documento de posgrado para UNI sobre {{tema}}, dividido en capítulos específicos del protocolo de investigación.",
-    "variables": ["tema"],
+    "variables": [
+      "tema"
+    ],
     "is_active": true
+  },
+  {
+    "id_unico": "UNAC_INF_CUALI_CAPITULO_I",
+    "universidad": "UNAC",
+    "metodologia": "INF",
+    "categoria": "CUALI",
+    "prompts": [
+      {
+        "numero_prompt": 1,
+        "capitulo_nombre": "PLANTEAMIENTO DEL PROBLEMA",
+        "titulo_cabecera": "XD",
+        "instrucciones_ia": "XD",
+        "variables_locales": [
+          "variable_dependiente"
+        ]
+      }
+    ],
+    "config_ia": {
+      "modelo": "GPT-4o (Omni)",
+      "temperatura": 0.7,
+      "max_tokens": 4096
+    }
+  },
+  {
+    "id_unico": "UNAC_INF_CUALI_CAPITULO_II",
+    "universidad": "UNAC",
+    "metodologia": "INF",
+    "categoria": "CUALI",
+    "prompts": [
+      {
+        "numero_prompt": 1,
+        "capitulo_nombre": "MARCO TEÓRICO REFERENCIAL",
+        "titulo_cabecera": "dsd",
+        "instrucciones_ia": "sdd",
+        "variables_locales": [
+          "variable_dependiente"
+        ]
+      }
+    ],
+    "config_ia": {
+      "modelo": "GPT-4o (Omni)",
+      "temperatura": 0.7,
+      "max_tokens": 4096
+    }
+  },
+  {
+    "id_unico": "UNAC_INF_CUALI_CAPITULO_III",
+    "universidad": "UNAC",
+    "metodologia": "INF",
+    "categoria": "CUALI",
+    "prompts": [
+      {
+        "numero_prompt": 1,
+        "capitulo_nombre": "METODOLOGÍA",
+        "titulo_cabecera": "awa",
+        "instrucciones_ia": "awa",
+        "variables_locales": [
+          "variable_dependiente"
+        ]
+      }
+    ],
+    "config_ia": {
+      "modelo": "GPT-4o (Omni)",
+      "temperatura": 0.7,
+      "max_tokens": 4096
+    }
+  },
+  {
+    "id_unico": "UNAC_INF_CUALI_CAPITULO_IV",
+    "universidad": "UNAC",
+    "metodologia": "INF",
+    "categoria": "CUALI",
+    "prompts": [
+      {
+        "numero_prompt": 1,
+        "capitulo_nombre": "RESULTADOS Y DISCUSIÓN",
+        "titulo_cabecera": "AFA",
+        "instrucciones_ia": "AFA",
+        "variables_locales": [
+          "variable_dependiente"
+        ]
+      }
+    ],
+    "config_ia": {
+      "modelo": "GPT-4o (Omni)",
+      "temperatura": 0.7,
+      "max_tokens": 4096
+    }
+  },
+  {
+    "id_unico": "UNAC_INF_CUANTI_CAPITULO_I",
+    "universidad": "UNAC",
+    "metodologia": "INF",
+    "categoria": "CUANTI",
+    "prompts": [
+      {
+        "numero_prompt": 1,
+        "capitulo_nombre": "INICIO",
+        "titulo_cabecera": "adas",
+        "instrucciones_ia": "adds",
+        "variables_locales": [
+          "variable_dependiente"
+        ]
+      }
+    ],
+    "config_ia": {
+      "modelo": "GPT-4o (Omni)",
+      "temperatura": 0.7,
+      "max_tokens": 4096
+    }
+  },
+  {
+    "id_unico": "UNAC_INF_CUANTI_CAPITULO_II",
+    "universidad": "UNAC",
+    "metodologia": "INF",
+    "categoria": "CUANTI",
+    "prompts": [
+      {
+        "numero_prompt": 1,
+        "capitulo_nombre": "NUDO",
+        "titulo_cabecera": "ad",
+        "instrucciones_ia": "adsa",
+        "variables_locales": [
+          "variable_dependiente"
+        ]
+      }
+    ],
+    "config_ia": {
+      "modelo": "GPT-4o (Omni)",
+      "temperatura": 0.7,
+      "max_tokens": 4096
+    }
+  },
+  {
+    "id_unico": "UNAC_INF_CUANTI_CAPITULO_III",
+    "universidad": "UNAC",
+    "metodologia": "INF",
+    "categoria": "CUANTI",
+    "prompts": [
+      {
+        "numero_prompt": 1,
+        "capitulo_nombre": "DESENLACE",
+        "titulo_cabecera": "ads",
+        "instrucciones_ia": "adas",
+        "variables_locales": [
+          "variable_dependiente"
+        ]
+      }
+    ],
+    "config_ia": {
+      "modelo": "GPT-4o (Omni)",
+      "temperatura": 0.7,
+      "max_tokens": 4096
+    }
   }
 ]

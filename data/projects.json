@@ -1,5 +1,599 @@
 [
   {
+    "id": "proj_e60e022033",
+    "title": "Proyecto Tesis",
+    "prompt_id": null,
+    "prompt_name": null,
+    "prompt_template": null,
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "533b734464a98b2d",
+    "variables": {
+      "title": "Proyecto Tesis"
+    },
+    "values": {
+      "title": "Proyecto Tesis"
+    },
+    "status": "draft",
+    "created_at": "2026-04-01T15:27:42",
+    "updated_at": "2026-04-01T15:27:42",
+    "output_file": null,
+    "pdf_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": [],
+    "events": [],
+    "trace": [],
+    "progress": {
+      "current": 0,
+      "total": 0,
+      "currentPath": "",
+      "provider": "",
+      "tokenUsage": {
+        "input_tokens_total": 0,
+        "output_tokens_total": 0,
+        "total_tokens": 0,
+        "calls_total": 0,
+        "reported_calls": 0,
+        "estimated_calls": 0,
+        "has_estimated_usage": false,
+        "current_section": null,
+        "last_call": null
+      },
+      "costUsage": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "updatedAt": "2026-04-01T15:27:42"
+    },
+    "token_usage": {
+      "input_tokens_total": 0,
+      "output_tokens_total": 0,
+      "total_tokens": 0,
+      "calls_total": 0,
+      "reported_calls": 0,
+      "estimated_calls": 0,
+      "has_estimated_usage": false,
+      "current_section": null,
+      "last_call": null,
+      "attempts": [],
+      "sections": [],
+      "providers": []
+    },
+    "generation_cost": {
+      "currency": "USD",
+      "input_cost_total_usd": 0.0,
+      "output_cost_total_usd": 0.0,
+      "total_cost_usd": 0.0,
+      "priced_calls": 0,
+      "unpriced_calls": 0,
+      "has_unpriced_calls": false,
+      "pricing_source": "unavailable",
+      "pricing_fetched_at": "",
+      "current_section": {
+        "section_id": "",
+        "section_path": "",
+        "section_title": "",
+        "estimated_cost_usd": 0.0,
+        "pricing_source": "unavailable"
+      },
+      "calls": [],
+      "sections": [],
+      "models": []
+    },
+    "generation_snapshot": {
+      "saved_sections_count": 0,
+      "total_sections": 0,
+      "current_path": "",
+      "completed_sections": [],
+      "tokenUsage": {
+        "input_tokens_total": 0,
+        "output_tokens_total": 0,
+        "total_tokens": 0,
+        "calls_total": 0,
+        "reported_calls": 0,
+        "estimated_calls": 0,
+        "has_estimated_usage": false,
+        "current_section": null,
+        "last_call": null
+      },
+      "costUsage": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "source_run_id": "",
+      "status": "idle",
+      "updated_at": ""
+    },
+    "generation_phase": {
+      "status": "idle",
+      "base_prompt": "",
+      "current_section_id": "",
+      "current_section_path": "",
+      "total_sections": 0,
+      "completed_sections": 0,
+      "planned_sections": [],
+      "sections": [],
+      "cost_summary": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "started_at": "",
+      "updated_at": "",
+      "finished_at": ""
+    },
+    "construction_phase": {
+      "status": "idle",
+      "current_task": "",
+      "tasks": [],
+      "started_at": "",
+      "updated_at": "",
+      "finished_at": ""
+    },
+    "cancel_requested": false,
+    "ai_selection": null,
+    "incidents": [],
+    "warnings_count": 0,
+    "resume": {
+      "eligible": false,
+      "saved_sections_count": 0,
+      "resume_from_index": 0,
+      "last_failed_section_path": "",
+      "format_version": "533b734464a98b2d",
+      "base_run_id": "",
+      "retry_count": 0,
+      "reason": "",
+      "updated_at": "2026-04-01T15:27:42"
+    },
+    "wizard_state": {
+      "current_step": 1,
+      "last_completed_step": 4,
+      "last_open_mode": "edit",
+      "updated_at": "2026-04-01T20:29:20.970Z"
+    }
+  },
+  {
+    "id": "proj_303f2d6742",
+    "title": "Proyecto Tesis",
+    "prompt_id": null,
+    "prompt_name": null,
+    "prompt_template": null,
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "533b734464a98b2d",
+    "variables": {
+      "title": "Proyecto Tesis"
+    },
+    "values": {
+      "title": "Proyecto Tesis"
+    },
+    "status": "draft",
+    "created_at": "2026-03-31T19:20:02",
+    "updated_at": "2026-03-31T19:20:20",
+    "output_file": null,
+    "pdf_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": [],
+    "events": [],
+    "trace": [],
+    "progress": {
+      "current": 0,
+      "total": 0,
+      "currentPath": "",
+      "provider": "",
+      "tokenUsage": {
+        "input_tokens_total": 0,
+        "output_tokens_total": 0,
+        "total_tokens": 0,
+        "calls_total": 0,
+        "reported_calls": 0,
+        "estimated_calls": 0,
+        "has_estimated_usage": false,
+        "current_section": null,
+        "last_call": null
+      },
+      "costUsage": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "updatedAt": "2026-03-31T19:20:02"
+    },
+    "token_usage": {
+      "input_tokens_total": 0,
+      "output_tokens_total": 0,
+      "total_tokens": 0,
+      "calls_total": 0,
+      "reported_calls": 0,
+      "estimated_calls": 0,
+      "has_estimated_usage": false,
+      "current_section": null,
+      "last_call": null,
+      "attempts": [],
+      "sections": [],
+      "providers": []
+    },
+    "generation_cost": {
+      "currency": "USD",
+      "input_cost_total_usd": 0.0,
+      "output_cost_total_usd": 0.0,
+      "total_cost_usd": 0.0,
+      "priced_calls": 0,
+      "unpriced_calls": 0,
+      "has_unpriced_calls": false,
+      "pricing_source": "unavailable",
+      "pricing_fetched_at": "",
+      "current_section": {
+        "section_id": "",
+        "section_path": "",
+        "section_title": "",
+        "estimated_cost_usd": 0.0,
+        "pricing_source": "unavailable"
+      },
+      "calls": [],
+      "sections": [],
+      "models": []
+    },
+    "generation_snapshot": {
+      "saved_sections_count": 0,
+      "total_sections": 0,
+      "current_path": "",
+      "completed_sections": [],
+      "tokenUsage": {
+        "input_tokens_total": 0,
+        "output_tokens_total": 0,
+        "total_tokens": 0,
+        "calls_total": 0,
+        "reported_calls": 0,
+        "estimated_calls": 0,
+        "has_estimated_usage": false,
+        "current_section": null,
+        "last_call": null
+      },
+      "costUsage": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "source_run_id": "",
+      "status": "idle",
+      "updated_at": ""
+    },
+    "generation_phase": {
+      "status": "idle",
+      "base_prompt": "",
+      "current_section_id": "",
+      "current_section_path": "",
+      "total_sections": 0,
+      "completed_sections": 0,
+      "planned_sections": [],
+      "sections": [],
+      "cost_summary": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "started_at": "",
+      "updated_at": "",
+      "finished_at": ""
+    },
+    "construction_phase": {
+      "status": "idle",
+      "current_task": "",
+      "tasks": [],
+      "started_at": "",
+      "updated_at": "",
+      "finished_at": ""
+    },
+    "cancel_requested": false,
+    "ai_selection": {
+      "provider": "mistral",
+      "model": "mistral-medium-2505",
+      "fallback_provider": "openrouter",
+      "fallback_model": "openai/gpt-oss-120b:free",
+      "mode": "auto"
+    },
+    "incidents": [],
+    "warnings_count": 0,
+    "resume": {
+      "eligible": false,
+      "saved_sections_count": 0,
+      "resume_from_index": 0,
+      "last_failed_section_path": "",
+      "format_version": "533b734464a98b2d",
+      "base_run_id": "",
+      "retry_count": 0,
+      "reason": "",
+      "updated_at": "2026-03-31T19:20:02"
+    },
+    "wizard_state": {
+      "current_step": 1,
+      "last_completed_step": 4,
+      "last_open_mode": "edit",
+      "updated_at": "2026-04-01T00:21:23.563Z"
+    }
+  },
+  {
+    "id": "proj_52638533ec",
+    "title": "Proyecto Tesis",
+    "prompt_id": null,
+    "prompt_name": null,
+    "prompt_template": null,
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "533b734464a98b2d",
+    "variables": {
+      "title": "Proyecto Tesis"
+    },
+    "values": {
+      "title": "Proyecto Tesis"
+    },
+    "status": "draft",
+    "created_at": "2026-03-31T19:17:15",
+    "updated_at": "2026-03-31T19:17:15",
+    "output_file": null,
+    "pdf_file": null,
+    "error": null,
+    "ai_result": null,
+    "run_id": null,
+    "artifacts": [],
+    "events": [],
+    "trace": [],
+    "progress": {
+      "current": 0,
+      "total": 0,
+      "currentPath": "",
+      "provider": "",
+      "tokenUsage": {
+        "input_tokens_total": 0,
+        "output_tokens_total": 0,
+        "total_tokens": 0,
+        "calls_total": 0,
+        "reported_calls": 0,
+        "estimated_calls": 0,
+        "has_estimated_usage": false,
+        "current_section": null,
+        "last_call": null
+      },
+      "costUsage": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "updatedAt": "2026-03-31T19:17:15"
+    },
+    "token_usage": {
+      "input_tokens_total": 0,
+      "output_tokens_total": 0,
+      "total_tokens": 0,
+      "calls_total": 0,
+      "reported_calls": 0,
+      "estimated_calls": 0,
+      "has_estimated_usage": false,
+      "current_section": null,
+      "last_call": null,
+      "attempts": [],
+      "sections": [],
+      "providers": []
+    },
+    "generation_cost": {
+      "currency": "USD",
+      "input_cost_total_usd": 0.0,
+      "output_cost_total_usd": 0.0,
+      "total_cost_usd": 0.0,
+      "priced_calls": 0,
+      "unpriced_calls": 0,
+      "has_unpriced_calls": false,
+      "pricing_source": "unavailable",
+      "pricing_fetched_at": "",
+      "current_section": {
+        "section_id": "",
+        "section_path": "",
+        "section_title": "",
+        "estimated_cost_usd": 0.0,
+        "pricing_source": "unavailable"
+      },
+      "calls": [],
+      "sections": [],
+      "models": []
+    },
+    "generation_snapshot": {
+      "saved_sections_count": 0,
+      "total_sections": 0,
+      "current_path": "",
+      "completed_sections": [],
+      "tokenUsage": {
+        "input_tokens_total": 0,
+        "output_tokens_total": 0,
+        "total_tokens": 0,
+        "calls_total": 0,
+        "reported_calls": 0,
+        "estimated_calls": 0,
+        "has_estimated_usage": false,
+        "current_section": null,
+        "last_call": null
+      },
+      "costUsage": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "source_run_id": "",
+      "status": "idle",
+      "updated_at": ""
+    },
+    "generation_phase": {
+      "status": "idle",
+      "base_prompt": "",
+      "current_section_id": "",
+      "current_section_path": "",
+      "total_sections": 0,
+      "completed_sections": 0,
+      "planned_sections": [],
+      "sections": [],
+      "cost_summary": {
+        "currency": "USD",
+        "input_cost_total_usd": 0.0,
+        "output_cost_total_usd": 0.0,
+        "total_cost_usd": 0.0,
+        "priced_calls": 0,
+        "unpriced_calls": 0,
+        "has_unpriced_calls": false,
+        "pricing_source": "unavailable",
+        "pricing_fetched_at": "",
+        "current_section": {
+          "section_id": "",
+          "section_path": "",
+          "section_title": "",
+          "estimated_cost_usd": 0.0,
+          "pricing_source": "unavailable"
+        }
+      },
+      "started_at": "",
+      "updated_at": "",
+      "finished_at": ""
+    },
+    "construction_phase": {
+      "status": "idle",
+      "current_task": "",
+      "tasks": [],
+      "started_at": "",
+      "updated_at": "",
+      "finished_at": ""
+    },
+    "cancel_requested": false,
+    "ai_selection": null,
+    "incidents": [],
+    "warnings_count": 0,
+    "resume": {
+      "eligible": false,
+      "saved_sections_count": 0,
+      "resume_from_index": 0,
+      "last_failed_section_path": "",
+      "format_version": "533b734464a98b2d",
+      "base_run_id": "",
+      "retry_count": 0,
+      "reason": "",
+      "updated_at": "2026-03-31T19:17:15"
+    },
+    "wizard_state": {
+      "current_step": 4,
+      "last_completed_step": 4,
+      "last_open_mode": "continue",
+      "updated_at": "2026-04-01T00:17:15.728Z"
+    }
+  },
+  {
     "id": "proj_324dfd77bb",
     "title": "Optimización del Mantenimiento Preventivo en Motores de Combustión Interna mediante Análisis Predictivo",
     "prompt_id": "prompt_c90ea886b7",
