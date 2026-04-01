@@ -19,6 +19,8 @@ const TesisAI = (() => {
   let selectedFormat = null;
   let selectedPrompt = null;
   let currentProject = null;
+  let selectedChapterKeys = new Set(); 
+  let selectedChaptersData = [];
   // --- AGREGAR ESTO ---
   let wizardState = {
       module: '',
@@ -1921,48 +1923,86 @@ const TesisAI = (() => {
   // Variable para manejar los sub-pasos del paso 2
   let wizardState2 = { module: '', enfoque: '', chapters: [] };
 
-  async function loadPromptsForWizard() {
-    const items = await apiGet("/api/prompts");
-    promptsCache = items;
-    
-    // Obtener la universidad del formato seleccionado en el paso 1
-    // Si usas el selector de logos, asegúrate de que Step 1 guarde la univ en selectedFormat
-    const univ = selectedFormat?.university || ""; 
-    const univPrompts = promptsCache.filter(p => p.universidad === univ);
 
-    const modulesGrid = $("modules-grid");
-    if (!modulesGrid) return;
-    
-    modulesGrid.innerHTML = "";
-    $("sub-step-enfoque").classList.add("hidden");
-    $("sub-step-chapters").classList.add("hidden");
+  function renderChapterSelection(chapters) {
+    const grid = $("chapter-selection-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    selectedChapterKeys = new Set(); 
+    selectedChaptersData = [];
     if ($("btn-step2-next")) $("btn-step2-next").disabled = true;
 
-    if (!univPrompts.length) {
-      modulesGrid.innerHTML = `<div class="col-span-full p-10 text-center text-slate-400">No hay configuraciones para ${univ}</div>`;
+    // Validación segura
+    if (!Array.isArray(chapters) || chapters.length === 0) {
+      grid.innerHTML = '<div class="col-span-full text-sm text-slate-500 p-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3"><i class="fa-solid fa-circle-info fa-lg text-blue-400"></i> No hay capítulos configurados para este formato. Por favor, ve a "Gestión de Prompts" y crea el paquete correspondiente.</div>';
       return;
     }
 
-    // Renderizar Nivel 1: Módulos
-    const modules = [...new Set(univPrompts.map(p => p.metodologia))];
-    modules.forEach(mod => {
-      const label = mod === 'INF' ? 'Informe' : mod === 'PROY' ? 'Proyecto' : 'Maestría';
+    chapters.forEach((chapter, idx) => {
       const card = document.createElement("div");
-      card.className = "p-6 border-2 border-slate-100 rounded-3xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all text-center bg-white shadow-sm group";
+      card.className = "chapter-card group p-4 bg-white rounded-2xl border-2 border-slate-100 shadow-sm cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50/50";
+      
+      const chapterId = String(chapter.numero_prompt || (idx + 1)); 
+      card.dataset.chapterId = chapterId;
+
       card.innerHTML = `
-        <i class="fa-solid fa-file-invoice fa-2x mb-3 text-slate-300 group-hover:text-blue-500 transition-colors"></i>
-        <div class="font-black text-slate-700 uppercase text-[10px] tracking-widest">${label}</div>
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 transition-colors group-hover:bg-white group-hover:border-blue-200">
+                  <span class="text-sm font-black text-slate-400 group-hover:text-blue-500">${chapterId}</span>
+              </div>
+              <div>
+                  <div class="text-[9px] font-black text-blue-500 uppercase tracking-widest">${escapeHtml(chapter.capitulo_nombre || 'Capítulo')}</div>
+                  <div class="font-bold text-slate-800 leading-tight text-sm mt-0.5">${escapeHtml(chapter.titulo_cabecera || 'Sin título')}</div>
+              </div>
+          </div>
+          <div class="check-icon hidden text-blue-500"><i class="fa-solid fa-circle-check fa-lg"></i></div>
+        </div>
       `;
+
       card.onclick = () => {
-        // Estética de selección
-        modulesGrid.querySelectorAll('div').forEach(d => d.classList.replace('border-blue-500', 'border-slate-100'));
-        card.classList.replace('border-slate-100', 'border-blue-500');
-        
-        wizardState2.module = mod;
-        renderEnfoques(univPrompts.filter(p => p.metodologia === mod));
+        if (selectedChapterKeys.has(chapterId)) {
+          selectedChapterKeys.delete(chapterId);
+          card.classList.remove("border-blue-400", "bg-blue-50/50");
+          card.querySelector('.check-icon').classList.add("hidden");
+        } else {
+          selectedChapterKeys.add(chapterId);
+          card.classList.add("border-blue-400", "bg-blue-50/50");
+          card.classList.remove("border-slate-100");
+          card.querySelector('.check-icon').classList.remove("hidden");
+        }
+        if ($("btn-step2-next")) $("btn-step2-next").disabled = selectedChapterKeys.size === 0;
       };
-      modulesGrid.appendChild(card);
+
+      grid.appendChild(card);
     });
+  }
+
+  function selectAllChapters() {
+    const grid = $("chapter-selection-grid");
+    if (!grid) return;
+    grid.querySelectorAll(".chapter-card").forEach(card => {
+      const id = card.dataset.chapterId;
+      selectedChapterKeys.add(id);
+      card.classList.add("border-blue-400", "bg-blue-50/50");
+      card.classList.remove("border-slate-100");
+      card.querySelector('.check-icon').classList.remove("hidden");
+    });
+    if ($("btn-step2-next")) $("btn-step2-next").disabled = false;
+  }
+
+  function saveChapterSelectionAndGoDetails() {
+    if (!selectedPrompt || !selectedPrompt.prompts) return;
+
+    // Filtramos para guardar toda la data de los capítulos que seleccionaste
+    selectedChaptersData = selectedPrompt.prompts.filter(ch => 
+      selectedChapterKeys.has(String(ch.numero_prompt))
+    );
+
+    // Renderizamos el formulario del paso 3 y avanzamos
+    renderDynamicForm();
+    nextStep(3);
   }
 
   function renderEnfoques(filtered) {
@@ -2033,6 +2073,9 @@ const TesisAI = (() => {
       _syncSelectedFormatCard();
     }
     $("btn-step1-next").disabled = false;
+
+    // ¡TRUCO DE SISTEMAS_HENYER! Forzamos la carga desde aquí mismo
+    loadPromptsForWizard(); 
   }
 
   function _syncSelectedFormatCard() {
@@ -2045,46 +2088,132 @@ const TesisAI = (() => {
     });
   }
 
-  async function loadPromptsForWizard(includePromptId = "") {
-    const items = await apiGet("/api/prompts");
-    promptsCache = items;
-    const active = items.filter((p) => p.is_active);
-    const selectedPromptId = String(includePromptId || currentProject?.prompt_id || "").trim();
-    const selectedPromptEntry = items.find((item) => String(item?.id || "") === selectedPromptId);
-    const visiblePrompts = selectedPromptEntry && !active.some((item) => item.id === selectedPromptEntry.id)
-      ? [selectedPromptEntry, ...active]
-      : active;
+  async function loadPromptsForWizard() {
+    try {
+      const grid = $("chapter-selection-grid");
+      if (grid) grid.innerHTML = '<div class="col-span-full text-center p-5"><div class="loader mx-auto mb-3"></div><p class="text-slate-500 text-sm">Buscando capítulos específicos para este formato...</p></div>';
 
-    const grid = $("prompts-grid");
+      const items = await apiGet("/api/prompts");
+      promptsCache = items || [];
+
+      if (!selectedFormat) {
+         renderChapterSelection([]);
+         return;
+      }
+
+      // 1. Mostrar en pantalla el formato exacto que elegiste en el Paso 1
+      const formatName = selectedFormat.title || selectedFormat.name || "Formato Seleccionado";
+      if ($("step2-format-name-display")) {
+        $("step2-format-name-display").textContent = formatName;
+      }
+
+      const univ = String(selectedFormat.university || "").toUpperCase();
+      const formatTitle = formatName.toLowerCase();
+
+      // 2. FILTRO ESTRICTO: Solo atrapar lo que corresponde a lo que clickeaste en el Paso 1
+      let matchedPackages = promptsCache.filter(p => {
+        const isSameUniv = String(p.universidad || "").toUpperCase() === univ;
+        
+        // Detectar tipo (INF, PROY, MAES) basado en el nombre de la tarjeta del Paso 1
+        let isSameMetodologia = false;
+        if (formatTitle.includes('informe')) isSameMetodologia = (p.metodologia === 'INF');
+        else if (formatTitle.includes('proyecto')) isSameMetodologia = (p.metodologia === 'PROY');
+        else if (formatTitle.includes('maestr')) isSameMetodologia = (p.metodologia === 'MAES');
+        else if (formatTitle.includes('postgrado')) isSameMetodologia = (p.metodologia === 'POST');
+
+        // Detectar enfoque (CUALI, CUANTI) basado en el nombre de la tarjeta del Paso 1
+        let isSameCategoria = false;
+        if (formatTitle.includes('cuali')) isSameCategoria = (p.categoria === 'CUALI');
+        else if (formatTitle.includes('cuanti')) isSameCategoria = (p.categoria === 'CUANTI');
+
+        return isSameUniv && isSameMetodologia && isSameCategoria;
+      });
+
+      // ¡AQUÍ QUITÉ LA LÍNEA QUE TRAÍA TODO POR ERROR! 
+      // Solo nos quedamos con los paquetes que pasaron el filtro estricto.
+
+      // 3. Juntar todos los capítulos que pertenecen exclusivamente a este formato
+      let capitulosEspecificos = [];
+      matchedPackages.forEach(paquete => {
+          if (Array.isArray(paquete.prompts)) {
+              capitulosEspecificos = capitulosEspecificos.concat(paquete.prompts);
+          }
+      });
+
+      // 4. Ordenarlos numéricamente por si tu base de datos los devuelve desordenados
+      capitulosEspecificos.sort((a, b) => Number(a.numero_prompt) - Number(b.numero_prompt));
+
+      // Guardamos para el Paso 3
+      selectedPrompt = { prompts: capitulosEspecificos }; 
+      
+      // Pintamos los botones
+      renderChapterSelection(capitulosEspecificos);
+
+    } catch (error) {
+      console.error("Error en loadPromptsForWizard:", error);
+      const grid = $("chapter-selection-grid");
+      if (grid) grid.innerHTML = `<div class="col-span-full p-5 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm font-bold">Error al cargar los capítulos.</div>`;
+    }
+  }
+
+  function renderChapterSelection(chapters) {
+    const grid = $("chapter-selection-grid");
+    if (!grid) return;
     grid.innerHTML = "";
 
-    if (!visiblePrompts.length) {
-      grid.innerHTML = '<div class="text-sm text-gray-500">No hay prompts activos. Ve a Gestion prompts.</div>';
+    selectedChapterKeys = new Set(); 
+    selectedChaptersData = [];
+    if ($("btn-step2-next")) $("btn-step2-next").disabled = true;
+
+    if (!Array.isArray(chapters) || chapters.length === 0) {
+      grid.innerHTML = '<div class="col-span-full text-sm text-slate-500 p-5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3"><i class="fa-solid fa-circle-info fa-lg text-blue-400"></i> No hay capítulos configurados para este formato.</div>';
       return;
     }
 
-    visiblePrompts.forEach((prompt, idx) => {
+    chapters.forEach((chapter, idx) => {
       const card = document.createElement("div");
-      card.className = "prompt-card border-2 border-gray-100 hover:border-blue-500 p-5 rounded-lg cursor-pointer transition bg-white text-center";
-      card.dataset.promptId = String(prompt.id || "");
-      card.onclick = () => selectPrompt(prompt, card);
+      card.className = "chapter-card group p-4 bg-white rounded-2xl border-2 border-slate-100 shadow-sm cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50/50";
+      
+      // Asignamos un ID único y secuencial basado en el índice
+      const chapterId = String(idx + 1); 
+      card.dataset.chapterId = chapterId;
 
-      const badge = idx === 0
-        ? '<span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">RECOMENDADO</span>'
-        : "";
+      // El título principal que ves en tu editor es "capitulo_nombre" (Ej: PLANTEAMIENTO DEL PROBLEMA)
+      // La cabecera es el "titulo_cabecera" (Ej: sdsd)
+      const tituloPrincipal = chapter.capitulo_nombre ? chapter.capitulo_nombre.toUpperCase() : `CAPÍTULO ${chapterId}`;
+      const subtitulo = chapter.titulo_cabecera || '';
 
       card.innerHTML = `
-        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
-          <i class="fa-solid fa-book-open"></i>
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 transition-colors group-hover:bg-white group-hover:border-blue-200">
+                  <span class="text-sm font-black text-slate-400 group-hover:text-blue-500">${chapterId}</span>
+              </div>
+              <div class="text-left">
+                  <div class="text-[9px] font-black text-blue-500 uppercase tracking-widest">${escapeHtml(tituloPrincipal)}</div>
+                  <div class="font-bold text-slate-800 leading-tight text-sm mt-0.5">${escapeHtml(subtitulo)}</div>
+              </div>
+          </div>
+          <div class="check-icon hidden text-blue-500"><i class="fa-solid fa-circle-check fa-lg"></i></div>
         </div>
-        <h4 class="font-bold text-slate-800">${escapeHtml(prompt.name)}</h4>
-        <p class="text-xs text-gray-500 mt-1 mb-3">${escapeHtml(prompt.doc_type || "")}</p>
-        ${badge}
       `;
+
+      card.onclick = () => {
+        if (selectedChapterKeys.has(chapterId)) {
+          selectedChapterKeys.delete(chapterId);
+          card.classList.remove("border-blue-400", "bg-blue-50/50");
+          card.querySelector('.check-icon').classList.add("hidden");
+        } else {
+          selectedChapterKeys.add(chapterId);
+          card.classList.add("border-blue-400", "bg-blue-50/50");
+          card.classList.remove("border-slate-100");
+          card.querySelector('.check-icon').classList.remove("hidden");
+        }
+        if ($("btn-step2-next")) $("btn-step2-next").disabled = selectedChapterKeys.size === 0;
+      };
 
       grid.appendChild(card);
     });
-    _syncSelectedPromptCard();
   }
 
   function selectPrompt(promptObj, cardEl) {
@@ -2110,33 +2239,34 @@ const TesisAI = (() => {
     });
   }
 
-  function renderDynamicForm() {
+function renderDynamicForm() {
     const container = $("dynamic-form");
     if (!container) return;
     container.innerHTML = "";
 
-    if (!selectedPrompt) {
-      container.innerHTML = '<div class="text-sm text-gray-500 text-center py-10 font-medium font-inter">Selecciona un formato para activar la guía.</div>';
+    // 1. Validar que tengamos capítulos seleccionados (Nuevo esquema)
+    if (!selectedChaptersData || !selectedChaptersData.length) {
+      container.innerHTML = '<div class="text-sm text-gray-500 text-center py-10 font-medium font-inter">Selecciona capítulos en el paso 2 para configurar sus detalles.</div>';
       return;
     }
 
-    // 1. DICCIONARIO DE AYUDA ACADà‰MICA
+    // 2. DICCIONARIO DE AYUDA ACADÉMICA (Mantenido intacto)
     const academicHelp = {
       "diagnostico_local": "Describe fallas, demoras o síntomas detectados en la empresa. Es obligatorio usar herramientas como Ishikawa o Pareto para el sustento técnico.",
-      "problema_principal": "Formula la gran pregunta de investigación: Â¿De qué manera la propuesta X mejora la situación Y?",
+      "problema_principal": "Formula la gran pregunta de investigación: ¿De qué manera la propuesta X mejora la situación Y?",
       "autor": "Tus nombres y apellidos completos tal como deben aparecer en la carátula oficial.",
       "asesor": "Nombre del mentor asignado por la facultad. Comparte la responsabilidad de la autenticidad del trabajo.",
       "facultad": "Nombre completo de la facultad (ej: Facultad de Ingeniería Eléctrica y Electrónica).",
       "escuela": "Tu carrera profesional específica dentro de la UNAC.",
       "linea_investigacion": "Debe ser una de las líneas oficiales aprobadas por tu Escuela Profesional.",
       "anio": "El año de sustentación o presentación del informe.",
-      "herramienta_ingenieria": "Es obligatorio segàºn el reglamento: utiliza un Diagrama de Ishikawa (Causa-Efecto), Pareto (80/20), àrbol de problemas o Matriz de Vester para diagnosticar técnicamente el origen del problema.",
+      "herramienta_ingenieria": "Es obligatorio según el reglamento: utiliza un Diagrama de Ishikawa (Causa-Efecto), Pareto (80/20), Árbol de problemas o Matriz de Vester para diagnosticar técnicamente el origen del problema.",
       "datos_evidencia": "Presenta el sustento numérico real: estadísticas de fallas, reportes de mermas, horas de parada de máquina o costos actuales por inactividad.",
       "objetivo_general": "Define tu meta final. Debe iniciar con un verbo fuerte en infinitivo (Determinar, Diseñar, Implementar) y responder directamente a tu pregunta de investigación principal.",
-      "impacto_economico": "Â¿Cuánto dinero ahorrará la empresa o cuál es el beneficio costo-beneficio de tu propuesta?",
+      "impacto_economico": "¿Cuánto dinero ahorrará la empresa o cuál es el beneficio costo-beneficio de tu propuesta?",
       "variable_independiente": "Es tu propuesta o 'el remedio': el sistema, software, algoritmo o plan de mantenimiento que vas a aplicar.",
       "variable_dependiente": "Es el 'paciente' que quieres curar: el indicador técnico que se verá afectado positivamente por tu propuesta.",
-      "resumen_antecedentes": "Resume investigaciones indexadas de los àºltimos 5 a 10 años. Menciona: Autor, Año, Objetivo, Metodología y resultados numéricos.",
+      "resumen_antecedentes": "Resume investigaciones indexadas de los últimos 5 a 10 años. Menciona: Autor, Año, Objetivo, Metodología y resultados numéricos.",
       "dimensiones_variables": "Son los grandes componentes en los que divides tus variables para poder medirlas.",
       "indicadores_medida": "Es la unidad de medida exacta y observable de tus dimensiones. Ejemplos: Porcentaje (%), Horas (h), Soles (S/).",
       "poblacion_total": "El universo completo de elementos con características comunes para tu estudio.",
@@ -2148,11 +2278,11 @@ const TesisAI = (() => {
       "propuestas_accion": "Acciones prácticas y viables dirigidas a la empresa.",
       "problema_general": "Es la interrogante maestra que busca comprender el fenómeno y las categorías centrales de tu estudio. Debe ser una pregunta abierta que invite a profundizar en significados.",
       "problemas_especificos": "Son las sub-preguntas que desglosan tus categorías preliminares para analizar procesos o vivencias específicas.",
-      "objetivos_especificos": "Indica los pasos para analizar cada categoría. Â¡Importante! Debes iniciar con verbos como: Comprender, Interpretar, Analizar o Describir.",
-      "justificacion_estudio": "Explica la utilidad de tu tesis: Â¿Cómo ayuda a la empresa a entender sus procesos y qué nuevos conceptos aporta?",
+      "objetivos_especificos": "Indica los pasos para analizar cada categoría. ¡Importante! Debes iniciar con verbos como: Comprender, Interpretar, Analizar o Describir.",
+      "justificacion_estudio": "Explica la utilidad de tu tesis: ¿Cómo ayuda a la empresa a entender sus procesos y qué nuevos conceptos aporta?",
       "delimitacion_espacial": "Indica el lugar exacto (empresa, área o institución) donde realizarás la toma de datos.",
       "delimitacion_temporal": "Define con claridad el periodo de tiempo (meses o años) que abarca tu recolección de información.",
-      "antecedentes": "Resume investigaciones similares de los àºltimos 5-10 años. Menciona autor, año, diseño y hallazgos.",
+      "antecedentes": "Resume investigaciones similares de los últimos 5-10 años. Menciona autor, año, diseño y hallazgos.",
       "bases_teoricas": "Es el sustento científico de tu tesis. Analiza las teorías y modelos que explican tus categorías.",
       "marco_conceptual": "Define conceptualmente tus categorías y subcategorías basándote en la literatura revisada.",
       "escenario_estudio": "Describe el ambiente físico y social donde realizarás el estudio.",
@@ -2181,14 +2311,14 @@ const TesisAI = (() => {
       "recursos_humanos": "Lista del personal técnico involucrado, detallando su calificación y función.",
       "recursos_materiales": "Instrumentos, equipos y materiales necesarios, indicando especificaciones técnicas.",
       "cronograma_detallado": "Calendario de actividades que debe incluir las fechas de entrega de informes de avance.",
-      "partidas_presupuestales": "Clasificación de gastos segàºn el formato fiscal: subvenciones, bienes, servicios, equipos.",
+      "partidas_presupuestales": "Clasificación de gastos según el formato fiscal: subvenciones, bienes, servicios, equipos.",
       "calendario_gastos": "Cronograma financiero que especifica en qué periodos se realizará cada desembolso.",
       "antecedentes_cientificos": "UNI: Describe la evolución del conocimiento técnico y el estado del arte de tu tema.",
       "carrera": "Escribe el nombre de tu especialidad tal como figura en los registros oficiales.",
       "programa_maestria": "Escribe el nombre exacto de tu mención o programa.",
       "unidad_posgrado": "Nombre de la Unidad de Posgrado de tu facultad correspondiente.",
       "grado_academico": "Grado al que optas (ej: Maestro en Ciencias de la Ingeniería).",
-      "codigo_ocde": "Código y descripción segàºn la clasificación OCDE para áreas de ciencia y tecnología.",
+      "codigo_ocde": "Código y descripción según la clasificación OCDE para áreas de ciencia y tecnología.",
       "propuesta_solucion": "Menciona la mejora técnica o el modelo interpretativo que propones para el problema.",
       "justificacion_importancia": "Sustenta la relevancia teórica, práctica y social. Indica quiénes son los beneficiarios.",
       "limitaciones_estudio": "Indica factores (tiempo, acceso a datos) que restringen el estudio.",
@@ -2218,34 +2348,46 @@ const TesisAI = (() => {
       "recomendaciones_posgrado": "Propuestas de acción técnica para el sector productivo o nuevas líneas de investigación."
     };
 
-    const vars = Array.isArray(selectedPrompt.variables) ? selectedPrompt.variables : [];
+    // Función auxiliar interna para pintar los inputs (mantenida de tu código viejo)
+    function renderField(variable, target, isMain, chapterId = "global") {
+      // El ID ahora incluye el capítulo para no chocar si dos capítulos piden la misma variable
+      const id = "var_" + chapterId + "_" + variable;
+      const cleanLabel = variable.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      const helpText = academicHelp[variable] || `Dato requerido de ${cleanLabel.toLowerCase()} para el rigor técnico.`;
+      const isLong = /(diagnostico|problema|resumen|conclusiones|propuestas|objetivo|metodologia|hipotesis|justificacion|antecedentes|bases_teoricas|marco|descripcion|introduccion|analisis|contrastacion|discusion|resultados)/i.test(variable);
 
-    // 2. FILTRADO: REQUERIDOS (Pilares) VS COMPLEMENTARIOS
-    const mainKeys = [
-      "diagnostico_local",
-      "problema_principal",
-      "problema_general",
-      "descripcion_problema",
-      "justificacion_cientifica",
-      "resumen_proyecto"
-    ];
+      const block = document.createElement("div");
+      block.className = `group ${isMain ? 'mb-8' : 'mb-2'}`;
+      block.innerHTML = `
+          <div class="flex justify-between items-center mb-2 px-1">
+            <label class="block text-[10px] font-bold ${isMain ? 'text-slate-700' : 'text-slate-400'} uppercase tracking-widest group-hover:text-blue-600 transition-colors">${cleanLabel}</label>
+            ${isMain ? '<span class="text-[8px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-black uppercase tracking-tighter">Prioridad</span>' : ''}
+          </div>
+          <div class="relative">
+            ${isLong
+          ? `<textarea id="${id}" rows="3" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Redacta aquí..."></textarea>`
+          : `<input id="${id}" type="text" class="w-full p-4 border-2 ${isMain ? 'border-slate-300' : 'border-slate-200'} rounded-2xl focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none text-sm transition-all bg-white" placeholder="Ingresa el dato...">`
+        }
+          </div>
+          <p class="mt-2 text-[10px] text-slate-400 italic flex items-start gap-1.5 px-1 font-medium leading-tight group-hover:text-blue-700 group-focus-within:text-blue-800 transition-all duration-300">
+            <i class="fa-solid fa-graduation-cap mt-0.5 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all"></i>
+            <span>${helpText}</span>
+          </p>
+        `;
+      target.appendChild(block);
+    }
 
-    const cleanVars = vars.map(v => v.trim().toLowerCase());
-    const mainVars = cleanVars.filter(v => mainKeys.includes(v));
-    const secondaryVars = cleanVars.filter(v => !mainKeys.includes(v));
-
-    // --- SECCIà“N 1: PILARES MAESTROS ---
+    // --- BLOQUE MAESTRO: EL TÍTULO --- (Se mantiene igual)
     const sectionRequired = document.createElement("div");
     sectionRequired.className = "mb-8 space-y-6";
     sectionRequired.innerHTML = `
         <div class="flex items-center gap-3 mb-6">
             <div class="h-6 w-1 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"></div>
-            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">1. Pilares de la Investigación</h3>
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">Datos Generales</h3>
         </div>
     `;
     container.appendChild(sectionRequired);
 
-    // BLOQUE DE TàTULO
     const titleBlock = document.createElement("div");
     titleBlock.className = "p-6 bg-blue-50 rounded-3xl border-2 border-blue-100 shadow-sm mb-6 group transition-all";
     titleBlock.innerHTML = `
@@ -2260,44 +2402,62 @@ const TesisAI = (() => {
     `;
     sectionRequired.appendChild(titleBlock);
 
-    // Renderizar Pilares
-    mainVars.forEach(v => renderField(v, sectionRequired, true));
+    // --- ITERAMOS POR CADA CAPÍTULO SELECCIONADO EN EL PASO 2 ---
+    selectedChaptersData.forEach((chapter) => {
+        const chapterId = chapter.numero_prompt || chapter.id || "0";
+        const chapterVars = chapter.variables_locales || []; // Ajusta esto según el nombre exacto que venga de tu BD (variables_locales, variables, etc)
+        
+        // Si el capítulo no pide ninguna variable, no dibujamos nada para él
+        if (chapterVars.length === 0) return;
 
-    // --- SECCIà“N 2: DATOS COMPLEMENTARIOS (COLAPSABLE) ---
-    if (secondaryVars.length > 0) {
-      const accordionWrapper = document.createElement("div");
-      accordionWrapper.className = "mt-10 border-t border-slate-100 pt-6";
-
-      const toggleBtn = document.createElement("button");
-      toggleBtn.className = "flex items-center justify-between w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all border border-slate-200 group";
-      toggleBtn.innerHTML = `
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm text-slate-400 group-hover:text-blue-600 transition-colors">
-                    <i class="fa-solid fa-folder-plus text-xs"></i>
+        // Contenedor visual para este capítulo
+        const chapterWrapper = document.createElement("div");
+        chapterWrapper.className = "p-6 bg-white rounded-3xl border border-slate-200 shadow-sm mb-6";
+        chapterWrapper.innerHTML = `
+            <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">
+                    ${chapterId}
                 </div>
-                <div class="text-left">
-                    <span class="block text-[11px] font-black text-slate-700 uppercase tracking-tight">DATOS COMPLEMENTARIOS</span>
-                    <span class="block text-[9px] text-slate-500 font-medium">Información opcional para la carátula oficial.</span>
+                <div>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">${chapter.capitulo_nombre || 'Capítulo'}</h3>
+                    <h4 class="text-sm font-bold text-slate-800">${chapter.titulo_cabecera || 'Variables requeridas'}</h4>
                 </div>
             </div>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-hover:translate-y-1 transition-all mr-2"></i>
+            <div class="chapter-vars-grid grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4"></div>
         `;
+        
+        const gridVars = chapterWrapper.querySelector(".chapter-vars-grid");
 
-      const optionalContent = document.createElement("div");
-      optionalContent.className = "hidden mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 px-2";
+        // Pintamos cada variable solicitada por este capítulo
+        chapterVars.forEach(v => {
+            const cleanV = v.trim().toLowerCase();
+            // Lo marcamos como "Main" (true) para que se vea destacado
+            renderField(cleanV, gridVars, true, chapterId);
+        });
 
-      toggleBtn.onclick = (e) => {
-        e.preventDefault();
-        optionalContent.classList.toggle("hidden");
-        toggleBtn.querySelector(".fa-chevron-down").classList.toggle("rotate-180");
-      };
+        // UI para añadir variables específicas a este bloque (como la última imagen que pasaste)
+        const localVarsManager = document.createElement("div");
+        localVarsManager.className = "col-span-full bg-slate-50/80 p-5 rounded-2xl border border-slate-100 mt-4";
+        localVarsManager.innerHTML = `
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-tags text-blue-500 text-sm"></i>
+                <label class="text-[11px] font-black text-slate-600 uppercase tracking-widest">Variables extra de este bloque:</label>
+            </div>
+            <div class="local-vars-tags-${chapterId} flex flex-wrap gap-2 mb-4">
+               </div>
+            <div class="flex gap-2">
+                <input type="text" id="add-var-${chapterId}" placeholder="Añadir variable (ej: poblacion)" 
+                    class="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 transition-all shadow-sm">
+                <button type="button" onclick="TesisAI.addVariableToBlock('${chapterId}')" class="px-4 bg-slate-900 text-white rounded-xl hover:bg-blue-600 transition-all shadow-md">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+        `;
+        gridVars.appendChild(localVarsManager);
 
-      secondaryVars.forEach(v => renderField(v, optionalContent, false));
-
-      accordionWrapper.appendChild(toggleBtn);
-      accordionWrapper.appendChild(optionalContent);
-      container.appendChild(accordionWrapper);
-    }
+        container.appendChild(chapterWrapper);
+    });
+}
 
     function renderField(variable, target, isMain) {
       const id = "var_" + variable;
@@ -2325,8 +2485,7 @@ const TesisAI = (() => {
         `;
       target.appendChild(block);
     }
-  }
-
+  
   function collectWizardPayload() {
     const values = {};
     
@@ -4784,6 +4943,9 @@ const TesisAI = (() => {
     _switchDocTab,
     _filterTimeline,
     loadPromptsForWizard,
+    selectAllChapters,
+    saveChapterSelectionAndGoDetails,
+    addVariableToBlock,
     async boot() {
       wireHistorySearch();
       await refreshDashboard();
