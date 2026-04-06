@@ -172,6 +172,89 @@ class ProjectService:
         return cls._normalize_wizard_state(current)
 
     @classmethod
+    def _normalize_selected_sections(cls, raw: Any) -> List[Dict[str, Any]]:
+        if not isinstance(raw, list):
+            return []
+        normalized: List[Dict[str, Any]] = []
+        for item in raw:
+            if isinstance(item, str):
+                key = item.strip()
+                if key:
+                    normalized.append({"section_id": key, "section_path": key})
+                continue
+            if not isinstance(item, dict):
+                continue
+            section_id = str(item.get("section_id") or item.get("sectionId") or "").strip()
+            section_path = str(
+                item.get("section_path") or item.get("sectionPath") or item.get("path") or ""
+            ).strip()
+            section_title = str(
+                item.get("section_title") or item.get("sectionTitle") or item.get("title") or ""
+            ).strip()
+            parent_section_path = str(
+                item.get("parent_section_path") or item.get("parentSectionPath") or item.get("parent_path") or ""
+            ).strip()
+            if not section_id and not section_path:
+                continue
+            normalized.append(
+                {
+                    "section_id": section_id,
+                    "section_path": section_path,
+                    "section_title": section_title or (section_path.split("/")[-1].strip() if section_path else ""),
+                    "parent_section_path": parent_section_path,
+                    "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                    "optional": bool(item.get("optional")),
+                    "default_selected": bool(item.get("default_selected", True)),
+                }
+            )
+        return normalized
+
+    @classmethod
+    def _normalize_prompt_sections(cls, raw: Any) -> List[Dict[str, Any]]:
+        sections = cls._normalize_selected_sections(raw)
+        if not isinstance(raw, list):
+            return sections
+        raw_by_key = {}
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            key = str(
+                item.get("section_id")
+                or item.get("sectionId")
+                or item.get("section_path")
+                or item.get("path")
+                or ""
+            ).strip()
+            if key:
+                raw_by_key[key] = item
+        normalized: List[Dict[str, Any]] = []
+        for section in sections:
+            key = str(section.get("section_id") or section.get("section_path") or "").strip()
+            raw_section = raw_by_key.get(key, {})
+            raw_blocks = raw_section.get("blocks") if isinstance(raw_section, dict) else None
+            blocks = raw_blocks if isinstance(raw_blocks, list) else []
+            normalized.append(
+                {
+                    **section,
+                    "source_hints": str(raw_section.get("source_hints") or raw_section.get("sourceHints") or ""),
+                    "blocks": [dict(item) for item in blocks if isinstance(item, dict)],
+                }
+            )
+        return normalized
+
+    @classmethod
+    def _normalize_prompt_snapshot(cls, raw: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(raw, dict):
+            return None
+        snapshot = dict(raw)
+        if "sections" in snapshot:
+            snapshot["sections"] = cls._normalize_prompt_sections(snapshot.get("sections"))
+        else:
+            snapshot["sections"] = []
+        snapshot["variables"] = [str(item).strip() for item in snapshot.get("variables") or [] if str(item).strip()]
+        return snapshot
+
+    @classmethod
     def _normalize_generation_phase(cls, raw: Any) -> Dict[str, Any]:
         base = cls._empty_generation_phase()
         if not isinstance(raw, dict):
@@ -382,6 +465,10 @@ class ProjectService:
         normalized["generation_snapshot"] = cls._normalize_generation_snapshot(normalized.get("generation_snapshot"))
         normalized["generation_phase"] = cls._normalize_generation_phase(normalized.get("generation_phase"))
         normalized["construction_phase"] = cls._normalize_construction_phase(normalized.get("construction_phase"))
+        normalized["system_instruction"] = str(normalized.get("system_instruction") or "")
+        normalized["sections"] = cls._normalize_selected_sections(normalized.get("sections"))
+        normalized["prompt_snapshot"] = cls._normalize_prompt_snapshot(normalized.get("prompt_snapshot"))
+        normalized["selected_sections"] = cls._normalize_selected_sections(normalized.get("selected_sections"))
 
         incidents_raw = normalized.get("incidents")
         if isinstance(incidents_raw, list):
@@ -489,6 +576,10 @@ class ProjectService:
             "format_id": payload.get("format_id"),
             "format_name": payload.get("format_name"),
             "format_version": payload.get("format_version"),
+            "system_instruction": str(payload.get("system_instruction") or ""),
+            "sections": self._normalize_selected_sections(payload.get("sections")),
+            "prompt_snapshot": self._normalize_prompt_snapshot(payload.get("prompt_snapshot")),
+            "selected_sections": self._normalize_selected_sections(payload.get("selected_sections")),
             "variables": values or {},
             # Keep both keys for backward compatibility in UI and contracts.
             "values": values or {},
@@ -551,6 +642,14 @@ class ProjectService:
                 p["format_name"] = payload.get("format_name")
             if "format_version" in payload and payload.get("format_version") is not None:
                 p["format_version"] = payload.get("format_version")
+            if "system_instruction" in payload and payload.get("system_instruction") is not None:
+                p["system_instruction"] = str(payload.get("system_instruction") or "")
+            if "sections" in payload:
+                p["sections"] = self._normalize_selected_sections(payload.get("sections"))
+            if "prompt_snapshot" in payload:
+                p["prompt_snapshot"] = self._normalize_prompt_snapshot(payload.get("prompt_snapshot"))
+            if "selected_sections" in payload:
+                p["selected_sections"] = self._normalize_selected_sections(payload.get("selected_sections"))
             if "status" in payload and payload.get("status") is not None:
                 p["status"] = payload.get("status")
             if "cancel_requested" in payload and payload.get("cancel_requested") is not None:

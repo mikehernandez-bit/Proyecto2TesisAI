@@ -732,6 +732,7 @@ class AIService:
         selection_override: Optional[Dict[str, Any]] = None,
         resume_from_partial: bool = False,
         seed_sections_override: Optional[List[Dict[str, Any]]] = None,
+        planned_sections: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Run the full generation pipeline."""
         self._last_used_provider = None
@@ -798,7 +799,10 @@ class AIService:
                 definition = raw
 
         self._ensure_not_cancelled()
-        section_index = compile_definition_to_section_index(definition)
+        if isinstance(planned_sections, list) and planned_sections:
+            section_index = [dict(item) for item in planned_sections if isinstance(item, dict)]
+        else:
+            section_index = compile_definition_to_section_index(definition)
         if not section_index:
             section_index = [{"sectionId": "sec-0001", "path": "Contenido Principal"}]
             logger.warning(
@@ -1123,7 +1127,14 @@ class AIService:
                 base_prompt=base_prompt,
                 section_path=path,
                 section_id=section_id,
-                extra_context=sec.get("hints", ""),
+                extra_context="\n\n".join(
+                    part
+                    for part in [
+                        str(sec.get("hints") or "").strip(),
+                        str(sec.get("additional_context") or "").strip(),
+                    ]
+                    if part
+                ),
                 values=values,
             )
             redacted_prompt = self._redact_secrets(section_prompt)

@@ -1,0 +1,38 @@
+﻿      <div id="step-3-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-semibold mb-2 text-slate-800">3. Detalles del Proyecto</h3>
+          <p class="text-sm text-gray-500 mb-6">Los campos se generan segun variables del prompt.</p>
+
+          <div id="dynamic-form" class="space-y-4 max-w-2xl mx-auto"></div>
+
+          <div id="step3-error" class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
+          </div>
+
+          <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-800 flex gap-2">
+            <i class="fa-solid fa-circle-info mt-0.5"></i>
+            <p>
+              Estos datos se utilizarán para generar el documento completo.
+              <br />
+              <span class="text-[10px] text-blue-600">El proceso puede tomar unos segundos mientras la IA procesa tu
+                solicitud.</span>
+            </p>
+          </div>
+
+          <div class="mt-8 flex justify-between items-center">
+            <button onclick="TesisAI.prevStep(2)"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
+
+            <div id="step3-loading"
+              class="hidden flex items-center gap-3 text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+              <div class="loader w-5 h-5 border-2 border-t-blue-600"></div>
+              <span class="text-sm font-medium animate-pulse">Preparando selección IA...</span>
+            </div>
+
+            <button id="btn-step3-next-provider" type="button"
+              onclick="TesisAI.goToProviderStep().catch(function(e){ console.error('goToProviderStep error:', e); var el=document.getElementById('step3-error'); if(el){el.textContent=e.message||'Error al avanzar';el.classList.remove('hidden');} })"
+              class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-arrow-right mr-2"></i> Siguiente: Seleccionar IA
+            </button>
+          </div>
+        </div>
+      </div>

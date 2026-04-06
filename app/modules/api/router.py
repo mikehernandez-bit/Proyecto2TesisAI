@@ -41,6 +41,7 @@ from app.core.services.pricing import (
     normalize_generation_cost_report,
     normalize_generation_cost_snapshot,
 )
+from app.core.services.project_generation_planner import ProjectGenerationPlanner
 from app.core.services.project_service import ProjectService
 from app.core.services.prompt_service import PromptService
 from app.core.utils.docx_builder import build_demo_docx
@@ -108,6 +109,7 @@ n8n = N8NClient()
 n8n_specs = N8NIntegrationService()
 ai_service = AIService()
 pricing_service = PricingService()
+generation_planner = ProjectGenerationPlanner()
 _exchange_rate_cache: Dict[str, Any] = {"rate": 3.72, "fetched_at": "", "source": "default"}
 STARTED_AT = dt.datetime.now(dt.timezone.utc).isoformat()
 TRACE_MAX_PREVIEW_CHARS = 520
@@ -208,6 +210,75 @@ def _build_generation_snapshot(
         "status": str(status or "idle").strip() or "idle",
         "updated_at": _utc_now_z(),
     }
+
+
+def _default_selected_sections_from_package(prompt_package: Dict[str, Any] | None) -> list[Dict[str, Any]]:
+    if not isinstance(prompt_package, dict):
+        return []
+    selected: list[Dict[str, Any]] = []
+    for item in prompt_package.get("sections") or []:
+        if not isinstance(item, dict):
+            continue
+        if not bool(item.get("default_selected", True)):
+            continue
+        section_id = str(item.get("section_id") or item.get("sectionId") or "").strip()
+        section_path = str(item.get("section_path") or item.get("sectionPath") or item.get("path") or "").strip()
+        if not section_id and not section_path:
+            continue
+        selected.append(
+            {
+                "section_id": section_id,
+                "section_path": section_path,
+                "section_title": str(item.get("section_title") or item.get("sectionTitle") or item.get("title") or ""),
+                "parent_section_path": str(
+                    item.get("parent_section_path") or item.get("parentSectionPath") or ""
+                ),
+                "section_level": int(item.get("section_level") or item.get("sectionLevel") or 1),
+                "optional": bool(item.get("optional")),
+                "default_selected": bool(item.get("default_selected", True)),
+            }
+        )
+    return selected
+
+
+def _resolve_prompt_snapshot(
+    *,
+    prompt_id: str = "",
+    format_id: str = "",
+    prompt_snapshot: Optional[Dict[str, Any]] = None,
+    format_detail: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    if isinstance(prompt_snapshot, dict):
+        snapshot = dict(prompt_snapshot)
+        if not snapshot.get("format_id") and format_id:
+            snapshot["format_id"] = format_id
+        return snapshot
+
+    prompt = prompts.get_prompt(prompt_id) if prompt_id else None
+    if prompt is not None:
+        return prompt
+
+    if format_id:
+        return prompts.get_prompt_by_format(format_id, format_detail=format_detail)
+    return None
+
+
+def _resolve_project_selected_sections(
+    project: Dict[str, Any],
+    prompt_snapshot: Dict[str, Any] | None,
+) -> list[Dict[str, Any]]:
+    explicit_selected = (
+        project.get("selected_sections")
+        if isinstance(project.get("selected_sections"), list)
+        else []
+    )
+    if explicit_selected:
+        return explicit_selected
+    ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
+    inferred = generation_planner.infer_selected_sections_from_ai_result(ai_result)
+    if inferred:
+        return inferred
+    return _default_selected_sections_from_package(prompt_snapshot)
 
 
 _CONSTRUCTION_TASK_SPECS = (
@@ -519,8 +590,10 @@ def _update_generation_phase_for_event(project_id: str, event: Dict[str, Any]) -
     if not project:
         return
     phase = _normalize_generation_phase_state(project.get("generation_phase"))
-    meta = event.get("meta") if isinstance(event.get("meta"), dict) else {}
-    preview = event.get("preview") if isinstance(event.get("preview"), dict) else {}
+    meta_raw = event.get("meta")
+    meta: Dict[str, Any] = meta_raw if isinstance(meta_raw, dict) else {}
+    preview_raw = event.get("preview")
+    preview: Dict[str, Any] = preview_raw if isinstance(preview_raw, dict) else {}
     step = str(event.get("step") or "")
     status = str(event.get("status") or "")
     now = _utc_now_z()
@@ -923,6 +996,39 @@ async def get_format_detail(format_id: str):
         )
 
 
+@router.get("/formats/{format_id}/prompt-package")
+async def get_prompt_package_for_format(format_id: str):
+    """Return the institutional prompt package resolved for a format."""
+    try:
+        detail = await formats.get_format_detail(format_id)
+        if not detail:
+            raise HTTPException(status_code=404, detail=f"Formato no encontrado: {format_id}")
+        format_detail_payload = detail.model_dump() if hasattr(detail, "model_dump") else detail
+        prompt_package = prompts.get_prompt_by_format(format_id, format_detail=format_detail_payload)
+        if not prompt_package:
+            raise HTTPException(status_code=404, detail=f"No se pudo resolver paquete para: {format_id}")
+        return {
+            **prompt_package,
+            "selected_sections": _default_selected_sections_from_package(prompt_package),
+            "section_tree": generation_planner.section_service.build_tree(prompt_package.get("sections") or []),
+        }
+    except UpstreamUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail=_gicatesis_unavailable_detail("Paquete institucional no disponible"),
+        )
+    except UpstreamTimeout:
+        raise HTTPException(
+            status_code=503,
+            detail=_gicatesis_unavailable_detail("Timeout consultando paquete institucional"),
+        )
+    except GicaTesisError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=_gicatesis_unavailable_detail(f"Error de GicaTesis: {e}"),
+        )
+
+
 @router.get("/assets/{path:path}")
 async def proxy_asset(path: str):
     """Proxy for GicaTesis assets (logos, images) to avoid direct frontend calls."""
@@ -1087,7 +1193,8 @@ async def get_n8n_spec(projectId: str):
             else:
                 format_detail_payload = detail
 
-    prompt = prompts.get_prompt(project.get("prompt_id")) if project.get("prompt_id") else None
+    prompt_id = str(project.get("prompt_id") or "").strip()
+    prompt = prompts.get_prompt(prompt_id) if prompt_id else None
 
     return n8n_specs.build_spec(
         project=project,
@@ -1160,7 +1267,8 @@ async def run_n8n_simulation(projectId: str = Query(..., description="Project id
             else:
                 format_detail_payload = detail
 
-    prompt = prompts.get_prompt(project.get("prompt_id")) if project.get("prompt_id") else None
+    prompt_id = str(project.get("prompt_id") or "").strip()
+    prompt = prompts.get_prompt(prompt_id) if prompt_id else None
     spec = n8n_specs.build_spec(
         project=project,
         format_detail=format_detail_payload,
@@ -1258,22 +1366,30 @@ def list_projects():
 def create_project_draft(payload: Optional[ProjectDraftIn] = None):
     """Persist wizard state before triggering external workflow."""
     payload = payload or ProjectDraftIn()
-    prompt = prompts.get_prompt(payload.prompt_id) if payload.prompt_id else None
     format_id = payload.format_id or "draft-format"
+    prompt_snapshot = _resolve_prompt_snapshot(
+        prompt_id=str(payload.prompt_id or ""),
+        format_id=str(format_id or ""),
+        prompt_snapshot=payload.prompt_snapshot,
+    )
+    selected_sections = (
+        payload.selected_sections
+        if isinstance(payload.selected_sections, list) and payload.selected_sections
+        else _default_selected_sections_from_package(prompt_snapshot)
+    )
     draft_values = dict(payload.variables or {})
     if payload.title and not str(draft_values.get("title") or "").strip():
         draft_values["title"] = str(payload.title).strip()
 
-    # --- Guardamos las secciones y la instrucción maestra en el borrador ---
     project_data = {
         "title": payload.title,
         "prompt_id": payload.prompt_id,
-        "prompt_name": prompt.get("name") if prompt else None,
-        # Guardamos la estructura nueva para que el generador sepa qué hacer
-        "system_instruction": prompt.get("system_instruction") if prompt else None,
-        "sections": prompt.get("sections") if prompt else [],
-        # Mantenemos compatibilidad con versiones viejas
-        "prompt_template": prompt.get("template") if prompt else None,
+        "prompt_name": prompt_snapshot.get("name") if prompt_snapshot else None,
+        "system_instruction": prompt_snapshot.get("system_instruction") if prompt_snapshot else None,
+        "sections": prompt_snapshot.get("sections") if prompt_snapshot else [],
+        "prompt_snapshot": prompt_snapshot,
+        "selected_sections": selected_sections,
+        "prompt_template": prompt_snapshot.get("template") if prompt_snapshot else None,
         "format_id": format_id,
         "format_name": payload.format_name or format_id,
         "format_version": payload.format_version,
@@ -1415,22 +1531,47 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
 
     raw = payload.model_dump(exclude_unset=True)
     prompt_id = raw.get("prompt_id")
-    prompt = prompts.get_prompt(prompt_id) if prompt_id else None
+    effective_format_id = str(raw.get("format_id") or current_project.get("format_id") or "").strip()
+    prompt_snapshot = _resolve_prompt_snapshot(
+        prompt_id=str(prompt_id or current_project.get("prompt_id") or ""),
+        format_id=effective_format_id,
+        prompt_snapshot=raw.get("prompt_snapshot"),
+    )
     variables = raw.get("variables") if "variables" in raw else None
     reset_generated_state = bool(raw.get("reset_generated_state"))
     touch_project_timestamp = raw.get("touch_project_timestamp")
     if touch_project_timestamp is None:
         touch_project_timestamp = True
 
-    # --- Actualizamos secciones si cambia el prompt ---
     update_payload: Dict[str, Any] = {
         "title": raw.get("title"),
         "prompt_id": raw.get("prompt_id"),
-        "prompt_name": prompt.get("name") if prompt else raw.get("prompt_name"),
-        # Si hay nuevo prompt, traemos sus secciones nuevas
-        "system_instruction": prompt.get("system_instruction") if prompt else None,
-        "sections": prompt.get("sections") if prompt else None,
-        "prompt_template": prompt.get("template") if prompt else raw.get("prompt_template"),
+        "prompt_name": (
+            prompt_snapshot.get("name")
+            if prompt_snapshot
+            else raw.get("prompt_name") or current_project.get("prompt_name")
+        ),
+        "system_instruction": (
+            prompt_snapshot.get("system_instruction")
+            if prompt_snapshot
+            else raw.get("system_instruction")
+        ),
+        "sections": prompt_snapshot.get("sections") if prompt_snapshot else raw.get("sections"),
+        "prompt_snapshot": prompt_snapshot,
+        "selected_sections": (
+            raw.get("selected_sections")
+            if isinstance(raw.get("selected_sections"), list)
+            else (
+                _default_selected_sections_from_package(prompt_snapshot)
+                if prompt_id and prompt_snapshot
+                else None
+            )
+        ),
+        "prompt_template": (
+            prompt_snapshot.get("template")
+            if prompt_snapshot
+            else raw.get("prompt_template") or current_project.get("prompt_template")
+        ),
         "format_id": raw.get("format_id"),
         "format_name": raw.get("format_name"),
         "format_version": raw.get("format_version"),
@@ -1885,7 +2026,14 @@ async def _ai_generation_job(
         )
 
     format_detail_payload: Optional[Dict[str, Any]] = None
-    prompt = prompts.get_prompt(project.get("prompt_id")) if project.get("prompt_id") else None
+    prompt_snapshot_raw = project.get("prompt_snapshot")
+    prompt_snapshot: Optional[Dict[str, Any]] = (
+        dict(prompt_snapshot_raw)
+        if isinstance(prompt_snapshot_raw, dict)
+        else None
+    )
+    planned_sections: list[Dict[str, Any]] = []
+    selected_sections = _resolve_project_selected_sections(project, prompt_snapshot)
 
     format_id = str(project.get("format_id") or "").strip()
     if format_id:
@@ -1893,18 +2041,28 @@ async def _ai_generation_job(
             detail = await formats.get_format_detail(format_id)
             if detail is not None:
                 format_detail_payload = detail.model_dump() if hasattr(detail, "model_dump") else detail
-                definition = format_detail_payload.get("definition")
-                total_sections = (
-                    len(compile_definition_to_section_index(definition)) if isinstance(definition, dict) else 0
+                prompt_snapshot = _resolve_prompt_snapshot(
+                    prompt_id=str(project.get("prompt_id") or ""),
+                    format_id=format_id,
+                    prompt_snapshot=prompt_snapshot,
+                    format_detail=format_detail_payload,
                 )
+                selected_sections = _resolve_project_selected_sections(project, prompt_snapshot)
+                definition = format_detail_payload.get("definition")
+                planned_sections = generation_planner.plan_sections(
+                    definition=definition if isinstance(definition, dict) else {},
+                    prompt_package=prompt_snapshot,
+                    selected_sections=selected_sections,
+                )
+                total_sections = len(planned_sections)
                 projects.update_progress(project_id, total=total_sections)
                 current_project_snapshot = projects.get_project(project_id) or {}
-                snapshot_raw = (
-                    current_project_snapshot.get("generation_snapshot")
-                    if isinstance(current_project_snapshot.get("generation_snapshot"), dict)
-                    else {}
+                snapshot_source = current_project_snapshot.get("generation_snapshot")
+                snapshot_raw: Dict[str, Any] = (
+                    dict(snapshot_source) if isinstance(snapshot_source, dict) else {}
                 )
-                completed_sections = snapshot_raw.get("completed_sections") if isinstance(snapshot_raw, dict) else []
+                completed_sections = snapshot_raw.get("completed_sections")
+                snapshot_token_usage = snapshot_raw.get("tokenUsage")
                 projects.update_project(
                     project_id,
                     {
@@ -1913,8 +2071,8 @@ async def _ai_generation_job(
                             total_sections=total_sections,
                             current_path=str(snapshot_raw.get("current_path") or ""),
                             token_usage_snapshot_data=(
-                                snapshot_raw.get("tokenUsage")
-                                if isinstance(snapshot_raw.get("tokenUsage"), dict)
+                                snapshot_token_usage
+                                if isinstance(snapshot_token_usage, dict)
                                 else token_usage_snapshot(ai_service.get_token_usage_report())
                             ),
                             run_id=run_id,
@@ -1925,8 +2083,20 @@ async def _ai_generation_job(
                                 (projects.get_project(project_id) or {}).get("generation_phase")
                             ),
                             "total_sections": total_sections,
+                            "planned_sections": [
+                                {
+                                    "section_id": str(item.get("sectionId") or ""),
+                                    "section_path": str(item.get("path") or ""),
+                                    "section_title": str(item.get("title") or item.get("path") or "").split("/")[-1],
+                                    "parent_section_path": str(item.get("parent_section_path") or ""),
+                                    "section_level": int(item.get("level") or 1),
+                                }
+                                for item in planned_sections
+                            ],
                             "updated_at": _utc_now_z(),
                         },
+                        "prompt_snapshot": prompt_snapshot,
+                        "selected_sections": selected_sections,
                     },
                 )
                 _emit_project_trace(
@@ -1934,7 +2104,7 @@ async def _ai_generation_job(
                     step="format.loaded",
                     status="done",
                     title="Formato JSON cargado",
-                    detail=f"Se detectaron {total_sections} secciones.",
+                    detail=f"Se activaron {total_sections} secciones para la generación.",
                     meta={
                         "formatId": format_id,
                         "sectionTotal": total_sections,
@@ -1959,6 +2129,13 @@ async def _ai_generation_job(
             title="Proyecto sin format_id",
             detail="La generacion intentara continuar con estructura minima.",
             meta={"stage": "queued"},
+        )
+
+    if prompt_snapshot is None:
+        prompt_snapshot = _resolve_prompt_snapshot(
+            prompt_id=str(project.get("prompt_id") or ""),
+            format_id=format_id,
+            prompt_snapshot=None,
         )
 
     def _on_trace(event: Dict[str, Any]) -> None:
@@ -2093,12 +2270,11 @@ async def _ai_generation_job(
         partial_ai["tokenUsage"] = usage_report
         partial_ai["generationCost"] = cost_report
         latest_project = projects.get_project(project_id) or {}
-        latest_progress = latest_project.get("progress") if isinstance(latest_project.get("progress"), dict) else {}
-        total_sections = (
-            len(compile_definition_to_section_index(format_detail_payload.get("definition", {})))
-            if isinstance(format_detail_payload, dict)
-            else int(latest_progress.get("total") or 0)
+        latest_progress_source = latest_project.get("progress")
+        latest_progress: Dict[str, Any] = (
+            dict(latest_progress_source) if isinstance(latest_progress_source, dict) else {}
         )
+        total_sections = len(planned_sections) or int(latest_progress.get("total") or 0)
         projects.update_project(
             project_id,
             {
@@ -2149,13 +2325,14 @@ async def _ai_generation_job(
             ai_service.generate,
             project=project_for_ai,
             format_detail=format_detail_payload,
-            prompt=prompt,
+            prompt=prompt_snapshot,
             trace_hook=_on_trace,
             cancel_check=lambda: projects.is_cancel_requested(project_id),
             progress_cb=_on_progress,
             selection_override=provider_selection,
             resume_from_partial=resume_from_partial,
             seed_sections_override=safe_seed_sections,
+            planned_sections=planned_sections,
         )
         provider = ai_service.get_last_used_provider() or provider_hint
         model = (
@@ -2585,12 +2762,14 @@ async def trigger_generation(
         projects.update_project(projectId, {"ai_selection": project_selection})
 
     requested_resume_mode = payload.resume_mode if payload else "auto"
-    stored_ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
-    stored_ai_sections = (
-        stored_ai_result.get("sections")
-        if isinstance(stored_ai_result, dict) and isinstance(stored_ai_result.get("sections"), list)
-        else []
+    stored_ai_result_raw = project.get("ai_result")
+    stored_ai_result: Dict[str, Any] = (
+        stored_ai_result_raw if isinstance(stored_ai_result_raw, dict) else {}
     )
+    stored_sections_raw = stored_ai_result.get("sections")
+    stored_ai_sections: list[Dict[str, Any]] = [
+        dict(item) for item in stored_sections_raw if isinstance(item, dict)
+    ] if isinstance(stored_sections_raw, list) else []
     can_retry_render_only = (
         str(project.get("status") or "").strip().lower() == "render_failed"
         and requested_resume_mode != "restart"
@@ -2600,7 +2779,8 @@ async def trigger_generation(
     if can_retry_render_only:
         _logger.info("Retrying render-only for project %s using saved ai_result", projectId)
         projects.clear_trace(projectId)
-        progress = project.get("progress") if isinstance(project.get("progress"), dict) else {}
+        progress_raw = project.get("progress")
+        progress: Dict[str, Any] = dict(progress_raw) if isinstance(progress_raw, dict) else {}
         provider = (
             str(progress.get("provider") or project_selection.get("provider") or settings.AI_PRIMARY_PROVIDER)
             .lower()
@@ -2737,23 +2917,25 @@ async def trigger_generation(
         run_id = f"{provider}-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
         initial_usage_report = (
             normalize_token_usage_report(stored_ai_result.get("tokenUsage"))
-            if resume_from_partial and isinstance(stored_ai_result, dict)
+            if resume_from_partial
             else empty_token_usage_report()
         )
         initial_cost_report = (
             normalize_generation_cost_report(stored_ai_result.get("generationCost"))
-            if resume_from_partial and isinstance(stored_ai_result, dict)
+            if resume_from_partial
             else empty_generation_cost_report()
         )
         if (
             resume_from_partial
-            and isinstance(stored_ai_result, dict)
             and not initial_cost_report.get("priced_calls")
             and initial_usage_report.get("calls_total")
         ):
             initial_cost_report = build_generation_cost_report(initial_usage_report, pricing_service=pricing_service)
         initial_cost_snapshot = generation_cost_snapshot(initial_cost_report)
-        existing_progress = project.get("progress") if isinstance(project.get("progress"), dict) else {}
+        existing_progress_raw = project.get("progress")
+        existing_progress: Dict[str, Any] = (
+            dict(existing_progress_raw) if isinstance(existing_progress_raw, dict) else {}
+        )
         total_sections_hint = int(existing_progress.get("total") or 0)
         existing_generation_phase = _normalize_generation_phase_state(project.get("generation_phase"))
         if resume_from_partial:
@@ -2935,7 +3117,7 @@ async def trigger_generation(
             title="Solicitud recibida (ruta n8n legacy)",
         )
         callback_url = f"{settings.GICAGEN_BASE_URL.rstrip('/')}/api/integrations/n8n/callback"
-        payload = {
+        trigger_payload = {
             "projectId": projectId,
             "format": {
                 "id": project.get("format_id"),
@@ -2957,7 +3139,7 @@ async def trigger_generation(
             status="running",
             title="Enviando payload a n8n",
         )
-        result = await n8n.trigger(payload)
+        result = await n8n.trigger(trigger_payload)
 
         if result.get("ok"):
             run_id = result.get("data", {}).get("runId") or result.get("data", {}).get("run_id") or f"run_{projectId}"

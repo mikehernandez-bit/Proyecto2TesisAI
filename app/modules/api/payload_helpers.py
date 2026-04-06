@@ -6,7 +6,6 @@ These functions build, adapt, and normalize payloads for GicaTesis rendering.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 import httpx
@@ -14,7 +13,6 @@ import httpx
 from app.core.config import settings
 from app.core.services.ai.section_content_policy import (
     allows_structured_content,
-    is_text_only_section,
 )
 from app.core.services.toc_detector import is_toc_path as _is_toc_path
 from app.integrations.gicatesis.types import validate_render_payload
@@ -237,7 +235,8 @@ def decide_resume_mode(
         return saved_sections > 0, seed_sections, mode
 
     previous_status = str(project.get("status") or "").lower().strip()
-    resume_state = project.get("resume") if isinstance(project.get("resume"), dict) else {}
+    resume_raw = project.get("resume")
+    resume_state: dict[str, Any] = dict(resume_raw) if isinstance(resume_raw, dict) else {}
     eligible_by_status = previous_status in {
         "failed",
         "blocked",

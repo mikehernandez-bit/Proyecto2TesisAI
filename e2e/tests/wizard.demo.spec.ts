@@ -1,9 +1,113 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-test("wizard happy-path in demo mode", async ({ page }) => {
+const formatId = "fmt-demo-001";
+const projectId = "proj-e2e-demo-001";
+
+const promptPackage = {
+  id: "promptpkg_fmt_demo_001",
+  name: "Paquete Demo",
+  format_id: formatId,
+  format_name: "Formato Demo",
+  format_version: "v1",
+  doc_type: "tesis",
+  template: "Escribe sobre {{tema}}.",
+  variables: ["tema"],
+  sections: [
+    {
+      section_id: "intro",
+      section_path: "INTRODUCCION",
+      section_title: "Introducción",
+      parent_section_path: "",
+      section_level: 1,
+      optional: false,
+      default_selected: true,
+      source_hints: "",
+      blocks: [
+        {
+          block_id: "intro-1",
+          label: "Introducción",
+          instructions: "Contextualiza el estudio.",
+          required_variables: ["objetivo_general"],
+          required: true,
+        },
+      ],
+    },
+    {
+      section_id: "resumen",
+      section_path: "RESUMEN",
+      section_title: "Resumen",
+      parent_section_path: "",
+      section_level: 1,
+      optional: true,
+      default_selected: false,
+      source_hints: "",
+      blocks: [],
+    },
+  ],
+  selected_sections: [
+    {
+      section_id: "intro",
+      section_path: "INTRODUCCION",
+    },
+  ],
+  section_tree: [
+    {
+      section_id: "intro",
+      section_path: "INTRODUCCION",
+      section_title: "Introducción",
+      section_level: 1,
+      optional: false,
+      default_selected: true,
+      blocks: [{ block_id: "intro-1" }],
+      children: [],
+    },
+    {
+      section_id: "resumen",
+      section_path: "RESUMEN",
+      section_title: "Resumen",
+      section_level: 1,
+      optional: true,
+      default_selected: false,
+      blocks: [],
+      children: [],
+    },
+  ],
+};
+
+const providerStatus = {
+  selected_provider: "mistral",
+  selected_model: "mistral-medium-2505",
+  fallback_provider: "gemini",
+  fallback_model: "gemini-2.0-flash",
+  mode: "fixed",
+  providers: [
+    {
+      id: "mistral",
+      display_name: "Mistral",
+      model: "mistral-medium-2505",
+      configured: true,
+      online: true,
+      health: "OK",
+      probe: { status: "OK", detail: "Probe OK" },
+      stats: {},
+    },
+    {
+      id: "gemini",
+      display_name: "Gemini",
+      model: "gemini-2.0-flash",
+      configured: true,
+      online: true,
+      health: "OK",
+      probe: { status: "OK", detail: "Probe OK" },
+      stats: {},
+    },
+  ],
+};
+
+async function wireWizardRoutes(page: Page) {
   let pollCount = 0;
 
-  await page.route("**/api/projects", async (route) => {
+  await page.route(/\/api\/projects(?:\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -11,14 +115,24 @@ test("wizard happy-path in demo mode", async ({ page }) => {
     });
   });
 
-  await page.route("**/api/formats**", async (route) => {
+  await page.route(/\/api\/formats(?:\/[^/?]+\/prompt-package)?(?:\?.*)?$/, async (route) => {
+    const url = route.request().url();
+    if (url.includes("/prompt-package")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(promptPackage),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
         formats: [
           {
-            id: "fmt-demo-001",
+            id: formatId,
             title: "Formato Demo",
             university: "demo",
             category: "general",
@@ -31,49 +145,80 @@ test("wizard happy-path in demo mode", async ({ page }) => {
     });
   });
 
-  await page.route("**/api/prompts", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify([
-        {
-          id: "prompt-demo-001",
-          name: "Prompt Demo",
-          doc_type: "Tesis Completa",
-          is_active: true,
-          template: "Escribe sobre {{tema}}.",
-          variables: ["tema"],
-        },
-      ]),
-    });
-  });
-
   await page.route("**/api/projects/draft", async (route) => {
     await route.fulfill({
       status: 201,
       contentType: "application/json",
       body: JSON.stringify({
-        id: "proj-e2e-demo-001",
-        projectId: "proj-e2e-demo-001",
+        id: projectId,
+        projectId,
         status: "draft",
       }),
     });
   });
 
-  await page.route("**/api/ai/health", async (route) => {
+  await page.route(`**/api/projects/${projectId}`, async (route) => {
+    if (route.request().method() === "PUT") {
+      const payload = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: projectId,
+          status: "draft",
+          title: payload?.title || "Proyecto E2E Demo",
+          format_id: payload?.formatId || formatId,
+          prompt_id: payload?.promptId || promptPackage.id,
+          selected_sections: payload?.selectedSections || promptPackage.selected_sections,
+          prompt_snapshot: payload?.promptSnapshot || promptPackage,
+          values: payload?.values || {},
+        }),
+      });
+      return;
+    }
+
+    pollCount += 1;
+    const payload =
+      pollCount < 2
+        ? { id: projectId, status: "processing" }
+        : {
+            id: projectId,
+            status: "completed",
+            output_file: `outputs/${projectId}.docx`,
+          };
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(payload),
+    });
+  });
+
+  await page.route(/\/api\/providers\/status(?:\?.*)?$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(providerStatus),
+    });
+  });
+
+  await page.route(/\/api\/providers\/select(?:\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        configured: false,
-        reachable: false,
-        engine: "simulation",
-        message: "Modo demo/simulacion",
+        ...providerStatus,
+        selection: {
+          provider: providerStatus.selected_provider,
+          model: providerStatus.selected_model,
+          fallback_provider: providerStatus.fallback_provider,
+          fallback_model: providerStatus.fallback_model,
+          mode: providerStatus.mode,
+        },
       }),
     });
   });
 
-  await page.route("**/api/projects/proj-e2e-demo-001/generate", async (route) => {
+  await page.route(`**/api/projects/${projectId}/generate`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -84,23 +229,10 @@ test("wizard happy-path in demo mode", async ({ page }) => {
       }),
     });
   });
+}
 
-  await page.route("**/api/projects/proj-e2e-demo-001", async (route) => {
-    pollCount += 1;
-    const payload =
-      pollCount < 2
-        ? { id: "proj-e2e-demo-001", status: "processing" }
-        : {
-            id: "proj-e2e-demo-001",
-            status: "completed",
-            output_file: "outputs/proj-e2e-demo-001.docx",
-          };
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(payload),
-    });
-  });
+test("wizard happy-path in demo mode with institutional package", async ({ page }) => {
+  await wireWizardRoutes(page);
 
   await page.goto("/");
   await page.click("#nav-wizard");
@@ -109,14 +241,17 @@ test("wizard happy-path in demo mode", async ({ page }) => {
   await expect(page.locator("#btn-step1-next")).toBeEnabled();
   await page.click("#btn-step1-next");
 
-  await page.click("#prompts-grid .prompt-card");
+  await expect(page.locator("#chapter-selection-grid .chapter-card")).toHaveCount(2);
   await expect(page.locator("#btn-step2-next")).toBeEnabled();
   await page.click("#btn-step2-next");
 
-  await page.fill("#var_tema", "E2E demo");
-  await page.click("#btn-step3-generate");
+  await page.fill("#var_title", "Proyecto E2E Demo");
+  await page.fill('[data-variable="objetivo_general"]', "Validar el flujo institucional.");
+  await page.click("#btn-step3-next-provider");
 
-  await expect(page.locator("#gen-success")).toBeVisible();
-  await expect(page.locator("#btn-gen-downloads")).toBeVisible();
+  await expect(page.locator("#provider-cards")).toContainText("Mistral");
+  await page.click("#btn-step4-generate");
+
+  await expect(page.getByRole("heading", { name: "7. Descargas" })).toBeVisible();
+  await expect(page.locator('a[href="/api/download/proj-e2e-demo-001"]')).toBeVisible();
 });
-

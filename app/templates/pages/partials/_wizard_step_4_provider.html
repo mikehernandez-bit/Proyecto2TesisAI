@@ -1,0 +1,68 @@
+﻿      <div id="step-4-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-semibold mb-2 text-slate-800">4. Seleccionar IA</h3>
+          <p class="text-sm text-gray-500 mb-6">
+            Elige proveedor/modelo antes de iniciar la generación en vivo.
+          </p>
+
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <h4 class="text-sm font-semibold text-slate-800">Selector de modelo IA</h4>
+                <p class="text-xs text-slate-500">Estado en tiempo real del proveedor y del modelo seleccionado.</p>
+              </div>
+              <button id="btn-provider-refresh" type="button"
+                class="text-xs px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-100">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Actualizar estado
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4 text-xs">
+              <div class="inline-flex rounded-lg border border-slate-300 overflow-hidden">
+                <label class="px-3 py-2 cursor-pointer bg-white">
+                  <input id="provider-mode-fixed" type="radio" name="provider-mode" value="fixed" class="mr-1">
+                  Modo fijo
+                </label>
+                <label class="px-3 py-2 cursor-pointer bg-white border-l border-slate-300">
+                  <input id="provider-mode-auto" type="radio" name="provider-mode" value="auto" class="mr-1" checked>
+                  Modo automático
+                </label>
+              </div>
+              <div id="provider-fallback-label" class="text-slate-600">Proveedor de respaldo: -</div>
+            </div>
+
+            <div id="provider-backup-control" class="hidden flex flex-col gap-1 text-xs">
+              <label for="provider-backup-select" class="text-slate-700 font-medium">
+                Proveedor de respaldo (modo automático)
+              </label>
+              <select id="provider-backup-select"
+                class="w-full md:w-80 rounded border border-slate-300 bg-white px-2 py-1.5 text-slate-700">
+                <option value="">Sin proveedor disponible</option>
+              </select>
+            </div>
+
+            <div id="provider-select-error"
+              class="hidden text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2"></div>
+            <div id="provider-cards" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+          </div>
+
+          <div id="step4-error" class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
+          </div>
+
+          <div class="mt-8 flex justify-between items-center">
+            <button onclick="TesisAI.prevStep(3)"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
+
+            <div id="step4-loading"
+              class="hidden flex items-center gap-3 text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+              <div class="loader w-5 h-5 border-2 border-t-blue-600"></div>
+              <span class="text-sm font-medium animate-pulse">Iniciando generacion...</span>
+            </div>
+
+            <button id="btn-step4-generate" onclick="TesisAI.triggerGeneration()"
+              class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generar Documento
+            </button>
+          </div>
+        </div>
+      </div>
