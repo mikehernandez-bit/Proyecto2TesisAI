@@ -185,9 +185,7 @@ class ProjectService:
             if not isinstance(item, dict):
                 continue
             section_id = str(item.get("section_id") or item.get("sectionId") or "").strip()
-            section_path = str(
-                item.get("section_path") or item.get("sectionPath") or item.get("path") or ""
-            ).strip()
+            section_path = str(item.get("section_path") or item.get("sectionPath") or item.get("path") or "").strip()
             section_title = str(
                 item.get("section_title") or item.get("sectionTitle") or item.get("title") or ""
             ).strip()
@@ -219,11 +217,7 @@ class ProjectService:
             if not isinstance(item, dict):
                 continue
             key = str(
-                item.get("section_id")
-                or item.get("sectionId")
-                or item.get("section_path")
-                or item.get("path")
-                or ""
+                item.get("section_id") or item.get("sectionId") or item.get("section_path") or item.get("path") or ""
             ).strip()
             if key:
                 raw_by_key[key] = item
