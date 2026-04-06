@@ -230,9 +230,7 @@ def _default_selected_sections_from_package(prompt_package: Dict[str, Any] | Non
                 "section_id": section_id,
                 "section_path": section_path,
                 "section_title": str(item.get("section_title") or item.get("sectionTitle") or item.get("title") or ""),
-                "parent_section_path": str(
-                    item.get("parent_section_path") or item.get("parentSectionPath") or ""
-                ),
+                "parent_section_path": str(item.get("parent_section_path") or item.get("parentSectionPath") or ""),
                 "section_level": int(item.get("section_level") or item.get("sectionLevel") or 1),
                 "optional": bool(item.get("optional")),
                 "default_selected": bool(item.get("default_selected", True)),
@@ -267,11 +265,7 @@ def _resolve_project_selected_sections(
     project: Dict[str, Any],
     prompt_snapshot: Dict[str, Any] | None,
 ) -> list[Dict[str, Any]]:
-    explicit_selected = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else []
-    )
+    explicit_selected = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else []
     if explicit_selected:
         return explicit_selected
     ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
@@ -1552,20 +1546,14 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
             else raw.get("prompt_name") or current_project.get("prompt_name")
         ),
         "system_instruction": (
-            prompt_snapshot.get("system_instruction")
-            if prompt_snapshot
-            else raw.get("system_instruction")
+            prompt_snapshot.get("system_instruction") if prompt_snapshot else raw.get("system_instruction")
         ),
         "sections": prompt_snapshot.get("sections") if prompt_snapshot else raw.get("sections"),
         "prompt_snapshot": prompt_snapshot,
         "selected_sections": (
             raw.get("selected_sections")
             if isinstance(raw.get("selected_sections"), list)
-            else (
-                _default_selected_sections_from_package(prompt_snapshot)
-                if prompt_id and prompt_snapshot
-                else None
-            )
+            else (_default_selected_sections_from_package(prompt_snapshot) if prompt_id and prompt_snapshot else None)
         ),
         "prompt_template": (
             prompt_snapshot.get("template")
@@ -2028,9 +2016,7 @@ async def _ai_generation_job(
     format_detail_payload: Optional[Dict[str, Any]] = None
     prompt_snapshot_raw = project.get("prompt_snapshot")
     prompt_snapshot: Optional[Dict[str, Any]] = (
-        dict(prompt_snapshot_raw)
-        if isinstance(prompt_snapshot_raw, dict)
-        else None
+        dict(prompt_snapshot_raw) if isinstance(prompt_snapshot_raw, dict) else None
     )
     planned_sections: list[Dict[str, Any]] = []
     selected_sections = _resolve_project_selected_sections(project, prompt_snapshot)
@@ -2058,9 +2044,7 @@ async def _ai_generation_job(
                 projects.update_progress(project_id, total=total_sections)
                 current_project_snapshot = projects.get_project(project_id) or {}
                 snapshot_source = current_project_snapshot.get("generation_snapshot")
-                snapshot_raw: Dict[str, Any] = (
-                    dict(snapshot_source) if isinstance(snapshot_source, dict) else {}
-                )
+                snapshot_raw: Dict[str, Any] = dict(snapshot_source) if isinstance(snapshot_source, dict) else {}
                 completed_sections = snapshot_raw.get("completed_sections")
                 snapshot_token_usage = snapshot_raw.get("tokenUsage")
                 projects.update_project(
@@ -2763,13 +2747,13 @@ async def trigger_generation(
 
     requested_resume_mode = payload.resume_mode if payload else "auto"
     stored_ai_result_raw = project.get("ai_result")
-    stored_ai_result: Dict[str, Any] = (
-        stored_ai_result_raw if isinstance(stored_ai_result_raw, dict) else {}
-    )
+    stored_ai_result: Dict[str, Any] = stored_ai_result_raw if isinstance(stored_ai_result_raw, dict) else {}
     stored_sections_raw = stored_ai_result.get("sections")
-    stored_ai_sections: list[Dict[str, Any]] = [
-        dict(item) for item in stored_sections_raw if isinstance(item, dict)
-    ] if isinstance(stored_sections_raw, list) else []
+    stored_ai_sections: list[Dict[str, Any]] = (
+        [dict(item) for item in stored_sections_raw if isinstance(item, dict)]
+        if isinstance(stored_sections_raw, list)
+        else []
+    )
     can_retry_render_only = (
         str(project.get("status") or "").strip().lower() == "render_failed"
         and requested_resume_mode != "restart"
