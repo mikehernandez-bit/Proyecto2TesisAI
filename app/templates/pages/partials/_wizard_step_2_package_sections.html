@@ -1,0 +1,34 @@
+﻿     <div id="step-2-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div class="mb-6">
+            <h3 class="text-xl font-black text-slate-800">2. Paquete & Secciones</h3>
+            <p class="text-sm text-slate-500">Se asigna el paquete institucional completo y eliges qué secciones generativas deseas ejecutar con IA.</p>
+          </div>
+
+          <div class="flex items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 mb-6">
+            <div>
+              <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-600">Formato Seleccionado</h4>
+              <p id="step2-format-name-display" class="text-sm font-bold text-blue-600 mt-1">-</p>
+            </div>
+            <button onclick="TesisAI.selectAllChapters()" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase transition-colors px-3 py-1.5 border border-transparent hover:border-blue-200 rounded-lg hover:bg-blue-50">
+              Seleccionar Todos
+            </button>
+          </div>
+
+          <div class="mb-8">
+            <div id="chapter-selection-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              </div>
+          </div>
+
+          <div class="mt-8 flex justify-between border-t border-slate-100 pt-6">
+            <button onclick="TesisAI.prevStep(1)" class="text-slate-400 hover:text-slate-600 font-bold px-4 transition flex items-center">
+              <i class="fa-solid fa-arrow-left mr-2"></i> Atrás
+            </button>
+            <button onclick="TesisAI.saveChapterSelectionAndGoDetails()" id="btn-step2-next"
+              class="bg-blue-600 text-white px-8 py-2.5 rounded-xl hover:bg-blue-700 font-black transition-all shadow-lg shadow-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center"
+              disabled>
+              Siguiente: Detalles <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </div>
+      </div>

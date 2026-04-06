@@ -1,0 +1,23 @@
+﻿<div id="view-prompt-index" class="view-section hidden fade-in">
+  <div class="flex items-center gap-4 mb-8">
+    <button onclick="TesisAI.showView('admin-prompts')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition shadow-sm">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight" id="index-title">Paquete institucional</h1>
+      <p class="text-slate-500 text-sm font-medium mt-1" id="index-subtitle">Secciones extraÃ­das desde el formato oficial.</p>
+    </div>
+  </div>
+
+  <div class="max-w-5xl mx-auto space-y-6">
+    <div class="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-sm">
+      Este Ã¡rbol se hidrata desde el formato institucional real publicado por GicaTesis. AquÃ­ solo configuras bloques de prompt, variables requeridas y obligatoriedad por secciÃ³n.
+    </div>
+
+    <div id="index-blocks-container" class="space-y-4"></div>
+
+    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-500">
+      Las secciones no se crean manualmente en esta vista. Si el formato institucional cambia, vuelve a abrir el paquete para sincronizar la estructura vigente.
+    </div>
+  </div>
+</div>

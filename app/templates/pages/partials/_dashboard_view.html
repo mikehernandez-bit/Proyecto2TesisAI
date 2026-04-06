@@ -1,0 +1,79 @@
+﻿    <!-- VISTA 1: DASHBOARD -->
+    <div id="view-dashboard" class="view-section fade-in">
+      <div class="flex justify-between items-end mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">Panel Principal</h1>
+          <p class="text-slate-500">Bienvenido. Aquí están tus últimas generaciones.</p>
+        </div>
+        <button onclick="TesisAI.showView('wizard')"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-magic"></i> Generar Nuevo
+        </button>
+      </div>
+
+      <div id="dashboard-latest-card" class="hidden mb-8 rounded-2xl border bg-white shadow-sm overflow-hidden">
+        <div class="p-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div class="text-xs font-extrabold uppercase tracking-wide text-slate-500">Último proyecto relevante</div>
+              <div id="dashboard-latest-title" class="mt-2 text-xl font-extrabold text-slate-900">-</div>
+              <div id="dashboard-latest-meta" class="mt-2 text-sm text-slate-500">-</div>
+            </div>
+            <div id="dashboard-latest-status"></div>
+          </div>
+          <div id="dashboard-latest-summary" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm"></div>
+          <div id="dashboard-latest-actions" class="mt-5 flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-sm text-gray-500 font-medium">Proyectos Totales</p>
+              <h3 id="stat-total-projects" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+            </div>
+            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i class="fa-solid fa-folder-open"></i></div>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-sm text-gray-500 font-medium">Ahorro de Tiempo</p>
+              <h3 class="text-3xl font-bold text-slate-800 mt-1">~45h</h3>
+            </div>
+            <div class="p-2 bg-green-50 text-green-600 rounded-lg"><i class="fa-solid fa-clock"></i></div>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-sm text-gray-500 font-medium">Tokens IA Usados</p>
+              <h3 id="stat-total-tokens" class="text-3xl font-bold text-slate-800 mt-1">0</h3>
+            </div>
+            <div class="p-2 bg-purple-50 text-purple-600 rounded-lg"><i class="fa-solid fa-microchip"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Projects Table -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 font-semibold text-slate-700">Generaciones Recientes</div>
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+              <th class="px-6 py-3 font-medium">Título / Tema</th>
+              <th class="px-6 py-3 font-medium">Formato</th>
+              <th class="px-6 py-3 font-medium">Estado</th>
+              <th class="px-6 py-3 font-medium">Actualizado</th>
+              <th class="px-6 py-3 font-medium text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-recent-projects" class="text-sm divide-y divide-gray-100"></tbody>
+        </table>
+        <div id="dashboard-empty" class="px-6 py-8 text-sm text-gray-500 hidden">
+          No hay proyectos aún. Crea uno en "Nuevo Proyecto".
+        </div>
+      </div>
+    </div>

@@ -1,0 +1,78 @@
+﻿      <!-- Stepper -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xl font-bold text-slate-800">Nuevo Proyecto</h2>
+          <span class="text-sm text-gray-500">Paso <span id="current-step-label">1</span> de 7</span>
+        </div>
+        <div id="wizard-context-panel" class="hidden mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div id="wizard-context-title" class="text-sm font-extrabold text-amber-900">Editando proyecto existente
+              </div>
+              <div id="wizard-context-text" class="mt-1 text-xs text-amber-800">
+                Si cambias formato, prompt o detalles y luego guardas, la generación anterior se reiniciará
+                explícitamente.
+              </div>
+            </div>
+            <div id="wizard-context-status"></div>
+          </div>
+          <div id="wizard-context-nav" class="mt-4 flex flex-wrap gap-2">
+            <button data-wizard-jump="1" type="button"
+              class="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100">
+              Formato Ext.
+            </button>
+            <button data-wizard-jump="2" type="button"
+              class="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100">
+              Paquete & Secciones
+            </button>
+            <button data-wizard-jump="3" type="button"
+              class="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100">
+              Detalles
+            </button>
+            <button data-wizard-jump="4" type="button"
+              class="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100">
+              Selección IA
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center w-full">
+          <div id="step-1-dot"
+            class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm z-10">
+            1</div>
+          <div id="step-1-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-2-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            2</div>
+          <div id="step-2-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-3-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            3</div>
+          <div id="step-3-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-4-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            4</div>
+          <div id="step-4-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-5-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            5</div>
+          <div id="step-5-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-6-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            6</div>
+          <div id="step-6-line" class="flex-1 h-1 bg-gray-200 mx-2 rounded"></div>
+          <div id="step-7-dot"
+            class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm z-10">
+            7</div>
+        </div>
+
+        <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
+          <span>Formato Ext.</span>
+          <span>Paquete & Secciones</span>
+          <span>Detalles</span>
+          <span>Seleccion IA</span>
+          <span>Generación IA</span>
+          <span>Construcción</span>
+          <span>Descargas</span>
+        </div>
+      </div>

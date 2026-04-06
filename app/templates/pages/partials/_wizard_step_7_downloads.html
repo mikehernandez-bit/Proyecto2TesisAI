@@ -1,0 +1,29 @@
+﻿      <div id="step-7-content" class="wizard-step hidden">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800">7. Descargas</h3>
+            <p class="text-sm text-gray-500">Documento generado para el proyecto <code id="sim-project-id">-</code>.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a id="sim-download-docx" href="#"
+              class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+              <i class="fa-solid fa-file-word"></i> Descargar DOCX simulado
+            </a>
+            <a id="sim-download-pdf" href="#" target="_blank" rel="noopener noreferrer"
+              class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-slate-800 text-white hover:bg-slate-900 transition">
+              <i class="fa-solid fa-file-pdf"></i> Descargar PDF simulado
+            </a>
+          </div>
+
+          <div class="pt-2 flex justify-between">
+            <button onclick="TesisAI.prevStep(6)"
+              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
+            <button onclick="TesisAI.showView('dashboard')"
+              class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">
+              Finalizar
+            </button>
+          </div>
+        </div>
+      </div>

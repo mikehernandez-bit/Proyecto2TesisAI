@@ -1,0 +1,232 @@
+﻿    <div id="view-admin-prompts" class="view-section hidden fade-in">
+
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+        <div>
+          <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Paquetes Universitarios</h1>
+          <p class="text-slate-500 mt-1 text-sm">Gestiona los modelos de IA y plantillas específicas para cada institución.</p>
+        </div>
+        <button type="button" disabled
+          class="bg-slate-200 text-slate-500 px-5 py-2.5 rounded-xl shadow-sm font-semibold transition flex items-center gap-2 text-sm cursor-not-allowed">
+          <i class="fa-solid fa-diagram-project"></i> Sincronizado con formatos
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 transition-all" id="prompts-grid-admin">
+        <div id="card-unac" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center hover:shadow-md hover:border-blue-300 transition-all cursor-pointer relative group">
+          <div class="w-24 h-24 mb-4 flex items-center justify-center transition transform group-hover:scale-105">
+            <img src="/static/LOGOS/UNAC.png" alt="Logo UNAC" class="max-w-full max-h-full object-contain">
+          </div>
+          <h3 class="font-bold text-xl text-slate-800 text-center">Paquete UNAC</h3>
+        </div>
+        <div id="card-uni" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center hover:shadow-md hover:border-blue-300 transition-all cursor-pointer relative group">
+          <div class="w-24 h-24 mb-4 flex items-center justify-center transition transform group-hover:scale-105">
+            <img src="/static/LOGOS/UNI.png" alt="Logo UNI" class="max-w-full max-h-full object-contain">
+          </div>
+          <h3 class="font-bold text-xl text-slate-800 text-center">Paquete UNI</h3>
+        </div>
+        <div id="card-uns" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center hover:shadow-md hover:border-blue-300 transition-all cursor-pointer relative group">
+          <div class="w-24 h-24 mb-4 flex items-center justify-center transition transform group-hover:scale-105">
+            <img src="/static/LOGOS/UNS.png" alt="Logo UNS" class="max-w-full max-h-full object-contain">
+          </div>
+          <h3 class="font-bold text-xl text-slate-800 text-center">Paquete UNS</h3>
+        </div>
+      </div>
+
+      <!-- Panel UNAC -->
+      <div id="panel-unac" class="univ-panel hidden fade-in">
+        <button class="btn-back mb-6 text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-2 transition">
+          <i class="fa-solid fa-arrow-left"></i> Volver a Paquetes
+        </button>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-6 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
+            <div class="w-14 h-14 bg-white border border-slate-200 rounded-xl flex items-center justify-center p-1">
+              <img src="/static/LOGOS/UNAC.png" class="max-w-full max-h-full object-contain">
+            </div>
+            <h2 class="text-xl font-extrabold text-slate-800 uppercase">PAQUETE UNAC</h2>
+          </div>
+          <div class="divide-y divide-slate-100">
+            
+            <div class="group">
+              <button class="btn-accordion w-full p-5 hover:bg-slate-50 transition flex justify-between items-center outline-none" data-target="unac-inf">
+                <h4 class="font-extrabold text-slate-800 uppercase">INFORME TESIS</h4>
+                <i class="fa-solid fa-chevron-down text-slate-400 transition-transform accordion-icon"></i>
+              </button>
+              <ul id="unac-inf" class="hidden bg-slate-50/40 px-5 py-4 border-t border-slate-100 space-y-4">
+                <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-200 uppercase">Cualitativa</span>
+                      <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Informe de Tesis (Cuali)</h5>
+                      <p class="text-xs text-slate-500 mt-1">Contiene: 3 Prompts configurados.</p>
+                    </div>
+                    <button class="btn-edit-pkg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm"
+                      data-format-id="unac-informe-cual"
+                      data-univ="UNAC" data-tipo="INF" data-subtipo="CUALI"
+                      data-logo="/static/LOGOS/UNAC.png" data-title="INFORME TESIS" data-subtitle="PAQUETE UNAC • CUALITATIVA">Abrir Editor</button>
+                  </div>
+                </li>
+                <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black rounded border border-blue-200 uppercase">Cuantitativa</span>
+                      <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Informe de Tesis (Cuanti)</h5>
+                      <p class="text-xs text-slate-500 mt-1">Contiene: 1 Prompt configurado.</p>
+                    </div>
+                    <button class="btn-edit-pkg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm"
+                      data-format-id="unac-informe-cuant"
+                      data-univ="UNAC" data-tipo="INF" data-subtipo="CUANTI"
+                      data-logo="/static/LOGOS/UNAC.png" data-title="INFORME TESIS" data-subtitle="PAQUETE UNAC • CUANTITATIVA">Abrir Editor</button>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="group">
+              <button class="btn-accordion w-full p-5 hover:bg-slate-50 transition flex justify-between items-center outline-none" data-target="unac-proy">
+                <h4 class="font-extrabold text-slate-800 uppercase">PROYECTO TESIS</h4>
+                <i class="fa-solid fa-chevron-down text-slate-400 transition-transform accordion-icon"></i>
+              </button>
+              <ul id="unac-proy" class="hidden bg-slate-50/40 px-5 py-4 border-t border-slate-100 space-y-4">
+                <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-200 uppercase">Cualitativa</span>
+                      <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Proyecto Tesis (Cuali)</h5>
+                      <p class="text-xs text-slate-500 mt-1">Contiene: 3 Prompts configurados.</p>
+                    </div>
+                    <button class="btn-edit-pkg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm"
+                      data-format-id="unac-proyecto-cual"
+                      data-univ="UNAC" data-tipo="PROY" data-subtipo="CUALI"
+                      data-logo="/static/LOGOS/UNAC.png" data-title="PROYECTO TESIS" data-subtitle="PAQUETE UNAC • CUALITATIVA">Abrir Editor</button>
+                  </div>
+                </li>
+                <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black rounded border border-blue-200 uppercase">Cuantitativa</span>
+                      <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Proyecto Tesis (Cuanti)</h5>
+                      <p class="text-xs text-slate-500 mt-1">Contiene: 1 Prompt configurado.</p>
+                    </div>
+                    <button class="btn-edit-pkg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm"
+                      data-format-id="unac-proyecto-cuant"
+                      data-univ="UNAC" data-tipo="PROY" data-subtipo="CUANTI"
+                      data-logo="/static/LOGOS/UNAC.png" data-title="PROYECTO TESIS" data-subtitle="PAQUETE UNAC • CUANTITATIVA">Abrir Editor</button>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="group">
+              <button class="btn-accordion w-full p-5 hover:bg-slate-50 transition flex justify-between items-center outline-none" data-target="unac-maes">
+                <h4 class="font-extrabold text-slate-800 uppercase">TESIS DE MAESTRÍA</h4>
+                <i class="fa-solid fa-chevron-down text-slate-400 transition-transform accordion-icon"></i>
+              </button>
+              <ul id="unac-maes" class="hidden bg-slate-50/40 px-5 py-4 border-t border-slate-100 space-y-4">
+                <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-200 uppercase">Cualitativa</span>
+                      <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Tesis de Maestría (Cuali)</h5>
+                      <p class="text-xs text-slate-500 mt-1">Contiene: 3 Prompts configurados.</p>
+                    </div>
+                    <button class="btn-edit-pkg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm"
+                      data-format-id="unac-maestria-cual"
+                      data-univ="UNAC" data-tipo="MAES" data-subtipo="CUALI"
+                      data-logo="/static/LOGOS/UNAC.png" data-title="TESIS DE MAESTRÍA" data-subtitle="PAQUETE UNAC • CUALITATIVA">Abrir Editor</button>
+                  </div>
+                </li>
+                <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black rounded border border-blue-200 uppercase">Cuantitativa</span>
+                      <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Tesis de Maestría (Cuanti)</h5>
+                      <p class="text-xs text-slate-500 mt-1">Contiene: 1 Prompt configurado.</p>
+                    </div>
+                    <button class="btn-edit-pkg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm"
+                      data-format-id="unac-maestria-cuant"
+                      data-univ="UNAC" data-tipo="MAES" data-subtipo="CUANTI"
+                      data-logo="/static/LOGOS/UNAC.png" data-title="TESIS DE MAESTRÍA" data-subtitle="PAQUETE UNAC • CUANTITATIVA">Abrir Editor</button>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel UNI -->
+      <div id="panel-uni" class="univ-panel hidden fade-in">
+        <button class="btn-back mb-6 text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-2 transition">
+          <i class="fa-solid fa-arrow-left"></i> Volver a Paquetes
+        </button>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          
+          <div class="p-6 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
+            <div class="w-14 h-14 bg-white border border-slate-200 rounded-xl flex items-center justify-center p-1">
+              <img src="/static/LOGOS/UNI.png" class="max-w-full max-h-full object-contain">
+            </div>
+            <h2 class="text-xl font-extrabold text-slate-800 uppercase">PAQUETE UNI</h2>
+          </div>
+
+          <ul class="bg-slate-50/40 p-6 space-y-4">
+            
+            <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <span class="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-200 uppercase">Cualitativa</span>
+                  <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Informe de Tesis</h5>
+                  <p class="text-xs text-slate-500 mt-1">Contiene: Prompts configurados para informes.</p>
+                </div>
+                <button class="btn-edit-pkg px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm whitespace-nowrap"
+                  data-format-id="uni-informe-apa"
+                  data-univ="UNI" data-tipo="INF" data-subtipo="CUALI"
+                  data-logo="/static/LOGOS/UNI.png" data-title="INFORME DE TESIS" data-subtitle="PAQUETE UNI">Abrir Editor</button>
+              </div>
+            </li>
+
+            <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <span class="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-200 uppercase">Cualitativa</span>
+                  <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Plan de Trabajo Tesis</h5>
+                  <p class="text-xs text-slate-500 mt-1">Contiene: Prompts configurados para el plan.</p>
+                </div>
+                <button class="btn-edit-pkg px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm whitespace-nowrap"
+                  data-format-id="uni-proyecto-standard"
+                  data-univ="UNI" data-tipo="PLAN" data-subtipo="CUALI"
+                  data-logo="/static/LOGOS/UNI.png" data-title="PLAN DE TRABAJO TESIS" data-subtitle="PAQUETE UNI">Abrir Editor</button>
+              </div>
+            </li>
+
+            <li class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <span class="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-200 uppercase">Cualitativa</span>
+                  <h5 class="text-sm font-bold text-slate-800 mt-2">Módulo: Tesis de Postgrado</h5>
+                  <p class="text-xs text-slate-500 mt-1">Contiene: Prompts configurados para postgrado.</p>
+                </div>
+                <button class="btn-edit-pkg px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm whitespace-nowrap"
+                  data-format-id="uni-posgrado-standard"
+                  data-univ="UNI" data-tipo="POST" data-subtipo="CUALI"
+                  data-logo="/static/LOGOS/UNI.png" data-title="TESIS DE POSTGRADO" data-subtitle="PAQUETE UNI">Abrir Editor</button>
+              </div>
+            </li>
+
+          </ul>
+        </div>
+      </div>
+
+      <!-- Panel UNS -->
+      <div id="panel-uns" class="univ-panel hidden fade-in">
+        <button class="btn-back mb-6 text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-2 transition">
+          <i class="fa-solid fa-arrow-left"></i> Volver
+        </button>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-8 text-center">
+          <img src="/static/LOGOS/UNS.png" class="w-16 h-16 mx-auto mb-4 grayscale opacity-50">
+          <h2 class="font-bold text-slate-400 uppercase tracking-widest">Paquete UNS</h2>
+          <p class="text-sm text-slate-400 mt-2">No hay plantillas configuradas para esta institución todavía.</p>
+        </div>
+      </div>
+
+    </div>

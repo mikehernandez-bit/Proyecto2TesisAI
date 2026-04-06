@@ -1,0 +1,224 @@
+﻿    <!-- MODAL: PRESUPUESTO IA -->
+    <div id="modal-project-budget"
+      class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl transform transition-all scale-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-bold text-slate-800">Presupuesto IA</h3>
+            <p class="text-sm text-slate-500">Estimación basada en tokens históricos reales del proyecto y pricing
+              oficial
+              actual.</p>
+          </div>
+          <button onclick="TesisAI.closeBudgetModal()" class="text-gray-400 hover:text-gray-600"
+            aria-label="Cerrar Presupuesto IA">
+            <i class="fa-solid fa-xmark fa-lg"></i>
+          </button>
+        </div>
+
+        <div class="p-6 max-h-[80vh] overflow-y-auto">
+          <div id="budget-loading"
+            class="hidden rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            Cargando presupuesto del proyecto...
+          </div>
+          <div id="budget-error"
+            class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          </div>
+
+          <div id="budget-content" class="space-y-6">
+            <div class="rounded-2xl border bg-white px-4 py-4">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Proyecto base</div>
+              <div class="mt-1 text-sm text-slate-500">Selecciona el proyecto cuyo historial de tokens quieres usar para
+                calcular el presupuesto.</div>
+              <div class="mt-3 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
+                <div>
+                  <label for="budget-project-select"
+                    class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Proyecto</label>
+                  <select id="budget-project-select"
+                    class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"></select>
+                </div>
+                <div id="budget-project-helper" class="text-xs text-slate-500 md:text-right">-</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div class="rounded-2xl border bg-slate-50 px-4 py-4">
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Proyecto</div>
+                <div id="budget-project-title" class="mt-2 text-lg font-extrabold text-slate-900">-</div>
+                <div id="budget-project-meta" class="mt-1 text-sm text-slate-500">-</div>
+                <div id="budget-project-origin" class="mt-3 text-xs text-slate-500">-</div>
+              </div>
+              <div class="rounded-2xl border bg-slate-50 px-4 py-4">
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tokens históricos</div>
+                <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Entrada</div>
+                    <div id="budget-usage-input" class="mt-1 text-lg font-extrabold text-slate-900">0</div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Salida</div>
+                    <div id="budget-usage-output" class="mt-1 text-lg font-extrabold text-slate-900">0</div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Total</div>
+                    <div id="budget-usage-total" class="mt-1 text-lg font-extrabold text-slate-900">0</div>
+                  </div>
+                </div>
+                <div id="budget-usage-meta" class="mt-3 text-xs text-slate-500">-</div>
+              </div>
+              <div class="rounded-2xl border bg-slate-50 px-4 py-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Fuente de precios
+                    </div>
+                    <div id="budget-pricing-state" class="mt-2 text-sm font-semibold text-slate-900">-</div>
+                  </div>
+                  <button type="button" onclick="TesisAI.refreshBudgetPricing()"
+                    class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100">
+                    <i class="fa-solid fa-rotate"></i> Actualizar precios
+                  </button>
+                </div>
+                <div id="budget-pricing-meta" class="mt-3 text-xs text-slate-500">-</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-6">
+              <section class="rounded-2xl border bg-white p-5">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Modelo y precios</div>
+                    <div class="mt-1 text-sm text-slate-500">Primero revisa el pricing extraído del modelo. Luego
+                      calcula el
+                      presupuesto con los tokens históricos del proyecto.</div>
+                  </div>
+                  <button id="budget-calculate-button" type="button" onclick="TesisAI.calculateBudgetEstimate()"
+                    class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-950">
+                    <i class="fa-solid fa-calculator"></i> Calcular presupuesto
+                  </button>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label for="budget-provider-select"
+                      class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Proveedor</label>
+                    <select id="budget-provider-select"
+                      class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"></select>
+                  </div>
+                  <div>
+                    <label for="budget-model-select"
+                      class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Modelo</label>
+                    <select id="budget-model-select"
+                      class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"></select>
+                  </div>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <div class="font-semibold">Verificación de pricing</div>
+                  <div id="budget-price-check-note" class="mt-1 text-amber-800">Revisa estos precios antes de aplicar la
+                    simulación al historial de tokens.</div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div class="rounded-2xl border bg-slate-50 px-4 py-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Precio input</div>
+                    <div id="budget-price-input" class="mt-1 text-base font-extrabold text-slate-900">-</div>
+                  </div>
+                  <div class="rounded-2xl border bg-slate-50 px-4 py-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Precio output</div>
+                    <div id="budget-price-output" class="mt-1 text-base font-extrabold text-slate-900">-</div>
+                  </div>
+                  <div class="rounded-2xl border bg-slate-50 px-4 py-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Input en caché</div>
+                    <div id="budget-price-cached-input" class="mt-1 text-base font-extrabold text-slate-900">-</div>
+                  </div>
+                  <div class="rounded-2xl border bg-slate-50 px-4 py-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Moneda / modo</div>
+                    <div id="budget-price-meta" class="mt-1 text-base font-extrabold text-slate-900">-</div>
+                  </div>
+                </div>
+
+                <div class="mt-4 rounded-2xl border bg-slate-50 px-4 py-4">
+                  <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Reglas / fuente</div>
+                  <div id="budget-price-rule" class="mt-2 text-sm text-slate-700">-</div>
+                  <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <span id="budget-price-fetched">-</span>
+                    <a id="budget-price-source" href="#" target="_blank" rel="noreferrer"
+                      class="font-semibold text-blue-600 hover:underline">Ver fuente oficial</a>
+                  </div>
+                </div>
+
+                <div id="budget-estimate-pending"
+                  class="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  Cuando confirmes que el precio es correcto, pulsa <span class="font-semibold">Calcular
+                    presupuesto</span>
+                  para aplicar ese modelo a los tokens históricos del proyecto.
+                </div>
+
+                <div id="budget-estimate-results" class="mt-4 hidden grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 min-h-[112px]">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Costo input</div>
+                    <div id="budget-cost-input" class="mt-2 text-xl font-extrabold text-emerald-900">USD 0.000000</div>
+                  </div>
+                  <div class="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 min-h-[112px]">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Costo output</div>
+                    <div id="budget-cost-output" class="mt-2 text-xl font-extrabold text-blue-900">USD 0.000000</div>
+                  </div>
+                  <div class="rounded-2xl border border-slate-200 bg-slate-900 px-4 py-4 text-white min-h-[112px]">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-300">Costo total estimado
+                    </div>
+                    <div id="budget-cost-total" class="mt-2 text-xl font-extrabold">USD 0.000000</div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="rounded-2xl border bg-white p-5">
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Comparación rápida</div>
+                <div class="mt-1 text-sm text-slate-500">El mismo historial de tokens comparado contra modelos
+                  disponibles.
+                </div>
+                <div id="budget-compare-pending"
+                  class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  La comparación entre modelos se mostrará después de calcular el presupuesto.
+                </div>
+                <div id="budget-compare-results" class="mt-4 hidden overflow-auto max-h-[26rem] rounded-2xl border">
+                  <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase">
+                      <tr>
+                        <th class="px-4 py-3">Proveedor</th>
+                        <th class="px-4 py-3">Modelo</th>
+                        <th class="px-4 py-3 text-right">Costo total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="budget-compare-table" class="divide-y divide-gray-100"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <section class="rounded-2xl border bg-white p-5">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Desglose por sección</div>
+              <div class="mt-1 text-sm text-slate-500">Cada sección reutiliza sus tokens históricos y recalcula el costo
+                con
+                el modelo seleccionado.</div>
+              <div id="budget-sections-pending"
+                class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                El detalle por sección aparecerá cuando ejecutes la simulación del presupuesto.
+              </div>
+              <div id="budget-sections-results" class="mt-4 hidden overflow-auto max-h-[28rem] rounded-2xl border">
+                <table class="w-full text-left text-sm">
+                  <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase">
+                    <tr>
+                      <th class="px-4 py-3">Sección</th>
+                      <th class="px-4 py-3 text-right">Input</th>
+                      <th class="px-4 py-3 text-right">Output</th>
+                      <th class="px-4 py-3 text-right">Total</th>
+                      <th class="px-4 py-3 text-right">Costo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="budget-sections-table" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>

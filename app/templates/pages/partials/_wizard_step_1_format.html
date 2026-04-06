@@ -1,0 +1,37 @@
+﻿      <div id="step-1-content" class="wizard-step">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 class="text-lg font-semibold mb-4 text-slate-800">1. Selecciona el Formato Institucional</h3>
+          <p class="text-sm text-gray-500 mb-6">
+            Se conecta a una API externa de formatos. En demo se usa <code
+              class="bg-gray-100 px-1 rounded">data/formats_sample.json</code>.
+          </p>
+
+          <!-- GicaTesis offline banner (hidden by default, shown by JS) -->
+          <div id="gicatesis-offline-banner"
+            class="hidden mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>GicaTesis offline &mdash; mostrando formatos en cache. Logos y assets remotos no disponibles.</span>
+          </div>
+
+          <div class="flex gap-4 mb-6">
+            <select id="filter-university"
+              class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">Todas las Universidades</option>
+            </select>
+            <select id="filter-career"
+              class="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="">Filtrar por Carrera</option>
+            </select>
+          </div>
+
+          <div id="formats-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+          <div class="mt-8 flex justify-end">
+            <button onclick="TesisAI.nextStep(2)" id="btn-step1-next"
+              class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled>
+              Siguiente: Paquete & Secciones <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </div>
+      </div>

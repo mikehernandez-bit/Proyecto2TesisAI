@@ -1,450 +1,145 @@
-# Integracion GicaTesis
+# Integracion con GicaTesis
 
-> Documentacion de la integracion BFF entre GicaGen y GicaTesis para formatos academicos.
+GicaGen integrates with GicaTesis as a backend-for-frontend. GicaGen consumes
+institutional formats and render endpoints over HTTP and does not import code
+from the GicaTesis repository.
 
----
+This document records the integration rules that remain true after the
+institutional prompt package refactor completed on April 1, 2026.
 
-## Arquitectura de la Integracion
+## Integration boundaries
+
+GicaGen consumes these GicaTesis concerns:
+
+- institutional format catalog
+- format detail metadata
+- institutional assets
+- DOCX render
+- PDF render
+
+GicaGen owns these concerns locally:
+
+- wizard state
+- prompt package administration
+- project persistence
+- AI provider selection
+- AI generation trace
+- payload validation before render
+
+## Current contract usage
+
+The refactor did not change GicaTesis contracts.
+
+GicaGen still relies on:
+
+- `FormatDetail.fields`
+- `FormatDetail.definition`
+- render endpoints that accept `aiResult.sections`
+
+That was enough to implement:
+
+- institutional section extraction
+- optional section defaults
+- selected section generation
+- partial render payloads
+
+No DTO, router, preprocessor, or render engine change was required in
+GicaTesis.
+
+## Format hydration flow
+
+GicaGen now resolves the prompt package from the selected format instead of
+from a manual admin tree.
 
 ```mermaid
-graph LR
-    subgraph "GicaGen (puerto 8001)"
-        API[api/router.py]
-        FMT_SVC[FormatService]
-        GT_CLIENT[GicaTesisClient]
-        GT_CACHE[FormatCache]
-        GT_TYPES[DTOs - types.py]
-        GT_ERRORS[errors.py]
-    end
-    
-    subgraph "GicaTesis (puerto 8000)"
-        GT_API[/api/v1/formats]
-        GT_ASSETS[/api/v1/assets]
-        GT_VERSION[/api/v1/formats/version]
-    end
-    
-    API -->|GET /api/formats| FMT_SVC
-    FMT_SVC --> GT_CLIENT
-    FMT_SVC --> GT_CACHE
-    GT_CLIENT -->|httpx async| GT_API
-    GT_CLIENT -->|httpx async| GT_ASSETS
-    GT_CLIENT -->|httpx async| GT_VERSION
-    GT_CACHE -->|data/gicatesis_cache.json| GT_CACHE
+sequenceDiagram
+    participant UI as GicaGen wizard
+    participant API as GicaGen API
+    participant FS as FormatService
+    participant GT as GicaTesis
+    participant IS as InstitutionalSectionService
+    participant PS as PromptService
+
+    UI->>API: GET /api/formats/{format_id}/prompt-package
+    API->>FS: get_format_detail(format_id)
+    FS->>GT: GET /api/v1/formats/{format_id}
+    GT-->>FS: FormatDetail
+    API->>IS: extract_sections(definition)
+    API->>PS: get_prompt_by_format(format_id, format_detail)
+    PS-->>API: normalized package with sections and blocks
+    API-->>UI: package + selected_sections + section_tree
 ```
 
-## Modulo de Integracion
-
-**Ubicacion:** `app/integrations/gicatesis/`
-
-| Archivo | Proposito | Lineas |
-|---------|-----------|--------|
-| `client.py` | Cliente HTTP async para GicaTesis API v1 | 136 |
-| `types.py` | DTOs Pydantic que reflejan contratos API | 64 |
-| `errors.py` | Excepciones custom para errores upstream | 28 |
-| `cache/format_cache.py` | Cache local con ETag y timestamps | ~50 |
+## Section extraction rules
 
-### DTOs (types.py)
+GicaGen derives the editable section tree from `FormatDetail.definition`.
 
-```python
-class FormatSummary(BaseModel):
-    id: str
-    title: str
-    university: str
-    category: str | None
-    documentType: str | None
-    version: str
-
-class FormatDetail(FormatSummary):
-    description: str | None
-    fields: list[FormatField]
-    definition: dict | None     # Estructura del documento
-    assets: list[AssetRef]
-    templates: list[TemplateRef]
-
-class CatalogVersionResponse(BaseModel):
-    current: str
-    cached: str | None
-    changed: bool
-```
-
-### Errores (errors.py)
-
-```python
-class GicaTesisError(Exception): ...
-class UpstreamUnavailable(GicaTesisError): ...   # GicaTesis no accesible
-class UpstreamTimeout(GicaTesisError): ...        # Request excedio timeout
-class BadUpstreamResponse(GicaTesisError): ...    # Respuesta invalida
-```
-
----
-
-## Endpoints BFF (GicaGen -> Browser)
+The extraction rules are:
 
-### GET /api/formats
+- reuse the compiled section index from the definition compiler
+- exclude TOC and index branches
+- keep chapter and subsection paths stable
+- mark `resumen`, `dedicatoria`, and `agradecimiento` as optional
 
-Retorna lista de formatos desde GicaTesis con cache.
+This means the package admin and the wizard read the same institutional tree.
 
-**Query params:** `university`, `category`, `documentType`
+## Render payload rules
 
-**Response:**
-```json
-{
-  "formats": [
-    {
-      "id": "unac-tesis-2024",
-      "title": "Formato Tesis UNAC 2024",
-      "university": "UNAC",
-      "category": "Proyecto de Tesis",
-      "documentType": "tesis",
-      "version": "1.0"
-    }
-  ],
-  "stale": false,
-  "cached_at": "2024-01-15T10:30:00Z"
-}
-```
+GicaGen still validates the payload locally before calling GicaTesis render.
 
-**Flujo BFF:**
-1. Verifica version con GicaTesis (`/api/v1/formats/version`)
-2. Si la version no cambio, retorna cache local
-3. Si cambio, sincroniza desde GicaTesis
-4. Si GicaTesis no esta disponible, retorna cache stale
-5. Si no hay cache, usa `data/formats_sample.json` (demo)
-
-### GET /api/formats/{id}
+The important rule introduced by this refactor is:
 
-Retorna detalle de un formato especifico.
-
-**Response:** `FormatDetail` con `definition` (estructura del documento).
-
-### GET /api/formats/version
-
-Retorna version actual del catalogo.
-
-**Response:**
-```json
-{
-  "current": "2024-01-15T10:30:00Z",
-  "cached": "2024-01-14T08:00:00Z",
-  "changed": true
-}
-```
-
-### GET /api/assets/{path}
-
-Proxy para assets de GicaTesis (logos, imagenes).
-
-**Flujo:** GicaGen -> GicaTesis `/api/v1/assets/{path}` -> respuesta streamed.
-
----
-
-## Endpoints de Proyecto
-
-### POST /api/projects/draft
-
-Crea un borrador de proyecto desde el wizard.
-
-**Request:**
-```json
-{
-  "title": "Mi Tesis",
-  "formatId": "unac-tesis-2024",
-  "promptId": "prompt_tesis_estandar",
-  "values": {
-    "tema": "Inteligencia Artificial",
-    "titulo_propuesto": "IA en Educacion"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "projectId": "proj_abc123",
-  "status": "draft",
-  "title": "Mi Tesis"
-}
-```
-
-### GET /api/projects
-
-Lista todos los proyectos creados.
-
-### GET /api/projects/{id}
-
-Detalle de un proyecto especifico.
-
-### PUT /api/projects/{id}
+- `aiResult.sections` now contains only the sections selected and generated by
+  the project
 
-Actualiza campos del proyecto.
+GicaTesis keeps the institutional structure because render still uses the
+original format definition plus the partial `aiResult`.
 
-### POST /api/projects/{id}/generate
+## Why partial `aiResult.sections` is valid
 
-Inicia la generacion en modo **asyncrono**.
-
-- Respuesta rapida: `202 Accepted`.
-- No espera a que termine la IA.
-- El trabajo corre en background y actualiza el proyecto de forma incremental.
+The current render integration is compatible with selected-section generation
+because GicaTesis already resolves content by section identity.
 
-**Response:**
-```json
-{
-  "ok": true,
-  "status": "generating",
-  "projectId": "proj_abc123",
-  "runId": "gemini-20260219180617",
-  "mode": "async"
-}
-```
+GicaGen sends each generated section with:
 
-### GET /api/projects/{id} (estado en vivo)
+- `sectionId`
+- `path`
+- generated `content`
 
-Este endpoint es la fuente principal para polling del Paso 4 (cada 1s).
+Sections that the user did not select are omitted from `aiResult.sections`.
+GicaTesis then renders the document with those branches empty or untouched,
+depending on the format and the render path.
 
-Campos relevantes para UI:
+## Endpoints used by GicaGen
 
-- `status`: `draft | generating | ai_received | completed | failed | blocked | cancel_requested`
-- `progress`:
-  - `current`: secciones completadas/actuales
-  - `total`: total de secciones detectadas
-  - `currentPath`: ruta/nombre de la seccion actual
-  - `provider`: proveedor activo (`gemini` o `mistral`)
-  - `updatedAt`: marca temporal de ultimo avance
-- `events`: timeline incremental (maximo 200)
+GicaGen uses these upstream routes:
 
-**Fragmento de ejemplo:**
-```json
-{
-  "id": "proj_abc123",
-  "status": "generating",
-  "progress": {
-    "current": 12,
-    "total": 74,
-    "currentPath": "1.2 Planteamiento del problema",
-    "provider": "gemini",
-    "updatedAt": "2026-02-19T18:06:17"
-  },
-  "events": [
-    {
-      "ts": "2026-02-19T18:06:17Z",
-      "level": "info",
-      "stage": "section_start",
-      "message": "IA: seccion 12/74 (...)",
-      "provider": "gemini",
-      "sectionCurrent": 12,
-      "sectionTotal": 74,
-      "sectionPath": "1.2 Planteamiento del problema"
-    }
-  ]
-}
-```
+- `GET /api/v1/formats`
+- `GET /api/v1/formats/{id}`
+- `GET /api/v1/formats/version`
+- `GET /api/v1/assets/{path}`
+- `POST /api/v1/render/docx`
+- `POST /api/v1/render/pdf`
 
-## Reglas de compilacion de secciones IA
+The browser-facing BFF routes in GicaGen remain:
 
-GicaGen compila `definition` a `section_index` antes de llamar a IA.
-La compilacion evita ramas no generativas para proteger el render final.
+- `GET /api/formats`
+- `GET /api/formats/{id}`
+- `GET /api/formats/{id}/prompt-package`
+- `POST /api/render/docx`
+- `POST /api/render/pdf`
 
-Secciones excluidas del `section_index`:
+## Operational note
 
-- `preliminares.indices` y cualquier subitem del indice.
-- nodos de indice de tablas, indice de figuras e indice de abreviaturas.
-- ramas de `imagenes`, `figuras`, `tablas` y equivalentes de placeholders.
+If GicaTesis is offline, GicaGen still degrades gracefully:
 
-Secciones incluidas:
+- format list falls back to cache or sample data
+- prompt package hydration uses cached format detail when available
+- remote logos and assets can be unavailable
+- render still requires GicaTesis unless the flow stays in demo mode
 
-- capitulos y subcapitulos reales del `cuerpo`.
-- anexos textuales, cuando existen en `definition`.
-- abreviaturas solo cuando no pertenecen a un bloque de indice.
-
-Fallback defensivo:
-
-- Si una ruta de indice llega por error a IA, el prompt devuelve
-  `<<SKIP_SECTION>>`.
-- El `OutputValidator` normaliza ese token a contenido vacio antes de enviar
-  `aiResult` al render.
+## Next steps
 
-## Relleno de `values.title`
-
-Antes de enviar payload a GicaTesis (`render/docx`, `render/pdf`, o
-`_ai_generation_job`), GicaGen normaliza valores:
-
-- Si `values.title` esta vacio, se completa con `project.title`.
-
-Este fallback evita que la caratula quede con texto placeholder.
-
-## Contrato de render compartido
-
-Antes de hacer `POST` hacia GicaTesis, GicaGen valida localmente el payload de
-render con el mismo contrato tipado que acepta el upstream:
-
-- `aiResult.sections[].content` puede ser `string`
-- o una lista de bloques estructurados:
-  - `parrafo`
-  - `tabla`
-  - `figura`
-
-Reglas aplicadas en GicaGen:
-
-- Secciones textuales (`Introduccion`, `Objetivos`, `Justificacion`,
-  `Conclusiones`, `Recomendaciones`) se aplanan a texto limpio.
-- Secciones permitidas (`Marco teorico`, `Metodologia`, `Resultados`,
-  `Cronograma`, `Presupuesto`, `Matrices`, `Anexos`) conservan bloques
-  estructurados validos.
-- Si el payload no cumple el contrato, GicaGen falla localmente con `422` y no
-  envia nada a GicaTesis.
-
-## Reintento `render_only`
-
-Si la IA termina bien pero el render falla, el proyecto queda en estado
-`render_failed`.
-
-En ese estado:
-
-- `ai_result` se conserva.
-- El siguiente `POST /api/projects/{id}/generate` reutiliza ese `ai_result`.
-- No se vuelve a consumir proveedor IA.
-- El proyecto pasa temporalmente a `rendering`.
-- Solo `resumeMode=restart` fuerza una generacion IA nueva.
-
-### POST /api/projects/{id}/cancel
-
-Solicita la cancelacion de una corrida en curso.
-
-El backend marca `cancel_requested` y el loop de generacion se detiene en el
-siguiente punto seguro.
-
----
-
-## Endpoints de Integracion n8n
-
-### GET /api/integrations/n8n/spec
-
-Retorna la guia/contrato para el paso 4 del wizard.
-
-**Query:** `projectId`
-
-**Response:**
-```json
-{
-  "summary": "...",
-  "environmentCheck": {...},
-  "requestPayload": {...},
-  "requestHeaders": {...},
-  "checklist": [...],
-  "markdownGuide": "...",
-  "simulationOutput": {
-    "aiResult": {...},
-    "artifacts": [...]
-  },
-  "formatDefinition": {...},
-  "promptDetail": {...},
-  "sectionIndex": [...]
-}
-```
-
-### POST /api/integrations/n8n/callback
-
-Recibe resultado de n8n (o simulacion).
-
-**Request:**
-```json
-{
-  "projectId": "proj_abc123",
-  "aiResult": {
-    "sections": {...}
-  }
-}
-```
-
-### GET /api/integrations/n8n/health
-
-Health check de la integracion n8n.
-
----
-
-## Endpoints de Simulacion
-
-### POST /api/sim/n8n/run
-
-Ejecuta una simulacion completa de n8n.
-
-**Query:** `projectId`
-
-**Response:**
-```json
-{
-  "runId": "sim_abc123",
-  "projectId": "proj_abc123",
-  "status": "simulated",
-  "aiResult": {...},
-  "artifacts": [
-    {"type": "docx", "url": "/api/sim/download/docx?projectId=..."},
-    {"type": "pdf", "url": "/api/sim/download/pdf?projectId=..."}
-  ]
-}
-```
-
-### GET /api/sim/download/docx
-
-Descarga el DOCX simulado.
-
-### GET /api/sim/download/pdf
-
-Descarga el PDF simulado.
-
----
-
-## Endpoints Legacy
-
-### POST /api/projects/generate
-
-Genera un proyecto (modo legacy).
-
-### GET /api/download/{id}
-
-Descarga DOCX generado (modo legacy).
-
----
-
-## Build Info
-
-### GET /api/_meta/build
-
-Retorna informacion de la instancia activa.
-
-**Response:**
-```json
-{
-  "service": "gicagen",
-  "cwd": "C:\\Users\\jhoan\\Documents\\gicagen_tesis-main",
-  "started_at": "2024-01-15T10:30:00Z",
-  "git_commit": "abc1234"
-}
-```
-
----
-
-## Configuracion
-
-**Variables de entorno (`.env`):**
-
-| Variable | Descripcion | Default |
-|----------|-------------|---------|
-| `GICATESIS_BASE_URL` | Base URL de GicaTesis API v1 | `http://localhost:8000/api/v1` |
-| `GICATESIS_TIMEOUT` | Timeout para requests (segundos) | `8` |
-| `GICAGEN_PORT` | Puerto de GicaGen | `8001` |
-| `GICAGEN_BASE_URL` | URL base de GicaGen | `http://localhost:8001` |
-| `GICAGEN_DEMO_MODE` | Usar datos demo si GicaTesis no disponible | `false` |
-| `N8N_WEBHOOK_URL` | URL webhook de n8n (opcional) | `""` |
-| `N8N_SHARED_SECRET` | Secreto compartido n8n (opcional) | `""` |
-
----
-
-## Notas Tecnicas
-
-- GicaTesis corre en port **8000**, GicaGen en port **8001**
-- La integracion usa patron **BFF** (Backend for Frontend)
-- El cache usa **ETag** para validacion eficiente
-- Si GicaTesis no esta disponible, GicaGen funciona con cache stale
-- Si no hay cache, existe un **fallback demo** con `data/formats_sample.json`
-- Los assets (logos, imagenes) se proxean desde GicaTesis via `/api/assets/`
+If a future format no longer exposes a usable chapter tree in
+`FormatDetail.definition`, that would be the threshold to revisit the GicaTesis
+contract. That threshold was not reached in this implementation.
