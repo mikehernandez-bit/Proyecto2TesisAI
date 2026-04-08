@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from app.core.services.ai.ai_service import AIService
+from app.core.services.project_generation_planner import ProjectGenerationPlanner
 
 
 class _InMemorySelectionStore:
@@ -28,11 +29,15 @@ class _InMemorySelectionStore:
 
 
 class _UsageProvider:
+    def __init__(self) -> None:
+        self.prompts: list[str] = []
+
     def is_configured(self) -> bool:
         return True
 
     def generate_with_usage(self, prompt: str, *, timeout: int = 60, model: str | None = None):
-        return "Contenido generado para la sección seleccionada.", {
+        self.prompts.append(prompt)
+        return "Contenido generado para la seccion seleccionada.", {
             "input_tokens": 80,
             "output_tokens": 40,
             "total_tokens": 120,
@@ -55,8 +60,9 @@ def test_generate_uses_only_planned_sections():
     service = AIService()
     service._selection_store = _InMemorySelectionStore()
     service._selection = service._selection_store.get_selection()
+    provider = _UsageProvider()
     service._clients = {
-        "gemini": _UsageProvider(),
+        "gemini": provider,
         "mistral": MagicMock(is_configured=MagicMock(return_value=False)),
         "openrouter": MagicMock(is_configured=MagicMock(return_value=False)),
     }
@@ -80,28 +86,33 @@ def test_generate_uses_only_planned_sections():
             ],
         }
     }
-    planned_sections = [
-        {
-            "sectionId": "sec-0001",
-            "path": "INTRODUCCION",
-            "title": "INTRODUCCION",
-            "level": 1,
-            "hints": "",
-            "optional": False,
-            "default_selected": True,
-            "blocks": [
-                {
-                    "block_id": "intro-1",
-                    "label": "Prompt introduccion",
-                    "instructions": "Enfoca solo la introduccion.",
-                    "required_variables": ["variable_dependiente"],
-                    "required": True,
-                }
-            ],
-            "required_variables": ["variable_dependiente"],
-            "additional_context": "Bloques de prompt activos:\n- Prompt introduccion",
-        }
-    ]
+    prompt_package = {
+        "sections": [
+            {
+                "section_id": "sec-0001",
+                "section_path": "INTRODUCCION",
+                "section_title": "INTRODUCCION",
+                "section_level": 1,
+                "optional": False,
+                "default_selected": True,
+                "blocks": [
+                    {
+                        "block_id": "intro-1",
+                        "header": "Contexto introductorio",
+                        "label": "Prompt introduccion",
+                        "instructions": "Enfoca solo la introduccion.",
+                        "required_variables": ["variable_dependiente"],
+                        "required": True,
+                    }
+                ],
+            }
+        ]
+    }
+    planned_sections = ProjectGenerationPlanner().plan_sections(
+        definition=format_detail["definition"],
+        prompt_package=prompt_package,
+        selected_sections=[{"section_path": "INTRODUCCION"}],
+    )
 
     with patch("app.core.services.ai.ai_service.settings", _settings()):
         result = service.generate(
@@ -114,3 +125,95 @@ def test_generate_uses_only_planned_sections():
     assert len(result["sections"]) == 1
     assert result["sections"][0]["path"] == "INTRODUCCION"
     assert result["tokenUsage"]["calls_total"] == 1
+    assert provider.prompts
+    assert "Capitulo padre: INTRODUCCION" in provider.prompts[0]
+    assert "Seccion actual: INTRODUCCION" in provider.prompts[0]
+    assert "Cabecera: Contexto introductorio" in provider.prompts[0]
+
+
+def test_generate_includes_app_memory_between_sections():
+    service = AIService()
+    service._selection_store = _InMemorySelectionStore()
+    service._selection = service._selection_store.get_selection()
+    provider = _UsageProvider()
+    service._clients = {
+        "gemini": provider,
+        "mistral": MagicMock(is_configured=MagicMock(return_value=False)),
+        "openrouter": MagicMock(is_configured=MagicMock(return_value=False)),
+    }
+
+    project = {
+        "id": "proj-memory",
+        "title": "Proyecto tesis",
+        "variables": {
+            "tema": "Proyecto tesis",
+            "variable_dependiente": "Indicador X",
+            "pregunta_principal": "Como mejorar el proceso",
+        },
+    }
+    planned_sections = [
+        {
+            "sectionId": "sec-1",
+            "path": "INTRODUCCION",
+            "title": "INTRODUCCION",
+            "parent_section_path": "",
+            "level": 1,
+            "section_order": 1,
+            "hints": "",
+            "optional": False,
+            "default_selected": True,
+            "blocks": [
+                {
+                    "block_id": "intro-1",
+                    "header": "Contexto introductorio",
+                    "cabecera": "Contexto introductorio",
+                    "label": "Prompt introduccion",
+                    "instructions": "Enfoca la introduccion.",
+                    "required_variables": ["variable_dependiente"],
+                    "required": True,
+                }
+            ],
+            "required_variables": ["variable_dependiente"],
+            "additional_context": "Capitulo padre: INTRODUCCION",
+        },
+        {
+            "sectionId": "sec-2",
+            "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
+            "title": "1.1 Realidad problematica",
+            "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+            "level": 2,
+            "section_order": 2,
+            "hints": "",
+            "optional": False,
+            "default_selected": True,
+            "blocks": [
+                {
+                    "block_id": "prob-1",
+                    "header": "Realidad problematica",
+                    "cabecera": "Realidad problematica",
+                    "label": "Prompt realidad problematica",
+                    "instructions": "Sustenta con evidencia.",
+                    "required_variables": ["pregunta_principal"],
+                    "required": True,
+                }
+            ],
+            "required_variables": ["pregunta_principal"],
+            "additional_context": "Capitulo padre: I. PLANTEAMIENTO DEL PROBLEMA",
+        },
+    ]
+
+    with patch("app.core.services.ai.ai_service.settings", _settings()):
+        result = service.generate(
+            project,
+            {"definition": {}},
+            {"template": "Tema: {{tema}}"},
+            planned_sections=planned_sections,
+        )
+
+    assert len(result["sections"]) == 2
+    assert len(provider.prompts) == 2
+    assert "Memoria de continuidad entre secciones:" not in provider.prompts[0]
+    assert "Memoria de continuidad entre secciones:" in provider.prompts[1]
+    assert "Secciones previas completadas: INTRODUCCION" in provider.prompts[1]
+    assert "Seccion inmediatamente anterior: INTRODUCCION" in provider.prompts[1]
+    assert "Variables o decisiones ya fijadas:" in provider.prompts[1]

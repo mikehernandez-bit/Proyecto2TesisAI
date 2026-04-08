@@ -212,30 +212,75 @@ def _build_generation_snapshot(
     }
 
 
+def _section_selection_key(item: Dict[str, Any]) -> str:
+    return str(
+        item.get("section_id") or item.get("sectionId") or item.get("section_path") or item.get("path") or ""
+    ).strip()
+
+
+def _normalize_selected_section_payload(item: Dict[str, Any]) -> dict[str, Any]:
+    return {
+        "section_id": str(item.get("section_id") or item.get("sectionId") or "").strip(),
+        "section_path": str(item.get("section_path") or item.get("sectionPath") or item.get("path") or "").strip(),
+        "section_title": str(item.get("section_title") or item.get("sectionTitle") or item.get("title") or ""),
+        "parent_section_path": str(item.get("parent_section_path") or item.get("parentSectionPath") or ""),
+        "section_level": int(item.get("section_level") or item.get("sectionLevel") or 1),
+        "section_order": int(item.get("section_order") or item.get("sectionOrder") or 0),
+        "optional": bool(item.get("optional")),
+        "default_selected": bool(item.get("default_selected", True)),
+    }
+
+
+def _collect_concrete_default_sections(node: Dict[str, Any], result: Dict[str, Dict[str, Any]]) -> None:
+    children = node.get("children") if isinstance(node.get("children"), list) else []
+    has_own_blocks = bool(node.get("blocks")) if isinstance(node, dict) else False
+    if has_own_blocks or not children:
+        normalized = _normalize_selected_section_payload(node)
+        key = _section_selection_key(normalized)
+        if key:
+            result[key] = normalized
+    for child in children:
+        if isinstance(child, dict):
+            _collect_concrete_default_sections(child, result)
+
+
+def _find_section_tree_node(nodes: list[Dict[str, Any]], key: str) -> Dict[str, Any] | None:
+    target = str(key or "").strip()
+    if not target:
+        return None
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        if target == _section_selection_key(node) or target == str(node.get("section_path") or "").strip():
+            return node
+        nested = _find_section_tree_node(node.get("children") if isinstance(node.get("children"), list) else [], target)
+        if nested is not None:
+            return nested
+    return None
+
+
 def _default_selected_sections_from_package(prompt_package: Dict[str, Any] | None) -> list[Dict[str, Any]]:
     if not isinstance(prompt_package, dict):
         return []
+    raw_sections = [item for item in prompt_package.get("sections") or [] if isinstance(item, dict)]
+    if not raw_sections:
+        return []
+
+    tree = generation_planner.section_service.build_tree(raw_sections)
+    default_keys = [_section_selection_key(item) for item in raw_sections if bool(item.get("default_selected", True))]
+    resolved: Dict[str, Dict[str, Any]] = {}
+    for key in default_keys:
+        node = _find_section_tree_node(tree, key)
+        if node is None:
+            continue
+        _collect_concrete_default_sections(node, resolved)
+
     selected: list[Dict[str, Any]] = []
-    for item in prompt_package.get("sections") or []:
-        if not isinstance(item, dict):
-            continue
-        if not bool(item.get("default_selected", True)):
-            continue
-        section_id = str(item.get("section_id") or item.get("sectionId") or "").strip()
-        section_path = str(item.get("section_path") or item.get("sectionPath") or item.get("path") or "").strip()
-        if not section_id and not section_path:
-            continue
-        selected.append(
-            {
-                "section_id": section_id,
-                "section_path": section_path,
-                "section_title": str(item.get("section_title") or item.get("sectionTitle") or item.get("title") or ""),
-                "parent_section_path": str(item.get("parent_section_path") or item.get("parentSectionPath") or ""),
-                "section_level": int(item.get("section_level") or item.get("sectionLevel") or 1),
-                "optional": bool(item.get("optional")),
-                "default_selected": bool(item.get("default_selected", True)),
-            }
-        )
+    for item in raw_sections:
+        normalized = _normalize_selected_section_payload(item)
+        key = _section_selection_key(normalized)
+        if key and key in resolved:
+            selected.append(resolved[key])
     return selected
 
 
@@ -2074,6 +2119,7 @@ async def _ai_generation_job(
                                     "section_title": str(item.get("title") or item.get("path") or "").split("/")[-1],
                                     "parent_section_path": str(item.get("parent_section_path") or ""),
                                     "section_level": int(item.get("level") or 1),
+                                    "section_order": int(item.get("section_order") or 0),
                                 }
                                 for item in planned_sections
                             ],

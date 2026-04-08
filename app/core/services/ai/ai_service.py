@@ -998,6 +998,111 @@ class AIService:
         parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
         return max(1, len(parts))
 
+    @staticmethod
+    def _content_to_memory_text(content: Any) -> str:
+        if isinstance(content, str):
+            return " ".join(content.split())
+        if isinstance(content, list):
+            chunks: List[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    chunks.append(item)
+                    continue
+                if isinstance(item, dict):
+                    for key in ("text", "content", "caption", "titulo", "title"):
+                        value = item.get(key)
+                        if isinstance(value, str) and value.strip():
+                            chunks.append(value)
+                            break
+                    continue
+                if item is not None:
+                    chunks.append(str(item))
+            return " ".join(" ".join(chunk.split()) for chunk in chunks if str(chunk).strip())
+        if isinstance(content, dict):
+            try:
+                return " ".join(json.dumps(content, ensure_ascii=False).split())
+            except Exception:
+                return " ".join(str(content).split())
+        return ""
+
+    def _build_section_memory_entry(self, section: Dict[str, Any]) -> Dict[str, str]:
+        path = str(section.get("path") or "").strip()
+        title = self._section_title_from_path(path) or path
+        summary = self._content_to_memory_text(section.get("content"))
+        if len(summary) > 320:
+            summary = f"{summary[:317].rstrip()}..."
+        return {
+            "path": path,
+            "title": title,
+            "summary": summary,
+        }
+
+    @staticmethod
+    def _memory_fixed_values_snapshot(values: Dict[str, Any] | None) -> str:
+        if not isinstance(values, dict):
+            return ""
+        preferred_keys = [
+            "tema",
+            "objetivo_general",
+            "problema_general",
+            "variable_independiente",
+            "variable_dependiente",
+            "poblacion",
+            "muestra",
+            "metodologia",
+        ]
+        selected: List[str] = []
+        seen: Set[str] = set()
+        ordered_keys = preferred_keys + [key for key in values.keys() if key not in preferred_keys]
+        for key in ordered_keys:
+            normalized_key = str(key or "").strip()
+            if not normalized_key or normalized_key in {"title"} or normalized_key in seen:
+                continue
+            compact_value = " ".join(str(values.get(key) or "").split())
+            if not compact_value:
+                continue
+            if len(compact_value) > 90:
+                compact_value = f"{compact_value[:87].rstrip()}..."
+            selected.append(f"{normalized_key}={compact_value}")
+            seen.add(normalized_key)
+            if len(selected) >= 6:
+                break
+        return "; ".join(selected)
+
+    def _build_generation_memory_context(
+        self,
+        *,
+        previous_sections: List[Dict[str, str]],
+        values: Dict[str, Any] | None = None,
+    ) -> str:
+        if not previous_sections:
+            return ""
+
+        completed_paths = [
+            str(item.get("path") or "").strip() for item in previous_sections if str(item.get("path") or "").strip()
+        ]
+        latest = previous_sections[-1]
+        lines: List[str] = [
+            "Memoria de continuidad entre secciones:",
+            f"- Secciones previas completadas: {', '.join(completed_paths)}",
+            f"- Seccion inmediatamente anterior: {str(latest.get('title') or latest.get('path') or '').strip()}",
+        ]
+        latest_summary = str(latest.get("summary") or "").strip()
+        if latest_summary:
+            lines.append(f"- Resumen breve de la seccion anterior: {latest_summary}")
+
+        lines.append("- Resumen acumulado reciente:")
+        for item in previous_sections[-3:]:
+            title = str(item.get("title") or item.get("path") or "").strip()
+            summary = str(item.get("summary") or "").strip() or "Seccion completada sin resumen adicional."
+            lines.append(f"  - {title}: {summary}")
+
+        fixed_values = self._memory_fixed_values_snapshot(values)
+        if fixed_values:
+            lines.append(f"- Variables o decisiones ya fijadas: {fixed_values}")
+
+        return "\n".join(lines)
+
     def _extract_seed_sections(
         self,
         ai_result: Any,
@@ -1072,6 +1177,7 @@ class AIService:
         provider_order = self._provider_order(selection)
         default_provider = provider_order[0] if provider_order else _PROVIDER_ORDER[0]
         seeded_count = 0
+        memory_entries: List[Dict[str, str]] = []
         if seed_sections:
             for seeded in seed_sections:
                 if not isinstance(seeded, dict):
@@ -1096,6 +1202,7 @@ class AIService:
                         "content": seeded_content,
                     }
                 )
+                memory_entries.append(self._build_section_memory_entry(sections[-1]))
             seeded_count = len(sections)
             if seeded_count > 0:
                 self._partial_sections = [dict(item) for item in sections]
@@ -1123,6 +1230,10 @@ class AIService:
                 path,
                 project_id,
             )
+            memory_context = self._build_generation_memory_context(
+                previous_sections=memory_entries,
+                values=values,
+            )
             section_prompt = self.renderer.build_section_prompt(
                 base_prompt=base_prompt,
                 section_path=path,
@@ -1132,6 +1243,7 @@ class AIService:
                     for part in [
                         str(sec.get("hints") or "").strip(),
                         str(sec.get("additional_context") or "").strip(),
+                        memory_context,
                     ]
                     if part
                 ),
@@ -1321,6 +1433,7 @@ class AIService:
                     "content": parsed_content,
                 }
             )
+            memory_entries.append(self._build_section_memory_entry(sections[-1]))
             self._partial_sections = [dict(item) for item in sections]
 
         return sections

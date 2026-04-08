@@ -1,5 +1,577 @@
 [
   {
+    "id": "prompt_fc13e3c0d8",
+    "name": "Informe Cualitativo UNAC",
+    "doc_type": "tesis",
+    "is_active": true,
+    "format_id": "unac-informe-cual",
+    "format_name": "Informe de Tesis UNAC - Enfoque Cualitativo",
+    "format_version": "c5fe33e5ec221278",
+    "system_instruction": "Escribe un informe cualitativo sobre {{tema}} con categorías apriorísticas. El estudio se realizó en {{escenario_estudio}} con {{informantes_clave}} como informantes clave.",
+    "required_metadata": [],
+    "template": "Escribe un informe cualitativo sobre {{tema}} con categorías apriorísticas. El estudio se realizó en {{escenario_estudio}} con {{informantes_clave}} como informantes clave.",
+    "variables": [
+      "tema",
+      "escenario_estudio",
+      "informantes_clave",
+      "variable_dependiente",
+      "contexto_organizacion",
+      "problema_observable",
+      "sustento_local",
+      "propuesta_solucion_preliminar",
+      "contexto_internacional",
+      "contexto_nacional",
+      "sustento_ingenieril",
+      "periodo_analisis"
+    ],
+    "sections": [
+      {
+        "section_id": "sec-0001",
+        "section_path": "DEDICATORIA / AGRADECIMIENTO",
+        "section_title": "DEDICATORIA / AGRADECIMIENTO",
+        "parent_section_path": "DEDICATORIA",
+        "section_level": 1,
+        "section_order": 1,
+        "optional": true,
+        "default_selected": false,
+        "source_hints": "",
+        "blocks": [
+          {
+            "block_id": "sec-0001_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0002",
+        "section_path": "RESUMEN / ABSTRACT",
+        "section_title": "RESUMEN / ABSTRACT",
+        "parent_section_path": "RESUMEN",
+        "section_level": 1,
+        "section_order": 2,
+        "optional": true,
+        "default_selected": false,
+        "source_hints": "Nota: Síntesis de objetivos, métodos y resultados principales.\nNota: Síntesis de objetivos, métodos y resultados principales.",
+        "blocks": [
+          {
+            "block_id": "sec-0002_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0003",
+        "section_path": "INTRODUCCIÓN",
+        "section_title": "INTRODUCCIÓN",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 3,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0004",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_title": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 4,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": [
+          {
+            "block_id": "UNAC_INF_CUALI_CAPITULO_I",
+            "header": "Prompt principal",
+            "cabecera": "Prompt principal",
+            "label": "Prompt principal",
+            "instructions": "",
+            "required_variables": [
+              "variable_dependiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": "UNAC_INF_CUALI_CAPITULO_I"
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0005",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+        "section_title": "1.1 Descripción de la realidad problemática",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 5,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "En este apartado debes presentar y contextualizar el problema basándote en hechos y datos, utilizando un enfoque deductivo (de lo general a lo específico).\n\nContexto internacional: Describe cómo se comporta la variable o el problema a nivel mundial o regional. Usa estadísticas, informes de organismos internacionales o tendencias globales.\nContexto nacional: Explica la situación del problema en el Perú. Cita normativas, informes ministeriales o datos estadísticos nacionales que evidencien la deficiencia.\nContexto institucional/local: Describe la realidad específica en la empresa, área o lugar de estudio. Detalla los síntomas observables (fallas, demoras, pérdidas).\nSustento ingenieril (Obligatorio): Debes aplicar al menos una herramienta de ingeniería para diagnosticar el problema, tal como:\nDiagrama de Ishikawa (Causa-Efecto).\nDiagrama de Pareto (80/20).\nÁrbol de problemas.\nMatriz de Vester o Matriz de Priorización.\nCierre: Finaliza mencionando explícitamente la propuesta de solución (ej. 'Por lo expuesto, se propone la implementación de...').\nDescriba la realidad de cada variable independiente y dependiente de los últimos 5 a 10 años.\nEn este apartado debes presentar y contextualizar el problema basándote en hechos y datos, utilizando un enfoque deductivo (de lo general a lo específico).\n\nContexto internacional: Describe cómo se comporta la variable o el problema a nivel mundial o regional. Usa estadísticas, informes de organismos internacionales o tendencias globales.\nContexto nacional: Explica la situación del problema en el Perú. Cita normativas, informes ministeriales o datos estadísticos nacionales que evidencien la deficiencia.\nContexto institucional/local: Describe la realidad específica en la empresa, área o lugar de estudio. Detalla los síntomas observables (fallas, demoras, pérdidas).\nSustento ingenieril (Obligatorio): Debes aplicar al menos una herramienta de ingeniería para diagnosticar el problema, tal como:\nDiagrama de Ishikawa (Causa-Efecto).\nDiagrama de Pareto (80/20).\nÁrbol de problemas.\nMatriz de Vester o Matriz de Priorización.\nCierre: Finaliza mencionando explícitamente la propuesta de solución (ej. 'Por lo expuesto, se propone la implementación de...').\nDescriba la realidad de cada variable independiente y dependiente de los últimos 5 a 10 años.",
+        "blocks": [
+          {
+            "block_id": "sec-0005_block_1",
+            "header": "Realidad problemática",
+            "cabecera": "Realidad problemática",
+            "label": "Diagnóstico de la realidad problemática",
+            "instructions": "Presenta la situación problemática con datos observables, contexto del estudio, evidencia local y una propuesta preliminar de solución.",
+            "required_variables": [
+              "variable_dependiente",
+              "contexto_organizacion",
+              "problema_observable",
+              "sustento_local",
+              "propuesta_solucion_preliminar",
+              "contexto_internacional",
+              "contexto_nacional",
+              "sustento_ingenieril",
+              "periodo_analisis"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0006",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+        "section_title": "1.2 Formulación del problema",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 6,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Estructura formalmente la idea de investigación mediante preguntas que relacionen las variables de estudio.\n\nProblema General: Es la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en descriptivos).\nEjemplo: ¿De qué manera la implementación de X influye en Y?\nProblemas Específicos: Son sub-preguntas que desglosan el análisis. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente.\nEstructure formalmente la idea de investigación (General y Específicos).\nEstructura formalmente la idea de investigación mediante preguntas que relacionen las variables de estudio.\n\nProblema General: Es la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en descriptivos).\nEjemplo: ¿De qué manera la implementación de X influye en Y?\nProblemas Específicos: Son sub-preguntas que desglosan el análisis. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente.\nEstructure formalmente la idea de investigación (General y Específicos).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0007",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+        "section_title": "1.3 Objetivos",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 7,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Expresan el fin medible que se pretende lograr. Deben iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruentes con los problemas.\n\nObjetivo General: El logro final del estudio (respuesta al problema general).\nObjetivos Específicos: Los pasos intermedios u operativos necesarios para alcanzar el general (respuestas a los problemas específicos).\nDefina el propósito, meta o fin a lograr (General y Específicos).\nExpresan el fin medible que se pretende lograr. Deben iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruentes con los problemas.\n\nObjetivo General: El logro final del estudio (respuesta al problema general).\nObjetivos Específicos: Los pasos intermedios u operativos necesarios para alcanzar el general (respuestas a los problemas específicos).\nDefina el propósito, meta o fin a lograr (General y Específicos).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0008",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+        "section_title": "1.4 Justificación",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 8,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Explica las razones por las cuales es necesario realizar el estudio. Debes redactar los siguientes enfoques:\n\nJustificación Técnica/Práctica: ¿Qué problema real resuelve? ¿Cómo mejora la eficiencia, productividad o costos en la empresa?\nJustificación Teórica: ¿Cómo aplica o valida conocimientos de ingeniería existentes?\nJustificación Metodológica: ¿Utiliza algún instrumento, software o método de análisis que sirva de modelo para otros?\nJustificación Económica/Social: ¿Cuál es el beneficio costo-beneficio o el impacto en la sociedad/trabajadores?\nExplique la naturaleza, magnitud y trascendencia del estudio.\nExplica las razones por las cuales es necesario realizar el estudio. Debes redactar los siguientes enfoques:\n\nJustificación Técnica/Práctica: ¿Qué problema real resuelve? ¿Cómo mejora la eficiencia, productividad o costos en la empresa?\nJustificación Teórica: ¿Cómo aplica o valida conocimientos de ingeniería existentes?\nJustificación Metodológica: ¿Utiliza algún instrumento, software o método de análisis que sirva de modelo para otros?\nJustificación Económica/Social: ¿Cuál es el beneficio costo-beneficio o el impacto en la sociedad/trabajadores?\nExplique la naturaleza, magnitud y trascendencia del estudio.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0009",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación",
+        "section_title": "1.5 Delimitantes de la investigación",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 9,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Define las fronteras del estudio para asegurar su viabilidad:\n\nTemática: Línea de investigación de la escuela o área de la ingeniería (ej. Mantenimiento, Telecomunicaciones, Control).\nEspacial: Lugar exacto donde se tomarán los datos (Empresa X, Área Y, Ciudad Z).\nTemporal: Periodo de tiempo que abarca la recolección y análisis de datos (ej. Datos históricos de 2023 o mediciones de Enero a Junio 2024).\nDefina los límites Teóricos, Temporales y Espaciales.\nDefine las fronteras del estudio para asegurar su viabilidad:\n\nTemática: Línea de investigación de la escuela o área de la ingeniería (ej. Mantenimiento, Telecomunicaciones, Control).\nEspacial: Lugar exacto donde se tomarán los datos (Empresa X, Área Y, Ciudad Z).\nTemporal: Periodo de tiempo que abarca la recolección y análisis de datos (ej. Datos históricos de 2023 o mediciones de Enero a Junio 2024).\nDefina los límites Teóricos, Temporales y Espaciales.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0010",
+        "section_path": "II. MARCO TEÓRICO",
+        "section_title": "II. MARCO TEÓRICO",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 10,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0011",
+        "section_path": "II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)",
+        "section_title": "2.1 Antecedentes (Internacional y nacional)",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 11,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Presenta el 'estado del arte'. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas) incluyendo:\nApellido del autor y Año.\nTítulo de la investigación.\nObjetivo principal.\nMetodología (Diseño, muestra, instrumentos).\nResultados numéricos más relevantes (datos estadísticos, mejoras porcentuales).\nConclusiones principales.\nCantidad: Se recomienda un promedio de 5 internacionales y 5 nacionales para pregrado (o 20-30 referencias totales para posgrado).\nEstado del arte. Se recomiendan 20 a 30 investigaciones afines.\nPresenta el 'estado del arte'. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas) incluyendo:\nApellido del autor y Año.\nTítulo de la investigación.\nObjetivo principal.\nMetodología (Diseño, muestra, instrumentos).\nResultados numéricos más relevantes (datos estadísticos, mejoras porcentuales).\nConclusiones principales.\nCantidad: Se recomienda un promedio de 5 internacionales y 5 nacionales para pregrado (o 20-30 referencias totales para posgrado).\nEstado del arte. Se recomiendan 20 a 30 investigaciones afines.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0012",
+        "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+        "section_title": "2.2 Bases teóricas",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 12,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Es el sustento científico de la tesis.\n\nDesarrollo: Analiza sistemáticamente las teorías, leyes, principios y modelos matemáticos/físicos que explican tus variables (Variable Independiente y Dependiente).\nRigor: No es un copiado y pegado; debes interpretar la teoría y citar fuentes confiables (Libros de especialidad, IEEE, normas técnicas).\nFundamentación: Incluir brevemente el enfoque epistemológico (positivista/cuantitativo) que guía el estudio.\nAnálisis sistemático de las principales teorías existentes.\nEs el sustento científico de la tesis.\n\nDesarrollo: Analiza sistemáticamente las teorías, leyes, principios y modelos matemáticos/físicos que explican tus variables (Variable Independiente y Dependiente).\nRigor: No es un copiado y pegado; debes interpretar la teoría y citar fuentes confiables (Libros de especialidad, IEEE, normas técnicas).\nFundamentación: Incluir brevemente el enfoque epistemológico (positivista/cuantitativo) que guía el estudio.\nAnálisis sistemático de las principales teorías existentes.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0013",
+        "section_path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+        "section_title": "2.3 Marco conceptual",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 13,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Elabora 'constructos' o definiciones teóricas específicas para tu investigación.\n\nDiferencia: A diferencia de las bases teóricas (que explican el funcionamiento), aquí defines conceptualmente las variables y sus dimensiones basándote en la literatura revisada.\nPropósito: Establecer con claridad qué se entiende por cada concepto clave dentro de tu investigación.\nElaboración de nuevos constructos fundamentados.\nElabora 'constructos' o definiciones teóricas específicas para tu investigación.\n\nDiferencia: A diferencia de las bases teóricas (que explican el funcionamiento), aquí defines conceptualmente las variables y sus dimensiones basándote en la literatura revisada.\nPropósito: Establecer con claridad qué se entiende por cada concepto clave dentro de tu investigación.\nElaboración de nuevos constructos fundamentados.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0014",
+        "section_path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+        "section_title": "2.4 Definición de términos básicos",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 14,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Definiciones precisas y funcionales a la investigación del problema, para evitar ambigüedades en la interpretación de los resultados.\nGlosario funcional a la investigación.\nDefiniciones precisas y funcionales a la investigación del problema, para evitar ambigüedades en la interpretación de los resultados.\nGlosario funcional a la investigación.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0015",
+        "section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_title": "III. HIPÓTESIS Y VARIABLES",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 15,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0016",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)",
+        "section_title": "3.1 Hipótesis (General y específicas)",
+        "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_level": 2,
+        "section_order": 16,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Son las respuestas tentativas a los problemas formulados.\n\nRequisito: Deben ser proposiciones afirmativas que establezcan una relación (causa-efecto, correlación o diferencia) entre las variables.\nComprobación: Deben estar formuladas de tal manera que puedan ser aceptadas o rechazadas mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).\nAlineación: Debe haber una Hipótesis General para el Problema General y Hipótesis Específicas para los Específicos.\nEnunciado presumible de la relación entre dos o más variables.\nSon las respuestas tentativas a los problemas formulados.\n\nRequisito: Deben ser proposiciones afirmativas que establezcan una relación (causa-efecto, correlación o diferencia) entre las variables.\nComprobación: Deben estar formuladas de tal manera que puedan ser aceptadas o rechazadas mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).\nAlineación: Debe haber una Hipótesis General para el Problema General y Hipótesis Específicas para los Específicos.\nEnunciado presumible de la relación entre dos o más variables.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0017",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables",
+        "section_title": "3.1.1 Operacionalización de variables",
+        "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_level": 2,
+        "section_order": 17,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Es el proceso técnico de convertir conceptos abstractos en datos medibles. Se suele presentar en una matriz (tabla) que contiene:\n\nDefinición Conceptual: Qué es la variable según un autor.\nDefinición Operacional: Cómo se medirá o calculará en este estudio.\nDimensiones: Factores o componentes de la variable.\nIndicadores: La unidad de medida exacta (ej. %, kg, horas, grados).\nEscala de medición: Nominal, Ordinal, de Intervalo o de Razón.\nDefinición conceptual y operacional, dimensiones e indicadores.\nEs el proceso técnico de convertir conceptos abstractos en datos medibles. Se suele presentar en una matriz (tabla) que contiene:\n\nDefinición Conceptual: Qué es la variable según un autor.\nDefinición Operacional: Cómo se medirá o calculará en este estudio.\nDimensiones: Factores o componentes de la variable.\nIndicadores: La unidad de medida exacta (ej. %, kg, horas, grados).\nEscala de medición: Nominal, Ordinal, de Intervalo o de Razón.\nDefinición conceptual y operacional, dimensiones e indicadores.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0018",
+        "section_path": "IV. METODOLOGÍA",
+        "section_title": "IV. METODOLOGÍA",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 18,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0019",
+        "section_path": "IV. METODOLOGÍA/4.1 Diseño metodológico",
+        "section_title": "4.1 Diseño metodológico",
+        "parent_section_path": "IV. METODOLOGÍA",
+        "section_level": 2,
+        "section_order": 19,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Define la estrategia para probar la hipótesis. Debes especificar y justificar:\n\nTipo de investigación: Básica (teórica) o Aplicada (solución práctica).\nNivel: Exploratorio, Descriptivo, Correlacional o Explicativo.\nDiseño:\nExperimental: Pre-experimental, Cuasi-experimental o Experimental puro (manipulación de variables).\nNo Experimental: Transversal (una medición) o Longitudinal (varias mediciones).\nConjunto de métodos y procedimientos para recopilar y analizar variables.\nDefine la estrategia para probar la hipótesis. Debes especificar y justificar:\n\nTipo de investigación: Básica (teórica) o Aplicada (solución práctica).\nNivel: Exploratorio, Descriptivo, Correlacional o Explicativo.\nDiseño:\nExperimental: Pre-experimental, Cuasi-experimental o Experimental puro (manipulación de variables).\nNo Experimental: Transversal (una medición) o Longitudinal (varias mediciones).\nConjunto de métodos y procedimientos para recopilar y analizar variables.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0020",
+        "section_path": "IV. METODOLOGÍA/4.2 Método de investigación",
+        "section_title": "4.2 Método de investigación",
+        "parent_section_path": "IV. METODOLOGÍA",
+        "section_level": 2,
+        "section_order": 20,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Describe el razonamiento lógico utilizado.\n\nGeneralmente en ingeniería se usa el Método Hipotético-Deductivo (parte de una teoría, plantea hipótesis y las deduce/prueba en la realidad) o el Método Cuantitativo (medición numérica y análisis estadístico).\nProcedimientos para lograr los objetivos (Inductivo, Deductivo, etc.).\nDescribe el razonamiento lógico utilizado.\n\nGeneralmente en ingeniería se usa el Método Hipotético-Deductivo (parte de una teoría, plantea hipótesis y las deduce/prueba en la realidad) o el Método Cuantitativo (medición numérica y análisis estadístico).\nProcedimientos para lograr los objetivos (Inductivo, Deductivo, etc.).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0021",
+        "section_path": "IV. METODOLOGÍA/4.3 Población y muestra",
+        "section_title": "4.3 Población y muestra",
+        "parent_section_path": "IV. METODOLOGÍA",
+        "section_level": 2,
+        "section_order": 21,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Define quiénes o qué cosas serán medidas.\n\nPoblación: El conjunto total de elementos (personas, máquinas, registros, lotes de producción) con características comunes.\nMuestra: El subconjunto seleccionado para medir. Debes indicar:\nTipo de muestreo: Probabilístico (aleatorio) o No Probabilístico (por conveniencia/criterio).\nCálculo: Presentar la fórmula estadística utilizada para hallar el tamaño de la muestra (n) o sustentar por qué se usó toda la población (censo).\nUniverso y subconjunto seleccionado.\nDefine quiénes o qué cosas serán medidas.\n\nPoblación: El conjunto total de elementos (personas, máquinas, registros, lotes de producción) con características comunes.\nMuestra: El subconjunto seleccionado para medir. Debes indicar:\nTipo de muestreo: Probabilístico (aleatorio) o No Probabilístico (por conveniencia/criterio).\nCálculo: Presentar la fórmula estadística utilizada para hallar el tamaño de la muestra (n) o sustentar por qué se usó toda la población (censo).\nUniverso y subconjunto seleccionado.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0022",
+        "section_path": "IV. METODOLOGÍA/4.4 Lugar de estudio",
+        "section_title": "4.4 Lugar de estudio",
+        "parent_section_path": "IV. METODOLOGÍA",
+        "section_level": 2,
+        "section_order": 22,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Ejemplo: Facultad de Ingeniería Eléctrica y Electrónica - UNAC.\nUbicación geográfica e institucional.\nEjemplo: Facultad de Ingeniería Eléctrica y Electrónica - UNAC.\nUbicación geográfica e institucional.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0023",
+        "section_path": "IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección",
+        "section_title": "4.5 Técnicas e instrumentos de recolección",
+        "parent_section_path": "IV. METODOLOGÍA",
+        "section_level": 2,
+        "section_order": 23,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Detalla cómo obtendrás los datos 'crudos'.\n\nTécnicas: El medio de captura (ej. Encuesta, Observación directa, Análisis documental, Medición experimental).\nInstrumentos: La herramienta física o digital (ej. Cuestionario, Ficha de registro de datos, Hoja de verificación, Equipos de medición calibrados).\nValidación y Confiabilidad:\nValidez: Certificado por Juicio de Expertos.\nConfiabilidad: Prueba estadística piloto (Alfa de Cronbach, KR-20) para cuestionarios.\nMecanismos para registrar información (Validar por expertos).\nDetalla cómo obtendrás los datos 'crudos'.\n\nTécnicas: El medio de captura (ej. Encuesta, Observación directa, Análisis documental, Medición experimental).\nInstrumentos: La herramienta física o digital (ej. Cuestionario, Ficha de registro de datos, Hoja de verificación, Equipos de medición calibrados).\nValidación y Confiabilidad:\nValidez: Certificado por Juicio de Expertos.\nConfiabilidad: Prueba estadística piloto (Alfa de Cronbach, KR-20) para cuestionarios.\nMecanismos para registrar información (Validar por expertos).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0024",
+        "section_path": "IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos",
+        "section_title": "4.6 Análisis y procesamiento de datos",
+        "parent_section_path": "IV. METODOLOGÍA",
+        "section_level": 2,
+        "section_order": 24,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Describe cómo transformarás los datos en información.\n\nHerramientas: Mencionar el software (SPSS, Excel, Minitab, Matlab, Python).\nEstadística Descriptiva: Uso de tablas, frecuencias, media, desviación estándar.\nEstadística Inferencial: Especificar las pruebas para la contrastación de hipótesis:\nPrueba de Normalidad (Shapiro-Wilk o Kolmogorov-Smirnov).\nPrueba de Hipótesis (T-Student, U de Mann-Whitney, Wilcoxon, Pearson, Spearman, ANOVA) según la normalidad de los datos.\nTransformación de datos en información utilizable.\nDescribe cómo transformarás los datos en información.\n\nHerramientas: Mencionar el software (SPSS, Excel, Minitab, Matlab, Python).\nEstadística Descriptiva: Uso de tablas, frecuencias, media, desviación estándar.\nEstadística Inferencial: Especificar las pruebas para la contrastación de hipótesis:\nPrueba de Normalidad (Shapiro-Wilk o Kolmogorov-Smirnov).\nPrueba de Hipótesis (T-Student, U de Mann-Whitney, Wilcoxon, Pearson, Spearman, ANOVA) según la normalidad de los datos.\nTransformación de datos en información utilizable.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0025",
+        "section_path": "IV. METODOLOGÍA/4.7 Aspectos Éticos",
+        "section_title": "4.7 Aspectos Éticos",
+        "parent_section_path": "IV. METODOLOGÍA",
+        "section_level": 2,
+        "section_order": 25,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Considerar principios éticos: Respeto por las personas, Beneficencia y Justicia. Evitar plagio y conflictos de interés.\nCumplimiento de la Conducta Responsable en Investigación (CRI).\nConsiderar principios éticos: Respeto por las personas, Beneficencia y Justicia. Evitar plagio y conflictos de interés.\nCumplimiento de la Conducta Responsable en Investigación (CRI).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0026",
+        "section_path": "V. RESULTADOS",
+        "section_title": "V. RESULTADOS",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 26,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0027",
+        "section_path": "V. RESULTADOS/5.1 Resultados descriptivos",
+        "section_title": "5.1 Resultados descriptivos",
+        "parent_section_path": "V. RESULTADOS",
+        "section_level": 2,
+        "section_order": 27,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Presenta el análisis exploratorio de los datos.\n\nUtiliza tablas de distribución de frecuencias y gráficos estadísticos (barras, líneas, histogramas) debidamente numerados y titulados según norma (APA/ISO).\nDebajo de cada tabla/figura, redacta una interpretación objetiva de los datos (qué porcentaje es mayor, cuál es la tendencia).\nTablas y figuras simples.\nPresenta el análisis exploratorio de los datos.\n\nUtiliza tablas de distribución de frecuencias y gráficos estadísticos (barras, líneas, histogramas) debidamente numerados y titulados según norma (APA/ISO).\nDebajo de cada tabla/figura, redacta una interpretación objetiva de los datos (qué porcentaje es mayor, cuál es la tendencia).\nTablas y figuras simples.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0028",
+        "section_path": "V. RESULTADOS/5.2 Resultados inferenciales",
+        "section_title": "5.2 Resultados inferenciales",
+        "parent_section_path": "V. RESULTADOS",
+        "section_level": 2,
+        "section_order": 28,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Es la parte crítica de la tesis cuantitativa.\n\nPresenta primero la Prueba de Normalidad para justificar si usas pruebas paramétricas o no paramétricas.\nDesarrolla la Prueba de Hipótesis para la General y las Específicas:\nPlantea H0 (Nula) y H1 (Alterna).\nMuestra el estadístico de prueba y el Valor-p (Sig.).\nToma la decisión estadística: Si p < 0.05, se rechaza la hipótesis nula.\nContrastación de hipótesis.\nEs la parte crítica de la tesis cuantitativa.\n\nPresenta primero la Prueba de Normalidad para justificar si usas pruebas paramétricas o no paramétricas.\nDesarrolla la Prueba de Hipótesis para la General y las Específicas:\nPlantea H0 (Nula) y H1 (Alterna).\nMuestra el estadístico de prueba y el Valor-p (Sig.).\nToma la decisión estadística: Si p < 0.05, se rechaza la hipótesis nula.\nContrastación de hipótesis.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0029",
+        "section_path": "VI. DISCUSIÓN DE RESULTADOS",
+        "section_title": "VI. DISCUSIÓN DE RESULTADOS",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 29,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0030",
+        "section_path": "VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis",
+        "section_title": "6.1 Contrastación y demostración de la hipótesis",
+        "parent_section_path": "VI. DISCUSIÓN DE RESULTADOS",
+        "section_level": 2,
+        "section_order": 30,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Realiza la discusión técnica.\n\nAnaliza si la evidencia estadística (Resultados 5.2) respalda o no lo que afirmaste en tu Hipótesis (3.1).\nExplica qué significa este resultado en el contexto de tu problema de ingeniería (ej. 'Se demostró que el nuevo sistema redujo las fallas en un 20%, validando la hipótesis...').\nConfrontación con la experiencia y evidencia empírica.\nRealiza la discusión técnica.\n\nAnaliza si la evidencia estadística (Resultados 5.2) respalda o no lo que afirmaste en tu Hipótesis (3.1).\nExplica qué significa este resultado en el contexto de tu problema de ingeniería (ej. 'Se demostró que el nuevo sistema redujo las fallas en un 20%, validando la hipótesis...').\nConfrontación con la experiencia y evidencia empírica.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0031",
+        "section_path": "VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios",
+        "section_title": "6.2 Contrastación con otros estudios",
+        "parent_section_path": "VI. DISCUSIÓN DE RESULTADOS",
+        "section_level": 2,
+        "section_order": 31,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Triangulación de resultados.\n\nCompara tus hallazgos con los Antecedentes (2.1).\nEjemplo: 'Este resultado coincide con lo hallado por Pérez (2020), quien también observó mejoras...' o 'Difiere de Gómez (2019), posiblemente debido a...'.\nEsto valida la robustez de tu investigación.\nComparación con antecedentes.\nTriangulación de resultados.\n\nCompara tus hallazgos con los Antecedentes (2.1).\nEjemplo: 'Este resultado coincide con lo hallado por Pérez (2020), quien también observó mejoras...' o 'Difiere de Gómez (2019), posiblemente debido a...'.\nEsto valida la robustez de tu investigación.\nComparación con antecedentes.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0032",
+        "section_path": "VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética",
+        "section_title": "6.3 Responsabilidad ética",
+        "parent_section_path": "VI. DISCUSIÓN DE RESULTADOS",
+        "section_level": 2,
+        "section_order": 32,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "El autor se responsabiliza por la veracidad y rigor ético de los resultados presentados.\nResponsabilidad por la información emitida.\nEl autor se responsabiliza por la veracidad y rigor ético de los resultados presentados.\nResponsabilidad por la información emitida.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0033",
+        "section_path": "VII. CONCLUSIONES",
+        "section_title": "VII. CONCLUSIONES",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 33,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Son sentencias directas y precisas que responden a los objetivos.\n\nDeben ser numeradas.\nDebe haber una conclusión por cada objetivo específico y una para el objetivo general.\nDeben incluir datos cuantitativos clave (ej. 'Se determinó que la eficiencia aumentó en 15%...'). No presentar citas ni explicaciones teóricas aquí.\nSon sentencias directas y precisas que responden a los objetivos.\n\nDeben ser numeradas.\nDebe haber una conclusión por cada objetivo específico y una para el objetivo general.\nDeben incluir datos cuantitativos clave (ej. 'Se determinó que la eficiencia aumentó en 15%...'). No presentar citas ni explicaciones teóricas aquí.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0034",
+        "section_path": "VIII. RECOMENDACIONES",
+        "section_title": "VIII. RECOMENDACIONES",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 34,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Sugerencias de acción basadas en las conclusiones.\n\nMetodológicas: Para futuros investigadores (ampliar muestra, cambiar variables).\nAcadémicas: Para la universidad.\nPrácticas: Dirigidas a la empresa o institución (implementar el plan, realizar mantenimientos, capacitar personal). Deben ser viables.\nSugerencias de acción basadas en las conclusiones.\n\nMetodológicas: Para futuros investigadores (ampliar muestra, cambiar variables).\nAcadémicas: Para la universidad.\nPrácticas: Dirigidas a la empresa o institución (implementar el plan, realizar mantenimientos, capacitar personal). Deben ser viables.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0035",
+        "section_path": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+        "section_title": "IX. REFERENCIAS BIBLIOGRÁFICAS",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 35,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Normas internacionales: ISO 690 o IEEE (Ingenierías), APA o Vancouver (Otras). Uso de gestores como Mendeley o Zotero.\nNormas internacionales: ISO 690 o IEEE (Ingenierías), APA o Vancouver (Otras). Uso de gestores como Mendeley o Zotero.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0036",
+        "section_path": "ANEXOS",
+        "section_title": "ANEXOS",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 36,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "custom_section_fcd9d4a9a3c6",
+        "section_path": "Propio",
+        "section_title": "Propio",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 37,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": [
+          {
+            "block_id": "custom_section_fcd9d4a9a3c6_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          },
+          {
+            "block_id": "custom_block_d17d90083ae9",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Cabecera 1",
+            "instructions": "2",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "custom_section_ea23679ff853",
+        "section_path": "Propio/1.1. Punto 1",
+        "section_title": "1.1. Punto 1",
+        "parent_section_path": "Propio",
+        "section_level": 2,
+        "section_order": 38,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": [
+          {
+            "block_id": "custom_block_340014dc3def",
+            "header": "De",
+            "cabecera": "De",
+            "label": "De",
+            "instructions": "pUNTO 1",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "prompt_1936b2172c",
     "name": "Informe Cuantitativo UNAC",
     "docType": "tesis",
@@ -8,18 +580,6 @@
       "tema",
       "herramienta_ingenieria",
       "diagnostico_local"
-    ],
-    "is_active": true
-  },
-  {
-    "id": "prompt_fc13e3c0d8",
-    "name": "Informe Cualitativo UNAC",
-    "docType": "tesis",
-    "template": "Escribe un informe cualitativo sobre {{tema}} con categorías apriorísticas. El estudio se realizó en {{escenario_estudio}} con {{informantes_clave}} como informantes clave.",
-    "variables": [
-      "tema",
-      "escenario_estudio",
-      "informantes_clave"
     ],
     "is_active": true
   },
@@ -92,28 +652,6 @@
       "tema"
     ],
     "is_active": true
-  },
-  {
-    "id_unico": "UNAC_INF_CUALI_CAPITULO_I",
-    "universidad": "UNAC",
-    "metodologia": "INF",
-    "categoria": "CUALI",
-    "prompts": [
-      {
-        "numero_prompt": 1,
-        "capitulo_nombre": "PLANTEAMIENTO DEL PROBLEMA",
-        "titulo_cabecera": "XD",
-        "instrucciones_ia": "XD",
-        "variables_locales": [
-          "variable_dependiente"
-        ]
-      }
-    ],
-    "config_ia": {
-      "modelo": "GPT-4o (Omni)",
-      "temperatura": 0.7,
-      "max_tokens": 4096
-    }
   },
   {
     "id_unico": "UNAC_INF_CUANTI_CAPITULO_I",

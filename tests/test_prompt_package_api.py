@@ -58,5 +58,18 @@ def test_prompt_package_endpoint_returns_selected_sections_and_tree(monkeypatch)
     assert payload["format_id"] == "unac-informe-cual"
     assert any(item["section_path"] == "INTRODUCCION" for item in payload["selected_sections"])
     assert all(item["section_path"] != "RESUMEN" for item in payload["selected_sections"])
+    assert all(item["section_path"] != "I. PLANTEAMIENTO DEL PROBLEMA" for item in payload["selected_sections"])
+    assert any(
+        item["section_path"] == "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"
+        for item in payload["selected_sections"]
+    )
     assert isinstance(payload["section_tree"], list)
-    assert payload["section_tree"][0]["section_path"] in {"INTRODUCCION", "RESUMEN", "I. PLANTEAMIENTO DEL PROBLEMA"}
+    assert [item["section_path"] for item in payload["section_tree"]] == [
+        "RESUMEN",
+        "INTRODUCCION",
+        "I. PLANTEAMIENTO DEL PROBLEMA",
+    ]
+    assert payload["section_tree"][0]["section_order"] < payload["section_tree"][1]["section_order"]
+    assert payload["section_tree"][2]["children"][0]["section_path"] == (
+        "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"
+    )

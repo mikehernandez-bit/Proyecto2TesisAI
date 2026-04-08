@@ -11,6 +11,13 @@ _OPTIONAL_SECTION_MARKERS = {
     "agradecimientos",
     "resumen",
     "abstract",
+    "anexo",
+    "anexos",
+}
+
+_ANNEX_SECTION_MARKERS = {
+    "anexo",
+    "anexos",
 }
 
 
@@ -28,12 +35,14 @@ class InstitutionalSectionService:
 
         raw_sections = compile_definition_to_section_index(definition)
         sections: List[Dict[str, Any]] = []
-        for item in raw_sections:
+        for raw_order, item in enumerate(raw_sections, start=1):
             if not isinstance(item, dict):
                 continue
             section_id = str(item.get("sectionId") or "").strip()
             section_path = str(item.get("path") or "").strip()
             if not section_id or not section_path:
+                continue
+            if self._is_non_generative_annex_child(section_path):
                 continue
             section_title = str(item.get("title") or section_path.split("/")[-1]).strip()
             parent_section_path = self._parent_path(section_path)
@@ -45,6 +54,7 @@ class InstitutionalSectionService:
                     "section_title": section_title,
                     "parent_section_path": parent_section_path,
                     "section_level": max(1, int(item.get("level") or self._path_level(section_path))),
+                    "section_order": raw_order,
                     "optional": optional,
                     "default_selected": not optional,
                     "source_hints": str(item.get("hints") or "").strip(),
@@ -81,11 +91,18 @@ class InstitutionalSectionService:
             if isinstance(children, list):
                 children.sort(
                     key=lambda item: (
+                        int(item.get("section_order") or 10**9),
                         int(item.get("section_level") or 0),
                         str(item.get("section_path") or ""),
                     )
                 )
-        roots.sort(key=lambda item: (int(item.get("section_level") or 0), str(item.get("section_path") or "")))
+        roots.sort(
+            key=lambda item: (
+                int(item.get("section_order") or 10**9),
+                int(item.get("section_level") or 0),
+                str(item.get("section_path") or ""),
+            )
+        )
         return roots
 
     @staticmethod
@@ -106,8 +123,11 @@ class InstitutionalSectionService:
             _normalize_label(section_path.split("/")[-1]),
             _normalize_label(section_path),
         }
-        return any(
-            marker in candidate
-            for candidate in normalized_candidates
-            for marker in _OPTIONAL_SECTION_MARKERS
-        )
+        return any(marker in candidate for candidate in normalized_candidates for marker in _OPTIONAL_SECTION_MARKERS)
+
+    def _is_non_generative_annex_child(self, section_path: str) -> bool:
+        parts = [part.strip() for part in str(section_path or "").split("/") if part.strip()]
+        if len(parts) <= 1:
+            return False
+        normalized_ancestors = [_normalize_label(part) for part in parts[:-1]]
+        return any(marker in ancestor for ancestor in normalized_ancestors for marker in _ANNEX_SECTION_MARKERS)
