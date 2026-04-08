@@ -201,6 +201,7 @@ class ProjectService:
                     "section_title": section_title or (section_path.split("/")[-1].strip() if section_path else ""),
                     "parent_section_path": parent_section_path,
                     "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                    "section_order": max(0, int(item.get("section_order") or item.get("sectionOrder") or 0)),
                     "optional": bool(item.get("optional")),
                     "default_selected": bool(item.get("default_selected", True)),
                 }
@@ -279,6 +280,7 @@ class ProjectService:
                             item.get("parent_section_path") or item.get("sectionParentPath") or ""
                         ),
                         "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                        "section_order": max(0, int(item.get("section_order") or item.get("sectionOrder") or 0)),
                     }
                 )
         raw_sections = raw.get("sections")
@@ -306,6 +308,7 @@ class ProjectService:
                             item.get("parent_section_path") or item.get("sectionParentPath") or ""
                         ),
                         "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                        "section_order": max(0, int(item.get("section_order") or item.get("sectionOrder") or 0)),
                         "prompt_sent": str(item.get("prompt_sent") or ""),
                         "ai_output": str(item.get("ai_output") or ""),
                         "input_tokens": max(0, int(item.get("input_tokens") or 0)),

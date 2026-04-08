@@ -9,6 +9,8 @@ class PromptBlock(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     block_id: Optional[str] = None
+    header: str = ""
+    cabecera: str = ""
     label: str = ""
     instructions: str = ""
     required_variables: List[str] = Field(default_factory=list)
@@ -23,19 +25,35 @@ class PromptBlock(BaseModel):
         if not isinstance(data, dict):
             return data
         remapped = dict(data)
-        if "label" not in remapped:
-            remapped["label"] = (
-                remapped.get("titulo_cabecera")
+        if "header" not in remapped:
+            remapped["header"] = (
+                remapped.get("cabecera")
+                or remapped.get("titulo_cabecera")
+                or remapped.get("header")
                 or remapped.get("name")
                 or remapped.get("label")
                 or ""
             )
+        remapped["cabecera"] = (
+            remapped.get("cabecera")
+            or remapped.get("header")
+            or remapped.get("titulo_cabecera")
+            or remapped.get("name")
+            or remapped.get("label")
+            or ""
+        )
+        if "label" not in remapped:
+            remapped["label"] = (
+                remapped.get("label")
+                or remapped.get("header")
+                or remapped.get("cabecera")
+                or remapped.get("titulo_cabecera")
+                or remapped.get("name")
+                or ""
+            )
         if "instructions" not in remapped:
             remapped["instructions"] = (
-                remapped.get("instrucciones_ia")
-                or remapped.get("instruction")
-                or remapped.get("instructions")
-                or ""
+                remapped.get("instrucciones_ia") or remapped.get("instruction") or remapped.get("instructions") or ""
             )
         if "required_variables" not in remapped:
             variables = remapped.get("variables_locales")
@@ -62,6 +80,7 @@ class PromptSection(BaseModel):
     section_title: str = ""
     parent_section_path: str = ""
     section_level: int = 1
+    section_order: int = 0
     optional: bool = False
     default_selected: bool = True
     source_hints: str = ""
@@ -88,10 +107,7 @@ class PromptSection(BaseModel):
             )
         if "section_path" not in remapped:
             remapped["section_path"] = str(
-                remapped.get("path")
-                or remapped.get("section_path")
-                or legacy_title
-                or legacy_name
+                remapped.get("path") or remapped.get("section_path") or legacy_title or legacy_name
             )
         if "section_title" not in remapped:
             remapped["section_title"] = str(
@@ -103,17 +119,14 @@ class PromptSection(BaseModel):
             )
         if "parent_section_path" not in remapped:
             remapped["parent_section_path"] = str(
-                remapped.get("sectionParentPath")
-                or remapped.get("parent_section_path")
-                or ""
+                remapped.get("sectionParentPath") or remapped.get("parent_section_path") or ""
             )
         if "section_level" not in remapped:
             remapped["section_level"] = int(
-                remapped.get("sectionLevel")
-                or remapped.get("section_level")
-                or remapped.get("order")
-                or 1
+                remapped.get("sectionLevel") or remapped.get("section_level") or remapped.get("order") or 1
             )
+        if "section_order" not in remapped:
+            remapped["section_order"] = int(remapped.get("sectionOrder") or remapped.get("section_order") or 0)
         if "source_hints" not in remapped:
             remapped["source_hints"] = str(remapped.get("instruction") or remapped.get("source_hints") or "")
         if "blocks" not in remapped:
@@ -125,6 +138,8 @@ class PromptSection(BaseModel):
                 [
                     {
                         "block_id": remapped.get("section_id") or remapped.get("numero_prompt"),
+                        "header": legacy_title or legacy_name or "Prompt principal",
+                        "cabecera": legacy_title or legacy_name or "Prompt principal",
                         "label": legacy_title or legacy_name or "Prompt principal",
                         "instructions": instructions,
                         "required_variables": variables if isinstance(variables, list) else [],

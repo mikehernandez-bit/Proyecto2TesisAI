@@ -217,3 +217,60 @@ def test_update_project_can_skip_top_level_updated_at_for_navigation(tmp_path):
     assert updated["updated_at"] == "2026-03-18T10:00:00"
     assert updated["wizard_state"]["current_step"] == 5
     assert updated["wizard_state"]["last_open_mode"] == "review"
+
+
+def test_update_project_preserves_custom_prompt_snapshot_sections_and_order(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    project = service.create_project({"title": "Custom prompt snapshot"})
+
+    updated = service.update_project(
+        project["id"],
+        {
+            "prompt_snapshot": {
+                "id": "prompt-demo",
+                "sections": [
+                    {
+                        "section_id": "custom_section_capitulo",
+                        "section_path": "CAPITULO ESPECIAL",
+                        "section_title": "CAPITULO ESPECIAL",
+                        "parent_section_path": "",
+                        "section_level": 1,
+                        "section_order": 10,
+                        "blocks": [],
+                    },
+                    {
+                        "section_id": "custom_section_sub",
+                        "section_path": "CAPITULO ESPECIAL/3.1 Aplicacion piloto",
+                        "section_title": "3.1 Aplicacion piloto",
+                        "parent_section_path": "CAPITULO ESPECIAL",
+                        "section_level": 2,
+                        "section_order": 11,
+                        "blocks": [
+                            {
+                                "block_id": "custom_block_1",
+                                "header": "Aplicacion piloto",
+                                "label": "Prompt aplicacion piloto",
+                                "instructions": "Describe el piloto.",
+                                "required_variables": ["alcance_piloto"],
+                            }
+                        ],
+                    },
+                ],
+            },
+            "selected_sections": [
+                {
+                    "section_id": "custom_section_sub",
+                    "section_path": "CAPITULO ESPECIAL/3.1 Aplicacion piloto",
+                    "section_title": "3.1 Aplicacion piloto",
+                    "parent_section_path": "CAPITULO ESPECIAL",
+                    "section_level": 2,
+                    "section_order": 11,
+                }
+            ],
+        },
+    )
+
+    assert updated is not None
+    assert updated["prompt_snapshot"]["sections"][0]["section_order"] == 10
+    assert updated["prompt_snapshot"]["sections"][1]["section_order"] == 11
+    assert updated["selected_sections"][0]["section_order"] == 11

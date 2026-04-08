@@ -2,33 +2,66 @@ import { createPromptSectionTree } from "./section-tree.js";
 import { patchPromptAdminState } from "./state.js";
 
 let sectionTree = null;
+let universityCardsBound = false;
+let promptEditorButtonsBound = false;
 
 function showOnlyView(viewId) {
   document.querySelectorAll(".view-section").forEach((element) => element.classList.add("hidden"));
   document.getElementById(viewId)?.classList.remove("hidden");
 }
 
+function showUniversityPanel(targetId) {
+  document.getElementById("prompts-grid-admin")?.classList.add("hidden");
+  document.querySelectorAll(".univ-panel").forEach((panel) => panel.classList.add("hidden"));
+  document.getElementById(targetId)?.classList.remove("hidden");
+}
+
 function bindUniversityCards() {
-  const gridAdmin = document.getElementById("prompts-grid-admin");
-  const panels = document.querySelectorAll(".univ-panel");
-  [
-    { id: "card-unac", target: "panel-unac" },
-    { id: "card-uni", target: "panel-uni" },
-    { id: "card-uns", target: "panel-uns" },
-  ].forEach((card) => {
-    document.getElementById(card.id)?.addEventListener("click", () => {
-      gridAdmin?.classList.add("hidden");
-      panels.forEach((panel) => panel.classList.add("hidden"));
-      document.getElementById(card.target)?.classList.remove("hidden");
+  if (universityCardsBound) return;
+  universityCardsBound = true;
+
+  const cardToPanel = {
+    "card-unac": "panel-unac",
+    "card-uni": "panel-uni",
+    "card-uns": "panel-uns",
+  };
+
+  Object.entries(cardToPanel).forEach(([cardId, targetId]) => {
+    const card = document.getElementById(cardId);
+    if (!card || card.dataset.boundPromptAdminCard === "true") return;
+    card.dataset.boundPromptAdminCard = "true";
+    card.addEventListener("click", (event) => {
+      event.preventDefault();
+      showUniversityPanel(targetId);
     });
   });
 
-  document.querySelectorAll(".btn-back").forEach((button) => {
-    button.addEventListener("click", (event) => {
+  document.querySelectorAll(".btn-back").forEach((backButton) => {
+    if (backButton.dataset.boundPromptAdminBack === "true") return;
+    backButton.dataset.boundPromptAdminBack = "true";
+    backButton.addEventListener("click", (event) => {
       event.preventDefault();
-      panels.forEach((panel) => panel.classList.add("hidden"));
-      gridAdmin?.classList.remove("hidden");
+      document.querySelectorAll(".univ-panel").forEach((panel) => panel.classList.add("hidden"));
+      document.getElementById("prompts-grid-admin")?.classList.remove("hidden");
     });
+  });
+
+  document.body.addEventListener("click", (event) => {
+    const card = event.target.closest("#card-unac, #card-uni, #card-uns");
+    if (card) {
+      const targetId = cardToPanel[card.id];
+      if (targetId) {
+        showUniversityPanel(targetId);
+      }
+      return;
+    }
+
+    const backButton = event.target.closest(".btn-back");
+    if (!backButton) return;
+
+    event.preventDefault();
+    document.querySelectorAll(".univ-panel").forEach((panel) => panel.classList.add("hidden"));
+    document.getElementById("prompts-grid-admin")?.classList.remove("hidden");
   });
 }
 
@@ -79,17 +112,20 @@ export function bootPromptPackageAdminList() {
   bindUniversityCards();
   bindAccordions();
 
-  document.body.addEventListener("click", (event) => {
-    const button = event.target.closest(".btn-edit-pkg");
-    if (!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    showOnlyView("view-prompt-index");
-    sectionTree.openIndex(button).catch((error) => {
-      const container = document.getElementById("index-blocks-container");
-      if (container) {
-        container.innerHTML = `<div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-8 text-sm text-red-700">${error?.message || "No se pudo cargar el paquete institucional."}</div>`;
-      }
+  if (!promptEditorButtonsBound) {
+    promptEditorButtonsBound = true;
+    document.body.addEventListener("click", (event) => {
+      const button = event.target.closest(".btn-edit-pkg");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      showOnlyView("view-prompt-index");
+      sectionTree.openIndex(button).catch((error) => {
+        const container = document.getElementById("index-blocks-container");
+        if (container) {
+          container.innerHTML = `<div class="rounded-[2rem] border border-red-200 bg-red-50 px-5 py-8 text-sm text-red-700">${error?.message || "No se pudo cargar el paquete institucional."}</div>`;
+        }
+      });
     });
-  });
+  }
 }

@@ -1360,6 +1360,8 @@ class TestGenerationEndpoint:
         assert 'id="budget-calculate-button"' in html
         assert 'id="budget-estimate-pending"' in html
         assert 'id="budget-estimate-results"' in html
+        assert 'id="budget-cost-total-pen"' in html
+        assert 'id="budget-pen-rate"' in html
         assert 'id="stat-total-tokens"' in html
         assert 'id="gen-token-input-total"' in html
         assert 'id="gen-token-output-total"' in html

@@ -155,6 +155,7 @@ class FormatService:
             try:
                 version_check = await self.check_version()
                 if not version_check.get("changed") and not version_check.get("stale"):
+                    gicatesis_status.record_success(source="live")
                     logger.debug("Catalog not changed, skipping sync")
                     return
             except GicaTesisError:

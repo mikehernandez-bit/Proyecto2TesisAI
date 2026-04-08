@@ -20,6 +20,8 @@ export function createTraceView({
   formatUsd,
   runtimeState,
 }) {
+  const COLLAPSED_GROUP_SENTINEL = "__collapsed__";
+
   function setText(id, value) {
     const element = getElement(id);
     if (element) element.textContent = String(value ?? "");
@@ -242,7 +244,9 @@ export function createTraceView({
       const summary = node.summary || summarizeGenerationNode(node);
       const badge = statusBadgeClass(summary.status);
       const hasChildren = Array.isArray(node.children) && node.children.length > 0;
-      const isExpanded = hasChildren && String(expandedGroupPath || "").startsWith(String(node.path || ""));
+      const isExpanded = hasChildren
+        && String(expandedGroupPath || "") !== COLLAPSED_GROUP_SENTINEL
+        && String(expandedGroupPath || "").startsWith(String(node.path || ""));
       const isSelected = String(selectedKey || "") === String(node.key || "");
       const latestSection = summary.latestSection || node.selfSection || {};
       const detail = hasChildren
@@ -251,22 +255,22 @@ export function createTraceView({
       const indent = Math.max(0, Number(node.depth || 1) - 1) * 16;
 
       return `
-        <div class="space-y-2">
+        <div class="space-y-2.5">
           <button
-            class="w-full text-left rounded-2xl border p-3 transition ${isSelected ? "border-slate-900 bg-slate-50 shadow-sm" : "bg-white hover:shadow-sm"}"
+            class="w-full text-left rounded-2xl border p-3.5 transition ${isSelected ? "border-slate-900 bg-slate-50 shadow-sm" : "bg-white hover:shadow-sm"}"
             data-ai-node-key="${escapeHtml(node.key)}"
             data-ai-node-kind="${hasChildren ? "group" : "leaf"}"
             data-ai-node-path="${escapeHtml(node.path)}"
             style="margin-left:${indent}px"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold">
                   ${hasChildren ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-500">${isExpanded ? "-" : "+"}</span>` : '<span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-slate-400">*</span>'}
                   <span>${hasChildren ? "Bloque" : "Subseccion"}</span>
                 </div>
-                <div class="font-semibold text-slate-900 truncate">${escapeHtml(node.label || "Sin nombre")}</div>
-                <div class="mt-1 text-xs text-slate-500 truncate">${escapeHtml(detail || "Pendiente")}</div>
+                <div class="mt-1 font-semibold text-slate-900 leading-snug break-words">${escapeHtml(node.label || "Sin nombre")}</div>
+                <div class="mt-1 text-xs text-slate-500 leading-relaxed break-words">${escapeHtml(detail || "Pendiente")}</div>
               </div>
               <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${badge.wrap}">
                 ${badge.label}
@@ -274,7 +278,7 @@ export function createTraceView({
             </div>
           </button>
           ${hasChildren && isExpanded
-            ? `<div class="space-y-2">${renderTreeNodes(node.children, selectedKey, expandedGroupPath, phase)}</div>`
+            ? `<div class="space-y-2.5">${renderTreeNodes(node.children, selectedKey, expandedGroupPath, phase)}</div>`
             : ""}
         </div>
       `;
@@ -404,10 +408,11 @@ export function createTraceView({
         const nodePath = String(button.getAttribute("data-ai-node-path") || "");
         runtimeState.setSelectedSectionKey(selectedKey);
         if (nodeKind === "group") {
+          const nextExpandedPath = runtimeState.getExpandedGroupPath() === nodePath
+            ? (resolveSectionParentPath({ section_path: nodePath }) || COLLAPSED_GROUP_SENTINEL)
+            : nodePath;
           runtimeState.setExpandedGroupPath(
-            runtimeState.getExpandedGroupPath() === nodePath
-              ? resolveSectionParentPath({ section_path: nodePath })
-              : nodePath,
+            nextExpandedPath,
           );
         } else {
           runtimeState.setExpandedGroupPath(resolveSectionParentPath({ section_path: nodePath }) || nodePath);

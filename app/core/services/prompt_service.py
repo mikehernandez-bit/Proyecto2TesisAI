@@ -34,10 +34,81 @@ _LEGACY_SUBTYPE_TO_TOKEN = {
     "CUANTI": "cuant",
 }
 
+_ANNEX_SECTION_MARKERS = {
+    "anexo",
+    "anexos",
+}
+
 
 def _normalize_match_text(value: Any) -> str:
     text = unicodedata.normalize("NFKD", str(value or ""))
     return "".join(ch for ch in text if not unicodedata.combining(ch)).lower().strip()
+
+
+def _repair_mojibake_text(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text or not any(token in text for token in ("Ã", "Â", "â")):
+        return text
+    repaired = text
+    for _ in range(3):
+        if not any(token in repaired for token in ("Ã", "Â", "â")):
+            break
+        try:
+            candidate = repaired.encode("latin-1", errors="ignore").decode("utf-8", errors="ignore").strip()
+        except Exception:
+            break
+        if not candidate or candidate == repaired:
+            break
+        repaired = candidate
+    return repaired or text
+
+
+def _clean_display_text(value: Any, *, fallback: str = "") -> str:
+    text = _repair_mojibake_text(value)
+    normalized = _normalize_match_text(text)
+    if normalized in {"xd", "xxx", "test", "prueba"}:
+        return fallback
+    return text or fallback
+
+
+def _is_non_generative_annex_child(section_path: Any) -> bool:
+    parts = [part.strip() for part in str(section_path or "").split("/") if part.strip()]
+    if len(parts) <= 1:
+        return False
+    normalized_ancestors = [_normalize_match_text(part) for part in parts[:-1]]
+    return any(marker in ancestor for ancestor in normalized_ancestors for marker in _ANNEX_SECTION_MARKERS)
+
+
+_CRITICAL_SECTION_DEFAULTS: tuple[dict[str, Any], ...] = (
+    {
+        "matchers": (
+            "1.1 descripcion de la realidad problematica",
+            "1.1 realidad problematica",
+            "realidad problematica",
+        ),
+        "block": {
+            "header": "Realidad problemática",
+            "cabecera": "Realidad problemática",
+            "label": "Diagnóstico de la realidad problemática",
+            "instructions": (
+                "Presenta la situación problemática con datos observables, contexto del estudio, "
+                "evidencia local y una propuesta preliminar de solución."
+            ),
+            "required_variables": [
+                "variable_dependiente",
+                "contexto_organizacion",
+                "problema_observable",
+                "sustento_local",
+                "propuesta_solucion_preliminar",
+                "contexto_internacional",
+                "contexto_nacional",
+                "sustento_ingenieril",
+                "periodo_analisis",
+            ],
+            "required": True,
+        },
+    },
+)
 
 
 class PromptService:
@@ -222,28 +293,13 @@ class PromptService:
             )
 
         doc_type = (
-            payload.get("doc_type")
-            or payload.get("docType")
-            or format_meta.get("documentType")
-            or "Tesis Completa"
+            payload.get("doc_type") or payload.get("docType") or format_meta.get("documentType") or "Tesis Completa"
         )
-        format_name = (
-            payload.get("format_name")
-            or payload.get("formatName")
-            or format_meta.get("title")
-            or format_id
-        )
+        format_name = payload.get("format_name") or payload.get("formatName") or format_meta.get("title") or format_id
         format_version = (
-            payload.get("format_version")
-            or payload.get("formatVersion")
-            or format_meta.get("version")
-            or ""
+            payload.get("format_version") or payload.get("formatVersion") or format_meta.get("version") or ""
         )
-        required_metadata = [
-            str(item).strip()
-            for item in payload.get("required_metadata") or []
-            if str(item).strip()
-        ]
+        required_metadata = [str(item).strip() for item in payload.get("required_metadata") or [] if str(item).strip()]
         package = {
             "id": str(payload.get("id") or fallback_id),
             "name": str(payload.get("name") or format_meta.get("title") or "Nuevo paquete"),
@@ -279,28 +335,13 @@ class PromptService:
         package_sections = self._normalize_sections(payload.get("sections"))
         merged_sections = self._merge_sections(base_sections, package_sections)
         doc_type = (
-            payload.get("doc_type")
-            or payload.get("docType")
-            or format_meta.get("documentType")
-            or "Tesis Completa"
+            payload.get("doc_type") or payload.get("docType") or format_meta.get("documentType") or "Tesis Completa"
         )
-        format_name = (
-            payload.get("format_name")
-            or payload.get("formatName")
-            or format_meta.get("title")
-            or format_id
-        )
+        format_name = payload.get("format_name") or payload.get("formatName") or format_meta.get("title") or format_id
         format_version = (
-            payload.get("format_version")
-            or payload.get("formatVersion")
-            or format_meta.get("version")
-            or ""
+            payload.get("format_version") or payload.get("formatVersion") or format_meta.get("version") or ""
         )
-        required_metadata = [
-            str(item).strip()
-            for item in payload.get("required_metadata") or []
-            if str(item).strip()
-        ]
+        required_metadata = [str(item).strip() for item in payload.get("required_metadata") or [] if str(item).strip()]
         package = {
             "id": str(payload.get("id") or new_id("prompt")),
             "name": str(payload.get("name") or format_meta.get("title") or "Paquete sin nombre"),
@@ -331,6 +372,8 @@ class PromptService:
             section_path = str(item.get("section_path") or item.get("path") or "").strip()
             if not section_id and not section_path:
                 continue
+            if _is_non_generative_annex_child(section_path or section_id):
+                continue
             raw_blocks = item.get("blocks")
             blocks = raw_blocks if isinstance(raw_blocks, list) else []
             section_title = (
@@ -342,15 +385,16 @@ class PromptService:
             normalized.append(
                 {
                     "section_id": section_id or section_path,
-                    "section_path": section_path or section_id,
-                    "section_title": str(section_title),
-                    "parent_section_path": str(
+                    "section_path": _clean_display_text(section_path or section_id),
+                    "section_title": _clean_display_text(section_title),
+                    "parent_section_path": _clean_display_text(
                         item.get("parent_section_path") or item.get("parentSectionPath") or ""
                     ),
                     "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                    "section_order": int(item.get("section_order") or item.get("sectionOrder") or 0),
                     "optional": bool(item.get("optional")),
                     "default_selected": bool(item.get("default_selected", True)),
-                    "source_hints": str(item.get("source_hints") or item.get("sourceHints") or ""),
+                    "source_hints": _clean_display_text(item.get("source_hints") or item.get("sourceHints") or ""),
                     "blocks": [PromptService._normalize_block(block) for block in blocks if isinstance(block, dict)],
                 }
             )
@@ -358,6 +402,24 @@ class PromptService:
 
     @staticmethod
     def _normalize_block(raw_block: Dict[str, Any]) -> Dict[str, Any]:
+        header = _clean_display_text(
+            raw_block.get("header")
+            or raw_block.get("cabecera")
+            or raw_block.get("titulo_cabecera")
+            or raw_block.get("name")
+            or raw_block.get("label")
+            or "Prompt principal",
+            fallback="Prompt principal",
+        )
+        label = _clean_display_text(
+            raw_block.get("label")
+            or raw_block.get("header")
+            or raw_block.get("cabecera")
+            or raw_block.get("titulo_cabecera")
+            or raw_block.get("name")
+            or "Prompt principal",
+            fallback=header or "Prompt principal",
+        )
         return {
             "block_id": str(
                 raw_block.get("block_id")
@@ -366,13 +428,12 @@ class PromptService:
                 or raw_block.get("numero_prompt")
                 or ""
             ),
-            "label": str(
-                raw_block.get("label")
-                or raw_block.get("titulo_cabecera")
-                or raw_block.get("name")
-                or "Prompt principal"
+            "header": header,
+            "cabecera": header,
+            "label": label,
+            "instructions": _clean_display_text(
+                raw_block.get("instructions") or raw_block.get("instrucciones_ia") or ""
             ),
-            "instructions": str(raw_block.get("instructions") or raw_block.get("instrucciones_ia") or ""),
             "required_variables": PromptService._normalize_variable_list(
                 raw_block.get("required_variables") or raw_block.get("variables_locales") or raw_block.get("variables")
             ),
@@ -387,24 +448,34 @@ class PromptService:
     ) -> List[Dict[str, Any]]:
         if not base_sections:
             return package_sections
-        package_by_key = {
-            str(item.get("section_id") or item.get("section_path") or "").strip(): item
-            for item in package_sections
-            if str(item.get("section_id") or item.get("section_path") or "").strip()
-        }
+        package_by_key: Dict[str, Dict[str, Any]] = {}
+        for item in package_sections:
+            section_id = str(item.get("section_id") or "").strip()
+            section_path = str(item.get("section_path") or "").strip()
+            if section_id:
+                package_by_key[section_id] = item
+            if section_path:
+                package_by_key[section_path] = item
         merged: List[Dict[str, Any]] = []
         for base in base_sections:
-            key = str(base.get("section_id") or base.get("section_path") or "").strip()
-            overlay = package_by_key.get(key, {})
+            base_section_id = str(base.get("section_id") or "").strip()
+            base_section_path = _clean_display_text(base.get("section_path"))
+            base_section_title = _clean_display_text(base.get("section_title"))
+            base_parent_section_path = _clean_display_text(base.get("parent_section_path"))
+            overlay = package_by_key.get(base_section_id) or package_by_key.get(base_section_path) or {}
+            key = base_section_id or base_section_path
             raw_blocks = overlay.get("blocks")
             blocks = raw_blocks if isinstance(raw_blocks, list) else []
             merged.append(
                 {
                     "section_id": key,
-                    "section_path": str(base.get("section_path") or "").strip(),
-                    "section_title": str(overlay.get("section_title") or base.get("section_title") or "").strip(),
-                    "parent_section_path": str(base.get("parent_section_path") or "").strip(),
-                    "section_level": int(base.get("section_level") or 1),
+                    "section_path": str(overlay.get("section_path") or base_section_path).strip(),
+                    "section_title": str(overlay.get("section_title") or base_section_title or "").strip(),
+                    "parent_section_path": str(
+                        overlay.get("parent_section_path") or base_parent_section_path or ""
+                    ).strip(),
+                    "section_level": int(overlay.get("section_level") or base.get("section_level") or 1),
+                    "section_order": int(overlay.get("section_order") or base.get("section_order") or 0),
                     "optional": bool(overlay.get("optional", base.get("optional"))),
                     "default_selected": bool(overlay.get("default_selected", base.get("default_selected", True))),
                     "source_hints": "\n".join(
@@ -419,13 +490,75 @@ class PromptService:
                 }
             )
 
-        seen_keys = {str(item.get("section_id") or item.get("section_path") or "").strip() for item in merged}
+        seen_keys = {
+            value
+            for item in merged
+            for value in (
+                str(item.get("section_id") or "").strip(),
+                str(item.get("section_path") or "").strip(),
+            )
+            if value
+        }
         for section in package_sections:
-            key = str(section.get("section_id") or section.get("section_path") or "").strip()
-            if not key or key in seen_keys:
+            section_id = str(section.get("section_id") or "").strip()
+            section_path = str(section.get("section_path") or "").strip()
+            if (section_id and section_id in seen_keys) or (section_path and section_path in seen_keys):
                 continue
             merged.append(section)
-        return merged
+        return [self._apply_section_defaults(section) for section in merged]
+
+    def _apply_section_defaults(self, section: Dict[str, Any]) -> Dict[str, Any]:
+        normalized_section = dict(section)
+        normalized_section["section_path"] = _clean_display_text(normalized_section.get("section_path"))
+        normalized_section["section_title"] = _clean_display_text(normalized_section.get("section_title"))
+        normalized_section["parent_section_path"] = _clean_display_text(normalized_section.get("parent_section_path"))
+        normalized_section["source_hints"] = _clean_display_text(normalized_section.get("source_hints"))
+        blocks = [
+            self._normalize_block(block) for block in normalized_section.get("blocks") or [] if isinstance(block, dict)
+        ]
+        normalized_section["blocks"] = blocks
+
+        default_block = self._default_block_for_section(normalized_section)
+        if default_block is None:
+            return normalized_section
+        if not blocks:
+            normalized_section["blocks"] = [self._normalize_block(default_block)]
+            return normalized_section
+
+        primary_block = dict(blocks[0])
+        existing_variables = self._normalize_variable_list(primary_block.get("required_variables"))
+        for variable in self._normalize_variable_list(default_block.get("required_variables")):
+            if variable not in existing_variables:
+                existing_variables.append(variable)
+        primary_block["required_variables"] = existing_variables
+        if not str(primary_block.get("instructions") or "").strip():
+            primary_block["instructions"] = str(default_block.get("instructions") or "").strip()
+        if (
+            not str(primary_block.get("header") or "").strip()
+            or _normalize_match_text(primary_block.get("header")) == "prompt principal"
+        ):
+            primary_block["header"] = str(default_block.get("header") or "").strip()
+            primary_block["cabecera"] = str(default_block.get("cabecera") or "").strip()
+        if (
+            not str(primary_block.get("label") or "").strip()
+            or _normalize_match_text(primary_block.get("label")) == "prompt principal"
+        ):
+            primary_block["label"] = str(default_block.get("label") or "").strip()
+        normalized_section["blocks"] = [self._normalize_block(primary_block), *blocks[1:]]
+        return normalized_section
+
+    @staticmethod
+    def _default_block_for_section(section: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        haystack = " ".join(
+            [
+                _normalize_match_text(section.get("section_path")),
+                _normalize_match_text(section.get("section_title")),
+            ]
+        )
+        for item in _CRITICAL_SECTION_DEFAULTS:
+            if any(matcher in haystack for matcher in item["matchers"]):
+                return dict(item["block"])
+        return None
 
     def _merge_legacy_prompt_blocks(self, package: Dict[str, Any], legacy_item: Dict[str, Any]) -> None:
         prompts = legacy_item.get("prompts")
@@ -447,6 +580,7 @@ class PromptService:
                     "section_title": str(raw_prompt.get("titulo_cabecera") or raw_prompt.get("capitulo_nombre") or ""),
                     "parent_section_path": "",
                     "section_level": 1,
+                    "section_order": len(sections) + 1,
                     "optional": False,
                     "default_selected": True,
                     "source_hints": "",
@@ -598,9 +732,7 @@ class PromptService:
             "format_version": str(package.get("format_version") or ""),
             "system_instruction": str(package.get("system_instruction") or ""),
             "required_metadata": [
-                str(item).strip()
-                for item in package.get("required_metadata") or []
-                if str(item).strip()
+                str(item).strip() for item in package.get("required_metadata") or [] if str(item).strip()
             ],
             "template": str(package.get("template") or package.get("system_instruction") or ""),
             "variables": self._aggregate_package_variables(package),
