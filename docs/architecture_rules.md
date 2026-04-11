@@ -34,3 +34,9 @@ Al unificar o mover funciones entre módulos de JavaScript, se debe garantizar l
 - **Prohibición**: Queda prohibido dejar módulos con referencias rotas o exportaciones faltantes que causen `SyntaxError`.
 - **Razón**: Los errores modulares detienen la ejecución de todo el sistema, dejando los botones del Dashboard y el Wizard inactivos sin dar avisos visibles en la terminal.
 - **Validación**: Tras cualquier cambio en módulos compartidos, el primer paso de verificación es refrescar el Dashboard y confirmar que los botones siguen respondiendo.
+
+## 7. Regla de Comunicación Ejecutiva (Reporting)
+Para informes de avance y resúmenes de actividad dirigidos a stakeholders:
+- **Formato**: Entregar siempre la información en **exactamente 3 puntos**.
+- **Lenguaje**: Usar **lenguaje no técnico**, enfocado en el valor de negocio o progreso del trabajo, evitando términos internos de programación.
+- **Contexto**: Los resúmenes deben estar listos para ser copiados directamente en un **informe de trabajo**.
