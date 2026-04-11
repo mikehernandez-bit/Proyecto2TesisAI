@@ -130,6 +130,9 @@ Notas:
 - `project.trace` se mantiene por compatibilidad y refleja la misma lista.
 - Los previews se recortan y se sanitizan para no exponer secretos.
 
+### Documentación de Arquitectura
+- [Reglas de Generación de Documentos](docs/architecture_rules.md): Reglas críticas para el intercambio de datos con GicaTesis.
+
 ## Comportamiento ante cuota IA (429)
 
 Con el flujo async (`202`), los errores de cuota no salen como respuesta final

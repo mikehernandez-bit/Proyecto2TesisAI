@@ -161,6 +161,15 @@ NON_GENERATIVE_BRANCH_KEYS = frozenset(
         "imagen",
         "imagenes",
         "grafico",
+        # Institutional/static pages — rendered by GicaTesis, never need AI
+        "hoja_jurado",
+        "hoja_referencia",
+        "pagina_respeto",
+        "caratula",
+        "acta",
+        "configuracion",
+        "matriz_consistencia",
+        "informacion_basica",
     }
 )
 
@@ -176,6 +185,14 @@ NON_GENERATIVE_SECTION_TITLES = frozenset(
         "tabla de contenidos",
         "table of contents",
         "toc",
+        # Institutional/static section titles — never need AI generation
+        "hoja de referencia del jurado y aprobacion",
+        "hoja de referencia del jurado",
+        "hoja de referencia",
+        "informacion basica",
+        "informacion del proyecto",
+        "pagina de respeto",
+        "caratula",
     }
 )
 

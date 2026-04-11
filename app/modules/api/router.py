@@ -55,6 +55,7 @@ from app.integrations.gicatesis.types import RenderPayloadValidationError
 from app.integrations.n8n.client import N8NClient
 from app.integrations.n8n.service import N8NIntegrationService
 from app.modules.api.models import (
+    MaestriaDetailsIn,
     N8NCallbackIn,
     ProjectDraftIn,
     ProjectGenerateIn,
@@ -310,13 +311,17 @@ def _resolve_project_selected_sections(
     project: Dict[str, Any],
     prompt_snapshot: Dict[str, Any] | None,
 ) -> list[Dict[str, Any]]:
-    explicit_selected = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else []
-    if explicit_selected:
-        return explicit_selected
+    # Si el proyecto tiene una lista de secciones definidas (resultado del Paso 2), la usamos directamente.
+    # No verificamos 'if explicit_selected' porque una lista vacía [] es una selección válida (nada).
+    if isinstance(project.get("selected_sections"), list):
+        return project["selected_sections"]
+    
+    # Solo inferimos o usamos defaults si no hay rastro de selección previa.
     ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
     inferred = generation_planner.infer_selected_sections_from_ai_result(ai_result)
     if inferred:
         return inferred
+    
     return _default_selected_sections_from_package(prompt_snapshot)
 
 
@@ -788,6 +793,7 @@ def _render_project_outputs_sync(
     )
 
     try:
+        _logger.debug("Building render payload for project %s. Values keys: %s", project_id, list(values.keys()))
         payload = _build_render_payload(
             format_id=format_id,
             values=values,
@@ -1595,11 +1601,7 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
         ),
         "sections": prompt_snapshot.get("sections") if prompt_snapshot else raw.get("sections"),
         "prompt_snapshot": prompt_snapshot,
-        "selected_sections": (
-            raw.get("selected_sections")
-            if isinstance(raw.get("selected_sections"), list)
-            else (_default_selected_sections_from_package(prompt_snapshot) if prompt_id and prompt_snapshot else None)
-        ),
+        "selected_sections": raw.get("selected_sections"),
         "prompt_template": (
             prompt_snapshot.get("template")
             if prompt_snapshot
@@ -1762,8 +1764,9 @@ async def sim_download_docx(projectId: str, runId: Optional[str] = None):
     if not format_id:
         raise HTTPException(status_code=400, detail="Project has no format_id")
 
-    project_values = project.get("values") if isinstance(project.get("values"), dict) else {}
-    values = _values_with_title(project, project_values)
+    # values_with_title merges project["variables"] + project["values"] automatically.
+    # For maestría projects, details are stored in "variables" via save_maestria_details.
+    values = _values_with_title(project)
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -1862,8 +1865,9 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
     if not format_id:
         raise HTTPException(status_code=400, detail="Project has no format_id")
 
-    project_values = project.get("values") if isinstance(project.get("values"), dict) else {}
-    values = _values_with_title(project, project_values)
+    # values_with_title merges project["variables"] + project["values"] automatically.
+    # For maestría projects, details are stored in "variables" via save_maestria_details.
+    values = _values_with_title(project)
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -2259,6 +2263,8 @@ async def _ai_generation_job(
         )
 
     # Ensure title variable exists before prompt rendering and downstream render.
+    # values_with_title merges project["variables"] + project["values"] automatically.
+    # For maestría projects, details are stored in "variables" via save_maestria_details.
     project_values = project.get("values") if isinstance(project.get("values"), dict) else {}
     enriched_values = _values_with_title(project, project_values)
     _emit_project_trace(
@@ -2399,6 +2405,41 @@ async def _ai_generation_job(
                 detail=f"Incidencias registradas: {len(run_incidents)} (warnings: {warning_count}).",
                 meta={"stage": "section_done", "warnings": warning_count},
             )
+
+        # Extraer título corregido por IA si existe la sección especial (UNAC Maestría)
+        corrected_title = ""
+        for sec in ai_result.get("sections", []):
+            if sec.get("sectionId") == "titulo-info-basica":
+                content = sec.get("content")
+                if isinstance(content, str) and content.strip() and content.strip() != "<<SKIP_SECTION>>":
+                    corrected_title = content.strip()
+                break
+
+        if corrected_title:
+            # Limpieza básica de posible ruido de la IA
+            clean_title = corrected_title.strip().strip('"').strip("'").strip()
+            # Remover prefijos comunes si la IA los incluyó por error
+            for prefix in ["TÍTULO:", "TITULO:", "PROYECTO:", "NUEVO TÍTULO:", "CORRECTED TITLE:"]:
+                if clean_title.upper().startswith(prefix):
+                    clean_title = clean_title[len(prefix):].strip()
+            
+            _logger.info("IA title validation: updating title to '%s'", clean_title)
+            # Actualizamos variables, values y la propiedad RAÍZ para máxima consistencia
+            current_vars = dict(project.get("variables") or {})
+            current_vars["title"] = clean_title
+            current_vars["titulo"] = clean_title
+            projects.update_project(
+                project_id, 
+                {
+                    "variables": current_vars, 
+                    "values": current_vars,
+                    "title": clean_title  # Actualización crítica en la raíz
+                }
+            )
+            # Reflejamos en el objeto en memoria
+            project["variables"] = current_vars
+            project["values"] = current_vars
+            project["title"] = clean_title
 
         projects.mark_ai_received(
             project_id,
@@ -3284,8 +3325,9 @@ async def render_docx(projectId: str = Query(..., description="Project ID")):
     if not format_id:
         raise HTTPException(status_code=400, detail="Project has no format_id")
 
-    source_values = project.get("values") if isinstance(project.get("values"), dict) else {}
-    values = _values_with_title(project, source_values)
+    # values_with_title merges project["variables"] + project["values"] automatically.
+    # For maestría projects, details are stored in "variables" via save_maestria_details.
+    values = _values_with_title(project)
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Proxy to GicaTesis render endpoint
@@ -3390,8 +3432,9 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
     if not format_id:
         raise HTTPException(status_code=400, detail="Project has no format_id")
 
-    source_values = project.get("values") if isinstance(project.get("values"), dict) else {}
-    values = _values_with_title(project, source_values)
+    # values_with_title merges project["variables"] + project["values"] automatically.
+    # For maestría projects, details are stored in "variables" via save_maestria_details.
+    values = _values_with_title(project)
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Build structured definition with AI content injected into the
@@ -3474,3 +3517,198 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
                 status_code=503,
                 detail=_gicatesis_unavailable_detail("Render PDF no disponible"),
             )
+
+
+# ---------------------------------------------------------------------------
+# Maestría UNAC — Excel endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/wizard/details/excel-template")
+async def download_maestria_excel_template() -> Response:
+    """
+    Generate and return the blank Excel template for UNAC Master's thesis step 3.
+
+    The user downloads this file, fills it in, then uploads it back via
+    POST /api/wizard/details/excel-preview.
+    """
+    from app.core.utils.excel_template_builder import build_excel_template
+
+    try:
+        content = build_excel_template()
+    except Exception as exc:
+        _logger.exception("Failed to build Excel template: %s", exc)
+        raise HTTPException(status_code=500, detail="No se pudo generar la plantilla Excel.")
+
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": 'attachment; filename="plantilla_maestria_unac.xlsx"',
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
+@router.post("/wizard/details/excel-preview")
+async def preview_maestria_excel(request: Request) -> dict[str, Any]:
+    """
+    Parse an uploaded Excel file and return a structured preview.
+
+    Accepts multipart/form-data with a single file field named 'file'.
+
+    Returns:
+        dict with keys:
+          - ok: bool — True if parsing succeeded (even if some fields are missing)
+          - data: extracted fields in nested form
+          - flat: flat dict ready to merge into projectValues
+          - extracted_fields: list of field keys that were extracted
+          - missing_required: list of required field keys not found
+          - warnings: list of warning messages
+          - validation_errors: list of validation error messages
+    """
+    from starlette.concurrency import run_in_threadpool
+
+    from app.core.services.maestria_excel_parser import parse_excel_bytes
+
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" not in content_type:
+        raise HTTPException(
+            status_code=422,
+            detail="Se esperaba un archivo Excel en formato multipart/form-data.",
+        )
+
+    form = await request.form()
+    file_field = form.get("file")
+    if file_field is None:
+        raise HTTPException(status_code=422, detail="No se encontró el campo 'file' en la solicitud.")
+
+    filename = getattr(file_field, "filename", "") or ""
+    if not filename.lower().endswith(".xlsx"):
+        raise HTTPException(
+            status_code=422,
+            detail="Solo se aceptan archivos .xlsx. Asegúrate de usar la plantilla oficial.",
+        )
+
+    raw_bytes: bytes = await file_field.read()
+    if not raw_bytes:
+        raise HTTPException(status_code=422, detail="El archivo está vacío.")
+
+    try:
+        result = await run_in_threadpool(parse_excel_bytes, raw_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        _logger.exception("Unexpected error parsing Excel: %s", exc)
+        raise HTTPException(status_code=500, detail="Error interno al procesar el archivo Excel.")
+
+    return {
+        "ok": True,
+        "data": result.to_dict(),
+        "flat": result.to_flat_dict(),
+        "extracted_fields": result.extracted_fields,
+        "missing_required": result.missing_required,
+        "warnings": result.warnings,
+        "validation_errors": result.validation_errors,
+    }
+
+
+@router.post("/wizard/details/validate-title")
+async def validate_maestria_title(body: "MaestriaDetailsIn") -> dict[str, Any]:
+    """
+    Validates and corrects the thesis title based on the context variables.
+    Returns the corrected title and a brief explanation.
+    """
+    from app.core.services.ai.gemini_client import get_gemini_client
+
+    flat = body.to_flat_values()
+    context_keys = [
+        "linea_investigacion", "unidad_analisis", "tipo", 
+        "enfoque", "diseno_investigacion", "lugar_ejecucion"
+    ]
+    context_str = "\n".join(f"- {k}: {flat.get(k, '')}" for k in context_keys if flat.get(k))
+
+    prompt = f"""
+Eres un experto metodólogo especializado en normativas de la UNAC (Universidad Nacional del Callao).
+Tu tarea es validar y corregir el siguiente título de tesis de posgrado.
+
+Título original propuesto: "{flat.get('titulo')}"
+
+Contexto de la investigación:
+{context_str}
+
+REGLAS PARA EL TÍTULO:
+1. Debe ser claro, preciso y reflejar el objetivo de la investigación.
+2. Debe conectar lógicamente con las variables, unidad de análisis y lugar.
+3. No debe ser excesivamente largo.
+4. Devuelve el título mejorado y validado en la primera línea.
+
+Debes responder en este formato estricto:
+TITULO: [El título corregido va aquí]
+EXPLICACION: [Breve explicación de los cambios en 1 párrafo]
+"""
+    try:
+        client = get_gemini_client()
+        result = await client.generate_text(
+            prompt=prompt,
+            model=settings.GEMINI_MODEL,
+        )
+        text = str(result.get("text", "")).strip()
+
+        # Parse output
+        titulo_validado = flat.get('titulo')
+        explicacion = "Validación completada."
+        for line in text.split("\n"):
+            line = line.strip()
+            if line.upper().startswith("TITULO:"):
+                titulo_validado = line[len("TITULO:"):].strip()
+            elif line.upper().startswith("EXPLICACION:"):
+                explicacion = line[len("EXPLICACION:"):].strip()
+        
+        return {
+            "title": titulo_validado,
+            "explanation": explicacion,
+            "success": True
+        }
+    except Exception as e:
+        _logger.exception("Error en validate_title_ai: %s", e)
+        return {
+            "title": flat.get("titulo"),
+            "explanation": "No se pudo validar con IA por un error interno, verifica el título manualmente.",
+            "success": False,
+            "error": str(e)
+        }
+
+@router.put("/projects/{project_id}/maestria-details")
+async def save_maestria_details(project_id: str, body: "MaestriaDetailsIn") -> dict[str, Any]:
+    """
+    Save the validated maestría details for a project.
+
+    Merges the normalized flat values into project.variables so the rest of the
+    generation pipeline (payload builder → GicaTesis) picks them up correctly.
+    """
+    from app.modules.api.models import MaestriaDetailsIn
+
+    project = projects.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=f"Proyecto {project_id!r} no encontrado.")
+
+    flat_values = body.to_flat_values()
+    existing_values = dict(project.get("variables") or project.get("values") or {})
+    merged_values = {**existing_values, **flat_values}
+
+    updated = projects.update_project(
+        project_id,
+        {
+            "variables": merged_values,
+            "title": flat_values.get("titulo") or existing_values.get("title") or project.get("title") or "",
+        },
+    )
+
+    return {
+        "ok": True,
+        "project_id": project_id,
+        "saved_fields": list(flat_values.keys()),
+        "title": flat_values.get("titulo") or "",
+    }
+
