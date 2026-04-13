@@ -1234,21 +1234,24 @@ class AIService:
                 previous_sections=memory_entries,
                 values=values,
             )
+            prompt_values = values or {}
             if section_id == "titulo-info-basica":
                 # Validación rápida de título para Maestría UNAC
                 section_prompt = (
                     "Eres un validador técnico de tesis de la UNAC.\n"
                     "Tu tarea es VALIDAR y FORMATEAR el título de la tesis basándote en los siguientes datos:\n"
-                    f"- Objeto de Estudio: {values.get('objeto_estudio', '---')}\n"
-                    f"- Variable Independiente: {values.get('variable_independiente', '---')}\n"
-                    f"- Variable Dependiente: {values.get('variable_dependiente', '---')}\n"
-                    f"- Población: {values.get('poblacion', '---')}\n"
-                    f"- Muestra: {values.get('muestra', '---')}\n"
-                    f"- Lugar: {values.get('lugar', '---')}\n"
-                    f"- Temporal: {values.get('temporal', '---')}\n"
-                    f"- Título sugerido: {values.get('title', '---')}\n\n"
+                    f"- Objeto de Estudio: {prompt_values.get('objeto_estudio', '---')}\n"
+                    f"- Variable Independiente: {prompt_values.get('variable_independiente', '---')}\n"
+                    f"- Variable Dependiente: {prompt_values.get('variable_dependiente', '---')}\n"
+                    f"- Población: {prompt_values.get('poblacion', '---')}\n"
+                    f"- Muestra: {prompt_values.get('muestra', '---')}\n"
+                    f"- Lugar: {prompt_values.get('lugar', '---')}\n"
+                    f"- Temporal: {prompt_values.get('temporal', '---')}\n"
+                    f"- Título sugerido: {prompt_values.get('title', '---')}\n\n"
                     "REGLAS:\n"
-                    "1. La estructura DEBE ser: [PROPUESTA / PLAN / DISEÑO] PARA MEJORAR [VARIABLE DEPENDIENTE] DE 'EL/LA' [OBJETO] EN [LUGAR], [TEMPORAL]\n"
+                    "1. La estructura DEBE ser: [PROPUESTA / PLAN / DISEÑO] "
+                    "PARA MEJORAR [VARIABLE DEPENDIENTE] DE 'EL/LA' [OBJETO] "
+                    "EN [LUGAR], [TEMPORAL]\n"
                     "2. Retorna ÚNICAMENTE el título corregido en MAYÚSCULAS.\n"
                     "3. NO expliques, NO saludes, NO digas 'Aquí tienes'.\n"
                     "4. Si el título sugerido ya está bien, devuélvelo tal cual (pero en mayúsculas).\n"

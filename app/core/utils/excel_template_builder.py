@@ -42,7 +42,12 @@ _SECTIONS: list[dict[str, Any]] = [
                 "placeholder": "Ej: Gestión y Optimización de Sistemas de Mantenimiento Industrial",
                 "required": True,
             },
-            # El sistema usará el año 2026 automáticamente para la carátula institucional
+            {
+                "key": "anio",
+                "label": "Año",
+                "placeholder": "Ej: 2025",
+                "required": True,
+            },
             {
                 "key": "lugar_caratula",
                 "label": "Lugar (carátula)",

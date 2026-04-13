@@ -29,6 +29,7 @@ _VALUE_COLUMN = "B"
 
 _REQUIRED_FIELDS = {
     "titulo",
+    "anio",
     "autor1_nombres",
     "asesor_nombres",
     "lugar_ejecucion",
@@ -313,6 +314,7 @@ def _build_result(raw: dict[str, str]) -> MaestriaExcelResult:
 
     assign("titulo", set_titulo)
     assign("linea_investigacion", set_linea)
+    assign("anio", set_anio)
     assign("lugar_caratula", set_lugar)
 
     # Autor 1
@@ -443,7 +445,14 @@ def _run_validations(result: MaestriaExcelResult) -> None:
         if not direct_required_checks.get(field_key, False):
             missing.append(field_key)
 
-    # El año de la carátula se maneja internamente como 2026 para Maestría
+    # Year validation
+    if result.anio:
+        if not re.fullmatch(r"\d{4}", result.anio):
+            errors.append("El año debe contener exactamente 4 dígitos.")
+        else:
+            year = int(result.anio)
+            if year < _YEAR_MIN or year > _YEAR_MAX:
+                errors.append(f"El año debe estar dentro del rango {_YEAR_MIN}-{_YEAR_MAX}.")
 
     # ORCID validations
     for label, orcid_val in [

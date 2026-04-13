@@ -315,13 +315,13 @@ def _resolve_project_selected_sections(
     # No verificamos 'if explicit_selected' porque una lista vacía [] es una selección válida (nada).
     if isinstance(project.get("selected_sections"), list):
         return project["selected_sections"]
-    
+
     # Solo inferimos o usamos defaults si no hay rastro de selección previa.
     ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
     inferred = generation_planner.infer_selected_sections_from_ai_result(ai_result)
     if inferred:
         return inferred
-    
+
     return _default_selected_sections_from_package(prompt_snapshot)
 
 
@@ -2421,20 +2421,20 @@ async def _ai_generation_job(
             # Remover prefijos comunes si la IA los incluyó por error
             for prefix in ["TÍTULO:", "TITULO:", "PROYECTO:", "NUEVO TÍTULO:", "CORRECTED TITLE:"]:
                 if clean_title.upper().startswith(prefix):
-                    clean_title = clean_title[len(prefix):].strip()
-            
+                    clean_title = clean_title[len(prefix) :].strip()
+
             _logger.info("IA title validation: updating title to '%s'", clean_title)
             # Actualizamos variables, values y la propiedad RAÍZ para máxima consistencia
             current_vars = dict(project.get("variables") or {})
             current_vars["title"] = clean_title
             current_vars["titulo"] = clean_title
             projects.update_project(
-                project_id, 
+                project_id,
                 {
-                    "variables": current_vars, 
+                    "variables": current_vars,
                     "values": current_vars,
-                    "title": clean_title  # Actualización crítica en la raíz
-                }
+                    "title": clean_title,  # Actualización crítica en la raíz
+                },
             )
             # Reflejamos en el objeto en memoria
             project["variables"] = current_vars
@@ -3623,8 +3623,12 @@ async def validate_maestria_title(body: "MaestriaDetailsIn") -> dict[str, Any]:
 
     flat = body.to_flat_values()
     context_keys = [
-        "linea_investigacion", "unidad_analisis", "tipo", 
-        "enfoque", "diseno_investigacion", "lugar_ejecucion"
+        "linea_investigacion",
+        "unidad_analisis",
+        "tipo",
+        "enfoque",
+        "diseno_investigacion",
+        "lugar_ejecucion",
     ]
     context_str = "\n".join(f"- {k}: {flat.get(k, '')}" for k in context_keys if flat.get(k))
 
@@ -3632,7 +3636,7 @@ async def validate_maestria_title(body: "MaestriaDetailsIn") -> dict[str, Any]:
 Eres un experto metodólogo especializado en normativas de la UNAC (Universidad Nacional del Callao).
 Tu tarea es validar y corregir el siguiente título de tesis de posgrado.
 
-Título original propuesto: "{flat.get('titulo')}"
+Título original propuesto: "{flat.get("titulo")}"
 
 Contexto de la investigación:
 {context_str}
@@ -3656,28 +3660,25 @@ EXPLICACION: [Breve explicación de los cambios en 1 párrafo]
         text = str(result.get("text", "")).strip()
 
         # Parse output
-        titulo_validado = flat.get('titulo')
+        titulo_validado = flat.get("titulo")
         explicacion = "Validación completada."
         for line in text.split("\n"):
             line = line.strip()
             if line.upper().startswith("TITULO:"):
-                titulo_validado = line[len("TITULO:"):].strip()
+                titulo_validado = line[len("TITULO:") :].strip()
             elif line.upper().startswith("EXPLICACION:"):
-                explicacion = line[len("EXPLICACION:"):].strip()
-        
-        return {
-            "title": titulo_validado,
-            "explanation": explicacion,
-            "success": True
-        }
+                explicacion = line[len("EXPLICACION:") :].strip()
+
+        return {"title": titulo_validado, "explanation": explicacion, "success": True}
     except Exception as e:
         _logger.exception("Error en validate_title_ai: %s", e)
         return {
             "title": flat.get("titulo"),
             "explanation": "No se pudo validar con IA por un error interno, verifica el título manualmente.",
             "success": False,
-            "error": str(e)
+            "error": str(e),
         }
+
 
 @router.put("/projects/{project_id}/maestria-details")
 async def save_maestria_details(project_id: str, body: "MaestriaDetailsIn") -> dict[str, Any]:
@@ -3687,8 +3688,6 @@ async def save_maestria_details(project_id: str, body: "MaestriaDetailsIn") -> d
     Merges the normalized flat values into project.variables so the rest of the
     generation pipeline (payload builder → GicaTesis) picks them up correctly.
     """
-    from app.modules.api.models import MaestriaDetailsIn
-
     project = projects.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail=f"Proyecto {project_id!r} no encontrado.")
@@ -3697,7 +3696,7 @@ async def save_maestria_details(project_id: str, body: "MaestriaDetailsIn") -> d
     existing_values = dict(project.get("variables") or project.get("values") or {})
     merged_values = {**existing_values, **flat_values}
 
-    updated = projects.update_project(
+    projects.update_project(
         project_id,
         {
             "variables": merged_values,
@@ -3711,4 +3710,3 @@ async def save_maestria_details(project_id: str, body: "MaestriaDetailsIn") -> d
         "saved_fields": list(flat_values.keys()),
         "title": flat_values.get("titulo") or "",
     }
-

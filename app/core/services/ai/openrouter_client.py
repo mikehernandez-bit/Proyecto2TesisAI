@@ -6,7 +6,7 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-import requests  # type: ignore[import-untyped]
+import requests  # type: ignore[import-untyped,unused-ignore]
 
 from app.core.config import settings
 from app.core.services.ai.errors import ProviderAuthError, ProviderTransientError, QuotaExceededError

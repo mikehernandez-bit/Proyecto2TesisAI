@@ -205,15 +205,16 @@ def values_with_title(
 
     # 3. Asegurar sincronización y prioridad del título
     # Priorizamos lo que hay en 'values' (que ya incluye vars) sobre el 'project.title' raíz
-    title_from_values = str(values.get("titulo") or values.get("title") or values.get("tema") or "").strip()
+    explicit_title = str(values.get("titulo") or values.get("title") or "").strip()
     root_title = str(project.get("title") or "").strip()
-    
-    final_title = title_from_values or root_title
-    
+    current_theme = str(values.get("tema") or "").strip()
+
+    final_title = explicit_title or root_title or current_theme
+
     if final_title:
-        values["titulo"] = final_title
         values["title"] = final_title
-        values["tema"] = final_title
+        values.setdefault("titulo", final_title)
+        values.setdefault("tema", final_title)
 
     return values
 
@@ -232,26 +233,35 @@ def adapt_ai_result_for_gicatesis(ai_result: dict[str, Any] | None) -> dict[str,
         if not isinstance(item, dict):
             continue
         path = str(item.get("path") or "").strip()
-        if not path:
+        if not path or _is_toc_path(path):
             continue
 
         raw_content = item.get("content")
         canonical_id = item.get("sectionId")
 
         content = _apply_section_content_policy(path, raw_content)
+        if not _has_visible_content(content):
+            continue
         entry: dict[str, Any] = {
             "path": path,
             "content": content,
         }
         if canonical_id:
             entry["sectionId"] = canonical_id
-        canonical_sections.append(entry)
+        existing = next(
+            (section for section in canonical_sections if str(section.get("path") or "") == path),
+            None,
+        )
+        if existing is None:
+            canonical_sections.append(entry)
+            continue
+        existing["content"] = _merge_content(existing.get("content"), content)
+        if canonical_id and not existing.get("sectionId"):
+            existing["sectionId"] = canonical_id
 
     by_path: dict[str, dict[str, Any]] = {item["path"]: item for item in canonical_sections if item.get("path")}
     parent_paths_with_children: set[str] = set()
     for path in by_path:
-        if "/" in path:
-            continue
         prefix = f"{path}/"
         if any(other_path.startswith(prefix) for other_path in by_path):
             parent_paths_with_children.add(path)
@@ -345,6 +355,8 @@ def decide_resume_mode(
     existing_sections = extract_resume_seed_sections(ai_result_raw)
     has_partial = bool(existing_sections)
 
+    requested_mode = str(requested_mode or "auto").strip().lower()
+
     if requested_mode == "restart":
         return False, [], "restart"
 
@@ -355,6 +367,6 @@ def decide_resume_mode(
     status = str(project.get("status") or "").strip().lower()
     suspicious_statuses = {"failed", "blocked", "cancel_requested", "render_failed"}
     if has_partial and status in suspicious_statuses:
-        return True, existing_sections, "resume"
+        return True, existing_sections, "auto"
 
-    return False, [], "restart"
+    return False, [], "auto"
