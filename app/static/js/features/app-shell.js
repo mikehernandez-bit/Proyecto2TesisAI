@@ -1,4 +1,4 @@
-﻿import { createWizardStore } from "../state/wizard-store.js";
+import { createWizardStore } from "../state/wizard-store.js";
 import { createWizardController } from "./wizard/wizard-controller.js";
 import { createFormatStep } from "./wizard/format-step.js";
 import { createPackageSelectionStep } from "./wizard/package-selection-step.js";
@@ -514,6 +514,7 @@ export function createTesisAI() {
     selectedChaptersData = [];
     wizardState = { module: "", enfoque: "", chapters: [] };
     currentProject = null;
+    detailsStepController?.reset?.();
     generationController?.resetState?.();
     n8nGuideController?.reset?.();
 
@@ -607,7 +608,7 @@ export function createTesisAI() {
       $("btn-step4-generate").onclick = (event) => {
         if (event) event.preventDefault();
         generationController?.triggerGeneration?.().catch((error) => {
-          setStep4Error(error?.message || "No se pudo iniciar la generaciÃ³n.");
+          setStep4Error(error?.message || "No se pudo iniciar la generación.");
         });
       };
     }
@@ -686,7 +687,7 @@ export function createTesisAI() {
         const universityCode = String(format.university || "generic").toLowerCase();
         const logoUrl = `/api/assets/logos/${universityCode}.png`;
 
-        // When GicaTesis is offline, skip loading remote logos â€” use text fallback.
+        // When GicaTesis is offline, skip loading remote logos — use text fallback.
         const logoHtml = gicatesisOnline
           ? `<img src="${logoUrl}" alt="${escapeHtml(universityCode)}" class="w-full h-full object-contain"
               onerror="this.onerror=null;this.parentNode.innerHTML='<span class=&quot;text-blue-700 font-bold&quot;>${escapeHtml(String(universityCode).toUpperCase())}</span>'">`
@@ -765,7 +766,7 @@ export function createTesisAI() {
     }
     $("btn-step1-next").disabled = false;
 
-    // Â¡TRUCO DE SISTEMAS_HENYER! Forzamos la carga desde aquÃ­ mismo
+    // ¡TRUCO DE SISTEMAS_HENYER! Forzamos la carga desde aquí mismo
     loadPromptsForWizard(); 
   }
 
@@ -822,10 +823,12 @@ export function createTesisAI() {
   async function _persistWizardState(step, mode = "continue") {
     if (!currentProject?.id) return;
     try {
+      const wizardData = collectWizardPayload();
       const currentWizardState = currentProject?.wizard_state && typeof currentProject.wizard_state === "object"
         ? currentProject.wizard_state
         : {};
       const updated = await apiSend(`/api/projects/${encodeURIComponent(currentProject.id)}`, "PUT", {
+        selectedSections: wizardData.selectedSections,
         wizardState: {
           currentStep: step,
           lastCompletedStep: Math.max(
@@ -856,7 +859,7 @@ export function createTesisAI() {
       $("wizard-context-title").textContent = project.title || "Proyecto existente";
     }
     if ($("wizard-context-text")) {
-      $("wizard-context-text").textContent = `Proyecto ${project.id} Â· ${project.prompt_name || "Sin prompt"} Â· ${project.format_name || project.format_id || "Sin formato"}. Si modificas pasos previos y guardas, la generaciÃ³n posterior se reiniciarÃ¡ de forma explÃ­cita.`;
+      $("wizard-context-text").textContent = `Proyecto ${project.id} · ${project.prompt_name || "Sin prompt"} · ${project.format_name || project.format_id || "Sin formato"}. Si modificas pasos previos y guardas, la generación posterior se adelantará de forma explícita.`;
     }
     if ($("wizard-context-status")) {
       $("wizard-context-status").innerHTML = statusBadge(_effectiveProjectStatus(project));
@@ -882,7 +885,7 @@ export function createTesisAI() {
 
   async function deleteProject(projectId) {
     if (!projectId) return;
-    if (!confirm("Ã‚Â¿Eliminar este proyecto? Esta acciÃ³n no se puede deshacer.")) return;
+    if (!confirm("¿Eliminar este proyecto? Esta acción no se puede deshacer.")) return;
     await apiSend(`/api/projects/${encodeURIComponent(projectId)}`, "DELETE");
     if (currentProject?.id === projectId) {
       currentProject = null;
@@ -1218,13 +1221,6 @@ export function createTesisAI() {
     }
   }
 
-  function renderChapterSelection(chapters) {
-    packageSelectionStep?.render(
-      Array.isArray(chapters) && chapters.length
-        ? { ...selectedPrompt, sections: chapters, section_tree: [] }
-        : selectedPrompt
-    );
-  }
 
   function renderDynamicForm() {
     detailsStepController?.render();
@@ -1316,7 +1312,6 @@ export function createTesisAI() {
       selectedChapterKeys = new Set(selectedChaptersData.map(_selectionKey));
       wizardState.chapters = [...selectedChaptersData];
       wizardStore.setSelectedSections(selectedChaptersData);
-      renderChapterSelection(_flattenPromptSections(selectedPrompt));
       renderDynamicForm();
       _populateWizardValues(project);
       if ($("btn-step2-next")) $("btn-step2-next").disabled = selectedChapterKeys.size === 0;
@@ -1358,6 +1353,15 @@ export function createTesisAI() {
       return;
     }
 
+    // Validate maestría form if applicable
+    if (detailsStepController?.isMaestria) {
+      const errors = detailsStepController.validateMaestria?.() || [];
+      if (errors.length) {
+        setStep3Error(errors[0]);
+        return;
+      }
+    }
+
     setStep3Error("");
     const btn = $("btn-step3-next-provider");
     const loader = $("step3-loading");
@@ -1372,6 +1376,90 @@ export function createTesisAI() {
     } finally {
       if (btn) btn.classList.remove("hidden");
       if (loader) loader.classList.add("hidden");
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Maestría Excel helpers — exposed on TesisAI
+  // ---------------------------------------------------------------------------
+
+  /** Trigger download of the blank Excel template. */
+  function downloadExcelTemplate() {
+    try {
+      // Usamos un formulario POST oculto para disparar la descarga nativa del navegador.
+      // Esto es más robusto que fetch+blob y evita problemas de 405 si el GET no está habilitado.
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/api/wizard/details/excel-template";
+      document.body.appendChild(form);
+      form.submit();
+      form.remove();
+    } catch (err) {
+      setStep3Error("No se pudo iniciar la descarga de la plantilla.");
+    }
+  }
+
+  /** Called by the file input's onchange. Passes the file to detailsStepController. */
+  async function onExcelFileSelected(inputEl) {
+    const file = inputEl?.files?.[0];
+    if (!file) return;
+    // Show filename
+    const label = $("excel-filename-label");
+    if (label) {
+      label.textContent = file.name;
+      label.classList.remove("hidden");
+    }
+    // Reset input so the same file can be re-uploaded
+    if (inputEl) inputEl.value = "";
+    setStep3Error("");
+    try {
+      await detailsStepController?.processExcelFile?.(file);
+    } catch (err) {
+      setStep3Error(err.message || "Error al procesar el Excel.");
+    }
+  }
+
+  /**
+   * Explicitly save the maestría form to the backend.
+   * Called by the "Guardar" button in step 3.
+   */
+  async function saveMaestriaDetails() {
+    const projectId = currentProject?.id;
+    if (!projectId) {
+      // No project yet — just sync to store, the upsert will handle it on continue
+      detailsStepController?.serialize?.();
+      return;
+    }
+
+    const values = detailsStepController?.collectMaestria?.();
+    if (!values) return;
+
+    const errors = detailsStepController?.validateMaestria?.() || [];
+    if (errors.length) {
+      setStep3Error(errors[0]);
+      return;
+    }
+
+    setStep3Error("");
+    const saveBtn = $("btn-step3-save-maestria");
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Guardando...';
+    }
+    try {
+      await apiSend(`/api/projects/${encodeURIComponent(projectId)}/maestria-details`, "PUT", values);
+      // Also update local project state
+      const titulo = String(values.titulo || "").trim();
+      currentProject = { ...(currentProject || {}), title: titulo || currentProject?.title || "" };
+      wizardStore.setCurrentProject(currentProject);
+      if (saveBtn) {
+        saveBtn.innerHTML = '<i class="fa-solid fa-check mr-1.5 text-green-500"></i> Guardado';
+        setTimeout(() => { saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar'; }, 2000);
+      }
+    } catch (err) {
+      setStep3Error(err.message || "No se pudieron guardar los datos.");
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
     }
   }
 
@@ -1550,8 +1638,6 @@ export function createTesisAI() {
     wizardController.registerStep(7, createDownloadStep());
   }
 
-
-
   return {
     showView,
     nextStep,
@@ -1584,6 +1670,11 @@ export function createTesisAI() {
     selectAllChapters,
     saveChapterSelectionAndGoDetails,
     addVariableToBlock,
+    // Maestría Excel flow
+    downloadExcelTemplate,
+    onExcelFileSelected,
+    saveMaestriaDetails,
+    validateMaestriaTitle: () => detailsStepController?.validateMaestriaTitle?.(),
     async boot() {
       _initializeFrontControllers();
       wireHistorySearch();
@@ -1592,6 +1683,3 @@ export function createTesisAI() {
     },
   };
 }
-
-
-

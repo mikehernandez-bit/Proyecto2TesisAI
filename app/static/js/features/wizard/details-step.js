@@ -1,5 +1,19 @@
+/**
+ * Details Step — Wizard Step 3
+ *
+ * Supports two modes:
+ *  - Maestría UNAC: Excel upload → preview → editable structured form
+ *  - Other formats: Dynamic form generated from prompt package variables (existing behavior)
+ *
+ * The mode is determined by the format.category from the store.
+ */
+
 import { selectionKey } from "./prompt-package-client.js";
 import { flattenSections } from "./section-selection.js";
+
+// ---------------------------------------------------------------------------
+// Utility helpers (unchanged from original)
+// ---------------------------------------------------------------------------
 
 function repairVisibleText(value) {
   const raw = String(value ?? "").trim();
@@ -38,6 +52,10 @@ function shouldReplaceVariableOwner(currentOwner, candidateGroup) {
   return String(candidateGroup.section_path || "").length >= String(currentOwner.section_path || "").length;
 }
 
+// ---------------------------------------------------------------------------
+// buildDetailsGroups — unchanged from original, used for non-maestría formats
+// ---------------------------------------------------------------------------
+
 export function buildDetailsGroups(promptPackage, selectedSections) {
   const packageVariables = uniqueValues(promptPackage?.variables);
   const selectedKeys = new Set((Array.isArray(selectedSections) ? selectedSections : []).map(selectionKey));
@@ -47,8 +65,18 @@ export function buildDetailsGroups(promptPackage, selectedSections) {
       .filter((section) => String(section.section_path || "").trim())
       .map((section) => [String(section.section_path || "").trim(), section]),
   );
-  const groups = [];
 
+  // Identify variables used strictly by ANY section (so we don't treat them as globals if unselected)
+  const allSectionVariableNames = new Set();
+  sections.forEach((section) => {
+    (Array.isArray(section.blocks) ? section.blocks : []).forEach((block) => {
+      uniqueValues(block.required_variables).forEach((v) => {
+        if (v) allSectionVariableNames.add(String(v).trim().toLowerCase());
+      });
+    });
+  });
+
+  const groups = [];
   sections.forEach((section) => {
     const key = selectionKey(section);
     const isSelected = selectedKeys.size ? selectedKeys.has(key) : Boolean(section.default_selected);
@@ -111,8 +139,13 @@ export function buildDetailsGroups(promptPackage, selectedSections) {
     });
   });
 
+  const globalVariables = packageVariables.filter(
+    (name) => !allSectionVariableNames.has(String(name).toLowerCase())
+  );
+
   return {
     packageVariables,
+    globalVariables,
     groups: groups
       .map((group) => ({
         ...group,
@@ -125,6 +158,160 @@ export function buildDetailsGroups(promptPackage, selectedSections) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// ============================================================================
+// STATE & UTILS
+// ============================================================================
+
+/** Returns true if the current format in the store is maestría/posgrado */
+function isMaestriaFormat(store) {
+  const state = store.getState();
+  const format = state.format || state.currentProject?.format || null;
+  if (!format) return false;
+  const category = String(format.category || "").toLowerCase().trim();
+  return category.includes("maestria") || category.includes("posgrado") || category.includes("postgrado");
+}
+
+// ---------------------------------------------------------------------------
+// Maestría UI helpers
+// ---------------------------------------------------------------------------
+
+const MAESTRIA_REQUIRED_FIELDS = new Set([
+  "titulo", "autor1_nombres", "asesor_nombres",
+  "linea_investigacion", "lugar_ejecucion", "unidad_analisis",
+  "tipo", "enfoque", "diseno_investigacion", "tema_ocde_1",
+  "objeto_estudio", "variable_independiente", "variable_dependiente",
+  "poblacion", "muestra", "lugar", "temporal"
+]);
+
+/** Read all maestría form inputs into a flat dict. */
+function _collectMaestriaValues() {
+  const values = {};
+  document.querySelectorAll("[data-maestria]").forEach((el) => {
+    const key = el.getAttribute("data-maestria");
+    if (!key) return;
+    values[key] = String(el.value || "").trim();
+  });
+  return values;
+}
+
+/** Populate maestría form inputs from a flat dict. Does not overwrite non-empty fields
+ *  unless force=true. This avoids wiping manual edits when rehidrating. */
+function _populateMaestriaForm(values, { force = false } = {}) {
+  document.querySelectorAll("[data-maestria]").forEach((el) => {
+    const key = el.getAttribute("data-maestria");
+    if (!key) return;
+    const incoming = String(values[key] || "").trim();
+    if (!incoming) return; // never wipe with empty
+    const current = String(el.value || "").trim();
+    if (!current || force) {
+      el.value = incoming;
+    }
+  });
+}
+
+/** Returns validation errors for the maestría form. */
+function _validateMaestriaValues(values) {
+  const errors = [];
+  for (const field of MAESTRIA_REQUIRED_FIELDS) {
+    if (!String(values[field] || "").trim()) {
+      const labels = {
+        titulo: "Título del Proyecto",
+        autor1_nombres: "Apellidos y Nombres (Autor 1)",
+        asesor_nombres: "Apellidos y Nombres (Asesor)",
+        anio: "Año",
+        linea_investigacion: "Línea de Investigación",
+        lugar_ejecucion: "Lugar de Ejecución",
+        unidad_analisis: "Unidad de Análisis",
+        tipo: "Tipo",
+        enfoque: "Enfoque",
+        diseno_investigacion: "Diseño de Investigación",
+        tema_ocde_1: "Tema OCDE 1",
+      };
+      errors.push(`"${labels[field] || field}" es obligatorio.`);
+    }
+  }
+  // El campo anio ya no es obligatorio ni se valida aquí porque se fuerza en el backend.
+  // Solo validamos que temporal sea un año razonable si se ingresa.
+  const temporal = String(values.temporal || "").trim();
+  if (temporal && !/^\d{4}$/.test(temporal)) {
+    errors.push("El campo Temporal (Año) debe ser un año de 4 dígitos.");
+  }
+  return errors;
+}
+
+/** Show / hide the maestría UI blocks. */
+function _activateMaestriaUI() {
+  const excelBlock = document.getElementById("step3-excel-block");
+  const maestriaForm = document.getElementById("step3-maestria-form");
+  const dynamicForm = document.getElementById("dynamic-form");
+  const saveBtn = document.getElementById("btn-step3-save-maestria");
+
+  if (excelBlock) excelBlock.classList.remove("hidden");
+  if (maestriaForm) maestriaForm.classList.remove("hidden");
+  if (dynamicForm) dynamicForm.classList.add("hidden");
+  if (saveBtn) saveBtn.classList.remove("hidden");
+}
+
+/** Reset the maestría UI state: hide preview, clear file input label. */
+function _resetExcelUI() {
+  const preview = document.getElementById("step3-extraction-preview");
+  const processing = document.getElementById("excel-processing-state");
+  const loading = document.getElementById("excel-loading");
+  const error = document.getElementById("excel-error");
+  const success = document.getElementById("excel-success");
+  const filenameLabel = document.getElementById("excel-filename-label");
+
+  if (preview) preview.classList.add("hidden");
+  if (processing) processing.classList.add("hidden");
+  if (loading) loading?.classList.add("hidden");
+  if (error) error.classList.add("hidden");
+  if (success) success.classList.add("hidden");
+  if (filenameLabel) {
+    filenameLabel.classList.add("hidden");
+    filenameLabel.textContent = "";
+  }
+}
+
+/** Show the extraction preview block with the parse result. */
+function _renderExtractionPreview(result) {
+  const previewEl = document.getElementById("step3-extraction-preview");
+  const summaryEl = document.getElementById("extraction-summary");
+  const warningsEl = document.getElementById("extraction-warnings");
+  const missingEl = document.getElementById("extraction-missing");
+  if (!previewEl || !summaryEl) return;
+
+  const extracted = result.extracted_fields || [];
+  const warnings = result.warnings || [];
+  const missing = result.missing_required || [];
+
+  summaryEl.innerHTML = extracted.length
+    ? `<span class="font-medium">${extracted.length} campo(s) extraídos.</span>`
+    : "<span>No se extrajeron campos del Excel.</span>";
+
+  if (warnings.length) {
+    warningsEl.classList.remove("hidden");
+    warningsEl.innerHTML = warnings.map((w) => `<div>⚠ ${w}</div>`).join("");
+  } else {
+    warningsEl.classList.add("hidden");
+  }
+
+  if (missing.length) {
+    missingEl.classList.remove("hidden");
+    missingEl.innerHTML =
+      `<div class="font-medium">Campos obligatorios faltantes:</div>` +
+      missing.map((m) => `<div>• ${m}</div>`).join("");
+  } else {
+    missingEl.classList.add("hidden");
+  }
+
+  previewEl.classList.remove("hidden");
+}
+
+// ---------------------------------------------------------------------------
+// Main factory
+// ---------------------------------------------------------------------------
+
 export function createDetailsStep({
   store,
   getContainer,
@@ -133,6 +320,8 @@ export function createDetailsStep({
   readInputValue,
   syncVariableInputs,
 }) {
+  // ── Standard form helpers (unchanged) ──────────────────────────────────
+
   function hydrateExistingValues() {
     const state = store.getState();
     const values = state.projectValues || {};
@@ -147,7 +336,7 @@ export function createDetailsStep({
     });
   }
 
-  function render() {
+  function renderStandardForm() {
     const container = getContainer?.();
     if (!container) return;
     container.innerHTML = "";
@@ -187,7 +376,7 @@ export function createDetailsStep({
     `;
     container.appendChild(titleWrapper);
 
-    const packageVariables = (Array.isArray(details.packageVariables) ? details.packageVariables : [])
+    const packageVariables = (Array.isArray(details.globalVariables) ? details.globalVariables : [])
       .map((name) => String(name || "").trim().toLowerCase())
       .filter((name) => name && name !== "title" && name !== "tema" && !sectionVariableNames.has(name));
 
@@ -283,7 +472,7 @@ export function createDetailsStep({
     hydrateExistingValues();
   }
 
-  function collect() {
+  function collectStandard() {
     const values = {};
     document.querySelectorAll("#dynamic-form [data-variable]").forEach((input) => {
       const variableName = String(input.getAttribute("data-variable") || "").trim();
@@ -304,6 +493,178 @@ export function createDetailsStep({
     return { title, values };
   }
 
+  // ── Maestría mode helpers ───────────────────────────────────────────────
+
+  /** Wire change events on maestría inputs → update store. */
+  function _wireMaestriaInputs() {
+    document.querySelectorAll("[data-maestria]").forEach((el) => {
+      el.addEventListener("input", () => {
+        _syncMaestriaToStore();
+      });
+    });
+  }
+
+  /** Collect from form and push to store.maestriaDetails + store.projectValues. */
+  function _syncMaestriaToStore() {
+    const values = _collectMaestriaValues();
+    store.setMaestriaDetails(values);
+    // Also keep projectValues in sync (for non-maestría parts of the payload)
+    const pv = { ...(store.getState().projectValues || {}), ...values };
+    store.setProjectValues(pv);
+  }
+
+  /** Mount the maestría step: activate UI blocks, rehidrante if state exists. */
+  function renderMaestriaStep() {
+    _activateMaestriaUI();
+
+    // Try to rehidrate from store
+    const state = store.getState();
+    const existing = state.maestriaDetails || state.projectValues || null;
+    if (existing && Object.keys(existing).length) {
+      _populateMaestriaForm(existing, { force: false });
+    }
+
+    // Wire inputs for continuous sync
+    _wireMaestriaInputs();
+
+    // Update guide text
+    const guide = document.getElementById("step3-guide-text");
+    if (guide) {
+      guide.textContent =
+        "Descarga la plantilla Excel, llénala y súbela para extraer tus datos automáticamente. " +
+        "También puedes llenar el formulario directamente.";
+    }
+  }
+
+  // ── Public API ──────────────────────────────────────────────────────────
+
+  function render() {
+    if (isMaestriaFormat(store)) {
+      renderMaestriaStep();
+    } else {
+      renderStandardForm();
+    }
+  }
+
+  function collect() {
+    if (isMaestriaFormat(store)) {
+      const values = _collectMaestriaValues();
+      store.setMaestriaDetails(values);
+      const pv = { ...(store.getState().projectValues || {}), ...values };
+      store.setProjectValues(pv);
+      const title = values.titulo || "Proyecto Tesis";
+      return { title, values };
+    }
+    return collectStandard();
+  }
+
+  function validate() {
+    if (isMaestriaFormat(store)) {
+      const values = _collectMaestriaValues();
+      const errors = _validateMaestriaValues(values);
+      if (errors.length) {
+        const errEl = document.getElementById("step3-error");
+        if (errEl) {
+          errEl.textContent = errors[0];
+          errEl.classList.remove("hidden");
+        }
+        return false;
+      }
+      const errEl = document.getElementById("step3-error");
+      if (errEl) errEl.classList.add("hidden");
+      return true;
+    }
+    const { title } = collectStandard();
+    return Boolean(String(title || "").trim());
+  }
+
+  /**
+   * Called by TesisAI.onExcelFileSelected — processes the selected file.
+   * Returns a promise resolving to the preview result.
+   */
+  async function processExcelFile(file) {
+    const loadingEl = document.getElementById("excel-loading");
+    const errorEl = document.getElementById("excel-error");
+    const successEl = document.getElementById("excel-success");
+    const successText = document.getElementById("excel-success-text");
+    const processingEl = document.getElementById("excel-processing-state");
+
+    if (processingEl) processingEl.classList.remove("hidden");
+    if (loadingEl) loadingEl.classList.remove("hidden");
+    if (errorEl) errorEl.classList.add("hidden");
+    if (successEl) successEl.classList.add("hidden");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/wizard/details/excel-preview", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let msg = "Error al procesar el Excel.";
+        try {
+          const payload = await response.json();
+          if (payload?.detail) msg = String(payload.detail);
+        } catch (_) {}
+        throw new Error(msg);
+      }
+
+      const result = await response.json();
+      store.setExcelPreviewResult(result);
+
+      // Populate form with extracted data (don't overwrite existing manual edits)
+      if (result.flat) {
+        _populateMaestriaForm(result.flat, { force: true });
+        _syncMaestriaToStore();
+      }
+
+      // Render preview block
+      _renderExtractionPreview(result);
+
+      if (loadingEl) loadingEl.classList.add("hidden");
+      if (successEl) {
+        successEl.classList.remove("hidden");
+        const count = (result.extracted_fields || []).length;
+        if (successText) successText.textContent = `${count} campo(s) extraídos correctamente.`;
+      }
+
+      return result;
+    } catch (err) {
+      if (loadingEl) loadingEl.classList.add("hidden");
+      if (errorEl) {
+        errorEl.textContent = err.message || "No se pudo procesar el Excel.";
+        errorEl.classList.remove("hidden");
+      }
+      throw err;
+    }
+  }
+
+  function reset() {
+    // 1. Clear standard form
+    const dynamicForm = document.getElementById("dynamic-form");
+    if (dynamicForm) dynamicForm.innerHTML = "";
+    const titleField = document.getElementById("var_title");
+    if (titleField) titleField.value = "";
+
+    // 2. Clear Maestría form
+    document.querySelectorAll("[data-maestria]").forEach((el) => {
+      if ("value" in el) el.value = "";
+    });
+
+    // 3. Clear Excel UI
+    _resetExcelUI();
+
+    // 4. Clear common errors
+    const errEl = document.getElementById("step3-error");
+    if (errEl) {
+      errEl.textContent = "";
+      errEl.classList.add("hidden");
+    }
+  }
+
+
   return {
     mount() {
       render();
@@ -312,12 +673,25 @@ export function createDetailsStep({
       collect();
     },
     validate() {
-      const { title } = collect();
-      return Boolean(String(title || "").trim());
+      return validate();
     },
     serialize() {
       return collect();
     },
     render,
+    /** Expose for TesisAI.onExcelFileSelected */
+    processExcelFile,
+    /** Expose for TesisAI.saveMaestriaDetails — collects and validates before returning */
+    collectMaestria() {
+      return _collectMaestriaValues();
+    },
+    validateMaestria() {
+      return _validateMaestriaValues(_collectMaestriaValues());
+    },
+    /** True if current format is maestría */
+    get isMaestria() {
+      return isMaestriaFormat(store);
+    },
+    reset,
   };
 }

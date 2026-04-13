@@ -13,7 +13,7 @@ import logging
 import time
 from typing import Any, Optional
 
-import requests  # type: ignore[import-untyped]
+import requests  # type: ignore[import-untyped,unused-ignore]
 import urllib3
 
 from app.core.config import settings

@@ -1,15 +1,16 @@
-import { fetchPromptPackage, normalizeSelectedSections, selectionKey } from "./prompt-package-client.js";
 import {
-  applyNodeSelection,
+  fetchPromptPackage,
+  normalizeSelectedSections,
+  selectionKey,
   buildSectionTree,
-  collectConcreteSelectionKeys,
-  computeNodeSelectionState,
-  countRequiredVariables,
-  flattenSections,
-  hasOwnBlocks,
   isGroupingOnlySection,
+  hasOwnBlocks,
+  countRequiredVariables,
   parentScopeLabel,
-} from "./section-selection.js";
+  computeNodeSelectionState,
+  applyNodeSelection
+} from "./prompt-package-client.js";
+import { flattenSections } from "./section-selection.js";
 import { escapeHtml } from "../../shared/dom.js";
 
 function cloneBlock(block) {
@@ -121,7 +122,6 @@ function mergeProjectSnapshot(promptPackage, project) {
     selected_sections: Array.isArray(project.selected_sections)
       ? project.selected_sections
       : (Array.isArray(project.prompt_snapshot?.selected_sections) ? project.prompt_snapshot.selected_sections : promptPackage.selected_sections),
-    section_tree: [],
   };
 }
 
@@ -276,7 +276,6 @@ export function createPackageSelectionStep({
     const normalizedPackage = {
       ...(nextPromptPackage || {}),
       sections: Array.isArray(nextPromptPackage?.sections) ? nextPromptPackage.sections.map(cloneSection) : [],
-      section_tree: [],
     };
 
     deselectKeys.forEach((key) => selectedKeys.delete(key));
@@ -935,9 +934,22 @@ export function createPackageSelectionStep({
 
       const initialSource = Array.isArray(project?.selected_sections)
         ? project.selected_sections
-        : (Array.isArray(promptPackage?.selected_sections) ? promptPackage.selected_sections : null);
+        : (Array.isArray(promptPackage?.selected_sections) && promptPackage.selected_sections.length
+            ? promptPackage.selected_sections
+            : null);
       const initialSelection = normalizeSelectedSections(initialSource, promptPackage);
-      selectedKeys = new Set(initialSelection.map(selectionKey));
+      
+      // FORZAR SELECCIÓN ÚNICA para Maestría SOLO si no hay NADA guardado previamente
+      const formatId = String(promptPackage?.format_id || promptPackage?._meta?.id || "").toLowerCase();
+      const hasPreviousSelection = Array.isArray(project?.selected_sections) && project.selected_sections.length > 0;
+
+      if (formatId.includes("maestria") && !hasPreviousSelection) {
+         // Si es maestría y REALMENTE no hay nada previo en el proyecto, ponemos el default
+         selectedKeys = new Set(["titulo-info-basica"]);
+      } else {
+         selectedKeys = new Set(initialSelection.map(selectionKey));
+      }
+
       expandedKeys = new Set();
       expansionHydrated = false;
       selectionHydrated = true;

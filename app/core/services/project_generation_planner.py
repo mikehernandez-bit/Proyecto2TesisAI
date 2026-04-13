@@ -44,14 +44,43 @@ class ProjectGenerationPlanner:
 
         merged_sections = self._flatten_sections_in_tree_order(merged_sections)
 
+        # Inyectar sección institucional de Carátula para Maestría UNAC si falta
+        format_id = str(prompt_package.get("format_id") or prompt_package.get("_meta", {}).get("id") or "").lower()
+        if "maestria" in format_id:
+            special_key = "titulo-info-basica"
+            if not any(special_key in self._section_keys(s) for s in merged_sections):
+                merged_sections.insert(0, {
+                    "section_id": special_key,
+                    "section_path": "Título + Información Básica",
+                    "section_title": "Título + Información Básica",
+                    "section_order": -100,
+                    "default_selected": True,
+                    "optional": False,
+                    "blocks": [
+                        {
+                            "block_id": "block:titulo-info",
+                            "header": "Validación de Título e Información Básica",
+                            "label": "Validación de Título e Información Básica",
+                            "required": True,
+                        }
+                    ],
+                })
+
         selected_keys = self._resolve_selected_keys(
             selected_sections=selected_sections,
             merged_sections=merged_sections,
         )
         planned: List[Dict[str, Any]] = []
         for section in merged_sections:
-            if selected_keys and not self._section_keys(section).intersection(selected_keys):
-                continue
+            # SI SE PROPORCIONÓ UNA SELECCIÓN MANUAL, DEBEMOS RESPETARLA ESTRICTAMENTE.
+            # No permitimos fallback a 'todo' si selected_sections no es None.
+            if selected_sections is not None:
+                if not selected_keys or not self._section_keys(section).intersection(selected_keys):
+                    continue
+            else:
+                # Si selected_sections es None, usamos fallback a por defecto
+                if not self._section_keys(section).intersection(selected_keys):
+                    continue
             normalized_blocks = self._section_blocks(section)
             planned.append(
                 {
@@ -229,7 +258,7 @@ class ProjectGenerationPlanner:
             parent_path = str(item.get("parent_section_path") or "").strip()
             children_by_parent.setdefault(parent_path, []).append(item)
 
-        if isinstance(selected_sections, list) and selected_sections:
+        if isinstance(selected_sections, list):
             raw_selected_keys: Set[str] = set()
             for item in selected_sections:
                 if isinstance(item, str):
@@ -240,14 +269,18 @@ class ProjectGenerationPlanner:
                 if not isinstance(item, dict):
                     continue
                 raw_selected_keys.update(self._section_keys(item))
-            if raw_selected_keys:
-                return self._expand_selected_keys(
-                    raw_selected_keys=raw_selected_keys,
-                    merged_sections=merged_sections,
-                    path_to_section=path_to_section,
-                    children_by_parent=children_by_parent,
-                )
+            
+            # Si se proporcionó una lista (Vacía o con datos), expandimos lo que haya 
+            # y retornamos. NO permitimos caída al default_keys de abajo.
+            return self._expand_selected_keys(
+                raw_selected_keys=raw_selected_keys,
+                merged_sections=merged_sections,
+                path_to_section=path_to_section,
+                children_by_parent=children_by_parent,
+            )
 
+        # SOLO si selected_sections es estrictamente None (no se envió nada),
+        # usamos los valores predeterminados del paquete.
         default_keys = {
             key
             for item in merged_sections

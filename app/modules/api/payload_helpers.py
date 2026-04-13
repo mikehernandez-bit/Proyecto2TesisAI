@@ -7,6 +7,8 @@ These functions build, adapt, and normalize payloads for GicaTesis rendering.
 from __future__ import annotations
 
 from typing import Any
+import json
+import logging
 
 import httpx
 
@@ -16,6 +18,12 @@ from app.core.services.ai.section_content_policy import (
 )
 from app.core.services.toc_detector import is_toc_path as _is_toc_path
 from app.integrations.gicatesis.types import validate_render_payload
+from app.core.services.maestria_payload_mapper import (
+    is_maestria_format,
+    map_maestria_values,
+)
+
+_logger = logging.getLogger(__name__)
 
 
 def _flatten_structured_to_text(content: list[dict[str, Any]]) -> str:
@@ -172,86 +180,48 @@ def values_with_title(
     project: dict[str, Any],
     source_values: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Ensure render/generation values include ``title`` fallback."""
-    values: dict[str, Any] = dict(source_values or {})
-    title_value = values.get("title")
-    if isinstance(title_value, str) and title_value.strip():
-        return values
+    """Ensure render/generation values include ``title`` fallback.
 
-    project_title = str(project.get("title") or "").strip()
-    if project_title:
-        values["title"] = project_title
+    Merges source values with priority:
+      1. project["values"] (Legacy/lowest)
+      2. project["variables"] (Wizard/Excel data)
+      3. source_values (Override/highest)
+    """
+    # 1. Start with legacy values
+    vals = project.get("values") if isinstance(project.get("values"), dict) else {}
+    # 2. Merge wizard variables (these are more reliable as they come from Excel/UI)
+    vars = project.get("variables") if isinstance(project.get("variables"), dict) else {}
+    
+    # Combined base
+    values: dict[str, Any] = {**vals, **vars, **(source_values or {})}
+
+    # SPECIAL HANDLING FOR UNAC MAESTRÍA:
+    if is_maestria_format(project):
+        maestria_values = map_maestria_values(values)
+        # Update only if not empty to prevent wiping existing good data
+        for k, v in maestria_values.items():
+            if v:
+                values[k] = v
+
+    # 3. Asegurar sincronización y prioridad del título
+    # Priorizamos lo que hay en 'values' (que ya incluye vars) sobre el 'project.title' raíz
+    explicit_title = str(values.get("titulo") or values.get("title") or "").strip()
+    root_title = str(project.get("title") or "").strip()
+    current_theme = str(values.get("tema") or "").strip()
+
+    final_title = explicit_title or root_title or current_theme
+
+    if final_title:
+        values["title"] = final_title
+        values.setdefault("titulo", final_title)
+        values.setdefault("tema", final_title)
+
     return values
 
 
-def extract_resume_seed_sections(ai_result: Any) -> list[dict[str, Any]]:
-    if not isinstance(ai_result, dict):
-        return []
-    raw_sections = ai_result.get("sections")
-    if not isinstance(raw_sections, list):
-        return []
-
-    seed_sections: list[dict[str, Any]] = []
-    for section in raw_sections:
-        if not isinstance(section, dict):
-            continue
-        content = section.get("content")
-        if isinstance(content, str):
-            if not content.strip():
-                continue
-        elif isinstance(content, list):
-            if not content:
-                continue
-        else:
-            continue
-        section_id = str(section.get("sectionId") or "").strip()
-        path = str(section.get("path") or "").strip()
-        if not section_id and not path:
-            continue
-        seed_sections.append(
-            {
-                "sectionId": section_id,
-                "path": path,
-                "content": content,
-            }
-        )
-    return seed_sections
-
-
-def decide_resume_mode(
-    project: dict[str, Any],
-    *,
-    requested_mode: str,
-) -> tuple[bool, list[dict[str, Any]], str]:
-    mode = str(requested_mode or "auto").lower().strip()
-    if mode not in {"auto", "resume", "restart"}:
-        mode = "auto"
-
-    seed_sections = extract_resume_seed_sections(project.get("ai_result"))
-    saved_sections = len(seed_sections)
-    if mode == "restart":
-        return False, [], mode
-    if mode == "resume":
-        return saved_sections > 0, seed_sections, mode
-
-    previous_status = str(project.get("status") or "").lower().strip()
-    resume_raw = project.get("resume")
-    resume_state: dict[str, Any] = dict(resume_raw) if isinstance(resume_raw, dict) else {}
-    eligible_by_status = previous_status in {
-        "failed",
-        "blocked",
-        "cancel_requested",
-        "generation_failed",
-        "ai_failed",
-    }
-    eligible_by_resume_flag = bool(resume_state.get("eligible"))
-    should_resume = saved_sections > 0 and (eligible_by_status or eligible_by_resume_flag)
-    return should_resume, seed_sections if should_resume else [], mode
-
-
 def adapt_ai_result_for_gicatesis(ai_result: dict[str, Any] | None) -> dict[str, Any]:
-    """Normalize aiResult payload for GicaTesis render without path collisions."""
-    if not isinstance(ai_result, dict):
+    """Adapt the stored ai_result into the sections-only list GicaTesis expects."""
+    if not ai_result or not isinstance(ai_result, dict):
         return {"sections": []}
 
     raw_sections = ai_result.get("sections")
@@ -259,57 +229,39 @@ def adapt_ai_result_for_gicatesis(ai_result: dict[str, Any] | None) -> dict[str,
         return {"sections": []}
 
     canonical_sections: list[dict[str, Any]] = []
-    seen: set[tuple[str, str]] = set()
-
-    for section in raw_sections:
-        if not isinstance(section, dict):
+    for item in raw_sections:
+        if not isinstance(item, dict):
             continue
-
-        content = section.get("content")
-        if isinstance(content, str):
-            if not content.strip():
-                continue
-        elif isinstance(content, list):
-            if not content:
-                continue
-        else:
-            continue
-
-        section_id = section.get("sectionId")
-        section_path = section.get("path")
-        path = section_path.strip() if isinstance(section_path, str) else ""
+        path = str(item.get("path") or "").strip()
         if not path or _is_toc_path(path):
             continue
 
-        canonical_id = section_id.strip() if isinstance(section_id, str) and section_id.strip() else ""
-        dedupe_key = (canonical_id or path, path)
-        if dedupe_key in seen:
-            continue
-        seen.add(dedupe_key)
+        raw_content = item.get("content")
+        canonical_id = item.get("sectionId")
 
-        content = _apply_section_content_policy(path, content)
-        if isinstance(content, str):
-            if not content.strip():
-                continue
-        elif isinstance(content, list):
-            if not content:
-                continue
-        else:
+        content = _apply_section_content_policy(path, raw_content)
+        if not _has_visible_content(content):
             continue
-
         entry: dict[str, Any] = {
             "path": path,
             "content": content,
         }
         if canonical_id:
             entry["sectionId"] = canonical_id
-        canonical_sections.append(entry)
+        existing = next(
+            (section for section in canonical_sections if str(section.get("path") or "") == path),
+            None,
+        )
+        if existing is None:
+            canonical_sections.append(entry)
+            continue
+        existing["content"] = _merge_content(existing.get("content"), content)
+        if canonical_id and not existing.get("sectionId"):
+            existing["sectionId"] = canonical_id
 
     by_path: dict[str, dict[str, Any]] = {item["path"]: item for item in canonical_sections if item.get("path")}
     parent_paths_with_children: set[str] = set()
     for path in by_path:
-        if "/" in path:
-            continue
         prefix = f"{path}/"
         if any(other_path.startswith(prefix) for other_path in by_path):
             parent_paths_with_children.add(path)
@@ -348,11 +300,73 @@ def build_render_payload(
     ai_result_raw: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Build render payload for GicaTesis preserving canonical AI sections."""
-    ai_result = adapt_ai_result_for_gicatesis(ai_result_raw)
     payload = {
         "formatId": format_id,
         "values": values,
         "mode": "simulation",
-        "aiResult": ai_result,
+        "aiResult": ai_result_raw or {"sections": []},
     }
     return validate_render_payload(payload)
+
+
+def extract_resume_seed_sections(ai_result_raw: Any) -> list[dict[str, Any]]:
+    """Extract already generated sections from stored ai_result.
+
+    Used to provide context for resuming a partially completed generation.
+    Returns a list of dicts with 'path' and 'content' keys.
+    """
+    if not ai_result_raw or not isinstance(ai_result_raw, dict):
+        return []
+
+    raw_sections = ai_result_raw.get("sections")
+    if not isinstance(raw_sections, list):
+        return []
+
+    seed_sections: list[dict[str, Any]] = []
+    for item in raw_sections:
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path") or "").strip()
+        content = item.get("content")
+
+        # We only take sections that have some content
+        if path and content:
+            seed_sections.append({
+                "path": path,
+                "content": content
+            })
+    return seed_sections
+
+
+def decide_resume_mode(
+    project: dict[str, Any],
+    requested_mode: str = "auto"
+) -> tuple[bool, list[dict[str, Any]], str]:
+    """Decide if we should resume from partial results or restart.
+
+    Args:
+        project: The project dict.
+        requested_mode: 'auto', 'resume', or 'restart'.
+
+    Returns:
+        (resume_from_partial, resume_seed_sections, resolved_resume_mode)
+    """
+    ai_result_raw = project.get("ai_result")
+    existing_sections = extract_resume_seed_sections(ai_result_raw)
+    has_partial = bool(existing_sections)
+
+    requested_mode = str(requested_mode or "auto").strip().lower()
+
+    if requested_mode == "restart":
+        return False, [], "restart"
+
+    if requested_mode == "resume":
+        return has_partial, existing_sections, "resume"
+
+    # Auto mode: resume if we have partial sections and status warrants it
+    status = str(project.get("status") or "").strip().lower()
+    suspicious_statuses = {"failed", "blocked", "cancel_requested", "render_failed"}
+    if has_partial and status in suspicious_statuses:
+        return True, existing_sections, "auto"
+
+    return False, [], "auto"

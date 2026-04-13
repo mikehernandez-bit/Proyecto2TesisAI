@@ -341,3 +341,141 @@ class ProjectGenerateTriggerIn(BaseModel):
             mode = "auto"
         self.resume_mode = mode
         return self
+
+
+# ---------------------------------------------------------------------------
+# Maestría UNAC specific models
+# ---------------------------------------------------------------------------
+
+
+class MaestriaDetailsIn(BaseModel):
+    """
+    Validated input model for UNAC Master's thesis details.
+    Used when saving wizard Step 3 data (whether entered via Excel or manually).
+    """
+
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    # Datos generales
+    titulo: str = Field(..., min_length=1, description="Título del proyecto (obligatorio)")
+    linea_investigacion: Optional[str] = None
+    # El sistema usará automáticamente el año 2026 para la carátula
+    lugar_caratula: Optional[str] = None
+
+    # Autor 1
+    autor1_nombres: str = Field(..., min_length=1, description="Apellidos y nombres del Autor 1")
+    autor1_dni: Optional[str] = None
+    autor1_orcid: Optional[str] = None
+
+    # Autor 2 (opcional)
+    autor2_nombres: Optional[str] = None
+    autor2_dni: Optional[str] = None
+    autor2_orcid: Optional[str] = None
+
+    # Asesor
+    asesor_nombres: str = Field(..., min_length=1, description="Apellidos y nombres del Asesor")
+    asesor_dni: Optional[str] = None
+    asesor_orcid: Optional[str] = None
+
+    # Investigación
+    lugar_ejecucion: str = Field(..., min_length=1)
+    unidad_analisis: str = Field(..., min_length=1)
+    tipo: str = Field(..., min_length=1)
+    enfoque: str = Field(..., min_length=1)
+    diseno_investigacion: str = Field(..., min_length=1)
+    facultad: Optional[str] = Field(None, description="Facultad del proyecto")
+    unidad_investigacion: Optional[str] = Field(None, description="Unidad de Investigación de la facultad")
+
+
+    # Temas OCDE
+    tema_ocde_1: str = Field(..., min_length=1, description="Tema OCDE 1 (obligatorio)")
+    tema_ocde_2: Optional[str] = None
+    tema_ocde_3: Optional[str] = None
+
+    # Datos técnicos para validación de título
+    objeto_estudio: str = Field(..., min_length=1)
+    variable_independiente: str = Field(..., min_length=1)
+    variable_dependiente: str = Field(..., min_length=1)
+    poblacion: str = Field(..., min_length=1)
+    muestra: str = Field(..., min_length=1)
+    lugar: str = Field(..., min_length=1)
+    temporal: str = Field(..., min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        remapped = dict(data)
+        aliases = {
+            "tituloProyecto": "titulo",
+            "lineaInvestigacion": "linea_investigacion",
+            "lugarCaratula": "lugar_caratula",
+            "autor1Nombres": "autor1_nombres",
+            "autor1Dni": "autor1_dni",
+            "autor1Orcid": "autor1_orcid",
+            "autor2Nombres": "autor2_nombres",
+            "autor2Dni": "autor2_dni",
+            "autor2Orcid": "autor2_orcid",
+            "asesorNombres": "asesor_nombres",
+            "asesorDni": "asesor_dni",
+            "asesorOrcid": "asesor_orcid",
+            "lugarEjecucion": "lugar_ejecucion",
+            "unidadAnalisis": "unidad_analisis",
+            "disenoInvestigacion": "diseno_investigacion",
+            "temaOcde1": "tema_ocde_1",
+            "temaOcde2": "tema_ocde_2",
+            "temaOcde3": "tema_ocde_3",
+            "facultad": "facultad",
+            "unidadInvestigacion": "unidad_investigacion",
+            "objetoEstudio": "objeto_estudio",
+            "variableIndependiente": "variable_independiente",
+            "variableDependiente": "variable_dependiente",
+            "poblacion": "poblacion",
+            "muestra": "muestra",
+            "lugar": "lugar",
+            "temporal": "temporal",
+        }
+        for src, dst in aliases.items():
+            if src in remapped and dst not in remapped:
+                remapped[dst] = remapped[src]
+        return remapped
+
+    def to_flat_values(self) -> Dict[str, Any]:
+        """Convert to flat projectValues dict ready for payload builder."""
+        titulo = str(self.titulo or "").strip()
+        return {
+            "titulo": titulo,
+            "title": titulo,
+            "tema": titulo,
+            "linea_investigacion": str(self.linea_investigacion or "").strip(),
+            "anio": "2026",  # Forzado por requerimiento institucional
+            "lugar_caratula": str(self.lugar_caratula or "").strip(),
+            "autor1_nombres": str(self.autor1_nombres or "").strip(),
+            "autor1_dni": str(self.autor1_dni or "").strip(),
+            "autor1_orcid": str(self.autor1_orcid or "").strip(),
+            "autor2_nombres": str(self.autor2_nombres or "").strip(),
+            "autor2_dni": str(self.autor2_dni or "").strip(),
+            "autor2_orcid": str(self.autor2_orcid or "").strip(),
+            "asesor_nombres": str(self.asesor_nombres or "").strip(),
+            "asesor_dni": str(self.asesor_dni or "").strip(),
+            "asesor_orcid": str(self.asesor_orcid or "").strip(),
+            "lugar_ejecucion": str(self.lugar_ejecucion or "").strip(),
+            "unidad_analisis": str(self.unidad_analisis or "").strip(),
+            "tipo": str(self.tipo or "").strip(),
+            "enfoque": str(self.enfoque or "").strip(),
+            "diseno_investigacion": str(self.diseno_investigacion or "").strip(),
+            "tema_ocde_1": str(self.tema_ocde_1 or "").strip(),
+            "tema_ocde_2": str(self.tema_ocde_2 or "").strip(),
+            "tema_ocde_3": str(self.tema_ocde_3 or "").strip(),
+            "facultad": str(self.facultad or "").strip(),
+            "unidad_investigacion": str(self.unidad_investigacion or "").strip(),
+            "objeto_estudio": str(self.objeto_estudio or "").strip(),
+            "variable_independiente": str(self.variable_independiente or "").strip(),
+            "variable_dependiente": str(self.variable_dependiente or "").strip(),
+            "poblacion": str(self.poblacion or "").strip(),
+            "muestra": str(self.muestra or "").strip(),
+            "lugar": str(self.lugar or "").strip(),
+            "temporal": str(self.temporal or "").strip(),
+        }
+

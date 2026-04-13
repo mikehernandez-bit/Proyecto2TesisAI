@@ -8,6 +8,9 @@ const INITIAL_STATE = Object.freeze({
   generationTrace: null,
   buildArtifacts: null,
   currentProject: null,
+  // Maestría UNAC — Excel flow state
+  maestriaDetails: null,      // Fully validated details from Excel or manual form
+  excelPreviewResult: null,   // Last raw parse result from POST /api/wizard/details/excel-preview
 });
 
 function cloneState(state) {
@@ -15,6 +18,8 @@ function cloneState(state) {
     ...state,
     selectedSections: Array.isArray(state.selectedSections) ? [...state.selectedSections] : [],
     projectValues: { ...(state.projectValues || {}) },
+    maestriaDetails: state.maestriaDetails ? { ...state.maestriaDetails } : null,
+    excelPreviewResult: state.excelPreviewResult ? { ...state.excelPreviewResult } : null,
   };
 }
 
@@ -67,6 +72,14 @@ export function createWizardStore(initialState = {}) {
     setCurrentProject(currentProject) {
       return this.patch({ currentProject: currentProject || null });
     },
+    /** Store the fully validated maestría details (from Excel or manual form). */
+    setMaestriaDetails(maestriaDetails) {
+      return this.patch({ maestriaDetails: maestriaDetails || null });
+    },
+    /** Store the raw preview result from the last Excel parse. */
+    setExcelPreviewResult(excelPreviewResult) {
+      return this.patch({ excelPreviewResult: excelPreviewResult || null });
+    },
     reset() {
       state = cloneState(INITIAL_STATE);
       emit();
@@ -74,3 +87,4 @@ export function createWizardStore(initialState = {}) {
     },
   };
 }
+

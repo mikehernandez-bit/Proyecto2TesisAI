@@ -32,7 +32,7 @@ function normalizeBlock(block) {
   };
 }
 
-function normalizeSection(section) {
+export function normalizeSection(section) {
   return {
     section_id: section?.section_id || section?.sectionId || "",
     section_path: section?.section_path || section?.sectionPath || section?.path || "",
@@ -89,17 +89,117 @@ function buildTreeFromFlatSections(sections) {
   return roots;
 }
 
-function buildSectionTree(promptPackage) {
-  if (Array.isArray(promptPackage?.section_tree) && promptPackage.section_tree.length) {
-    const tree = promptPackage.section_tree.map(normalizeTreeNode);
-    sortNodes(tree);
-    return tree;
-  }
-  const sections = Array.isArray(promptPackage?.sections) ? promptPackage.sections : [];
-  return buildTreeFromFlatSections(sections);
+export function hasOwnBlocks(section) {
+  return Array.isArray(section?.blocks) && section.blocks.length > 0;
 }
 
-function flattenTree(nodes, result = []) {
+export function isGroupingOnlySection(section) {
+  const children = Array.isArray(section?.children) ? section.children : [];
+  return children.length > 0 && !hasOwnBlocks(section);
+}
+
+export function countRequiredVariables(section) {
+  return Array.from(new Set(
+    (Array.isArray(section?.blocks) ? section.blocks : [])
+      .flatMap((block) => Array.isArray(block.required_variables) ? block.required_variables : [])
+      .map((value) => String(value || "").trim())
+      .filter(Boolean),
+  )).length;
+}
+
+export function parentScopeLabel(section) {
+  const rawPath = String(section?.section_path || section?.section_title || "").trim();
+  const pathParts = rawPath.split("/").map((value) => value.trim()).filter(Boolean);
+  const scope = pathParts.length > 1
+    ? pathParts.slice(0, -1).join(" / ")
+    : String(section?.parent_section_path || "").trim();
+  return scope || rawPath || "";
+}
+
+export function collectConcreteSelectionKeys(node, result = []) {
+  if (!node) return result;
+  if (!isGroupingOnlySection(node)) {
+    const key = selectionKey(node);
+    if (key) result.push(key);
+  }
+  (Array.isArray(node.children) ? node.children : []).forEach((child) => collectConcreteSelectionKeys(child, result));
+  return result;
+}
+
+export function findNodeByKey(nodes, key) {
+  for (const node of Array.isArray(nodes) ? nodes : []) {
+    if (selectionKey(node) === key || node.section_path === key) return node;
+    const nested = findNodeByKey(node.children || [], key);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+export function computeNodeSelectionState(node, selectedKeys) {
+  const concreteKeys = collectConcreteSelectionKeys(node, []);
+  if (!concreteKeys.length) return "unchecked";
+  const keysSet = selectedKeys instanceof Set ? selectedKeys : new Set(selectedKeys);
+  const selectedCount = concreteKeys.filter((key) => keysSet.has(key)).length;
+  if (!selectedCount) return "unchecked";
+  if (selectedCount === concreteKeys.length) return "checked";
+  return "indeterminate";
+}
+
+export function applyNodeSelection(tree, selectedKeys, nodeKey, checked) {
+  const next = new Set(selectedKeys instanceof Set ? selectedKeys : []);
+  const node = findNodeByKey(tree, nodeKey);
+  if (!node) return next;
+  collectConcreteSelectionKeys(node, []).forEach((key) => {
+    if (checked) next.add(key);
+    else next.delete(key);
+  });
+  return next;
+}
+
+export function buildSectionTree(promptPackage) {
+  let roots = [];
+  if (Array.isArray(promptPackage?.section_tree) && promptPackage.section_tree.length) {
+    roots = promptPackage.section_tree.map(normalizeTreeNode);
+    sortNodes(roots);
+  } else {
+    const sections = Array.isArray(promptPackage?.sections) ? promptPackage.sections : [];
+    roots = buildTreeFromFlatSections(sections);
+  }
+
+  // Inyectar sección especial para Maestría UNAC si aplica (Universal)
+  const formatId = String(promptPackage?.format_id || promptPackage?._meta?.id || "").toLowerCase();
+  const isMaestria = formatId.includes("maestria");
+
+  if (isMaestria) {
+    const specialKey = "titulo-info-basica";
+    if (!roots.some((s) => selectionKey(s) === specialKey)) {
+      const specialSection = {
+        ...normalizeSection({
+          section_id: specialKey,
+          section_path: "Título + Información Básica",
+          section_title: "Título + Información Básica",
+          section_order: -100, // Forzar que aparezca primero
+          default_selected: true,
+          optional: false,
+          blocks: [
+            {
+              block_id: "block:titulo-info",
+              header: "Validación de Título e Información Básica",
+              label: "Validación de Título e Información Básica",
+              required: true,
+            },
+          ],
+        }),
+        children: [],
+      };
+      roots.unshift(specialSection);
+    }
+  }
+
+  return roots;
+}
+
+export function flattenTree(nodes, result = []) {
   (Array.isArray(nodes) ? nodes : []).forEach((node) => {
     const normalized = normalizeSection(node);
     result.push(normalized);
