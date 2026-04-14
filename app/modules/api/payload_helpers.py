@@ -6,9 +6,8 @@ These functions build, adapt, and normalize payloads for GicaTesis rendering.
 
 from __future__ import annotations
 
-from typing import Any
-import json
 import logging
+from typing import Any
 
 import httpx
 
@@ -16,12 +15,13 @@ from app.core.config import settings
 from app.core.services.ai.section_content_policy import (
     allows_structured_content,
 )
-from app.core.services.toc_detector import is_toc_path as _is_toc_path
-from app.integrations.gicatesis.types import validate_render_payload
 from app.core.services.maestria_payload_mapper import (
     is_maestria_format,
     map_maestria_values,
+    normalize_maestria_details,
 )
+from app.core.services.toc_detector import is_toc_path as _is_toc_path
+from app.integrations.gicatesis.types import validate_render_payload
 
 _logger = logging.getLogger(__name__)
 
@@ -197,7 +197,11 @@ def values_with_title(
 
     # SPECIAL HANDLING FOR UNAC MAESTRÍA:
     if is_maestria_format(project):
-        maestria_values = map_maestria_values(values)
+        maestria_details = project.get("maestria_details")
+        maestria_source = (
+            maestria_details if isinstance(maestria_details, dict) else values
+        )
+        maestria_values = map_maestria_values(normalize_maestria_details(maestria_source))
         # Update only if not empty to prevent wiping existing good data
         for k, v in maestria_values.items():
             if v:

@@ -1171,6 +1171,7 @@ export function createTesisAI() {
       ...values,
       title: String(project?.title || values.title || values.tema || ""),
     });
+    wizardStore.setMaestriaDetails(project?.maestria_details || null);
     if ($("var_title")) {
       $("var_title").value = String(project?.title || values.title || values.tema || "");
     }
@@ -1185,6 +1186,8 @@ export function createTesisAI() {
     if (!project) return false;
     const currentValues = _projectValues(project);
     const nextValues = wizardPayload?.values || {};
+    const currentMaestria = JSON.stringify(project?.maestria_details || null);
+    const nextMaestria = JSON.stringify(wizardPayload?.maestriaDetails || null);
     const currentKeys = Array.from(new Set([...Object.keys(currentValues), ...Object.keys(nextValues)])).sort();
     const valuesChanged = currentKeys.some((key) => String(currentValues?.[key] ?? "") !== String(nextValues?.[key] ?? ""));
     const currentSelected = project?.selected_sections || [];
@@ -1194,6 +1197,7 @@ export function createTesisAI() {
       || String(project?.prompt_id || "") !== String(selectedPrompt?.id || "")
       || String(project?.title || "") !== String(wizardPayload?.title || "")
       || valuesChanged
+      || currentMaestria !== nextMaestria
       || _selectedSectionsFingerprint(currentSelected) !== _selectedSectionsFingerprint(nextSelected)
       || _promptSnapshotFingerprint(project?.prompt_snapshot) !== _promptSnapshotFingerprint(wizardPayload?.promptSnapshot)
     );
@@ -1229,6 +1233,7 @@ export function createTesisAI() {
   function collectWizardPayload() {
     const serializedDetails = detailsStepController?.serialize?.() || { title: $("var_title")?.value?.trim() || "Proyecto Tesis", values: {} };
     const values = { ...(serializedDetails.values || {}) };
+    const maestriaDetails = serializedDetails.maestriaDetails || wizardStore.getState().maestriaDetails || null;
     const title = String(serializedDetails.title || "Proyecto Tesis").trim() || "Proyecto Tesis";
     values.title = title;
     if (!String(values.tema || "").trim()) {
@@ -1240,10 +1245,12 @@ export function createTesisAI() {
     wizardState.chapters = [...selectedSections];
     wizardStore.setProjectValues(values);
     wizardStore.setSelectedSections(selectedSections);
+    wizardStore.setMaestriaDetails(maestriaDetails);
 
     return {
       title,
       values,
+      maestriaDetails,
       selectedSections,
       promptSnapshot: selectedPrompt,
     };
@@ -1267,6 +1274,7 @@ export function createTesisAI() {
       formatVersion: selectedFormat.version,
       promptId: selectedPrompt.id,
       values: wizard.values,
+      maestriaDetails: wizard.maestriaDetails,
       promptSnapshot: wizard.promptSnapshot,
       selectedSections: wizard.selectedSections,
       wizardState: wizardStatePayload,
@@ -1447,11 +1455,20 @@ export function createTesisAI() {
       saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Guardando...';
     }
     try {
-      await apiSend(`/api/projects/${encodeURIComponent(projectId)}/maestria-details`, "PUT", values);
-      // Also update local project state
+      const saved = await apiSend(`/api/projects/${encodeURIComponent(projectId)}/maestria-details`, "PUT", values);
       const titulo = String(values.titulo || "").trim();
-      currentProject = { ...(currentProject || {}), title: titulo || currentProject?.title || "" };
+      currentProject = {
+        ...(currentProject || {}),
+        ...(saved?.project || {}),
+        id: projectId,
+        title: titulo || saved?.title || currentProject?.title || "",
+        maestria_details: values,
+      };
       wizardStore.setCurrentProject(currentProject);
+      wizardStore.setMaestriaDetails(values);
+      if (saved?.project?.values) {
+        wizardStore.setProjectValues(saved.project.values);
+      }
       if (saveBtn) {
         saveBtn.innerHTML = '<i class="fa-solid fa-check mr-1.5 text-green-500"></i> Guardado';
         setTimeout(() => { saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar'; }, 2000);

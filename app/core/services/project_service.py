@@ -9,6 +9,7 @@ from app.core.services.ai.token_usage import (
     normalize_token_usage_report,
     normalize_token_usage_snapshot,
 )
+from app.core.services.maestria_payload_mapper import normalize_maestria_details
 from app.core.services.pricing import (
     empty_generation_cost_report,
     empty_generation_cost_snapshot,
@@ -249,6 +250,12 @@ class ProjectService:
         snapshot["variables"] = [str(item).strip() for item in snapshot.get("variables") or [] if str(item).strip()]
         return snapshot
 
+    @staticmethod
+    def _normalize_maestria_details(raw: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(raw, dict):
+            return None
+        return normalize_maestria_details(raw)
+
     @classmethod
     def _normalize_generation_phase(cls, raw: Any) -> Dict[str, Any]:
         base = cls._empty_generation_phase()
@@ -466,6 +473,7 @@ class ProjectService:
         normalized["sections"] = cls._normalize_selected_sections(normalized.get("sections"))
         normalized["prompt_snapshot"] = cls._normalize_prompt_snapshot(normalized.get("prompt_snapshot"))
         normalized["selected_sections"] = cls._normalize_selected_sections(normalized.get("selected_sections"))
+        normalized["maestria_details"] = cls._normalize_maestria_details(normalized.get("maestria_details"))
 
         incidents_raw = normalized.get("incidents")
         if isinstance(incidents_raw, list):
@@ -577,6 +585,7 @@ class ProjectService:
             "sections": self._normalize_selected_sections(payload.get("sections")),
             "prompt_snapshot": self._normalize_prompt_snapshot(payload.get("prompt_snapshot")),
             "selected_sections": self._normalize_selected_sections(payload.get("selected_sections")),
+            "maestria_details": self._normalize_maestria_details(payload.get("maestria_details")),
             "variables": values or {},
             # Keep both keys for backward compatibility in UI and contracts.
             "values": values or {},
@@ -647,6 +656,8 @@ class ProjectService:
                 p["prompt_snapshot"] = self._normalize_prompt_snapshot(payload.get("prompt_snapshot"))
             if "selected_sections" in payload:
                 p["selected_sections"] = self._normalize_selected_sections(payload.get("selected_sections"))
+            if "maestria_details" in payload:
+                p["maestria_details"] = self._normalize_maestria_details(payload.get("maestria_details"))
             if "status" in payload and payload.get("status") is not None:
                 p["status"] = payload.get("status")
             if "cancel_requested" in payload and payload.get("cancel_requested") is not None:

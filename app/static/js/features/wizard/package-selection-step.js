@@ -8,7 +8,8 @@ import {
   countRequiredVariables,
   parentScopeLabel,
   computeNodeSelectionState,
-  applyNodeSelection
+  applyNodeSelection,
+  collectConcreteSelectionKeys
 } from "./prompt-package-client.js";
 import { flattenSections } from "./section-selection.js";
 import { escapeHtml } from "../../shared/dom.js";

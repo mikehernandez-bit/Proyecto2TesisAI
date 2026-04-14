@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
@@ -25,16 +25,22 @@ from app.core.services.definition_compiler import (
     IRNodeType,
     compile_definition_to_ir,
 )
+from app.core.services.maestria_payload_mapper import map_maestria_values, normalize_maestria_details
 
 
 def _project_values(project: Dict[str, Any]) -> Dict[str, Any]:
     values = project.get("values")
     if isinstance(values, dict):
-        return values
+        merged = dict(values)
+    else:
+        merged = {}
     values = project.get("variables")
     if isinstance(values, dict):
-        return values
-    return {}
+        merged.update(values)
+    maestria_details = project.get("maestria_details")
+    if isinstance(maestria_details, dict):
+        merged.update(map_maestria_values(normalize_maestria_details(maestria_details)))
+    return merged
 
 
 def _safe_project_id(project: Dict[str, Any]) -> str:
@@ -117,7 +123,52 @@ def _enable_update_fields(doc: Document) -> None:
     settings_element.append(update)
 
 
-def _render_ir_to_docx(doc: Document, ir: DocumentIR, tables_list: List[str], figures_list: List[str]) -> None:
+def _render_abbreviations_list(
+    doc: Document,
+    *,
+    title: str,
+    abbreviations: List[Dict[str, Any]] | None,
+) -> None:
+    heading = doc.add_paragraph()
+    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    heading_run = heading.add_run(title)
+    heading_run.bold = True
+    heading_run.font.size = Pt(14)
+
+    items = abbreviations if isinstance(abbreviations, list) else []
+    if not items:
+        doc.add_paragraph("No se identificaron abreviaturas relevantes en el documento.")
+        doc.add_page_break()
+        return
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        sigla = str(item.get("sigla") or "").strip()
+        significado = str(item.get("significado") or "").strip()
+        if not sigla and not significado:
+            continue
+        paragraph = doc.add_paragraph()
+        try:
+            paragraph.paragraph_format.tab_stops.add_tab_stop(
+                Inches(1.05),
+                WD_TAB_ALIGNMENT.LEFT,
+                WD_TAB_LEADER.SPACES,
+            )
+        except Exception:
+            pass
+        paragraph.add_run(f"{sigla}\t: {significado}")
+
+    doc.add_page_break()
+
+
+def _render_ir_to_docx(
+    doc: Document,
+    ir: DocumentIR,
+    tables_list: List[str],
+    figures_list: List[str],
+    abbreviations: List[Dict[str, Any]] | None = None,
+) -> None:
     """Render IR nodes to a python-docx Document."""
     for node in ir.nodes:
         if node.node_type == IRNodeType.TOC_PLACEHOLDER:
@@ -145,9 +196,7 @@ def _render_ir_to_docx(doc: Document, ir: DocumentIR, tables_list: List[str], fi
             doc.add_page_break()
 
         elif node.node_type == IRNodeType.LIST_ABBREVIATIONS:
-            doc.add_heading(node.text, level=1)
-            doc.add_paragraph("No se identificaron abreviaturas relevantes en el documento.")
-            doc.add_page_break()
+            _render_abbreviations_list(doc, title=node.text, abbreviations=abbreviations)
 
         elif node.node_type == IRNodeType.HEADING:
             doc.add_heading(node.text, level=min(node.level, 4))
@@ -221,7 +270,9 @@ def build_simulated_docx(project: Dict[str, Any], run_id: Optional[str] = None) 
         doc.add_page_break()
 
         # Render document structure from IR
-        _render_ir_to_docx(doc, ir, ir.tables, ir.figures)
+        values = _project_values(project)
+        abbreviations = values.get("abreviaturas") if isinstance(values.get("abreviaturas"), list) else []
+        _render_ir_to_docx(doc, ir, ir.tables, ir.figures, abbreviations)
 
     else:
         # Fallback: generic placeholder document

@@ -16,7 +16,6 @@ Covers:
 from __future__ import annotations
 
 import io
-from typing import Any
 
 import openpyxl
 import pytest
@@ -26,8 +25,13 @@ from app.core.services.maestria_excel_parser import (
     MaestriaExcelResult,
     parse_excel_bytes,
 )
-from app.core.utils.excel_template_builder import build_excel_template
-
+from app.core.utils.excel_template_builder import (
+    GUIDE_SHEET_NAME,
+    MATRIX_SHEET_NAME,
+    OPER_VD_SHEET_NAME,
+    OPER_VI_SHEET_NAME,
+    build_excel_template,
+)
 
 # ---------------------------------------------------------------------------
 # Helper: build Excel bytes with custom row key→value pairs
@@ -76,6 +80,12 @@ def _full_data() -> dict[str, str]:
         "tema_ocde_1": "2. Ingeniería y Tecnología",
         "tema_ocde_2": "2.3 Ingeniería Mecánica",
         "tema_ocde_3": "",
+        "objeto_estudio": "Flota de motoniveladoras CAT 24M",
+        "variable_independiente": "Plan de mantenimiento centrado en confiabilidad",
+        "variable_dependiente": "Disponibilidad inherente",
+        "poblacion": "5 motoniveladoras CAT 24M",
+        "muestra": "Muestreo no probabilistico de tipo censal",
+        "temporal": "2025",
     }
 
 
@@ -261,3 +271,49 @@ class TestOfficialTemplateRoundtrip:
         result = parse_excel_bytes(template_bytes)
         # Year is blank so no year error
         assert len(result.validation_errors) == 0
+
+
+class TestOfficialTemplateStructure:
+    def test_template_has_expected_sheets_without_abbreviations(self) -> None:
+        workbook = openpyxl.load_workbook(io.BytesIO(build_excel_template()))
+        assert workbook.sheetnames == [
+            GUIDE_SHEET_NAME,
+            SHEET_NAME,
+            MATRIX_SHEET_NAME,
+            OPER_VI_SHEET_NAME,
+            OPER_VD_SHEET_NAME,
+        ]
+        assert all("abreviaturas" not in name.lower() for name in workbook.sheetnames)
+
+    def test_matrix_sheet_explains_editable_vs_automatic_cells(self) -> None:
+        workbook = openpyxl.load_workbook(io.BytesIO(build_excel_template()))
+        sheet = workbook[MATRIX_SHEET_NAME]
+        assert "celdas amarillas" in str(sheet["A3"].value).lower()
+        assert "celdas grises" in str(sheet["A3"].value).lower()
+        merged_ranges = {str(item) for item in sheet.merged_cells.ranges}
+        assert "D5:D11" in merged_ranges
+        assert "E5:E11" in merged_ranges
+        assert "A2:E2" in merged_ranges
+
+    def test_operacionalizacion_vi_has_four_capture_rows(self) -> None:
+        workbook = openpyxl.load_workbook(io.BytesIO(build_excel_template()))
+        sheet = workbook[OPER_VI_SHEET_NAME]
+        assert sheet["D4"].value is None
+        assert sheet["D7"].value is None
+        assert sheet["D8"].value is None
+        assert "4 filas" in str(sheet["A2"].value)
+
+    def test_operacionalizacion_vd_has_two_capture_rows(self) -> None:
+        workbook = openpyxl.load_workbook(io.BytesIO(build_excel_template()))
+        sheet = workbook[OPER_VD_SHEET_NAME]
+        assert sheet["D4"].value is None
+        assert sheet["D5"].value is None
+        assert sheet["D6"].value is None
+        assert "2 filas" in str(sheet["A2"].value)
+
+    def test_matrix_support_fields_live_below_the_table(self) -> None:
+        workbook = openpyxl.load_workbook(io.BytesIO(build_excel_template()))
+        sheet = workbook[MATRIX_SHEET_NAME]
+        assert sheet["A14"].value == "TÉCNICAS"
+        assert sheet["A15"].value == "INSTRUMENTOS"
+        assert sheet["A16"].value == "PROCESAMIENTO DE DATOS"

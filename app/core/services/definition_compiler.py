@@ -170,6 +170,12 @@ NON_GENERATIVE_BRANCH_KEYS = frozenset(
         "configuracion",
         "matriz_consistencia",
         "informacion_basica",
+        "operacionalizacion",
+        "operacionalizacion_vd",
+        "operacionalizacion_vi",
+        "operacionalizacion_variable_dependiente",
+        "operacionalizacion_variable_independiente",
+        "abreviaturas",
     }
 )
 
