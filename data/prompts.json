@@ -1,5 +1,601 @@
 [
   {
+    "id": "prompt_9f0764d149",
+    "name": "Proyecto Cuantitativo UNAC",
+    "doc_type": "proyecto",
+    "is_active": true,
+    "format_id": "unac-proyecto-cuant",
+    "format_name": "Proyecto de Tesis UNAC - Enfoque Cuantitativo",
+    "format_version": "d96b964c3c8af464",
+    "system_instruction": "Diseña un proyecto de investigación cuantitativo sobre {{tema}}. Debe contener matriz de consistencia y variables medibles.",
+    "required_metadata": [],
+    "template": "Diseña un proyecto de investigación cuantitativo sobre {{tema}}. Debe contener matriz de consistencia y variables medibles.",
+    "variables": [
+      "tema",
+      "variable_dependiente",
+      "contexto_organizacion",
+      "problema_observable",
+      "sustento_local",
+      "propuesta_solucion_preliminar",
+      "contexto_internacional",
+      "contexto_nacional",
+      "sustento_ingenieril",
+      "periodo_analisis"
+    ],
+    "sections": [
+      {
+        "section_id": "sec-0001",
+        "section_path": "INTRODUCCIÓN",
+        "section_title": "INTRODUCCIÓN",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 1,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Redacta la \"INTRODUCCIÓN\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Formato:\n\nExtensión: Redacta un texto estrictamente de entre 450 y 600 palabras.\n\nTítulo: \"INTRODUCCIÓN\" (Centrado, MAYÚSCULAS, Negrita). Aplica doble salto de línea debajo.\n\nCuerpo: Texto justificado, interlineado 1.5, párrafos separados por un salto de línea (enter). Sin sangrías ni negritas en el texto.\n\n2. Rigor de Citación (APA estricto):\n\nLos autores deben integrarse fluidamente en la narrativa en texto normal (ej. Jakkula et al. (2021) o Flores (2024)). Prohibido usar negritas o mayúsculas sostenidas en los apellidos.\n\n3. Secuencia Obligatoria del Contenido (Párrafos fluidos, SIN subtítulos):\n\nContexto Macro: Inicia con la importancia de la minería de alto tonelaje y el rol crítico de las vías de acarreo para la rentabilidad y seguridad.\n\nRealidad Específica: Describe la flota de motoniveladoras CAT 24M como activo estratégico. Indica el problema real: disponibilidad actual del 85% frente al objetivo del 90% y cómo esto afecta la producción.\n\nSustento de Antecedentes: Integra investigaciones nacionales e internacionales recientes (máximo 4 años) que validen el uso de estrategias de confiabilidad (RAM o RCM) en maquinaria pesada.\n\nPropuesta y Objetivo: Presenta la implementación del Plan RCM bajo la norma SAE JA1011 como solución. Declara el objetivo general orientado a mejorar la disponibilidad optimizando el MTBF y MTTR.\n\nResumen Metodológico: Indica explícitamente el enfoque cuantitativo, nivel explicativo y el diseño preexperimental (mediciones pre y posprueba).\n\nEstructura del Informe: Finaliza detallando brevemente qué contiene cada uno de los capítulos (del I al VI) del documento.",
+        "blocks": [
+          {
+            "block_id": "sec-0001_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Redacta la \"INTRODUCCIÓN\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Formato:\n\nExtensión: Redacta un texto estrictamente de entre 450 y 600 palabras.\n\nTítulo: \"INTRODUCCIÓN\" (Centrado, MAYÚSCULAS, Negrita). Aplica doble salto de línea debajo.\n\nCuerpo: Texto justificado, interlineado 1.5, párrafos separados por un salto de línea (enter). Sin sangrías ni negritas en el texto.\n\n2. Rigor de Citación (APA estricto):\n\nLos autores deben integrarse fluidamente en la narrativa en texto normal (ej. Jakkula et al. (2021) o Flores (2024)). Prohibido usar negritas o mayúsculas sostenidas en los apellidos.\n\n3. Secuencia Obligatoria del Contenido (Párrafos fluidos, SIN subtítulos):\n\nContexto Macro: Inicia con la importancia de la minería de alto tonelaje y el rol crítico de las vías de acarreo para la rentabilidad y seguridad.\n\nRealidad Específica: Describe la flota de motoniveladoras CAT 24M como activo estratégico. Indica el problema real: disponibilidad actual del 85% frente al objetivo del 90% y cómo esto afecta la producción.\n\nSustento de Antecedentes: Integra investigaciones nacionales e internacionales recientes (máximo 4 años) que validen el uso de estrategias de confiabilidad (RAM o RCM) en maquinaria pesada.\n\nPropuesta y Objetivo: Presenta la implementación del Plan RCM bajo la norma SAE JA1011 como solución. Declara el objetivo general orientado a mejorar la disponibilidad optimizando el MTBF y MTTR.\n\nResumen Metodológico: Indica explícitamente el enfoque cuantitativo, nivel explicativo y el diseño preexperimental (mediciones pre y posprueba).\n\nEstructura del Informe: Finaliza detallando brevemente qué contiene cada uno de los capítulos (del I al VI) del documento.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0002",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_title": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 2,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Redacta el capítulo \"I. PLANTEAMIENTO DEL PROBLEMA\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Restricción de Antigüedad (¡CRÍTICO!): > * Extensión: Redacta un texto analítico y detallado de entre 1200 y 1500 palabras en total para todo el capítulo.\n\nNingún dato, antecedente o cita bibliográfica debe tener más de 4 años de antigüedad una vez terminada la experiencia.\n\n2. Formato de Títulos y Cuerpo:\n\nH1 (Nivel Capítulo): \"I. PLANTEAMIENTO DEL PROBLEMA\" (Izquierda, MAYÚSCULAS, Negrita).\n\nH2 y H3 (Nivel Secciones): Tipo oración (solo primera letra en mayúscula), Negrita, alineados a la izquierda.\n\nCuerpo: Texto justificado, interlineado 1.5, sin sangrías. Cero negritas en el contenido de los párrafos.\n\n3. Estructura de Contenido Obligatoria:\n\n1.1 Descripción de la realidad problemática: Narrativa extensa de macro a micro. Detalla la flota CAT 24M y la brecha del 5% (Disponibilidad actual 85% vs meta 90%). Identifica los sistemas críticos (Mando de Círculo y Tren de Potencia) y el impacto del entorno severo (abrasividad y altitud). Ancla obligatoriamente en la narrativa las referencias a la Figura 1.1, Figura 1.2, Figura 1.3 y Figura 1.4.\n\n1.2 Formulación del problema: Redacta el Problema General y 2 específicos (centrados en Confiabilidad y Mantenibilidad).\n\n1.3 Objetivos: Redacta el Objetivo General y 2 específicos coherentes con los problemas.\n\n1.4 Justificación: Desarrolla detalladamente los 6 tipos: Normativa (estándares internacionales), Teórica, Práctica, Metodológica, Económica y Social.\n\n1.5 Delimitaciones: Define la Teórica (RCM bajo norma SAE JA1011), Temporal (periodo 2025) y Espacial (Mina en Junín).\n\n4. Citación: APA estricto (autores en texto normal, sin negritas ni mayúsculas en los apellidos).",
+        "blocks": [
+          {
+            "block_id": "sec-0002_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Redacta el capítulo \"I. PLANTEAMIENTO DEL PROBLEMA\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Restricción de Antigüedad (¡CRÍTICO!): > * Extensión: Redacta un texto analítico y detallado de entre 1200 y 1500 palabras en total para todo el capítulo.\n\nNingún dato, antecedente o cita bibliográfica debe tener más de 4 años de antigüedad una vez terminada la experiencia.\n\n2. Formato de Títulos y Cuerpo:\n\nH1 (Nivel Capítulo): \"I. PLANTEAMIENTO DEL PROBLEMA\" (Izquierda, MAYÚSCULAS, Negrita).\n\nH2 y H3 (Nivel Secciones): Tipo oración (solo primera letra en mayúscula), Negrita, alineados a la izquierda.\n\nCuerpo: Texto justificado, interlineado 1.5, sin sangrías. Cero negritas en el contenido de los párrafos.\n\n3. Estructura de Contenido Obligatoria:\n\n1.1 Descripción de la realidad problemática: Narrativa extensa de macro a micro. Detalla la flota CAT 24M y la brecha del 5% (Disponibilidad actual 85% vs meta 90%). Identifica los sistemas críticos (Mando de Círculo y Tren de Potencia) y el impacto del entorno severo (abrasividad y altitud). Ancla obligatoriamente en la narrativa las referencias a la Figura 1.1, Figura 1.2, Figura 1.3 y Figura 1.4.\n\n1.2 Formulación del problema: Redacta el Problema General y 2 específicos (centrados en Confiabilidad y Mantenibilidad).\n\n1.3 Objetivos: Redacta el Objetivo General y 2 específicos coherentes con los problemas.\n\n1.4 Justificación: Desarrolla detalladamente los 6 tipos: Normativa (estándares internacionales), Teórica, Práctica, Metodológica, Económica y Social.\n\n1.5 Delimitaciones: Define la Teórica (RCM bajo norma SAE JA1011), Temporal (periodo 2025) y Espacial (Mina en Junín).\n\n4. Citación: APA estricto (autores en texto normal, sin negritas ni mayúsculas en los apellidos).",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          },
+          {
+            "block_id": "sec-0002_block_2",
+            "header": "Cabecera 2",
+            "cabecera": "Cabecera 2",
+            "label": "Prompt 2",
+            "instructions": "Genera los cuadros para las figuras del Capítulo I usando tablas Markdown.\nReglas de Posgrado: Rótulo superior centrado (Tipo oración, SIN negrita, SIN dos puntos después del número). Leyenda inferior: Fuente: Elaboración propia.\nArtefactos a generar:\n\nFigura 1.1 Diagrama de Pareto: Tabla con: Sistemas (Implementos, Tren Potencia, Hidráulico, Motor, Estructural), Frecuencia (%) y Acumulado (%).\n\nFigura 1.2 Análisis de Causa-Efecto (Ishikawa): Genera una matriz en texto. La tabla debe listar en la primera fila el Problema Central y luego desglosar las categorías: Métodos, Medición, Mano de Obra, Medio Ambiente, Maquinaria y Materiales con sus respectivas causas.\n\nFigura 1.3 Matriz de Relevancia: Columnas: Alternativa, Viabilidad Técnica, Económica, Alineamiento y Decisión. Evalúa: Renovación (Descartada), Optimización Logística (Pre-seleccionada) y Plan RCM (Pre-seleccionada).\n\nFigura 1.4 Matriz de Priorización: Tabla con pesos (50%, 30%, 20%) comparando \"Aumentar Stock\" vs \"Implementar RCM\". Muestra puntajes y declara al RCM como Ganador (7.9).",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0003",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+        "section_title": "1.1 Descripción de la realidad problemática",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 3,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Describe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa, de las líneas de investigación prioritarias o transversales utilizando fuentes científicas y/o oficiales. Sustenta la identificación del problema relevante y evidencia el análisis de la problemática utilizando al menos una herramienta de ingeniería (Pareto, Ishikawa, árbol de problemas, matriz de relevancia, matriz de priorización, entre otras). Se debe mencionar la propuesta de solución del problema de investigación.\nDescribe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa.\nDescribe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa, de las líneas de investigación prioritarias o transversales utilizando fuentes científicas y/o oficiales. Sustenta la identificación del problema relevante y evidencia el análisis de la problemática utilizando al menos una herramienta de ingeniería (Pareto, Ishikawa, árbol de problemas, matriz de relevancia, matriz de priorización, entre otras). Se debe mencionar la propuesta de solución del problema de investigación.\nDescribe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa.\nDescribe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa, de las líneas de investigación prioritarias o transversales utilizando fuentes científicas y/o oficiales. Sustenta la identificación del problema relevante y evidencia el análisis de la problemática utilizando al menos una herramienta de ingeniería (Pareto, Ishikawa, árbol de problemas, matriz de relevancia, matriz de priorización, entre otras). Se debe mencionar la propuesta de solución del problema de investigación.\nDescribe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y de la empresa.",
+        "blocks": [
+          {
+            "block_id": "",
+            "header": "Realidad problemática",
+            "cabecera": "Realidad problemática",
+            "label": "Diagnóstico de la realidad problemática",
+            "instructions": "Presenta la situación problemática con datos observables, contexto del estudio, evidencia local y una propuesta preliminar de solución.",
+            "required_variables": [
+              "variable_dependiente",
+              "contexto_organizacion",
+              "problema_observable",
+              "sustento_local",
+              "propuesta_solucion_preliminar",
+              "contexto_internacional",
+              "contexto_nacional",
+              "sustento_ingenieril",
+              "periodo_analisis"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0004",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+        "section_title": "1.2 Formulación del problema",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 4,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Problema general: Se expresa en forma interrogativa, incluye las variables, unidad de análisis, lugar de la investigación y está redactado en tiempo presente.\nProblemas específicos: Están expresados en forma interrogativa, se derivan del problema general, su enunciado es claro y conciso.\nProblema general y específicos expresados en forma interrogativa.\nProblema general: Se expresa en forma interrogativa, incluye las variables, unidad de análisis, lugar de la investigación y está redactado en tiempo presente.\nProblemas específicos: Están expresados en forma interrogativa, se derivan del problema general, su enunciado es claro y conciso.\nProblema general y específicos expresados en forma interrogativa.\nProblema general: Se expresa en forma interrogativa, incluye las variables, unidad de análisis, lugar de la investigación y está redactado en tiempo presente.\nProblemas específicos: Están expresados en forma interrogativa, se derivan del problema general, su enunciado es claro y conciso.\nProblema general y específicos expresados en forma interrogativa.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0005",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+        "section_title": "1.3 Objetivos",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 5,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Objetivo general: Es coherente con el problema, incluye las variables, inicia con verbo en infinitivo (Ejemplo: Establecer, determinar, incrementar, etc.), enuncia la acción para la propuesta de solución. Guarda relación con el problema general. (Sugerencia revisar la taxonomía de Bloom).\nObjetivos específicos: Orientan todas las acciones parciales para lograr el objetivo general. Se inician con verbos en infinitivo y guarda relación con los problemas específicos.\nObjetivo general y específicos (verbo en infinitivo).\nObjetivo general: Es coherente con el problema, incluye las variables, inicia con verbo en infinitivo (Ejemplo: Establecer, determinar, incrementar, etc.), enuncia la acción para la propuesta de solución. Guarda relación con el problema general. (Sugerencia revisar la taxonomía de Bloom).\nObjetivos específicos: Orientan todas las acciones parciales para lograr el objetivo general. Se inician con verbos en infinitivo y guarda relación con los problemas específicos.\nObjetivo general y específicos (verbo en infinitivo).\nObjetivo general: Es coherente con el problema, incluye las variables, inicia con verbo en infinitivo (Ejemplo: Establecer, determinar, incrementar, etc.), enuncia la acción para la propuesta de solución. Guarda relación con el problema general. (Sugerencia revisar la taxonomía de Bloom).\nObjetivos específicos: Orientan todas las acciones parciales para lograr el objetivo general. Se inician con verbos en infinitivo y guarda relación con los problemas específicos.\nObjetivo general y específicos (verbo en infinitivo).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0006",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+        "section_title": "1.4 Justificación",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 6,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Sustenta adecuadamente el por qué se realiza el trabajo de investigación de acuerdo con la naturaleza del problema explicando cuáles son las contribuciones científicas o sociales y los beneficiarios de su trabajo. Definir los tipos de justificación (teórica, práctica, metodológica, etc) citando adecuadamente y el sustento respectivo explicando las razones por las cuales la investigación posee dicha justificación. Se redacta en tiempo futuro.\nSustenta el por qué se realiza el trabajo (teórica, práctica, metodológica).\nSustenta adecuadamente el por qué se realiza el trabajo de investigación de acuerdo con la naturaleza del problema explicando cuáles son las contribuciones científicas o sociales y los beneficiarios de su trabajo. Definir los tipos de justificación (teórica, práctica, metodológica, etc) citando adecuadamente y el sustento respectivo explicando las razones por las cuales la investigación posee dicha justificación. Se redacta en tiempo futuro.\nSustenta el por qué se realiza el trabajo (teórica, práctica, metodológica).\nSustenta adecuadamente el por qué se realiza el trabajo de investigación de acuerdo con la naturaleza del problema explicando cuáles son las contribuciones científicas o sociales y los beneficiarios de su trabajo. Definir los tipos de justificación (teórica, práctica, metodológica, etc) citando adecuadamente y el sustento respectivo explicando las razones por las cuales la investigación posee dicha justificación. Se redacta en tiempo futuro.\nSustenta el por qué se realiza el trabajo (teórica, práctica, metodológica).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0007",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación",
+        "section_title": "1.5 Delimitantes de la investigación",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 7,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Delimitante Teórica: Especifica las teorías que soportan su investigación.\nDelimitante Temporal: Especifica en qué momento (tiempo) se realiza la investigación.\nDelimitante Espacial: Especifica en qué lugar se realiza la investigación.\nDelimitante Teórica, Temporal y Espacial.\nDelimitante Teórica: Especifica las teorías que soportan su investigación.\nDelimitante Temporal: Especifica en qué momento (tiempo) se realiza la investigación.\nDelimitante Espacial: Especifica en qué lugar se realiza la investigación.\nDelimitante Teórica, Temporal y Espacial.\nDelimitante Teórica: Especifica las teorías que soportan su investigación.\nDelimitante Temporal: Especifica en qué momento (tiempo) se realiza la investigación.\nDelimitante Espacial: Especifica en qué lugar se realiza la investigación.\nDelimitante Teórica, Temporal y Espacial.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0008",
+        "section_path": "II. MARCO TEÓRICO",
+        "section_title": "II. MARCO TEÓRICO",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 8,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Redacta el capítulo \"II. MARCO TEÓRICO\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Formato de Títulos:\n\nExtensión: Redacta un desarrollo profundo y técnico de entre 2500 y 3500 palabras en total para todo el capítulo.\n\nH1 (Capítulo): \"II. MARCO TEÓRICO\" (Izquierda, MAYÚSCULAS, Negrita).\n\nH2 y H3 (Secciones): Tipo oración, Negrita, alineados a la izquierda (ej. 2.1.1 Antecedentes internacionales).\n\nCuerpo: Texto justificado, interlineado 1.5, sin sangrías ni negritas en el contenido.\n\n2. Rigor de Citación y Antigüedad (¡CRÍTICO!):\n\nRegla de los 4 años: Ningún dato o antecedente debe tener más de 4 años de antigüedad (salvo normas base como Moubray o SAE JA1011).\n\nAPA Estricto: Autores integrados en la narrativa en texto normal (ej. Jakkula et al. (2021)). PROHIBIDO usar negritas o mayúsculas sostenidas en los apellidos.\n\n3. Estructura de Contenido Obligatoria:\n\n2.1 Antecedentes (2.1.1 Internacionales y 2.1.2 Nacionales): Redacta resúmenes estructurados (objetivo, método, resultados). Regla de oro: El título de la investigación citada debe ir entre comillas, en \"Negrita y Cursiva\". Cada antecedente debe finalizar obligatoriamente explicando su \"aporte\" específico al estudio.\n\n2.2 Bases teóricas: Desarrolla técnicamente:\n\n2.2.1 RCM (Principios de Moubray y criterios de la Norma SAE JA1011).\n\n2.2.2 Proceso RCM (Las 7 preguntas clave).\n\n2.2.3 Taxonomía de equipos (Norma ISO 14224:2016).\n\n2.2.4 Análisis AMEF (Cálculo del NPR).\n\n2.2.5 Disponibilidad inherente, 2.2.6 Confiabilidad y 2.2.7 Mantenibilidad.\n\n2.2.8 Motoniveladora CAT 24M (Especificaciones técnicas y sistemas críticos).\n\nEcuaciones Científicas (OBLIGATORIO): Inserta centradas y numeradas a la derecha (1, 2, 3, 4) las fórmulas de: (1) NPR; (2) Disponibilidad; (3) MTBF; (4) MTTR. Define todas las variables detalladamente debajo de cada fórmula.\n\n2.3 Marco conceptual: Define la Variable Independiente (RCM y dimensiones: Taxonomía, Criticidad, AMEF, Plan) y la Variable Dependiente (Disponibilidad y dimensiones: Confiabilidad, Mantenibilidad).\n\n2.4 Definición de términos básicos: Define con rigor técnico: Falla, Falla funcional, Modo de falla, Causa de falla, Contexto operacional, Taxonomía, MTTF, MTTR y MTBF.",
+        "blocks": [
+          {
+            "block_id": "sec-0008_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Redacta el capítulo \"II. MARCO TEÓRICO\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Formato de Títulos:\n\nExtensión: Redacta un desarrollo profundo y técnico de entre 2500 y 3500 palabras en total para todo el capítulo.\n\nH1 (Capítulo): \"II. MARCO TEÓRICO\" (Izquierda, MAYÚSCULAS, Negrita).\n\nH2 y H3 (Secciones): Tipo oración, Negrita, alineados a la izquierda (ej. 2.1.1 Antecedentes internacionales).\n\nCuerpo: Texto justificado, interlineado 1.5, sin sangrías ni negritas en el contenido.\n\n2. Rigor de Citación y Antigüedad (¡CRÍTICO!):\n\nRegla de los 4 años: Ningún dato o antecedente debe tener más de 4 años de antigüedad (salvo normas base como Moubray o SAE JA1011).\n\nAPA Estricto: Autores integrados en la narrativa en texto normal (ej. Jakkula et al. (2021)). PROHIBIDO usar negritas o mayúsculas sostenidas en los apellidos.\n\n3. Estructura de Contenido Obligatoria:\n\n2.1 Antecedentes (2.1.1 Internacionales y 2.1.2 Nacionales): Redacta resúmenes estructurados (objetivo, método, resultados). Regla de oro: El título de la investigación citada debe ir entre comillas, en \"Negrita y Cursiva\". Cada antecedente debe finalizar obligatoriamente explicando su \"aporte\" específico al estudio.\n\n2.2 Bases teóricas: Desarrolla técnicamente:\n\n2.2.1 RCM (Principios de Moubray y criterios de la Norma SAE JA1011).\n\n2.2.2 Proceso RCM (Las 7 preguntas clave).\n\n2.2.3 Taxonomía de equipos (Norma ISO 14224:2016).\n\n2.2.4 Análisis AMEF (Cálculo del NPR).\n\n2.2.5 Disponibilidad inherente, 2.2.6 Confiabilidad y 2.2.7 Mantenibilidad.\n\n2.2.8 Motoniveladora CAT 24M (Especificaciones técnicas y sistemas críticos).\n\nEcuaciones Científicas (OBLIGATORIO): Inserta centradas y numeradas a la derecha (1, 2, 3, 4) las fórmulas de: (1) NPR; (2) Disponibilidad; (3) MTBF; (4) MTTR. Define todas las variables detalladamente debajo de cada fórmula.\n\n2.3 Marco conceptual: Define la Variable Independiente (RCM y dimensiones: Taxonomía, Criticidad, AMEF, Plan) y la Variable Dependiente (Disponibilidad y dimensiones: Confiabilidad, Mantenibilidad).\n\n2.4 Definición de términos básicos: Define con rigor técnico: Falla, Falla funcional, Modo de falla, Causa de falla, Contexto operacional, Taxonomía, MTTF, MTTR y MTBF.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          },
+          {
+            "block_id": "sec-0008_block_2",
+            "header": "Cabecera 2",
+            "cabecera": "Cabecera 2",
+            "label": "Prompt 2",
+            "instructions": "Genera los esquemas para las figuras del Capítulo II utilizando tablas Markdown.\n\nREGLAS DE FORMATO POSGRADO:\n\nRótulo Superior: Centrado, Tipo oración, SIN negrita. ESTRICTAMENTE SIN DOS PUNTOS (:) después de la numeración (ej. Figura 2.1 Proceso del RCM).\n\nFuente Inferior: Debajo de cada tabla inserta la leyenda Fuente: Elaboración propia.\n\nARTEFACTOS A GENERAR:\n\nFigura 2.1 Proceso del RCM: Tabla resumen con las 7 preguntas básicas de Moubray (Funciones, Fallas, Modos, Efectos, Consecuencias, Tareas proactivas, Acciones a falta de tareas).\n\nFigura 2.2 Niveles taxonómicos: Tabla de la pirámide ISO 14224 (Nivel 1 al 9: Industria hasta Parte).\n\nFigura 2.3 Análisis de Modo y Efecto de Falla: Tabla con columnas: Función, Falla Funcional, Modo de Falla, Efecto, Controles, S, O, D, NPR y Acciones tomadas.\n\nFigura 2.4 Motoniveladora CAT 24M: Cuadro resumen con datos técnicos: Motor C18 ACERT, Peso 65,840 kg, Transmisión Power Shift y Sistema PPPC.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0009",
+        "section_path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+        "section_title": "2.1 Antecedentes",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 9,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Los antecedentes de la presente investigación son el reflejo de una búsqueda exhaustiva en diferentes bases de datos de las universidades y de artículos científicos relacionados al tema de estudio.\n2.1.1 Antecedentes Internacionales.\n2.1.2 Antecedentes Nacionales.\n(Se debe considerar mínimo 5 antecedentes, puede incluir artículos científicos nacionales).\nBúsqueda exhaustiva en bases de datos (mínimo 5 antecedentes).\nLos antecedentes de la presente investigación son el reflejo de una búsqueda exhaustiva en diferentes bases de datos de las universidades y de artículos científicos relacionados al tema de estudio.\n2.1.1 Antecedentes Internacionales.\n2.1.2 Antecedentes Nacionales.\n(Se debe considerar mínimo 5 antecedentes, puede incluir artículos científicos nacionales).\nBúsqueda exhaustiva en bases de datos (mínimo 5 antecedentes).\nLos antecedentes de la presente investigación son el reflejo de una búsqueda exhaustiva en diferentes bases de datos de las universidades y de artículos científicos relacionados al tema de estudio.\n2.1.1 Antecedentes Internacionales.\n2.1.2 Antecedentes Nacionales.\n(Se debe considerar mínimo 5 antecedentes, puede incluir artículos científicos nacionales).\nBúsqueda exhaustiva en bases de datos (mínimo 5 antecedentes).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0010",
+        "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+        "section_title": "2.2 Bases teóricas",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 10,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Describen y explican principios, leyes, enfoques, teorías relacionadas con sus variables de investigación.\n• Todas las bases teóricas tienen las citas textuales o parafraseados correspondientes.\n• Las bases teóricas tienen relación con las variables de investigación.\nTambién se puede considerar marco legal, ambiental u otro que requiera la investigación.\nPrincipios, leyes, enfoques y teorías relacionadas con las variables.\nDescriben y explican principios, leyes, enfoques, teorías relacionadas con sus variables de investigación.\n• Todas las bases teóricas tienen las citas textuales o parafraseados correspondientes.\n• Las bases teóricas tienen relación con las variables de investigación.\nTambién se puede considerar marco legal, ambiental u otro que requiera la investigación.\nPrincipios, leyes, enfoques y teorías relacionadas con las variables.\nDescriben y explican principios, leyes, enfoques, teorías relacionadas con sus variables de investigación.\n• Todas las bases teóricas tienen las citas textuales o parafraseados correspondientes.\n• Las bases teóricas tienen relación con las variables de investigación.\nTambién se puede considerar marco legal, ambiental u otro que requiera la investigación.\nPrincipios, leyes, enfoques y teorías relacionadas con las variables.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0011",
+        "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas/Matriz de Consistencia de Implementación",
+        "section_title": "Matriz de Consistencia de Implementación",
+        "parent_section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+        "section_level": 3,
+        "section_order": 11,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0012",
+        "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas/Matriz de Operacionalización de Diseño",
+        "section_title": "Matriz de Operacionalización de Diseño",
+        "parent_section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+        "section_level": 3,
+        "section_order": 12,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0013",
+        "section_path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+        "section_title": "2.3 Marco conceptual",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 13,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Elabora nuevos constructos fundamentados de las teorías en relación al problema de investigación. Recopila, sistematiza y construye conceptos para el desarrollo de la investigación.\n2.3.1 Variable 1 (Dimensiones, Indicadores).\n2.3.2 Variable 2 (en caso fuese necesario).\nElabora nuevos constructos fundamentados de las teorías en relación al problema de investigación. Recopila, sistematiza y construye conceptos para el desarrollo de la investigación.\n2.3.1 Variable 1 (Dimensiones, Indicadores).\n2.3.2 Variable 2 (en caso fuese necesario).\nElabora nuevos constructos fundamentados de las teorías en relación al problema de investigación. Recopila, sistematiza y construye conceptos para el desarrollo de la investigación.\n2.3.1 Variable 1 (Dimensiones, Indicadores).\n2.3.2 Variable 2 (en caso fuese necesario).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0014",
+        "section_path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+        "section_title": "2.4 Definición de términos básicos",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 14,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Se recomienda declarar los términos que permitan facilitar el entendimiento de la investigación al lector, como términos propios de la industria o de la investigación.\nSe recomienda declarar los términos que permitan facilitar el entendimiento de la investigación al lector, como términos propios de la industria o de la investigación.\nSe recomienda declarar los términos que permitan facilitar el entendimiento de la investigación al lector, como términos propios de la industria o de la investigación.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0015",
+        "section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_title": "III. HIPÓTESIS Y VARIABLES",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 15,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Redacta la sección textual \"III. HIPÓTESIS Y VARIABLES\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Formato de Títulos:\n\nExtensión: Redacta un texto conciso y directo de entre 100 y 150 palabras (esta sección solo contiene la declaración de las hipótesis y la presentación de las tablas).\n\nH1 (Nivel Capítulo): \"III. HIPÓTESIS Y VARIABLES\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nH2 (Nivel Secciones): \"3.1 Hipótesis\" y \"3.2 Operacionalización de variable\" (Alineados a la Izquierda, Tipo oración, Negrita).\n\n2. Estructura de Contenido (3.1 Hipótesis):\n\nHipótesis general: Redacta la afirmación que establece que el plan de mantenimiento centrado en confiabilidad (RCM) mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en la unidad minera en 2025.\n\nHipótesis específicas: Redacta 2 hipótesis enfocadas en cómo el plan RCM mejora: 1) la Confiabilidad y 2) la Mantenibilidad.\n\n3. Estilo y Jerarquía Visual:\n\nLas sub-etiquetas \"Hipótesis general\" e \"Hipótesis específicas\" deben ir alineadas a la izquierda, en negrita y estrictamente SIN numeración arábiga.\n\nLas hipótesis específicas deben listarse utilizando viñetas circulares (•), simulando la sangría francesa.",
+        "blocks": [
+          {
+            "block_id": "sec-0015_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Redacta la sección textual \"III. HIPÓTESIS Y VARIABLES\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Formato de Títulos:\n\nExtensión: Redacta un texto conciso y directo de entre 100 y 150 palabras (esta sección solo contiene la declaración de las hipótesis y la presentación de las tablas).\n\nH1 (Nivel Capítulo): \"III. HIPÓTESIS Y VARIABLES\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nH2 (Nivel Secciones): \"3.1 Hipótesis\" y \"3.2 Operacionalización de variable\" (Alineados a la Izquierda, Tipo oración, Negrita).\n\n2. Estructura de Contenido (3.1 Hipótesis):\n\nHipótesis general: Redacta la afirmación que establece que el plan de mantenimiento centrado en confiabilidad (RCM) mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en la unidad minera en 2025.\n\nHipótesis específicas: Redacta 2 hipótesis enfocadas en cómo el plan RCM mejora: 1) la Confiabilidad y 2) la Mantenibilidad.\n\n3. Estilo y Jerarquía Visual:\n\nLas sub-etiquetas \"Hipótesis general\" e \"Hipótesis específicas\" deben ir alineadas a la izquierda, en negrita y estrictamente SIN numeración arábiga.\n\nLas hipótesis específicas deben listarse utilizando viñetas circulares (•), simulando la sangría francesa.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          },
+          {
+            "block_id": "sec-0015_block_2",
+            "header": "Cabecera 2",
+            "cabecera": "Cabecera 2",
+            "label": "Prompt 2",
+            "instructions": "Genera las tablas de operacionalización de variables (3.1 y 3.2) usando tablas Markdown bajo estas reglas de Posgrado:\n\nRótulo Superior: Centrado, Tipo oración, SIN negrita y SIN dos puntos (:) después del número (ej. Tabla 3.1 Operacionalización de variable independiente).\n\nEstilo APA: Tabla abierta (solo líneas horizontales en cabecera y final, CERO líneas verticales).\n\nContenido Tabla 3.1 (Independiente - RCM): 7 columnas: VARIABLES, DEFINICIÓN CONCEPTUAL, DEFINICIÓN OPERACIONAL, DIMENSIONES (Taxonomía, Criticidad, AMEF, Plan), INDICADORES, ÍNDICE y TÉCNICA E INSTRUMENTOS.\n\nContenido Tabla 3.2 (Dependiente - Disponibilidad): 7 columnas con dimensiones de Confiabilidad (MTBF) y Mantenibilidad (MTTR).\n\nNota: En la columna \"Técnica e Instrumentos\", resalta las etiquetas Técnica: e Instrumento: en negrita.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0016",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis",
+        "section_title": "3.1 Hipótesis",
+        "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_level": 2,
+        "section_order": 16,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "En caso de no aplicar a la investigación sustentar el motivo. Las investigaciones descriptivas simples no requieren hipótesis.\nHipótesis General: Plantearse como afirmación, las cuales deben ser probada por medio de técnicas de investigación usando datos empíricos y ser acordes a los objetivos planteados.\nHipótesis Específicas: Expresa respuestas coherentes de cómo dar solución a cada uno de los problemas específicos y está formulado en forma afirmativa de proposición.\nAfirmación que debe ser probada (General y Específicas).\nEn caso de no aplicar a la investigación sustentar el motivo. Las investigaciones descriptivas simples no requieren hipótesis.\nHipótesis General: Plantearse como afirmación, las cuales deben ser probada por medio de técnicas de investigación usando datos empíricos y ser acordes a los objetivos planteados.\nHipótesis Específicas: Expresa respuestas coherentes de cómo dar solución a cada uno de los problemas específicos y está formulado en forma afirmativa de proposición.\nAfirmación que debe ser probada (General y Específicas).\nEn caso de no aplicar a la investigación sustentar el motivo. Las investigaciones descriptivas simples no requieren hipótesis.\nHipótesis General: Plantearse como afirmación, las cuales deben ser probada por medio de técnicas de investigación usando datos empíricos y ser acordes a los objetivos planteados.\nHipótesis Específicas: Expresa respuestas coherentes de cómo dar solución a cada uno de los problemas específicos y está formulado en forma afirmativa de proposición.\nAfirmación que debe ser probada (General y Específicas).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0017",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variable",
+        "section_title": "3.2 Operacionalización de variable",
+        "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_level": 2,
+        "section_order": 17,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Se puede colocar un texto previo a la matriz de operacionalización de variables (opcional). No lleva rotulado de tabla ni fuente. Constituye el conjunto de procedimientos para medir una variable.\nMatriz de operacionalización (sin rotulado de tabla).\nSe puede colocar un texto previo a la matriz de operacionalización de variables (opcional). No lleva rotulado de tabla ni fuente. Constituye el conjunto de procedimientos para medir una variable.\nMatriz de operacionalización (sin rotulado de tabla).\nSe puede colocar un texto previo a la matriz de operacionalización de variables (opcional). No lleva rotulado de tabla ni fuente. Constituye el conjunto de procedimientos para medir una variable.\nMatriz de operacionalización (sin rotulado de tabla).",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0018",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/Operacionalización de Variables",
+        "section_title": "Operacionalización de Variables",
+        "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_level": 2,
+        "section_order": 18,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0019",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_title": "IV. METODOLOGÍA DEL PROYECTO",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 19,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Redacta el capítulo \"IV. METODOLOGÍA DEL PROYECTO\" completo de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Tiempo Verbal (¡CRÍTICO!):\n\nExtensión: Redacta un texto metodológico riguroso y fundamentado de entre 800 y 1200 palabras en total.\n\nTiempo Verbal: Redacta OBLIGATORIAMENTE en FUTURO (ej. \"se empleará\", \"se medirá\", \"se contrastará\"), ya que es un plan de proyecto por ejecutar.\n\n2. Formato de Títulos y Cuerpo:\n\nH1 (Nivel Capítulo): \"IV. METODOLOGÍA DEL PROYECTO\" (Alineado a la izquierda, MAYÚSCULAS, Negrita).\n\nH2 (Nivel Secciones): Tipo oración, Negrita, alineados a la izquierda (ej. 4.1 Diseño metodológico). Prohibido modificar los nombres exactos de los subtítulos.\n\nCuerpo: Texto justificado, interlineado 1.5, sin sangrías ni negritas en los párrafos.\n\n3. Estructura de Contenido Obligatoria y Enfoque Técnico:\n\n4.1 Diseño metodológico: Sustenta por qué la investigación es de tipo Aplicada y nivel Explicativo (causa-efecto). Define el diseño preexperimental de corte longitudinal (un solo grupo con preprueba y posprueba). OBLIGATORIO: Integra directamente en la narrativa el esquema del diseño: M -> O1 -> X -> O2 y detalla su leyenda (M: Flota 5 motoniveladoras CAT 24M; O1: Medición de disponibilidad pre-experimental; X: Implementación del Plan RCM; O2: Medición de disponibilidad post-experimental).\n\n4.2 Método de investigación: Explica la aplicación del enfoque cuantitativo y el método hipotético-deductivo (formulación de hipótesis y posterior contrastación estadística).\n\n4.3 Población y muestra: Define la población (5 motoniveladoras CAT 24M) y justifica el uso de un muestreo no probabilístico de tipo censal (la muestra es el 100% de la población).\n\n4.4 Lugar de estudio: Describe el contexto operativo severo: unidad minera a cielo abierto en Junín (>4000 m.s.n.m.), con impacto directo en el acarreo de mineral.\n\n4.5 Técnicas e instrumentos: Profundiza en cómo se levantará la información: 1) Análisis de datos históricos (software de mantenimiento / CMMS); 2) Fichas de registro basadas en la norma ISO 14224; 3) Observación directa en campo; 4) Juicio de expertos para validar la propuesta RCM.\n\n4.6 Análisis y procesamiento de datos: Haz énfasis técnico. Describe la tabulación en MS Excel, el modelamiento estadístico de los tiempos de falla usando la distribución de Weibull, y la aplicación de pruebas de normalidad (Shapiro-Wilk) para determinar si se usarán pruebas paramétricas (T-Student) o no paramétricas (Wilcoxon) al contrastar el MTBF, MTTR y Disponibilidad (O1 vs O2).\n\n4.7 Aspectos éticos en Investigación: Fundamenta OBLIGATORIAMENTE el accionar del investigador en el Código de Ética de la UNAC (Resolución N.º 260-19-CU), garantizando los principios de probidad, transparencia, rigor científico, objetividad y confidencialidad de la data minera.\n\n4. Citación: APA estricto (autores en texto normal, ej. Shi, Wang y Zhang (2022)). Máximo 4 años de antigüedad para metodólogos citados.",
+        "blocks": [
+          {
+            "block_id": "sec-0019_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Redacta el capítulo \"IV. METODOLOGÍA DEL PROYECTO\" completo de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de contenido y estructura:\n\n1. Extensión y Tiempo Verbal (¡CRÍTICO!):\n\nExtensión: Redacta un texto metodológico riguroso y fundamentado de entre 800 y 1200 palabras en total.\n\nTiempo Verbal: Redacta OBLIGATORIAMENTE en FUTURO (ej. \"se empleará\", \"se medirá\", \"se contrastará\"), ya que es un plan de proyecto por ejecutar.\n\n2. Formato de Títulos y Cuerpo:\n\nH1 (Nivel Capítulo): \"IV. METODOLOGÍA DEL PROYECTO\" (Alineado a la izquierda, MAYÚSCULAS, Negrita).\n\nH2 (Nivel Secciones): Tipo oración, Negrita, alineados a la izquierda (ej. 4.1 Diseño metodológico). Prohibido modificar los nombres exactos de los subtítulos.\n\nCuerpo: Texto justificado, interlineado 1.5, sin sangrías ni negritas en los párrafos.\n\n3. Estructura de Contenido Obligatoria y Enfoque Técnico:\n\n4.1 Diseño metodológico: Sustenta por qué la investigación es de tipo Aplicada y nivel Explicativo (causa-efecto). Define el diseño preexperimental de corte longitudinal (un solo grupo con preprueba y posprueba). OBLIGATORIO: Integra directamente en la narrativa el esquema del diseño: M -> O1 -> X -> O2 y detalla su leyenda (M: Flota 5 motoniveladoras CAT 24M; O1: Medición de disponibilidad pre-experimental; X: Implementación del Plan RCM; O2: Medición de disponibilidad post-experimental).\n\n4.2 Método de investigación: Explica la aplicación del enfoque cuantitativo y el método hipotético-deductivo (formulación de hipótesis y posterior contrastación estadística).\n\n4.3 Población y muestra: Define la población (5 motoniveladoras CAT 24M) y justifica el uso de un muestreo no probabilístico de tipo censal (la muestra es el 100% de la población).\n\n4.4 Lugar de estudio: Describe el contexto operativo severo: unidad minera a cielo abierto en Junín (>4000 m.s.n.m.), con impacto directo en el acarreo de mineral.\n\n4.5 Técnicas e instrumentos: Profundiza en cómo se levantará la información: 1) Análisis de datos históricos (software de mantenimiento / CMMS); 2) Fichas de registro basadas en la norma ISO 14224; 3) Observación directa en campo; 4) Juicio de expertos para validar la propuesta RCM.\n\n4.6 Análisis y procesamiento de datos: Haz énfasis técnico. Describe la tabulación en MS Excel, el modelamiento estadístico de los tiempos de falla usando la distribución de Weibull, y la aplicación de pruebas de normalidad (Shapiro-Wilk) para determinar si se usarán pruebas paramétricas (T-Student) o no paramétricas (Wilcoxon) al contrastar el MTBF, MTTR y Disponibilidad (O1 vs O2).\n\n4.7 Aspectos éticos en Investigación: Fundamenta OBLIGATORIAMENTE el accionar del investigador en el Código de Ética de la UNAC (Resolución N.º 260-19-CU), garantizando los principios de probidad, transparencia, rigor científico, objetividad y confidencialidad de la data minera.\n\n4. Citación: APA estricto (autores en texto normal, ej. Shi, Wang y Zhang (2022)). Máximo 4 años de antigüedad para metodólogos citados.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0020",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico",
+        "section_title": "4.1 Diseño metodológico",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 20,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "En esta sección se debe indicar: Tipo de investigación (Básica o Aplicada), Enfoque de Investigación (Cuantitativa o Cualitativa), Nivel de Investigación (Descriptiva, Correlacional, explicativo u otros), Diseño de Investigación (No experimental, Experimental, y su esquema correspondiente) especificando el tipo. Debe definir cada clasificación de su investigación citando y argumentar su elección.\nTipo, Enfoque, Nivel y Diseño de investigación.\nEn esta sección se debe indicar: Tipo de investigación (Básica o Aplicada), Enfoque de Investigación (Cuantitativa o Cualitativa), Nivel de Investigación (Descriptiva, Correlacional, explicativo u otros), Diseño de Investigación (No experimental, Experimental, y su esquema correspondiente) especificando el tipo. Debe definir cada clasificación de su investigación citando y argumentar su elección.\nTipo, Enfoque, Nivel y Diseño de investigación.\nEn esta sección se debe indicar: Tipo de investigación (Básica o Aplicada), Enfoque de Investigación (Cuantitativa o Cualitativa), Nivel de Investigación (Descriptiva, Correlacional, explicativo u otros), Diseño de Investigación (No experimental, Experimental, y su esquema correspondiente) especificando el tipo. Debe definir cada clasificación de su investigación citando y argumentar su elección.\nTipo, Enfoque, Nivel y Diseño de investigación.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0021",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.2 Método de investigación",
+        "section_title": "4.2 Método de investigación",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 21,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Método de investigación científica. Definir el método citando un autor y argumentar su elección especificando las etapas ¿Cómo se va a desarrollar? estableciendo los procedimientos del desarrollo de la investigación.\nMétodo científico y etapas de desarrollo.\nMétodo de investigación científica. Definir el método citando un autor y argumentar su elección especificando las etapas ¿Cómo se va a desarrollar? estableciendo los procedimientos del desarrollo de la investigación.\nMétodo científico y etapas de desarrollo.\nMétodo de investigación científica. Definir el método citando un autor y argumentar su elección especificando las etapas ¿Cómo se va a desarrollar? estableciendo los procedimientos del desarrollo de la investigación.\nMétodo científico y etapas de desarrollo.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0022",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.3 Población y muestra",
+        "section_title": "4.3 Población y muestra",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 22,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Describe la población y argumenta la elección de la muestra, si la naturaleza de la investigación lo requiere (indicando el tipo de muestreo). En caso de que no aplique argumentar adecuadamente (Tesis de Diseño).\nDescripción de población y tipo de muestreo.\nDescribe la población y argumenta la elección de la muestra, si la naturaleza de la investigación lo requiere (indicando el tipo de muestreo). En caso de que no aplique argumentar adecuadamente (Tesis de Diseño).\nDescripción de población y tipo de muestreo.\nDescribe la población y argumenta la elección de la muestra, si la naturaleza de la investigación lo requiere (indicando el tipo de muestreo). En caso de que no aplique argumentar adecuadamente (Tesis de Diseño).\nDescripción de población y tipo de muestreo.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0023",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.4 Lugar de estudio",
+        "section_title": "4.4 Lugar de estudio",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 23,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Muestra la ubicación de la empresa y describe el área o lugar específico donde se realiza la investigación. Se recomienda: Usar Google maps indicando la ubicación. Usar una herramienta que permita visualizar el área donde se realiza la investigación. Contexto de la empresa.\nUbicación y descripción del área.\nMuestra la ubicación de la empresa y describe el área o lugar específico donde se realiza la investigación. Se recomienda: Usar Google maps indicando la ubicación. Usar una herramienta que permita visualizar el área donde se realiza la investigación. Contexto de la empresa.\nUbicación y descripción del área.\nMuestra la ubicación de la empresa y describe el área o lugar específico donde se realiza la investigación. Se recomienda: Usar Google maps indicando la ubicación. Usar una herramienta que permita visualizar el área donde se realiza la investigación. Contexto de la empresa.\nUbicación y descripción del área.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0024",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.5 Técnicas e instrumentos para la recolección de la información",
+        "section_title": "4.5 Técnicas e instrumentos para la recolección de la información",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 24,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Define (citando) y sustente el uso de las técnicas e instrumentos utilizados en la investigación, especificando que información van a obtener. Las fichas de recolección de datos no requieren validación.\nDefine (citando) y sustente el uso de las técnicas e instrumentos utilizados en la investigación, especificando que información van a obtener. Las fichas de recolección de datos no requieren validación.\nDefine (citando) y sustente el uso de las técnicas e instrumentos utilizados en la investigación, especificando que información van a obtener. Las fichas de recolección de datos no requieren validación.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0025",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.6 Análisis y procesamiento de datos",
+        "section_title": "4.6 Análisis y procesamiento de datos",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 25,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Explica ¿Cómo se utiliza la información? Seguir las etapas del procedimiento especificando las herramientas utilizadas y como se analizan los datos.\nExplica ¿Cómo se utiliza la información? Seguir las etapas del procedimiento especificando las herramientas utilizadas y como se analizan los datos.\nExplica ¿Cómo se utiliza la información? Seguir las etapas del procedimiento especificando las herramientas utilizadas y como se analizan los datos.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0026",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.7 Aspectos éticos en Investigación",
+        "section_title": "4.7 Aspectos éticos en Investigación",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 26,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Considerar los principios del código de ética de la UNAC y especificar ¿Cómo se aplican los principios mencionados?\nConsiderar los principios del código de ética de la UNAC y especificar ¿Cómo se aplican los principios mencionados?\nConsiderar los principios del código de ética de la UNAC y especificar ¿Cómo se aplican los principios mencionados?",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0027",
+        "section_path": "IV. METODOLOGÍA DEL PROYECTO/Cronograma Resumido de Actividades",
+        "section_title": "Cronograma Resumido de Actividades",
+        "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+        "section_level": 2,
+        "section_order": 27,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0028",
+        "section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+        "section_title": "V. CRONOGRAMA DE ACTIVIDADES",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 28,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Genera la sección \"V. CRONOGRAMA DE ACTIVIDADES\" para un proyecto de posgrado utilizando una tabla Markdown bajo estas reglas estrictas de contenido y estructura:\n\n1. Formato de Títulos y Rótulos (UNAC):\n\nTítulo H1: \"V. CRONOGRAMA DE ACTIVIDADES\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nRótulo de Tabla: \"Tabla 5.1 Cronograma de actividades\" (Centrado, Parte Superior, SIN negrita y SIN dos puntos después del número).\n\nEstilo de Tabla: Utiliza formato de tabla Markdown.\n\n2. Estructura y Contenido (Año 2025):\n\nColumnas: FASES Y ACTIVIDADES | Ene | Feb | Mar | Abr | May | Jun | Jul | Ago | Set | Oct | Nov | Dic.\n\nContenido de las Filas: Redacta el nombre de la Fase en MAYÚSCULAS y Negrita. Debajo de cada fase, inventa nombres técnicos y lógicos para cada sub-actividad (ej. 1.1 Aprobación de matriz de consistencia, 2.1 Levantamiento de manuales CAT 24M, etc.) coherentes con la metodología RCM.\n\nMarcador: Utiliza una \"X\" para señalar los meses de ejecución.\n\n3. Distribución de Tiempos a Desarrollar:\n\n1. PLANIFICACIÓN Y DISEÑO: Desarrolla las actividades 1.1 a 1.3 (Marcar en Feb).\n\n2. RECOLECCIÓN Y CONTEXTO OPERACIONAL: Desarrolla las actividades 2.1 a 2.3 (Marcar cruzando Feb, Mar y Abr).\n\n3. BASE DE DATOS Y DEPURACIÓN: Desarrolla las actividades 3.1 a 3.3 (Marcar cruzando Abr, May y Jun).\n\n4. LÍNEA BASE: Desarrolla las actividades 4.1 y 4.2 (Marcar cruzando Jun y Jul).\n\n5. CRITICIDAD Y AMEF: Desarrolla las actividades 5.1 a 5.3 (Marcar cruzando Jun, Jul, Ago y Set).\n\n6. PLAN RCM E IMPLEMENTACIÓN: Desarrolla las actividades 6.1 a 6.4 (Marcar cruzando Ago y Set).\n\n7. VALIDACIÓN Y CONTRASTE: Desarrolla las actividades 7.1 a 7.3 (Marcar cruzando Set, Oct y Nov).\n\n8. REDACCIÓN Y CIERRE: Desarrolla las actividades 8.1 a 8.4 (Marcar cruzando Oct, Nov y Dic).",
+        "blocks": [
+          {
+            "block_id": "sec-0028_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Genera la sección \"V. CRONOGRAMA DE ACTIVIDADES\" para un proyecto de posgrado utilizando una tabla Markdown bajo estas reglas estrictas de contenido y estructura:\n\n1. Formato de Títulos y Rótulos (UNAC):\n\nTítulo H1: \"V. CRONOGRAMA DE ACTIVIDADES\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nRótulo de Tabla: \"Tabla 5.1 Cronograma de actividades\" (Centrado, Parte Superior, SIN negrita y SIN dos puntos después del número).\n\nEstilo de Tabla: Utiliza formato de tabla Markdown.\n\n2. Estructura y Contenido (Año 2025):\n\nColumnas: FASES Y ACTIVIDADES | Ene | Feb | Mar | Abr | May | Jun | Jul | Ago | Set | Oct | Nov | Dic.\n\nContenido de las Filas: Redacta el nombre de la Fase en MAYÚSCULAS y Negrita. Debajo de cada fase, inventa nombres técnicos y lógicos para cada sub-actividad (ej. 1.1 Aprobación de matriz de consistencia, 2.1 Levantamiento de manuales CAT 24M, etc.) coherentes con la metodología RCM.\n\nMarcador: Utiliza una \"X\" para señalar los meses de ejecución.\n\n3. Distribución de Tiempos a Desarrollar:\n\n1. PLANIFICACIÓN Y DISEÑO: Desarrolla las actividades 1.1 a 1.3 (Marcar en Feb).\n\n2. RECOLECCIÓN Y CONTEXTO OPERACIONAL: Desarrolla las actividades 2.1 a 2.3 (Marcar cruzando Feb, Mar y Abr).\n\n3. BASE DE DATOS Y DEPURACIÓN: Desarrolla las actividades 3.1 a 3.3 (Marcar cruzando Abr, May y Jun).\n\n4. LÍNEA BASE: Desarrolla las actividades 4.1 y 4.2 (Marcar cruzando Jun y Jul).\n\n5. CRITICIDAD Y AMEF: Desarrolla las actividades 5.1 a 5.3 (Marcar cruzando Jun, Jul, Ago y Set).\n\n6. PLAN RCM E IMPLEMENTACIÓN: Desarrolla las actividades 6.1 a 6.4 (Marcar cruzando Ago y Set).\n\n7. VALIDACIÓN Y CONTRASTE: Desarrolla las actividades 7.1 a 7.3 (Marcar cruzando Set, Oct y Nov).\n\n8. REDACCIÓN Y CIERRE: Desarrolla las actividades 8.1 a 8.4 (Marcar cruzando Oct, Nov y Dic).",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0029",
+        "section_path": "V. CRONOGRAMA DE ACTIVIDADES/Cronograma de ejecución",
+        "section_title": "Cronograma de ejecución",
+        "parent_section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+        "section_level": 2,
+        "section_order": 29,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Evidencia la secuencia del desarrollo de la investigación hasta la elaboración del informe final. La frecuencia (meses / semanas / días) va a depender de la investigación. No requiere enumerar como tabla. No requiere indicar elaboración propia.\nSecuencia del desarrollo de la investigación.\nEvidencia la secuencia del desarrollo de la investigación hasta la elaboración del informe final. La frecuencia (meses / semanas / días) va a depender de la investigación. No requiere enumerar como tabla. No requiere indicar elaboración propia.\nSecuencia del desarrollo de la investigación.\nEvidencia la secuencia del desarrollo de la investigación hasta la elaboración del informe final. La frecuencia (meses / semanas / días) va a depender de la investigación. No requiere enumerar como tabla. No requiere indicar elaboración propia.\nSecuencia del desarrollo de la investigación.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0030",
+        "section_path": "V. CRONOGRAMA DE ACTIVIDADES/Cronograma Detallado de Actividades",
+        "section_title": "Cronograma Detallado de Actividades",
+        "parent_section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+        "section_level": 2,
+        "section_order": 30,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0031",
+        "section_path": "VI. PRESUPUESTO",
+        "section_title": "VI. PRESUPUESTO",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 31,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Genera el capítulo \"VI. PRESUPUESTO\" para un proyecto de investigación de posgrado utilizando una tabla Markdown bajo estas reglas estrictas de formato y contenido:\n\n1. Formato de Títulos y Rótulos (UNAC):\n\nTítulo H1: \"VI. PRESUPUESTO\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nRótulo de Tabla: \"Tabla 6.1 Presupuesto de investigación\" (Centrado, Parte Superior, SIN negrita y SIN dos puntos después del número).\n\nEstilo de Tabla: Utiliza formato de tabla Markdown.\n\n2. Estructura de la Matriz:\n\nColumnas: N° | DESCRIPCIÓN DEL GASTO | CANTIDAD | COSTO UNIT. (S/.) | COSTO TOTAL (S/.).\n\n3. Contenido y Coherencia Matemática (¡CRÍTICO!):\nDistribuye los precios unitarios y cantidades de manera lógica para que la multiplicación dé el costo total del ítem, y la suma de ítems dé exactamente el total de cada categoría:\n\n1. RECURSOS HUMANOS (Total: 2,000.00): Incluye \"1.1 Investigador\" (Asigna meses o monto global para sumar 2,000.00).\n\n2. RECURSOS DE INVESTIGACIÓN (Total: 4,849.00): Desglosa en \"2.1 Laptop\", \"2.2 Servicio de Internet\", \"2.3 Movilidad y viáticos a mina\" y \"2.4 Software CMMS/Estadístico\". Inventa valores lógicos que sumen exactamente 4,849.00.\n\n3. RECURSOS CONSUMIBLES (Total: 560.00): Desglosa en \"3.1 Material de escritorio\", \"3.2 Impresiones y anillados\" y \"3.3 Memorias USB\". Inventa valores que sumen exactamente 560.00.\n\n4. CONTINGENCIA / IMPREVISTOS (Total: 370.00): Coloca \"4.1 Imprevistos (5% del subtotal)\" con el monto exacto de 370.00.\n\nFila Final: Agrega una fila inferior que diga \"TOTAL GENERAL\" con el monto final de \"S/. 7,779.00\" resaltado en negrita.",
+        "blocks": [
+          {
+            "block_id": "sec-0031_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Genera el capítulo \"VI. PRESUPUESTO\" para un proyecto de investigación de posgrado utilizando una tabla Markdown bajo estas reglas estrictas de formato y contenido:\n\n1. Formato de Títulos y Rótulos (UNAC):\n\nTítulo H1: \"VI. PRESUPUESTO\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nRótulo de Tabla: \"Tabla 6.1 Presupuesto de investigación\" (Centrado, Parte Superior, SIN negrita y SIN dos puntos después del número).\n\nEstilo de Tabla: Utiliza formato de tabla Markdown.\n\n2. Estructura de la Matriz:\n\nColumnas: N° | DESCRIPCIÓN DEL GASTO | CANTIDAD | COSTO UNIT. (S/.) | COSTO TOTAL (S/.).\n\n3. Contenido y Coherencia Matemática (¡CRÍTICO!):\nDistribuye los precios unitarios y cantidades de manera lógica para que la multiplicación dé el costo total del ítem, y la suma de ítems dé exactamente el total de cada categoría:\n\n1. RECURSOS HUMANOS (Total: 2,000.00): Incluye \"1.1 Investigador\" (Asigna meses o monto global para sumar 2,000.00).\n\n2. RECURSOS DE INVESTIGACIÓN (Total: 4,849.00): Desglosa en \"2.1 Laptop\", \"2.2 Servicio de Internet\", \"2.3 Movilidad y viáticos a mina\" y \"2.4 Software CMMS/Estadístico\". Inventa valores lógicos que sumen exactamente 4,849.00.\n\n3. RECURSOS CONSUMIBLES (Total: 560.00): Desglosa en \"3.1 Material de escritorio\", \"3.2 Impresiones y anillados\" y \"3.3 Memorias USB\". Inventa valores que sumen exactamente 560.00.\n\n4. CONTINGENCIA / IMPREVISTOS (Total: 370.00): Coloca \"4.1 Imprevistos (5% del subtotal)\" con el monto exacto de 370.00.\n\nFila Final: Agrega una fila inferior que diga \"TOTAL GENERAL\" con el monto final de \"S/. 7,779.00\" resaltado en negrita.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0032",
+        "section_path": "VI. PRESUPUESTO/Recursos y Presupuesto",
+        "section_title": "Recursos y Presupuesto",
+        "parent_section_path": "VI. PRESUPUESTO",
+        "section_level": 2,
+        "section_order": 32,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Se debe presentar lo que el investigador ha invertido bajo su responsabilidad, en la investigación. Se considera los recursos humanos, materiales y financieros necesarios para el desarrollo de la investigación (en soles) e indicar la fuente de financiamiento.\nInversión, recursos humanos, materiales y financieros.\nSe debe presentar lo que el investigador ha invertido bajo su responsabilidad, en la investigación. Se considera los recursos humanos, materiales y financieros necesarios para el desarrollo de la investigación (en soles) e indicar la fuente de financiamiento.\nInversión, recursos humanos, materiales y financieros.\nSe debe presentar lo que el investigador ha invertido bajo su responsabilidad, en la investigación. Se considera los recursos humanos, materiales y financieros necesarios para el desarrollo de la investigación (en soles) e indicar la fuente de financiamiento.\nInversión, recursos humanos, materiales y financieros.",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0033",
+        "section_path": "VI. PRESUPUESTO/Presupuesto del Proyecto",
+        "section_title": "Presupuesto del Proyecto",
+        "parent_section_path": "VI. PRESUPUESTO",
+        "section_level": 2,
+        "section_order": 33,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "",
+        "blocks": []
+      },
+      {
+        "section_id": "sec-0034",
+        "section_path": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+        "section_title": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 34,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Genera la sección \"VII. REFERENCIAS BIBLIOGRÁFICAS\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de formato y calidad (UNAC):\n\n1. Extensión y Calidad de las Fuentes (¡CRÍTICO!):\n\nCantidad: Genera una lista robusta y verídica de al menos 15 a 20 referencias bibliográficas vinculadas a las variables del estudio (RCM, disponibilidad, minería, maquinaria pesada).\n\nVigencia: Las referencias deben ser estrictamente de los últimos 4 años, garantizando el estado del arte actualizado (excluye esta regla únicamente para literatura clásica obligatoria como Moubray, la norma SAE JA1011 o la ISO 14224).\n\nConfiabilidad: Las fuentes deben provenir estrictamente de bases de datos académicas confiables (Scopus, Web of Science, IEEE Xplore, SciELO, Redalyc) o repositorios de tesis de posgrado. Prohibido inventar fuentes o usar blogs.\n\n2. Formato de Títulos y Cuerpo:\n\nTítulo H1: \"VII. REFERENCIAS BIBLIOGRÁFICAS\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nCuerpo: Párrafos continuos sin numeración ni viñetas, alineación justificada. Salto de línea (enter) entre cada referencia.\n\n3. Reglas del Estilo de Citación (ISO 690 Estricto):\nAplica obligatoriamente esta estructura para cada fuente:\n\nApellidos de los autores obligatoriamente en MAYÚSCULAS (ej. PATIL, S. S. y BOCANEGRA, J.).\n\nAño de publicación.\n\nTítulo de la investigación, seguido del título de la revista o tesis en Cursiva.\n\nInserción obligatoria de la designación del medio: [en línea].\n\nInserción obligatoria de la fecha de consulta: [fecha de consulta: 15 de abril de 2026].\n\nEnlace de recuperación antecedido por: Disponible en: URL o DOI seguro.",
+        "blocks": [
+          {
+            "block_id": "sec-0034_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Genera la sección \"VII. REFERENCIAS BIBLIOGRÁFICAS\" de un proyecto de investigación cuantitativo de Posgrado siguiendo estas reglas estrictas de formato y calidad (UNAC):\n\n1. Extensión y Calidad de las Fuentes (¡CRÍTICO!):\n\nCantidad: Genera una lista robusta y verídica de al menos 15 a 20 referencias bibliográficas vinculadas a las variables del estudio (RCM, disponibilidad, minería, maquinaria pesada).\n\nVigencia: Las referencias deben ser estrictamente de los últimos 4 años, garantizando el estado del arte actualizado (excluye esta regla únicamente para literatura clásica obligatoria como Moubray, la norma SAE JA1011 o la ISO 14224).\n\nConfiabilidad: Las fuentes deben provenir estrictamente de bases de datos académicas confiables (Scopus, Web of Science, IEEE Xplore, SciELO, Redalyc) o repositorios de tesis de posgrado. Prohibido inventar fuentes o usar blogs.\n\n2. Formato de Títulos y Cuerpo:\n\nTítulo H1: \"VII. REFERENCIAS BIBLIOGRÁFICAS\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nCuerpo: Párrafos continuos sin numeración ni viñetas, alineación justificada. Salto de línea (enter) entre cada referencia.\n\n3. Reglas del Estilo de Citación (ISO 690 Estricto):\nAplica obligatoriamente esta estructura para cada fuente:\n\nApellidos de los autores obligatoriamente en MAYÚSCULAS (ej. PATIL, S. S. y BOCANEGRA, J.).\n\nAño de publicación.\n\nTítulo de la investigación, seguido del título de la revista o tesis en Cursiva.\n\nInserción obligatoria de la designación del medio: [en línea].\n\nInserción obligatoria de la fecha de consulta: [fecha de consulta: 15 de abril de 2026].\n\nEnlace de recuperación antecedido por: Disponible en: URL o DOI seguro.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0035",
+        "section_path": "ANEXOS",
+        "section_title": "ANEXOS",
+        "parent_section_path": "",
+        "section_level": 1,
+        "section_order": 35,
+        "optional": true,
+        "default_selected": false,
+        "source_hints": "Genera la sección \"VIII. ANEXOS\" de un proyecto de investigación cuantitativo de Posgrado, centrada exclusivamente en el \"Anexo 1: Matriz de consistencia\", siguiendo estas reglas estrictas de formato y contenido:\n\n1. Formato de Títulos y Tabla (UNAC):\n\nTítulo H1: \"VIII. ANEXOS\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nEtiqueta de Anexo: \"Anexo 1: Matriz de consistencia\" (Alineado a la Izquierda, Negrita, Tipo oración).\n\nEstilo de Tabla: Utiliza una tabla Markdown de formato abierto (CERO líneas verticales). Por la densidad de datos, la tabla debe estructurarse para ser lo más detallada posible.\n\n2. Estructura de la Matriz (5 Columnas):\n\nCabecera General: Una única fila fusionada al inicio (o primera fila de referencia) con el Título del Proyecto en negrita y centrado (enfoque en Plan RCM, motoniveladoras CAT 24M, unidad minera, 2025).\n\nColumnas Principales: PROBLEMA | OBJETIVOS | HIPÓTESIS | VARIABLES | METODOLOGÍA.\n\n3. Rigor de Contenido (¡CRÍTICO!): No abrevies. Redacta las oraciones completas en cada celda:\n\nProblema / Objetivos / Hipótesis: Desglosa explícitamente el nivel \"GENERAL\" y los dos \"ESPECÍFICOS\" (enfocados en Confiabilidad/MTBF y Mantenibilidad/MTTR).\n\nVariables: Lista detalladamente la Variable Independiente (RCM) con sus dimensiones (Taxonomía, Criticidad, AMEF, Plan) y la Variable Dependiente (Disponibilidad Inherente) con sus dimensiones (Confiabilidad, Mantenibilidad).\n\nMetodología: Incluye en formato de lista (con la etiqueta en negrita): Tipo: Aplicada; Nivel: Explicativa; Enfoque: Cuantitativa; Diseño: Preexperimental (Pre/Post Test con un solo grupo); Población/Muestra: 05 motoniveladoras CAT 24M (Muestreo Censal); Técnicas e Instrumentos: Análisis documental (fichas ISO 14224), observación, encuesta y juicio de expertos; Procesamiento de datos: Análisis estadístico de KPIs, pruebas de normalidad y modelamiento con distribución de Weibull.",
+        "blocks": [
+          {
+            "block_id": "sec-0035_block_1",
+            "header": "Cabecera 1",
+            "cabecera": "Cabecera 1",
+            "label": "Prompt 1",
+            "instructions": "Genera la sección \"VIII. ANEXOS\" de un proyecto de investigación cuantitativo de Posgrado, centrada exclusivamente en el \"Anexo 1: Matriz de consistencia\", siguiendo estas reglas estrictas de formato y contenido:\n\n1. Formato de Títulos y Tabla (UNAC):\n\nTítulo H1: \"VIII. ANEXOS\" (Alineado a la Izquierda, MAYÚSCULAS, Negrita).\n\nEtiqueta de Anexo: \"Anexo 1: Matriz de consistencia\" (Alineado a la Izquierda, Negrita, Tipo oración).\n\nEstilo de Tabla: Utiliza una tabla Markdown de formato abierto (CERO líneas verticales). Por la densidad de datos, la tabla debe estructurarse para ser lo más detallada posible.\n\n2. Estructura de la Matriz (5 Columnas):\n\nCabecera General: Una única fila fusionada al inicio (o primera fila de referencia) con el Título del Proyecto en negrita y centrado (enfoque en Plan RCM, motoniveladoras CAT 24M, unidad minera, 2025).\n\nColumnas Principales: PROBLEMA | OBJETIVOS | HIPÓTESIS | VARIABLES | METODOLOGÍA.\n\n3. Rigor de Contenido (¡CRÍTICO!): No abrevies. Redacta las oraciones completas en cada celda:\n\nProblema / Objetivos / Hipótesis: Desglosa explícitamente el nivel \"GENERAL\" y los dos \"ESPECÍFICOS\" (enfocados en Confiabilidad/MTBF y Mantenibilidad/MTTR).\n\nVariables: Lista detalladamente la Variable Independiente (RCM) con sus dimensiones (Taxonomía, Criticidad, AMEF, Plan) y la Variable Dependiente (Disponibilidad Inherente) con sus dimensiones (Confiabilidad, Mantenibilidad).\n\nMetodología: Incluye en formato de lista (con la etiqueta en negrita): Tipo: Aplicada; Nivel: Explicativa; Enfoque: Cuantitativa; Diseño: Preexperimental (Pre/Post Test con un solo grupo); Población/Muestra: 05 motoniveladoras CAT 24M (Muestreo Censal); Técnicas e Instrumentos: Análisis documental (fichas ISO 14224), observación, encuesta y juicio de expertos; Procesamiento de datos: Análisis estadístico de KPIs, pruebas de normalidad y modelamiento con distribución de Weibull.",
+            "required_variables": [],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "prompt_fc13e3c0d8",
     "name": "Informe Cualitativo UNAC",
     "doc_type": "tesis",
@@ -608,16 +1204,6 @@
     "name": "Maestría Cualitativa UNAC",
     "docType": "maestria",
     "template": "Redacta una tesis de maestría con enfoque cualitativo sobre {{tema}}. Incluye categorías emergentes y triangulación de datos.",
-    "variables": [
-      "tema"
-    ],
-    "is_active": true
-  },
-  {
-    "id": "prompt_9f0764d149",
-    "name": "Proyecto Cuantitativo UNAC",
-    "docType": "proyecto",
-    "template": "Diseña un proyecto de investigación cuantitativo sobre {{tema}}. Debe contener matriz de consistencia y variables medibles.",
     "variables": [
       "tema"
     ],
