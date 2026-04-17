@@ -5,6 +5,14 @@ import { createAdminEditorState, findEditableSection } from "./admin-editor.js";
 import { flattenSections } from "../wizard/section-selection.js";
 import { escapeHtml } from "../../shared/dom.js";
 
+let promptPackageCustomizationBound = false;
+let promptPackageContextBound = false;
+let editorHooks = {
+  renderPromptSectionIndex: null,
+  renderPromptPackageCustomization: null,
+  renderPromptPackageContext: null,
+};
+
 function currentEditableSection() {
   return findEditableSection(getPromptAdminState().editorState, getPromptAdminState().activeSectionKey);
 }
@@ -182,8 +190,8 @@ function updateEditorSections(nextSections, activeSectionKey = getPromptAdminSta
     activeSectionKey,
   });
 
-  window.renderPromptSectionIndex?.();
-  window.renderPromptPackageCustomization?.();
+  editorHooks.renderPromptSectionIndex?.();
+  editorHooks.renderPromptPackageCustomization?.();
 }
 
 function setPackageStructureError(message = "") {
@@ -559,7 +567,7 @@ function handleAddPackageStructure() {
 }
 
 function bindPromptPackageCustomization() {
-  if (window.__promptPackageCustomizationBound) return;
+  if (promptPackageCustomizationBound) return;
   const kindSelect = document.getElementById("admin-custom-structure-kind");
   const addButton = document.getElementById("btn-add-admin-custom-structure");
   const saveButton = document.getElementById("btn-save-admin-custom-structure");
@@ -588,7 +596,7 @@ function bindPromptPackageCustomization() {
     }
   });
 
-  window.__promptPackageCustomizationBound = true;
+  promptPackageCustomizationBound = true;
 }
 
 function renderVariableTags(block) {
@@ -630,7 +638,7 @@ function renderPromptPackageContext() {
 }
 
 function bindPromptPackageContext() {
-  if (window.__promptPackageContextBound) return;
+  if (promptPackageContextBound) return;
   const templateField = document.getElementById("package-base-template");
   const saveButton = document.getElementById("btn-save-package-context");
   if (!templateField || !saveButton) return;
@@ -639,7 +647,7 @@ function bindPromptPackageContext() {
     syncPackageTemplateFromField();
   });
   saveButton.addEventListener("click", () => savePromptPackageStructure());
-  window.__promptPackageContextBound = true;
+  promptPackageContextBound = true;
 }
 
 function collectSectionFromDom(section) {
@@ -894,23 +902,35 @@ async function persistEditorState({ closeAfterSave = false, successMessage = "Pa
   });
 
   renderPromptPackageContext();
-  window.renderPromptSectionIndex?.();
-  window.renderPromptPackageCustomization?.();
+  editorHooks.renderPromptSectionIndex?.();
+  editorHooks.renderPromptPackageCustomization?.();
   if (closeAfterSave) {
     closeManualModal();
   }
   alert(successMessage);
 }
 
-export function bootPromptPackageEditor() {
+export function bootPromptPackageEditor(initialHooks = {}) {
+  editorHooks = {
+    ...editorHooks,
+    ...(initialHooks || {}),
+  };
   bindPromptPackageContext();
   bindPromptPackageCustomization();
-  window.openManualModal = openManualModal;
-  window.closeManualModal = closeManualModal;
-  window.addPromptBlock = addPromptBlock;
-  window.addVariableToBlock = addVariableToBlock;
-  window.savePackage = savePackage;
-  window.savePromptPackageStructure = savePromptPackageStructure;
-  window.renderPromptPackageContext = renderPromptPackageContext;
-  window.renderPromptPackageCustomization = renderPromptPackageCustomization;
+  return {
+    openManualModal,
+    closeManualModal,
+    addPromptBlock,
+    addVariableToBlock,
+    savePackage,
+    savePromptPackageStructure,
+    renderPromptPackageContext,
+    renderPromptPackageCustomization,
+    setHooks(nextHooks = {}) {
+      editorHooks = {
+        ...editorHooks,
+        ...(nextHooks || {}),
+      };
+    },
+  };
 }

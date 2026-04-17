@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "ef6814bee059e84f24acaecb071a8740ad9425e5a737c3e5959e5c9c0804a4dd",
-  "catalogEtag": "\"ef6814bee059e84f24acaecb071a8740ad9425e5a737c3e5959e5c9c0804a4dd\"",
+  "catalogVersion": "2818e6fbff816eaab1a2cd66152eb4197e1d737768ca55cd2e327bb4a28e4278",
+  "catalogEtag": "\"2818e6fbff816eaab1a2cd66152eb4197e1d737768ca55cd2e327bb4a28e4278\"",
   "formats": [
     {
       "id": "unac-informe-cual",
@@ -24,7 +24,7 @@
       "university": "unac",
       "category": "Tesis de Postgrado",
       "documentType": "cual",
-      "version": "b7c0eee4f5005c5d"
+      "version": "e0d7caeedfc905c5"
     },
     {
       "id": "unac-maestria-cuant",
@@ -32,7 +32,7 @@
       "university": "unac",
       "category": "Tesis de Postgrado",
       "documentType": "cuant",
-      "version": "cd6db96a2baaf678"
+      "version": "5024c8c55cf04cf8"
     },
     {
       "id": "unac-proyecto-cual",
@@ -40,7 +40,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cual",
-      "version": "f18ff7052c503ede"
+      "version": "e87c5dd81b1a4b9a"
     },
     {
       "id": "unac-proyecto-cuant",
@@ -48,7 +48,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cuant",
-      "version": "d96b964c3c8af464"
+      "version": "dae4524ffb341dca"
     },
     {
       "id": "uni-informe-apa",
@@ -5185,7 +5185,410 @@
         },
         "pagina_respeto": {}
       }
+    },
+    "uni-posgrado-standard": {
+      "id": "uni-posgrado-standard",
+      "title": "Tesis de Posgrado UNI - Formato Estándar",
+      "university": "uni",
+      "category": "Tesis de Postgrado",
+      "documentType": "standard",
+      "version": "77ff26114b503afe",
+      "templateRef": null,
+      "fields": [
+        {
+          "name": "universidad",
+          "label": "Universidad",
+          "type": "text",
+          "required": false,
+          "default": "UNIVERSIDAD NACIONAL DE INGENIERÍA",
+          "options": null,
+          "validation": null,
+          "order": 1,
+          "section": null
+        },
+        {
+          "name": "facultad",
+          "label": "Facultad",
+          "type": "text",
+          "required": false,
+          "default": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "options": null,
+          "validation": null,
+          "order": 2,
+          "section": null
+        },
+        {
+          "name": "tipo_documento",
+          "label": "Tipo Documento",
+          "type": "text",
+          "required": false,
+          "default": "TESIS",
+          "options": null,
+          "validation": null,
+          "order": 3,
+          "section": null
+        },
+        {
+          "name": "titulo_placeholder",
+          "label": "Titulo Placeholder",
+          "type": "text",
+          "required": false,
+          "default": "“TÍTULO DE LA TESIS”",
+          "options": null,
+          "validation": null,
+          "order": 4,
+          "section": null
+        },
+        {
+          "name": "frase_grado",
+          "label": "Frase Grado",
+          "type": "text",
+          "required": false,
+          "default": "PARA OBTENER EL GRADO ACADÉMICO DE",
+          "options": null,
+          "validation": null,
+          "order": 5,
+          "section": null
+        },
+        {
+          "name": "grado_objetivo",
+          "label": "Grado Objetivo",
+          "type": "text",
+          "required": false,
+          "default": "MAESTRO/DOCTOR EN CIENCIAS CON MENCIÓN EN:\n(colocar el nombre de la mención)",
+          "options": null,
+          "validation": null,
+          "order": 6,
+          "section": null
+        },
+        {
+          "name": "label_autor",
+          "label": "Label Autor",
+          "type": "text",
+          "required": false,
+          "default": "ELABORADO POR:",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "autor_valor",
+          "label": "Autor Valor",
+          "type": "text",
+          "required": false,
+          "default": "Bs. [NOMBRE Y APELLIDOS COMPLETOS]",
+          "options": null,
+          "validation": null,
+          "order": 8,
+          "section": null
+        },
+        {
+          "name": "label_asesor",
+          "label": "Label Asesor",
+          "type": "text",
+          "required": false,
+          "default": "ASESOR",
+          "options": null,
+          "validation": null,
+          "order": 9,
+          "section": null
+        },
+        {
+          "name": "asesor_valor",
+          "label": "Asesor Valor",
+          "type": "text",
+          "required": false,
+          "default": "Dr. Ing. [NOMBRES Y APELLIDOS COMPLETOS]",
+          "options": null,
+          "validation": null,
+          "order": 10,
+          "section": null
+        },
+        {
+          "name": "lugar",
+          "label": "Lugar",
+          "type": "text",
+          "required": false,
+          "default": "LIMA – PERÚ",
+          "options": null,
+          "validation": null,
+          "order": 11,
+          "section": null
+        },
+        {
+          "name": "anio",
+          "label": "Anio",
+          "type": "text",
+          "required": false,
+          "default": "2026",
+          "options": null,
+          "validation": null,
+          "order": 12,
+          "section": null
+        }
+      ],
+      "assets": [
+        {
+          "id": "uni:logo:main",
+          "kind": "logo",
+          "url": "/api/v1/assets/uni/logo/main"
+        }
+      ],
+      "rules": null,
+      "definition": {
+        "_meta": {
+          "entity": "format",
+          "publish": true,
+          "id": "uni-posgrado-standard",
+          "university": "uni",
+          "category": "Tesis de Postgrado",
+          "documentType": "standard",
+          "title": "Tesis de Posgrado UNI - Formato Estándar",
+          "titulo": "Plantilla de Informe de Tesis Posgrado",
+          "descripcion": "Plantilla oficial de Posgrado",
+          "facultad": "Centro de Formatos UNI",
+          "version": "1.0",
+          "fecha": "2026"
+        },
+        "configuracion": {
+          "ruta_logo": "app/static/assets/LogoUNI.png"
+        },
+        "caratula": {
+          "universidad": "UNIVERSIDAD NACIONAL DE INGENIERÍA",
+          "facultad": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "tipo_documento": "TESIS",
+          "titulo_placeholder": "“TÍTULO DE LA TESIS”",
+          "frase_grado": "PARA OBTENER EL GRADO ACADÉMICO DE",
+          "grado_objetivo": "MAESTRO/DOCTOR EN CIENCIAS CON MENCIÓN EN:\n(colocar el nombre de la mención)",
+          "label_autor": "ELABORADO POR:",
+          "autor_valor": "Bs. [NOMBRE Y APELLIDOS COMPLETOS]",
+          "label_asesor": "ASESOR",
+          "asesor_valor": "Dr. Ing. [NOMBRES Y APELLIDOS COMPLETOS]",
+          "lugar": "LIMA – PERÚ",
+          "anio": "2026"
+        },
+        "preliminares": {
+          "dedicatoria": {
+            "titulo": "Dedicatoria",
+            "texto": "(Mención breve y afectiva a personas a quienes se ofrenda el esfuerzo del trabajo)."
+          },
+          "agradecimientos": {
+            "titulo": "Agradecimientos",
+            "texto": "(Reconocimiento a instituciones o personas que contribuyeron académica o financieramente a la tesis)."
+          },
+          "indices": {
+            "contenido": "Índice de Contenidos",
+            "tablas": "Lista de Tablas, Ilustraciones y Cuadros",
+            "figuras": "ÍNDICE DE FIGURAS"
+          },
+          "resumen": {
+            "titulo": "Resumen – Abstract",
+            "texto": "(Síntesis del trabajo (objetivo, método, resultados y conclusión) en español e inglés, generalmente no mayor a 250 palabras)."
+          },
+          "introduccion": {
+            "titulo": "Introducción",
+            "texto": "(Visión general que contextualiza el tema, justifica su importancia y describe la estructura del documento)."
+          }
+        },
+        "cuerpo": [
+          {
+            "titulo": "CAPÍTULO I. PROTOCOLO DE LA INVESTIGACIÓN",
+            "contenido": [
+              {
+                "texto": "1.1. Identificación y Descripción del Problema de estudio",
+                "parrafos": [
+                  "1.1.1. Formulación del Problema General",
+                  "1.1.2. Formulación de los Problemas Específicos"
+                ],
+                "imagenes": [
+                  {
+                    "titulo": "Esquema del protocolo de investigación",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "texto": "1.2. Objetivos",
+                "parrafos": [
+                  "1.2.1. Formulación del Objetivo General",
+                  "1.2.2. Formulación de los Objetivos Específicos"
+                ]
+              },
+              {
+                "texto": "1.3. Hipótesis y variables",
+                "parrafos": [
+                  "1.3.1. Formulación de la Hipótesis General",
+                  "1.3.2. Formulación de las Hipótesis Específicas",
+                  "1.3.3. Variables"
+                ]
+              },
+              {
+                "texto": "1.4. Metodología"
+              }
+            ],
+            "nota_capitulo": "En este capítulo se establece el protocolo completo de la investigación: problema, objetivos, hipótesis y metodología. Deben formularse de manera clara y concisa."
+          },
+          {
+            "titulo": "CAPÍTULO II. MARCO TEÓRICO",
+            "contenido": [
+              {
+                "texto": "2.1. Antecedentes de la investigación",
+                "imagenes": [
+                  {
+                    "titulo": "Marco conceptual de la investigación",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia basada en la revisión de literatura"
+                  }
+                ]
+              },
+              {
+                "texto": "2.2. Bases Teóricas"
+              },
+              {
+                "texto": "2.3. Definición de Términos"
+              }
+            ],
+            "nota_capitulo": "En este capítulo se establece el protocolo completo de la investigación: problema, objetivos, hipótesis y metodología. Deben formularse de manera clara y concisa."
+          },
+          {
+            "titulo": "CAPÍTULO III. DESARROLLO DEL TRABAJO DE INVESTIGACIÓN",
+            "contenido": [
+              {
+                "texto": "3.1. Análisis de los Datos y Resultados",
+                "imagenes": [
+                  {
+                    "titulo": "Diagrama del proceso de desarrollo",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
+              },
+              {
+                "texto": "3.2. Discusión e interpretación de los Resultados"
+              },
+              {
+                "texto": "3.3. Contrastación de la Hipótesis (Si Aplica)"
+              },
+              {
+                "tipo": "tabla",
+                "titulo": "Resultados Descriptivos",
+                "orientacion": "portrait",
+                "encabezados": [
+                  "Indicador",
+                  "Media",
+                  "Desv. Estándar",
+                  "Mín.",
+                  "Máx."
+                ],
+                "filas": [
+                  [
+                    "Indicador 1",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]"
+                  ],
+                  [
+                    "Indicador 2",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]"
+                  ],
+                  [
+                    "Indicador 3",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]"
+                  ]
+                ],
+                "estilo": {
+                  "encabezado_color": "4472C4",
+                  "fuente_size": 10
+                }
+              }
+            ],
+            "nota_capitulo": "En este capítulo se establece el protocolo completo de la investigación: problema, objetivos, hipótesis y metodología. Deben formularse de manera clara y concisa."
+          },
+          {
+            "titulo": "CAPÍTULO IV. CONCLUSIONES Y RECOMENDACIONES",
+            "contenido": [
+              {
+                "texto": "4.1. Conclusiones"
+              },
+              {
+                "texto": "4.2. Recomendaciones"
+              }
+            ],
+            "nota_capitulo": "En este capítulo se establece el protocolo completo de la investigación: problema, objetivos, hipótesis y metodología. Deben formularse de manera clara y concisa."
+          }
+        ],
+        "finales": {
+          "referencias": "REFERENCIAS",
+          "anexos": {
+            "titulo_seccion": "ANEXOS",
+            "lista": [
+              {
+                "titulo": "Anexo 1: Matriz de consistencia"
+              }
+            ]
+          }
+        },
+        "matriz_consistencia": {
+          "problemas": {
+            "general": "¿[Problema general de la investigación]?",
+            "especificos": [
+              "¿[Problema específico 1]?",
+              "¿[Problema específico 2]?",
+              "¿[Problema específico 3]?"
+            ]
+          },
+          "objetivos": {
+            "general": "[Objetivo general de la investigación]",
+            "especificos": [
+              "[Objetivo específico 1]",
+              "[Objetivo específico 2]",
+              "[Objetivo específico 3]"
+            ]
+          },
+          "hipotesis": {
+            "general": "[Hipótesis general de la investigación]",
+            "especificos": [
+              "[Hipótesis específica 1]",
+              "[Hipótesis específica 2]",
+              "[Hipótesis específica 3]"
+            ]
+          },
+          "variables": {
+            "independiente": {
+              "nombre": "[Variable independiente]",
+              "dimensiones": [
+                "Dimensión 1",
+                "Dimensión 2"
+              ]
+            },
+            "dependiente": {
+              "nombre": "[Variable dependiente]",
+              "dimensiones": [
+                "Dimensión A",
+                "Dimensión B"
+              ]
+            }
+          },
+          "metodologia": {
+            "tipo": "[Tipo de investigación]",
+            "diseño": "[Diseño de investigación]",
+            "enfoque": "[Enfoque metodológico]",
+            "poblacion": "[Población y muestra]",
+            "tecnicas": "[Técnicas e instrumentos de recolección de datos]"
+          }
+        },
+        "pagina_respeto": {}
+      }
     }
   },
-  "lastSyncAt": "2026-02-18T09:25:37.477534"
+  "lastSyncAt": "2026-04-16T12:00:27.519489"
 }

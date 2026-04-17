@@ -28,7 +28,7 @@
         <button
           id="btn-download-excel-template"
           type="button"
-          onclick="TesisAI.downloadExcelTemplate()"
+          data-action="app.downloadExcelTemplate"
           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition active:scale-95"
         >
           <i class="fa-solid fa-download"></i>
@@ -40,13 +40,14 @@
           id="input-excel-file"
           accept=".xlsx"
           class="hidden"
-          onchange="TesisAI.onExcelFileSelected(this)"
+          data-change-action="app.onExcelFileSelected"
         >
 
         <button
           type="button"
           id="btn-select-excel-file"
-          onclick="document.getElementById('input-excel-file').click()"
+          data-action="app.triggerFileInput"
+          data-target="input-excel-file"
           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition active:scale-95"
         >
           <i class="fa-solid fa-paperclip"></i>
@@ -564,7 +565,7 @@
     </div>
 
     <div class="mt-8 flex justify-between items-center">
-      <button onclick="TesisAI.prevStep(2)" class="text-gray-500 hover:text-gray-700 font-medium px-4">
+      <button data-action="app.prevStep" data-step="2" class="text-gray-500 hover:text-gray-700 font-medium px-4">
         Atrás
       </button>
 
@@ -572,7 +573,9 @@
         <button
           id="btn-step3-save-maestria"
           type="button"
-          onclick="TesisAI.saveMaestriaDetails().catch(function(e){ console.error(e); var el=document.getElementById('step3-error'); if(el){ el.textContent=e.message||'Error al guardar'; el.classList.remove('hidden'); } })"
+          data-action="app.saveMaestriaDetails"
+          data-error-target="step3-error"
+          data-error-message="Error al guardar"
           class="hidden text-sm font-medium px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 transition active:scale-95"
         >
           <i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar
@@ -589,7 +592,9 @@
         <button
           id="btn-step3-next-provider"
           type="button"
-          onclick="TesisAI.goToProviderStep().catch(function(e){ console.error('goToProviderStep error:', e); var el=document.getElementById('step3-error'); if(el){ el.textContent=e.message||'Error al avanzar'; el.classList.remove('hidden'); } })"
+          data-action="app.goToProviderStep"
+          data-error-target="step3-error"
+          data-error-message="No se pudo avanzar a Seleccionar IA."
           class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <i class="fa-solid fa-arrow-right mr-2"></i> Siguiente: Seleccionar IA

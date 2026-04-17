@@ -90,7 +90,9 @@ export function createProjectUi({
         class="${baseClasses.primary}"
         title="${escapeHtml(primary.label)}"
         aria-label="${escapeHtml(primary.label)}"
-        onclick="TesisAI.openProject('${escapeHtml(project.id)}', { mode: '${escapeHtml(primary.mode)}' })"
+        data-action="app.openProject"
+        data-project-id="${escapeHtml(project.id)}"
+        data-mode="${escapeHtml(primary.mode)}"
       >
         <i class="${escapeHtml(primary.icon)}"></i>
       </button>
@@ -107,7 +109,8 @@ export function createProjectUi({
         class="${baseClasses.danger}"
         title="Eliminar"
         aria-label="Eliminar"
-        onclick="TesisAI.deleteProject('${escapeHtml(project.id)}')"
+        data-action="app.deleteProject"
+        data-project-id="${escapeHtml(project.id)}"
       >
         <i class="fa-solid fa-trash"></i>
       </button>

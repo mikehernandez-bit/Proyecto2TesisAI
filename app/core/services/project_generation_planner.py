@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Set
 
 from app.core.services.institutional_section_service import InstitutionalSectionService
+from app.core.services.maestria_payload_mapper import is_maestria_format
 
 
 class ProjectGenerationPlanner:
@@ -44,9 +45,9 @@ class ProjectGenerationPlanner:
 
         merged_sections = self._flatten_sections_in_tree_order(merged_sections)
 
-        # Inyectar sección institucional de Carátula para Maestría UNAC si falta
-        format_id = str(prompt_package.get("format_id") or prompt_package.get("_meta", {}).get("id") or "").lower()
-        if "maestria" in format_id:
+        # Inyectar sección especial para validación rápida de título e información
+        # básica en Maestría UNAC y Proyecto de Tesis UNAC.
+        if is_maestria_format(prompt_package or {}):
             special_key = "titulo-info-basica"
             if not any(special_key in self._section_keys(s) for s in merged_sections):
                 merged_sections.insert(0, {
@@ -70,6 +71,10 @@ class ProjectGenerationPlanner:
             selected_sections=selected_sections,
             merged_sections=merged_sections,
         )
+        if is_maestria_format(prompt_package or {}):
+            special_key = "titulo-info-basica"
+            if any(special_key in self._section_keys(section) for section in merged_sections):
+                selected_keys.add(special_key)
         planned: List[Dict[str, Any]] = []
         for section in merged_sections:
             # SI SE PROPORCIONÓ UNA SELECCIÓN MANUAL, DEBEMOS RESPETARLA ESTRICTAMENTE.

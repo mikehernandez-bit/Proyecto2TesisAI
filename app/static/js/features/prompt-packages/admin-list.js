@@ -1,9 +1,11 @@
 import { createPromptSectionTree } from "./section-tree.js";
+import { markPromptAdminListBooted } from "./compat.js";
 import { patchPromptAdminState } from "./state.js";
 
 let sectionTree = null;
 let universityCardsBound = false;
 let promptEditorButtonsBound = false;
+let promptAdminListApi = null;
 
 function showOnlyView(viewId) {
   document.querySelectorAll(".view-section").forEach((element) => element.classList.add("hidden"));
@@ -90,11 +92,15 @@ function bindAccordions() {
   });
 }
 
-export function bootPromptPackageAdminList() {
-  if (window.__promptAdminListBooted) {
-    return;
+export function bootPromptPackageAdminList({
+  openManualModal,
+  renderPromptPackageContext,
+  renderPromptPackageCustomization,
+} = {}) {
+  if (promptAdminListApi) {
+    markPromptAdminListBooted();
+    return promptAdminListApi;
   }
-  window.__promptAdminListBooted = true;
 
   if (!sectionTree) {
     sectionTree = createPromptSectionTree({
@@ -103,11 +109,14 @@ export function bootPromptPackageAdminList() {
       getSubtitle: () => document.getElementById("index-subtitle"),
       onOpenSection: (sectionKey) => {
         patchPromptAdminState({ activeSectionKey: sectionKey });
-        window.openManualModal?.(sectionKey);
+        openManualModal?.(sectionKey);
+      },
+      onRenderAncillary: () => {
+        renderPromptPackageContext?.();
+        renderPromptPackageCustomization?.();
       },
     });
   }
-  window.renderPromptSectionIndex = () => sectionTree.render();
 
   bindUniversityCards();
   bindAccordions();
@@ -128,4 +137,17 @@ export function bootPromptPackageAdminList() {
       });
     });
   }
+
+  promptAdminListApi = {
+    renderPromptSectionIndex() {
+      sectionTree?.render();
+    },
+    openIndex(buttonOrFormatId) {
+      return sectionTree?.openIndex(buttonOrFormatId);
+    },
+  };
+
+  markPromptAdminListBooted();
+
+  return promptAdminListApi;
 }

@@ -25,11 +25,11 @@
               </div>
             </div>
             <div class="flex items-center gap-2 flex-wrap justify-end">
-              <button id="btn-gen-cancel" onclick="TesisAI.cancelGeneration()"
+              <button id="btn-gen-cancel" data-action="app.cancelGeneration"
                 class="rounded-xl bg-rose-600 text-white px-4 py-2 text-sm font-extrabold hover:bg-rose-700">
                 Cancelar
               </button>
-              <button id="btn-gen-retry" onclick="TesisAI.retryGeneration()"
+              <button id="btn-gen-retry" data-action="app.retryGeneration"
                 class="hidden rounded-xl bg-amber-500 text-white px-4 py-2 text-sm font-extrabold hover:bg-amber-600">
                 Reintentar
               </button>
@@ -185,7 +185,7 @@
           </div>
 
           <div class="flex justify-end">
-            <button id="btn-go-construction" onclick="TesisAI.nextStep(6)"
+            <button id="btn-go-construction" data-action="app.nextStep" data-step="6"
               class="hidden rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-extrabold hover:bg-slate-950">
               Ver construcción
             </button>

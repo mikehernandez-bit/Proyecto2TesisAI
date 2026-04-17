@@ -59,6 +59,42 @@ export function createGenerationController({
     return normalized;
   }
 
+  function resolveLiveExecutionSummary(projectSnapshot) {
+    const project = projectSnapshot && typeof projectSnapshot === "object" ? projectSnapshot : {};
+    const generationPhase = project?.generation_phase && typeof project.generation_phase === "object"
+      ? project.generation_phase
+      : {};
+    const sections = Array.isArray(generationPhase.sections) ? generationPhase.sections : [];
+    const currentPath = String(
+      generationPhase.current_path
+      || generationPhase.current_section_path
+      || "",
+    ).trim();
+    const activeSection = sections.find((section) => {
+      const sectionPath = String(section?.section_path || section?.path || "").trim();
+      return currentPath ? sectionPath === currentPath : Boolean(sectionPath);
+    }) || sections[0] || {};
+    const selection = project?.ai_selection && typeof project.ai_selection === "object"
+      ? project.ai_selection
+      : {};
+    const provider = String(
+      activeSection?.provider
+      || generationPhase.provider
+      || selection.provider
+      || "",
+    ).trim();
+    const model = String(
+      activeSection?.model
+      || generationPhase.model
+      || selection.model
+      || "",
+    ).trim();
+    const mode = String(selection.mode || "").trim();
+    if (!provider && !model) return "";
+    const providerLabel = model ? `${provider} (${model})` : provider;
+    return `Usando: ${providerLabel}${mode ? ` - modo ${mode}` : ""}. `;
+  }
+
   function syncWizardStepWithProject(projectSnapshot) {
     if (!projectSnapshot || getCurrentStep() < 5) return;
 
@@ -211,7 +247,10 @@ export function createGenerationController({
 
       if (project) {
         missingProjectPolls = 0;
-        traceView.setLiveSummary(`Ejecutando flujo... ${runtimeState.getElapsed()}s`, "neutral");
+        traceView.setLiveSummary(
+          `${resolveLiveExecutionSummary(project)}Ejecutando flujo... ${runtimeState.getElapsed()}s`,
+          "neutral",
+        );
       } else {
         missingProjectPolls += 1;
         if (missingProjectPolls >= GEN_MISSING_PROJECT_MAX_POLLS) {

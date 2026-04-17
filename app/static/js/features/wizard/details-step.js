@@ -139,12 +139,33 @@ export function buildDetailsGroups(promptPackage, selectedSections) {
   };
 }
 
+function isUnacProyectoFormat(store) {
+  const state = store.getState();
+  const format = state.format || state.currentProject?.format || null;
+  const formatId = String(format?.format_id || format?.id || state.currentProject?.format_id || "").toLowerCase().trim();
+  const university = String(format?.university || "").toLowerCase().trim();
+  const category = String(format?.category || "").toLowerCase().trim();
+  return (
+    formatId.includes("unac-proyecto") ||
+    (university === "unac" && category.includes("proyecto"))
+  );
+}
+
 function isMaestriaFormat(store) {
   const state = store.getState();
   const format = state.format || state.currentProject?.format || null;
   if (!format) return false;
   const category = String(format.category || "").toLowerCase().trim();
-  return category.includes("maestria") || category.includes("posgrado") || category.includes("postgrado");
+  const formatId = String(format.format_id || format.id || state.currentProject?.format_id || "").toLowerCase().trim();
+  const university = String(format.university || "").toLowerCase().trim();
+  return (
+    category.includes("maestria") ||
+    category.includes("posgrado") ||
+    category.includes("postgrado") ||
+    formatId.includes("unac-maestria") ||
+    formatId.includes("unac-proyecto") ||
+    (university === "unac" && category.includes("proyecto"))
+  );
 }
 
 function cleanText(value) {

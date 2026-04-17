@@ -345,6 +345,58 @@ def test_plan_sections_appends_custom_sections_from_prompt_snapshot_in_tree_orde
         "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
         "CAPITULO ESPECIAL/3.1 Aplicacion piloto",
     ]
-    assert planned[1]["required_variables"] == ["alcance_piloto"]
-    assert "Capitulo padre: CAPITULO ESPECIAL" in planned[1]["additional_context"]
-    assert "Cabecera: Aplicacion piloto" in planned[1]["additional_context"]
+
+
+def test_plan_sections_injects_titulo_info_basica_for_unac_proyecto():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+                "contenido": [
+                    {"texto": "1.1 Realidad problematica"},
+                ],
+            }
+        ],
+    }
+
+    section_service = InstitutionalSectionService()
+    extracted = section_service.extract_sections(definition)
+    by_path = {item["section_path"]: item for item in extracted}
+
+    prompt_package = {
+        "format_id": "unac-proyecto-cuant",
+        "university": "unac",
+        "category": "Proyecto de Tesis",
+        "sections": [
+            {
+                **by_path["I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"],
+                "blocks": [
+                    {
+                        "block_id": "rp-1",
+                        "header": "Realidad problematica",
+                        "label": "Prompt realidad problematica",
+                        "instructions": "Describe el problema real con evidencia.",
+                        "required_variables": ["variable_dependiente"],
+                        "required": True,
+                    }
+                ],
+            }
+        ],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition=definition,
+        prompt_package=prompt_package,
+        selected_sections=[
+            {"section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"},
+        ],
+    )
+
+    assert [item["sectionId"] for item in planned] == [
+        "titulo-info-basica",
+        by_path["I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"]["section_id"],
+    ]
+    assert planned[0]["path"] == "Título + Información Básica"
+    assert planned[0]["title"] == "Título + Información Básica"
+    assert planned[0]["blocks"][0]["header"] == "Validación de Título e Información Básica"

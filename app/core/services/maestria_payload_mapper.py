@@ -366,7 +366,11 @@ def map_maestria_values(raw_values: dict[str, Any]) -> dict[str, Any]:
 
 
 def is_maestria_format(format_obj: dict[str, Any] | None) -> bool:
-    """Return True when the format corresponds to Maestria/Posgrado."""
+    """Return True when the format corresponds to Maestria/Posgrado or UNAC Proyecto.
+
+    UNAC Proyecto formats use the same details pipeline (maestria_details)
+    as Maestria, so they are treated as equivalent here.
+    """
     if not isinstance(format_obj, dict):
         return False
 
@@ -375,4 +379,14 @@ def is_maestria_format(format_obj: dict[str, Any] | None) -> bool:
         return True
 
     format_id = str(format_obj.get("format_id") or format_obj.get("id") or "").lower().strip()
-    return "maestria" in format_id
+    if "maestria" in format_id:
+        return True
+
+    # UNAC Proyecto uses the same maestria_details pipeline
+    university = str(format_obj.get("university", "")).lower().strip()
+    if university == "unac" and "proyecto" in category:
+        return True
+    if "unac-proyecto" in format_id:
+        return True
+
+    return False

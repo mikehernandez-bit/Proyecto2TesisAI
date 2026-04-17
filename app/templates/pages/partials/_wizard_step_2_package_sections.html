@@ -10,7 +10,7 @@
               <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-600">Formato Seleccionado</h4>
               <p id="step2-format-name-display" class="text-sm font-bold text-blue-600 mt-1">-</p>
             </div>
-            <button onclick="TesisAI.selectAllChapters()" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase transition-colors px-3 py-1.5 border border-transparent hover:border-blue-200 rounded-lg hover:bg-blue-50">
+            <button data-action="app.selectAllChapters" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase transition-colors px-3 py-1.5 border border-transparent hover:border-blue-200 rounded-lg hover:bg-blue-50">
               Seleccionar / deseleccionar todo
             </button>
           </div>
@@ -21,10 +21,10 @@
           </div>
 
           <div class="mt-8 flex justify-between border-t border-slate-100 pt-6">
-            <button onclick="TesisAI.prevStep(1)" class="text-slate-400 hover:text-slate-600 font-bold px-4 transition flex items-center">
+            <button data-action="app.prevStep" data-step="1" class="text-slate-400 hover:text-slate-600 font-bold px-4 transition flex items-center">
               <i class="fa-solid fa-arrow-left mr-2"></i> Atrás
             </button>
-            <button onclick="TesisAI.saveChapterSelectionAndGoDetails()" id="btn-step2-next"
+            <button data-action="app.saveChapterSelectionAndGoDetails" id="btn-step2-next"
               class="bg-blue-600 text-white px-8 py-2.5 rounded-xl hover:bg-blue-700 font-black transition-all shadow-lg shadow-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center"
               disabled>
               Siguiente: Detalles <i class="fa-solid fa-arrow-right ml-2"></i>
