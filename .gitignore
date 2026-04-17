@@ -46,3 +46,11 @@ venv/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Pruebas y scratch
+scratch/
+/test_*.py
+/reproduce_*.py
+.worktree-main/
+app/static/CSS/tailwind.generated.css
+test_template.xlsx
