@@ -64,7 +64,7 @@ SYSTEM_PROMPT = (
     "\n"
     "TABLAS Y FIGURAS SUGERIDAS:\n"
     "Si la seccion amerita una tabla o figura (cronograma, presupuesto, "
-    "operacionalizacion, resultados, diagrama de flujo, mapa conceptual), "
+    "operacionalización, resultados, diagrama de flujo, mapa conceptual), "
     "PUEDES incluirla usando un bloque JSON especial delimitado asi:\n"
     "\n"
     "Para TABLAS, inserta exactamente:\n"

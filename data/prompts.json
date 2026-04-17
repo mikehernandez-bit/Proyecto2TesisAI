@@ -7,9 +7,9 @@
     "format_id": "unac-proyecto-cuant",
     "format_name": "Proyecto de Tesis UNAC - Enfoque Cuantitativo",
     "format_version": "d96b964c3c8af464",
-    "system_instruction": "Proyecto de tesis de maestría UNAC. Enfoque cuantitativo. Tono académico técnico analítico (uso de evidencia, métricas). Prohibido inventar resultados, usar expresiones vacías o contenido de relleno.",
+    "system_instruction": "Proyecto de tesis de maestría UNAC. Enfoque cuantitativo. Debe incluir la matriz de consistencia y la operacionalización de variables. Tono académico técnico analítico (uso de evidencia, métricas). Prohibido inventar resultados, usar expresiones vacías o contenido de relleno.",
     "required_metadata": [],
-    "template": "Proyecto de tesis de maestría UNAC. Enfoque cuantitativo. Tono académico técnico analítico (uso de evidencia, métricas). Prohibido inventar resultados, usar expresiones vacías o contenido de relleno.",
+    "template": "Proyecto de tesis de maestría UNAC. Enfoque cuantitativo. Debe incluir la matriz de consistencia y la operacionalización de variables. Tono académico técnico analítico (uso de evidencia, métricas). Prohibido inventar resultados, usar expresiones vacías o contenido de relleno.",
     "variables": [
       "tema",
       "variable_dependiente",

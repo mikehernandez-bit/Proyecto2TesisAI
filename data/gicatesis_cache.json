@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "2818e6fbff816eaab1a2cd66152eb4197e1d737768ca55cd2e327bb4a28e4278",
-  "catalogEtag": "\"2818e6fbff816eaab1a2cd66152eb4197e1d737768ca55cd2e327bb4a28e4278\"",
+  "catalogVersion": "ff9da069f994ca2e44978eb0e44832cb29af549e89335c7210c5458ca9caeb65",
+  "catalogEtag": "\"ff9da069f994ca2e44978eb0e44832cb29af549e89335c7210c5458ca9caeb65\"",
   "formats": [
     {
       "id": "unac-informe-cual",
@@ -40,7 +40,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cual",
-      "version": "e87c5dd81b1a4b9a"
+      "version": "d629b0cce0937b83"
     },
     {
       "id": "unac-proyecto-cuant",
@@ -48,7 +48,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cuant",
-      "version": "dae4524ffb341dca"
+      "version": "be0370f9fb44c79e"
     },
     {
       "id": "uni-informe-apa",
@@ -5590,5 +5590,5 @@
       }
     }
   },
-  "lastSyncAt": "2026-04-16T12:00:27.519489"
+  "lastSyncAt": "2026-04-17T11:37:02.867666"
 }
