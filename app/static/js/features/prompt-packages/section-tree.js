@@ -29,6 +29,7 @@ export function createPromptSectionTree({
   getTitle,
   getSubtitle,
   onOpenSection,
+  onRenderAncillary,
 }) {
   let expandedKeys = new Set();
   let expansionHydrated = false;
@@ -127,16 +128,14 @@ export function createPromptSectionTree({
     hydrateExpandedKeys(tree);
     if (!tree.length) {
       container.innerHTML = '<div class="rounded-[2rem] border border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-500">No se detectaron secciones editables en este formato.</div>';
-      window.renderPromptPackageContext?.();
-      window.renderPromptPackageCustomization?.();
+      onRenderAncillary?.();
       return;
     }
 
     container.innerHTML = "";
     const counter = { value: 1 };
     tree.forEach((section) => renderNode(container, section, 0, counter));
-    window.renderPromptPackageContext?.();
-    window.renderPromptPackageCustomization?.();
+    onRenderAncillary?.();
   }
 
   async function openIndex(buttonOrFormatId) {

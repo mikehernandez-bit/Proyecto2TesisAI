@@ -135,6 +135,54 @@ class TestValidate:
         figure = result["sections"][0]["content"][0]
         assert figure["titulo"] == "Flujo metodologico del estudio sobre mantenimiento predictivo."
 
+    def test_reality_problem_preserves_four_figure_blocks(self, validator):
+        figures = [
+            {
+                "tipo": "figura",
+                "titulo": f"Figura {index}",
+                "caption": f"Figura {index}. Guia tecnica.",
+            }
+            for index in range(1, 6)
+        ]
+        ai_result = {
+            "sections": [
+                {
+                    "sectionId": "sec-problem",
+                    "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                    "content": figures,
+                }
+            ]
+        }
+
+        result = validator.validate(ai_result)
+        content = result["sections"][0]["content"]
+        assert isinstance(content, list)
+        assert len([block for block in content if block["tipo"] == "figura"]) == 4
+
+    def test_reality_problem_drops_table_blocks(self, validator):
+        ai_result = {
+            "sections": [
+                {
+                    "sectionId": "sec-problem",
+                    "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                    "content": [
+                        {"tipo": "parrafo", "texto": "Diagnostico tecnico suficiente para el problema."},
+                        {
+                            "tipo": "tabla",
+                            "titulo": "Tabla 1.1 Diagrama de Pareto",
+                            "encabezados": ["Sistema", "Frecuencia"],
+                            "filas": [["Tren de potencia", "42"]],
+                        },
+                    ],
+                }
+            ]
+        }
+
+        result = validator.validate(ai_result)
+        content = result["sections"][0]["content"]
+        assert isinstance(content, list)
+        assert [block["tipo"] for block in content] == ["parrafo"]
+
     def test_strips_raw_structured_repr_from_plain_text(self, validator):
         ai_result = {
             "sections": [

@@ -13,13 +13,18 @@ const INITIAL_STATE = Object.freeze({
   excelPreviewResult: null,   // Last raw parse result from POST /api/wizard/details/excel-preview
 });
 
+function deepClone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
 function cloneState(state) {
   return {
     ...state,
     selectedSections: Array.isArray(state.selectedSections) ? [...state.selectedSections] : [],
     projectValues: { ...(state.projectValues || {}) },
-    maestriaDetails: state.maestriaDetails ? { ...state.maestriaDetails } : null,
-    excelPreviewResult: state.excelPreviewResult ? { ...state.excelPreviewResult } : null,
+    maestriaDetails: deepClone(state.maestriaDetails),
+    excelPreviewResult: deepClone(state.excelPreviewResult),
   };
 }
 
@@ -87,4 +92,3 @@ export function createWizardStore(initialState = {}) {
     },
   };
 }
-

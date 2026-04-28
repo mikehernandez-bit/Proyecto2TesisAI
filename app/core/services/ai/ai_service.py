@@ -36,6 +36,11 @@ from app.core.services.ai.provider_metrics import ProviderMetricsService
 from app.core.services.ai.provider_selection import ProviderSelectionService
 from app.core.services.ai.reference_proposals import replace_references_section
 from app.core.services.ai.resilience_router import LLMProviderRouter, LLMRequest, LLMResult
+from app.core.services.ai.section_prompt_profiles import (
+    build_format_editorial_contract,
+    build_section_editorial_context,
+    build_stable_project_memory_snapshot,
+)
 from app.core.services.ai.token_usage import (
     empty_token_usage_report,
     merge_token_usage,
@@ -759,12 +764,16 @@ class AIService:
         template_text = ""
         if prompt:
             template_text = prompt.get("template", "")
+        format_id = self._resolve_prompt_format_id(prompt, format_detail)
         values = project.get("variables") or project.get("values", {})
         base_prompt = self.renderer.render(
             template_text,
             values,
             trace_hook=self._trace_hook,
         )
+        format_editorial_contract = build_format_editorial_contract(format_id)
+        if format_editorial_contract:
+            base_prompt = "\n\n".join(part for part in [base_prompt.strip(), format_editorial_contract] if part)
         self._last_base_prompt = base_prompt
 
         if not base_prompt.strip():
@@ -881,6 +890,7 @@ class AIService:
             values=project_values,
             selection=active_selection,
             seed_sections=seeded_sections,
+            format_id=format_id,
         )
 
         # --- Post-processing correction pass ---
@@ -913,6 +923,7 @@ class AIService:
         sections = apply_figure_recommendations(
             sections,
             values=project_values,
+            format_id=format_id,
         )
         self._emit_trace(
             step="ai.figures",
@@ -1069,11 +1080,27 @@ class AIService:
                 break
         return "; ".join(selected)
 
+    @staticmethod
+    def _resolve_prompt_format_id(
+        prompt: Dict[str, Any] | None,
+        format_detail: Dict[str, Any] | None,
+    ) -> str:
+        prompt_data = prompt if isinstance(prompt, dict) else {}
+        detail_data = format_detail if isinstance(format_detail, dict) else {}
+        return str(
+            prompt_data.get("format_id")
+            or prompt_data.get("formatId")
+            or detail_data.get("id")
+            or detail_data.get("format_id")
+            or ""
+        ).strip()
+
     def _build_generation_memory_context(
         self,
         *,
         previous_sections: List[Dict[str, str]],
         values: Dict[str, Any] | None = None,
+        format_id: str = "",
     ) -> str:
         if not previous_sections:
             return ""
@@ -1097,7 +1124,9 @@ class AIService:
             summary = str(item.get("summary") or "").strip() or "Seccion completada sin resumen adicional."
             lines.append(f"  - {title}: {summary}")
 
-        fixed_values = self._memory_fixed_values_snapshot(values)
+        fixed_values = build_stable_project_memory_snapshot(format_id, values) or self._memory_fixed_values_snapshot(
+            values
+        )
         if fixed_values:
             lines.append(f"- Variables o decisiones ya fijadas: {fixed_values}")
 
@@ -1164,6 +1193,7 @@ class AIService:
         values: Dict[str, Any] | None = None,
         selection: Optional[Dict[str, Any]] = None,
         seed_sections: Optional[List[Dict[str, Any]]] = None,
+        format_id: str = "",
     ) -> List[Dict[str, Any]]:
         """Generate content for each section in the index.
 
@@ -1233,6 +1263,7 @@ class AIService:
             memory_context = self._build_generation_memory_context(
                 previous_sections=memory_entries,
                 values=values,
+                format_id=format_id,
             )
             prompt_values = values or {}
             if section_id == "titulo-info-basica":
@@ -1258,6 +1289,12 @@ class AIService:
                     "5. Sé extremadamente breve. Tu respuesta será usada directamente como título oficial."
                 )
             else:
+                section_editorial_context = build_section_editorial_context(
+                    format_id=format_id,
+                    section_id=section_id,
+                    section_path=path,
+                    values=values,
+                )
                 section_prompt = self.renderer.build_section_prompt(
                     base_prompt=base_prompt,
                     section_path=path,
@@ -1267,6 +1304,7 @@ class AIService:
                         for part in [
                             str(sec.get("hints") or "").strip(),
                             str(sec.get("additional_context") or "").strip(),
+                            section_editorial_context,
                             memory_context,
                         ]
                         if part

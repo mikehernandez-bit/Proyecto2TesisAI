@@ -1,398 +1,605 @@
-      <div id="step-3-content" class="wizard-step hidden">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+<div id="step-3-content" class="wizard-step hidden">
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <div class="mb-6">
+      <h3 class="text-lg font-semibold mb-1 text-slate-800">3. Detalles del Proyecto</h3>
+      <p class="text-sm text-gray-500" id="step3-guide-text">
+        Completa los datos requeridos para generar el documento.
+      </p>
+    </div>
 
-          <!-- BLOQUE 1: Cabecera -->
-          <div class="mb-6">
-            <h3 class="text-lg font-semibold mb-1 text-slate-800">3. Datos del Proyecto</h3>
-            <p class="text-sm text-gray-500" id="step3-guide-text">
-              Completa los datos requeridos para generar el documento.
-            </p>
+    <div
+      id="step3-excel-block"
+      class="hidden mb-6 p-5 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50"
+    >
+      <div class="flex items-start gap-3 mb-4">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-file-excel"></i>
+        </div>
+        <div>
+          <h4 class="font-bold text-sm text-slate-800">Carga tu plantilla Excel</h4>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Descarga la plantilla, complétala y súbela aquí para extraer los datos automáticamente.
+            También puedes llenar el formulario manualmente.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 items-center">
+        <button
+          id="btn-download-excel-template"
+          type="button"
+          data-action="app.downloadExcelTemplate"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition active:scale-95"
+        >
+          <i class="fa-solid fa-download"></i>
+          Descargar plantilla
+        </button>
+
+        <input
+          type="file"
+          id="input-excel-file"
+          accept=".xlsx"
+          class="hidden"
+          data-change-action="app.onExcelFileSelected"
+        >
+
+        <button
+          type="button"
+          id="btn-select-excel-file"
+          data-action="app.triggerFileInput"
+          data-target="input-excel-file"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition active:scale-95"
+        >
+          <i class="fa-solid fa-paperclip"></i>
+          Seleccionar Excel
+        </button>
+
+        <span id="excel-filename-label" class="hidden text-xs text-slate-500 italic truncate max-w-[220px]"></span>
+      </div>
+
+      <div id="excel-processing-state" class="mt-4 hidden">
+        <div id="excel-loading" class="hidden flex items-center gap-2 text-blue-600 text-sm">
+          <div class="loader w-4 h-4 border-2 border-t-blue-600 rounded-full animate-spin"></div>
+          <span>Procesando Excel...</span>
+        </div>
+        <div
+          id="excel-error"
+          class="hidden text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3"
+        ></div>
+        <div
+          id="excel-success"
+          class="hidden flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg p-3 text-sm"
+        >
+          <i class="fa-solid fa-circle-check"></i>
+          <span id="excel-success-text">Excel procesado correctamente.</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="step3-extraction-preview" class="hidden mb-6">
+      <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fa-solid fa-magnifying-glass text-emerald-600"></i>
+          <h4 class="font-bold text-sm text-emerald-800">Campos extraídos del Excel</h4>
+        </div>
+        <div id="extraction-summary" class="space-y-1 text-xs text-emerald-700"></div>
+        <div
+          id="extraction-warnings"
+          class="hidden mt-2 pt-2 border-t border-emerald-200 space-y-1 text-xs text-amber-700"
+        ></div>
+        <div
+          id="extraction-missing"
+          class="hidden mt-2 pt-2 border-t border-emerald-200 space-y-1 text-xs text-rose-700"
+        ></div>
+      </div>
+    </div>
+
+    <div id="step3-maestria-form" class="hidden space-y-6 max-w-6xl mx-auto">
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-black">
+            A
           </div>
+          <h4 class="text-sm font-bold text-slate-800">Datos Generales</h4>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Título del proyecto <span class="text-red-500">*</span>
+            </label>
+            <textarea
+              id="mf-titulo"
+              data-maestria="titulo"
+              rows="2"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
+              placeholder="Ej: Plan de mantenimiento centrado en confiabilidad para mejorar la disponibilidad inherente..."
+            ></textarea>
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Línea de investigación <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-linea_investigacion"
+              data-maestria="linea_investigacion"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Gestión de mantenimiento"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Año <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-anio"
+              data-maestria="anio"
+              type="text"
+              maxlength="4"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: 2026"
+            >
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Lugar de carátula
+            </label>
+            <input
+              id="mf-lugar_caratula"
+              data-maestria="lugar_caratula"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Callao"
+            >
+          </div>
+        </div>
+      </div>
 
-          <!-- BLOQUE 2: Carga de Excel (solo visible en modo maestría) -->
-          <div id="step3-excel-block"
-               class="hidden mb-6 p-5 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50">
-
-            <div class="flex items-start gap-3 mb-4">
-              <div class="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                <i class="fa-solid fa-file-excel"></i>
-              </div>
-              <div>
-                <h4 class="font-bold text-sm text-slate-800">Carga tu plantilla Excel</h4>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Descarga la plantilla, complétala y súbela aquí para extraer los datos automáticamente.
-                  También puedes llenar el formulario manualmente.
-                </p>
-              </div>
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">
+              B
             </div>
-
-            <div class="flex flex-wrap gap-3 items-center">
-              <!-- Descargar plantilla -->
-              <button id="btn-download-excel-template" type="button"
-                onclick="TesisAI.downloadExcelTemplate()"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700
-                       bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-50 hover:border-blue-400
-                       transition active:scale-95">
-                <i class="fa-solid fa-download"></i>
-                Descargar plantilla
-              </button>
-
-              <!-- Input file oculto -->
-              <input type="file" id="input-excel-file" accept=".xlsx"
-                     class="hidden" onchange="TesisAI.onExcelFileSelected(this)">
-
-              <!-- Botón seleccionar archivo -->
-              <button type="button" id="btn-select-excel-file"
-                onclick="document.getElementById('input-excel-file').click()"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700
-                       bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400
-                       transition active:scale-95">
-                <i class="fa-solid fa-paperclip"></i>
-                Seleccionar Excel
-              </button>
-
-              <!-- Nombre del archivo seleccionado -->
-              <span id="excel-filename-label"
-                    class="hidden text-xs text-slate-500 italic truncate max-w-[200px]">
-              </span>
+            <h4 class="text-sm font-bold text-slate-800">Autor 1</h4>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-3">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                Apellidos y nombres <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="mf-autor1_nombres"
+                data-maestria="autor1_nombres"
+                type="text"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="Ej: QUISPE FLORES, Juan Carlos"
+              >
             </div>
-
-            <!-- Estado de procesamiento -->
-            <div id="excel-processing-state" class="mt-4 hidden">
-              <div id="excel-loading"
-                   class="hidden flex items-center gap-2 text-blue-600 text-sm">
-                <div class="loader w-4 h-4 border-2 border-t-blue-600 rounded-full animate-spin"></div>
-                <span>Procesando Excel...</span>
-              </div>
-              <div id="excel-error"
-                   class="hidden text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
-              </div>
-              <div id="excel-success"
-                   class="hidden flex items-center gap-2 text-green-700 bg-green-50 border border-green-200
-                          rounded-lg p-3 text-sm">
-                <i class="fa-solid fa-circle-check"></i>
-                <span id="excel-success-text">Excel procesado correctamente.</span>
-              </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">DNI</label>
+              <input
+                id="mf-autor1_dni"
+                data-maestria="autor1_dni"
+                type="text"
+                maxlength="12"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="12345678"
+              >
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">ORCID</label>
+              <input
+                id="mf-autor1_orcid"
+                data-maestria="autor1_orcid"
+                type="text"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="0000-0001-2345-6789"
+              >
             </div>
           </div>
+        </div>
 
-          <!-- BLOQUE 3: Preview de extracción (solo tras procesar Excel) -->
-          <div id="step3-extraction-preview" class="hidden mb-6">
-            <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-              <div class="flex items-center gap-2 mb-3">
-                <i class="fa-solid fa-magnifying-glass text-emerald-600"></i>
-                <h4 class="font-bold text-sm text-emerald-800">Campos extraídos del Excel</h4>
-              </div>
-              <div id="extraction-summary" class="space-y-1 text-xs text-emerald-700"></div>
-              <div id="extraction-warnings" class="hidden mt-2 pt-2 border-t border-emerald-200 space-y-1 text-xs text-amber-700"></div>
-              <div id="extraction-missing" class="hidden mt-2 pt-2 border-t border-emerald-200 space-y-1 text-xs text-rose-700"></div>
+        <div class="p-5 bg-white rounded-2xl border border-dashed border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div class="w-7 h-7 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center text-xs font-black">
+              C
             </div>
+            <h4 class="text-sm font-bold text-slate-800">
+              Autor 2 <span class="text-slate-400 font-normal text-xs">(opcional)</span>
+            </h4>
           </div>
-
-          <!-- BLOQUE 4: Formulario Maestría UNAC (solo en modo maestría) -->
-          <div id="step3-maestria-form" class="hidden space-y-6 max-w-3xl mx-auto">
-
-            <!-- Sección: Datos Generales -->
-            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-black">A</div>
-                <h4 class="text-sm font-bold text-slate-800">Datos Generales</h4>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                  <div class="flex justify-between items-end mb-1">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                      Título del Proyecto <span class="text-red-500">*</span>
-                    </label>
-                  </div>
-                  <textarea id="mf-titulo" data-maestria="titulo" rows="2"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
-                    placeholder="Ej: Implementación de un sistema para mejorar la atención de proyectos"></textarea>
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Línea de Investigación <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-linea_investigacion" data-maestria="linea_investigacion" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Gestión de Sistemas de Mantenimiento">
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Lugar (Carátula)
-                  </label>
-                  <input id="mf-lugar_caratula" data-maestria="lugar_caratula" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Callao">
-                </div>
-              </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-3">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                Apellidos y nombres
+              </label>
+              <input
+                id="mf-autor2_nombres"
+                data-maestria="autor2_nombres"
+                type="text"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="Dejar vacío si no hay segundo autor"
+              >
             </div>
-
-            <!-- Sección: Autor 1 -->
-            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">B</div>
-                <h4 class="text-sm font-bold text-slate-800">Autor 1</h4>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="md:col-span-3">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Apellidos y Nombres <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-autor1_nombres" data-maestria="autor1_nombres" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: QUISPE FLORES, Juan Carlos">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">DNI</label>
-                  <input id="mf-autor1_dni" data-maestria="autor1_dni" type="text" maxlength="12"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="12345678">
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">ORCID</label>
-                  <input id="mf-autor1_orcid" data-maestria="autor1_orcid" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="0000-0001-2345-6789">
-                </div>
-              </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">DNI</label>
+              <input
+                id="mf-autor2_dni"
+                data-maestria="autor2_dni"
+                type="text"
+                maxlength="12"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="87654321"
+              >
             </div>
-
-            <!-- Sección: Autor 2 -->
-            <div class="p-5 bg-white rounded-2xl border border-dashed border-slate-200 shadow-sm">
-              <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                <div class="w-7 h-7 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center text-xs font-black">C</div>
-                <h4 class="text-sm font-bold text-slate-800">Autor 2 <span class="text-slate-400 font-normal text-xs">(opcional)</span></h4>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="md:col-span-3">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Apellidos y Nombres</label>
-                  <input id="mf-autor2_nombres" data-maestria="autor2_nombres" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Dejar vacío si no hay segundo autor">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">DNI</label>
-                  <input id="mf-autor2_dni" data-maestria="autor2_dni" type="text" maxlength="12"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="87654321">
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">ORCID</label>
-                  <input id="mf-autor2_orcid" data-maestria="autor2_orcid" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="0000-0002-3456-7890">
-                </div>
-              </div>
-            </div>
-
-            <!-- Sección: Asesor -->
-            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                <div class="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center text-xs font-black">D</div>
-                <h4 class="text-sm font-bold text-slate-800">Asesor</h4>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="md:col-span-3">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Apellidos y Nombres <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-asesor_nombres" data-maestria="asesor_nombres" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: RAMÍREZ TORRES, Pedro Augusto">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">DNI</label>
-                  <input id="mf-asesor_dni" data-maestria="asesor_dni" type="text" maxlength="12"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="11223344">
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">ORCID</label>
-                  <input id="mf-asesor_orcid" data-maestria="asesor_orcid" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="0000-0003-4567-8901">
-                </div>
-              </div>
-            </div>
-
-            <!-- Sección: Investigación -->
-            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                <div class="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-black">E</div>
-                <h4 class="text-sm font-bold text-slate-800">Datos de Investigación</h4>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Lugar de Ejecución <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-lugar_ejecucion" data-maestria="lugar_ejecucion" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Planta Industrial XYZ, Callao">
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Unidad de Análisis <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-unidad_analisis" data-maestria="unidad_analisis" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Equipos de mantenimiento del área de producción">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Tipo <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-tipo" data-maestria="tipo" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Aplicada">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Enfoque <span class="text-red-500">*</span>
-                  </label>
-                  <select id="mf-enfoque" data-maestria="enfoque"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none bg-white">
-                    <option value="">Seleccionar...</option>
-                    <option value="Cuantitativo">Cuantitativo</option>
-                    <option value="Cualitativo">Cualitativo</option>
-                    <option value="Mixto">Mixto</option>
-                  </select>
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Diseño de Investigación <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-diseno_investigacion" data-maestria="diseno_investigacion" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Preexperimental / No experimental / Descriptivo">
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Tema OCDE 1 <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-tema_ocde_1" data-maestria="tema_ocde_1" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: 2. Ingeniería y Tecnología">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Tema OCDE 2</label>
-                  <input id="mf-tema_ocde_2" data-maestria="tema_ocde_2" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: 2.3 Ingeniería Mecánica">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Tema OCDE 3</label>
-                  <input id="mf-tema_ocde_3" data-maestria="tema_ocde_3" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: 2.3.1 Mantenimiento industrial">
-                </div>
-
-                <div class="md:col-span-2 mt-2 pt-2 border-t border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                  Detalles para Validación de Título (Mistral)
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Objeto de Estudio <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-objeto_estudio" data-maestria="objeto_estudio" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Flota de motoniveladoras CAT 24M">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Variable Independiente <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-variable_independiente" data-maestria="variable_independiente" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Plan de mantenimiento centrado en confiabilidad">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Variable Dependiente <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-variable_dependiente" data-maestria="variable_dependiente" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Disponibilidad inherente">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Población <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-poblacion" data-maestria="poblacion" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: 15 motoniveladoras">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Muestra <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-muestra" data-maestria="muestra" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: 15 motoniveladoras (censo)">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Lugar (Título) <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-lugar" data-maestria="lugar" type="text"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: Unidad Minera Cuprífera">
-                </div>
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
-                    Temporal (Año Título) <span class="text-red-500">*</span>
-                  </label>
-                  <input id="mf-temporal" data-maestria="temporal" type="text" maxlength="4"
-                    class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Ej: 2025">
-                </div>
-              </div>
-            </div>
-
-          </div><!-- fin step3-maestria-form -->
-
-          <!-- BLOQUE 4b: Formulario dinámico estándar (otros formatos) -->
-          <div id="dynamic-form" class="space-y-4 max-w-2xl mx-auto"></div>
-
-          <!-- Error -->
-          <div id="step3-error" class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3"></div>
-
-          <!-- Info tip -->
-          <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-800 flex gap-2">
-            <i class="fa-solid fa-circle-info mt-0.5"></i>
-            <p>
-              Estos datos se utilizarán para generar el documento completo.
-              <br />
-              <span class="text-[10px] text-blue-600">El proceso puede tomar unos segundos mientras la IA procesa tu solicitud.</span>
-            </p>
-          </div>
-
-          <!-- BLOQUE 5: Acciones -->
-          <div class="mt-8 flex justify-between items-center">
-            <button onclick="TesisAI.prevStep(2)"
-              class="text-gray-500 hover:text-gray-700 font-medium px-4">Atrás</button>
-
-            <div class="flex items-center gap-3">
-              <!-- Botón guardar (solo modo maestría) -->
-              <button id="btn-step3-save-maestria" type="button"
-                onclick="TesisAI.saveMaestriaDetails().catch(function(e){ console.error(e); var el=document.getElementById('step3-error'); if(el){el.textContent=e.message||'Error al guardar';el.classList.remove('hidden');} })"
-                class="hidden text-sm font-medium px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 transition active:scale-95">
-                <i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar
-              </button>
-
-              <div id="step3-loading"
-                class="hidden flex items-center gap-3 text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
-                <div class="loader w-5 h-5 border-2 border-t-blue-600"></div>
-                <span class="text-sm font-medium animate-pulse">Preparando selección IA...</span>
-              </div>
-
-              <button id="btn-step3-next-provider" type="button"
-                onclick="TesisAI.goToProviderStep().catch(function(e){ console.error('goToProviderStep error:', e); var el=document.getElementById('step3-error'); if(el){el.textContent=e.message||'Error al avanzar';el.classList.remove('hidden');} })"
-                class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
-                <i class="fa-solid fa-arrow-right mr-2"></i> Siguiente: Seleccionar IA
-              </button>
+            <div class="md:col-span-2">
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">ORCID</label>
+              <input
+                id="mf-autor2_orcid"
+                data-maestria="autor2_orcid"
+                type="text"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="0000-0002-3456-7890"
+              >
             </div>
           </div>
         </div>
       </div>
+
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div class="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center text-xs font-black">
+            D
+          </div>
+          <h4 class="text-sm font-bold text-slate-800">Asesor</h4>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="md:col-span-3">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Apellidos y nombres <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-asesor_nombres"
+              data-maestria="asesor_nombres"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: RAMÍREZ TORRES, Pedro Augusto"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">DNI</label>
+            <input
+              id="mf-asesor_dni"
+              data-maestria="asesor_dni"
+              type="text"
+              maxlength="12"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="11223344"
+            >
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">ORCID</label>
+            <input
+              id="mf-asesor_orcid"
+              data-maestria="asesor_orcid"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="0000-0003-4567-8901"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div class="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-black">
+            E
+          </div>
+          <h4 class="text-sm font-bold text-slate-800">Datos de Investigación</h4>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div class="xl:col-span-3">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Objeto de estudio <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-objeto_estudio"
+              data-maestria="objeto_estudio"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Flota de motoniveladoras CAT 24M"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Variable independiente <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-variable_independiente"
+              data-maestria="variable_independiente"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Mantenimiento centrado en la confiabilidad"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Variable dependiente <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-variable_dependiente"
+              data-maestria="variable_dependiente"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Disponibilidad inherente"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Temporal <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-temporal"
+              data-maestria="temporal"
+              type="text"
+              maxlength="4"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: 2025"
+            >
+          </div>
+          <div class="xl:col-span-2">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Lugar de ejecución <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-lugar_ejecucion"
+              data-maestria="lugar_ejecucion"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Unidad minera cuprífera, Sierra Central"
+            >
+          </div>
+          <div class="xl:col-span-2">
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Unidad de análisis <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-unidad_analisis"
+              data-maestria="unidad_analisis"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Motoniveladoras CAT 24M"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Lugar en el título
+            </label>
+            <input
+              id="mf-lugar"
+              data-maestria="lugar"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Sierra Central"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Tipo <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-tipo"
+              data-maestria="tipo"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Aplicada"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Enfoque <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="mf-enfoque"
+              data-maestria="enfoque"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
+            >
+              <option value="">Seleccionar...</option>
+              <option value="Cuantitativo">Cuantitativo</option>
+              <option value="Cualitativo">Cualitativo</option>
+              <option value="Mixto">Mixto</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Diseño de investigación <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-diseno_investigacion"
+              data-maestria="diseno_investigacion"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Preexperimental"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Nivel de investigación
+            </label>
+            <input
+              id="mf-nivel_investigacion"
+              data-maestria="nivel_investigacion"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Explicativa"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Población <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-poblacion"
+              data-maestria="poblacion"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: 5 motoniveladoras CAT 24M"
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+              Muestra <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="mf-muestra"
+              data-maestria="muestra"
+              type="text"
+              class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+              placeholder="Ej: Muestra censal de 5 unidades"
+            >
+          </div>
+          <div class="xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                Tema OCDE 1 <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="mf-tema_ocde_1"
+                data-maestria="tema_ocde_1"
+                type="text"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="Ej: 2.00.00 -- Ingeniería, Tecnología"
+              >
+            </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                Tema OCDE 2
+              </label>
+              <input
+                id="mf-tema_ocde_2"
+                data-maestria="tema_ocde_2"
+                type="text"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="Ej: 2.03.00 -- Ingeniería Mecánica"
+              >
+            </div>
+            <div>
+              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                Tema OCDE 3
+              </label>
+              <input
+                id="mf-tema_ocde_3"
+                data-maestria="tema_ocde_3"
+                type="text"
+                class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                placeholder="Ej: 2.03.06 -- Análisis de confiabilidad"
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div class="w-7 h-7 rounded-lg bg-fuchsia-100 text-fuchsia-700 flex items-center justify-center text-xs font-black">
+            F
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-800">Matriz de consistencia</h4>
+            <p class="text-xs text-slate-500">
+              Se arma con el título y las variables base del proyecto. Solo completa los bloques metodológicos y los específicos.
+            </p>
+          </div>
+        </div>
+        <div id="mf-matrix-editor"></div>
+      </div>
+
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">
+            G
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-800">Operacionalización de variable dependiente</h4>
+            <p class="text-xs text-slate-500">
+              La variable dependiente se toma automáticamente desde los datos base. Agrega una fila por dimensión.
+            </p>
+          </div>
+        </div>
+        <div id="mf-oper-vd-editor"></div>
+      </div>
+
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-black">
+            H
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-800">Operacionalización de variable independiente</h4>
+            <p class="text-xs text-slate-500">
+              La variable independiente se replica automáticamente. Solo completa definiciones, dimensiones e indicadores.
+            </p>
+          </div>
+        </div>
+        <div id="mf-oper-vi-editor"></div>
+      </div>
+    </div>
+
+    <div id="dynamic-form" class="space-y-4 max-w-2xl mx-auto"></div>
+
+    <div
+      id="step3-error"
+      class="hidden mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3"
+    ></div>
+
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-800 flex gap-2">
+      <i class="fa-solid fa-circle-info mt-0.5"></i>
+      <p>
+        Estos datos se utilizarán para generar y estructurar el documento final.
+        <br>
+        <span class="text-[10px] text-blue-600">
+          La IA solo usará las secciones seleccionadas y el contexto real capturado en este paso.
+        </span>
+      </p>
+    </div>
+
+    <div class="mt-8 flex justify-between items-center">
+      <button data-action="app.prevStep" data-step="2" class="text-gray-500 hover:text-gray-700 font-medium px-4">
+        Atrás
+      </button>
+
+      <div class="flex items-center gap-3">
+        <button
+          id="btn-step3-save-maestria"
+          type="button"
+          data-action="app.saveMaestriaDetails"
+          data-error-target="step3-error"
+          data-error-message="Error al guardar"
+          class="hidden text-sm font-medium px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 transition active:scale-95"
+        >
+          <i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar
+        </button>
+
+        <div
+          id="step3-loading"
+          class="hidden flex items-center gap-3 text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100"
+        >
+          <div class="loader w-5 h-5 border-2 border-t-blue-600"></div>
+          <span class="text-sm font-medium animate-pulse">Preparando selección IA...</span>
+        </div>
+
+        <button
+          id="btn-step3-next-provider"
+          type="button"
+          data-action="app.goToProviderStep"
+          data-error-target="step3-error"
+          data-error-message="No se pudo avanzar a Seleccionar IA."
+          class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <i class="fa-solid fa-arrow-right mr-2"></i> Siguiente: Seleccionar IA
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

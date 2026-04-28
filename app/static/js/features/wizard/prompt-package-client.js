@@ -166,9 +166,15 @@ export function buildSectionTree(promptPackage) {
     roots = buildTreeFromFlatSections(sections);
   }
 
-  // Inyectar sección especial para Maestría UNAC si aplica (Universal)
+  // Inyectar sección especial para Maestría UNAC y Proyecto UNAC si aplica (Universal)
   const formatId = String(promptPackage?.format_id || promptPackage?._meta?.id || "").toLowerCase();
-  const isMaestria = formatId.includes("maestria");
+  const metaUniversity = String(promptPackage?._meta?.university || "").toLowerCase();
+  const metaCategory = String(promptPackage?._meta?.category || "").toLowerCase();
+    const isMaestria = (
+      formatId.includes("maestria") ||
+      formatId.includes("unac-proyecto") ||
+      (metaUniversity === "unac" && metaCategory.includes("proyecto"))
+    );
 
   if (isMaestria) {
     const specialKey = "titulo-info-basica";

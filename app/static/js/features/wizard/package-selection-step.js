@@ -8,7 +8,8 @@ import {
   countRequiredVariables,
   parentScopeLabel,
   computeNodeSelectionState,
-  applyNodeSelection
+  applyNodeSelection,
+  collectConcreteSelectionKeys
 } from "./prompt-package-client.js";
 import { flattenSections } from "./section-selection.js";
 import { escapeHtml } from "../../shared/dom.js";
@@ -939,12 +940,19 @@ export function createPackageSelectionStep({
             : null);
       const initialSelection = normalizeSelectedSections(initialSource, promptPackage);
       
-      // FORZAR SELECCIÓN ÚNICA para Maestría SOLO si no hay NADA guardado previamente
+      // FORZAR SELECCIÓN ÚNICA para Maestría y Proyecto UNAC SOLO si no hay NADA guardado previamente
       const formatId = String(promptPackage?.format_id || promptPackage?._meta?.id || "").toLowerCase();
+      const metaUniversity = String(promptPackage?._meta?.university || "").toLowerCase();
+      const metaCategory = String(promptPackage?._meta?.category || "").toLowerCase();
       const hasPreviousSelection = Array.isArray(project?.selected_sections) && project.selected_sections.length > 0;
+        const isMaestriaOrProyecto = (
+          formatId.includes("maestria") ||
+          formatId.includes("unac-proyecto") ||
+          (metaUniversity === "unac" && metaCategory.includes("proyecto"))
+        );
 
-      if (formatId.includes("maestria") && !hasPreviousSelection) {
-         // Si es maestría y REALMENTE no hay nada previo en el proyecto, ponemos el default
+      if (isMaestriaOrProyecto && !hasPreviousSelection) {
+         // Si es maestría/proyecto UNAC y REALMENTE no hay nada previo en el proyecto, ponemos el default
          selectedKeys = new Set(["titulo-info-basica"]);
       } else {
          selectedKeys = new Set(initialSelection.map(selectionKey));

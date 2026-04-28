@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.core.services.maestria_payload_mapper import map_maestria_values, normalize_maestria_details
+
 
 class PromptBlock(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
@@ -209,6 +211,7 @@ class ProjectDraftIn(BaseModel):
     sections: Optional[List[PromptSection]] = None
     prompt_snapshot: Optional[Dict[str, Any]] = None
     selected_sections: Optional[List[Dict[str, Any]]] = None
+    maestria_details: Optional[Dict[str, Any]] = None
     wizard_state: Optional[Dict[str, Any]] = None
 
     @model_validator(mode="before")
@@ -229,6 +232,7 @@ class ProjectDraftIn(BaseModel):
             "wizardState": "wizard_state",
             "promptSnapshot": "prompt_snapshot",
             "selectedSections": "selected_sections",
+            "maestriaDetails": "maestria_details",
         }
         for src, dst in aliases.items():
             if src in remapped and dst not in remapped:
@@ -250,6 +254,7 @@ class ProjectUpdateIn(BaseModel):
     sections: Optional[List[PromptSection]] = None
     prompt_snapshot: Optional[Dict[str, Any]] = None
     selected_sections: Optional[List[Dict[str, Any]]] = None
+    maestria_details: Optional[Dict[str, Any]] = None
     wizard_state: Optional[Dict[str, Any]] = None
     reset_generated_state: Optional[bool] = None
     touch_project_timestamp: Optional[bool] = None
@@ -271,6 +276,7 @@ class ProjectUpdateIn(BaseModel):
             "wizardState": "wizard_state",
             "promptSnapshot": "prompt_snapshot",
             "selectedSections": "selected_sections",
+            "maestriaDetails": "maestria_details",
             "resetGeneratedState": "reset_generated_state",
             "touchProjectTimestamp": "touch_project_timestamp",
         }
@@ -348,6 +354,105 @@ class ProjectGenerateTriggerIn(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class MaestriaAbreviaturaIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    sigla: str = ""
+    significado: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        remapped = dict(data)
+        aliases = {
+            "abbr": "sigla",
+            "abreviatura": "sigla",
+            "descripcion": "significado",
+            "description": "significado",
+            "meaning": "significado",
+        }
+        for src, dst in aliases.items():
+            if src in remapped and dst not in remapped:
+                remapped[dst] = remapped[src]
+        return remapped
+
+
+class MaestriaMatrizConsistenciaIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    problema_general: str = ""
+    objetivo_general: str = ""
+    hipotesis_general: str = ""
+    variable_independiente: str = ""
+    dimensiones_variable_independiente: List[str] = Field(default_factory=list)
+    problemas_especificos: List[str] = Field(default_factory=list)
+    objetivos_especificos: List[str] = Field(default_factory=list)
+    hipotesis_especificas: List[str] = Field(default_factory=list)
+    variable_dependiente: str = ""
+    dimensiones_variable_dependiente: List[str] = Field(default_factory=list)
+    tipo_investigacion: str = ""
+    nivel_investigacion: str = ""
+    enfoque_investigacion: str = ""
+    diseno: str = ""
+    poblacion: str = ""
+    muestra: str = ""
+    tecnicas: str = ""
+    instrumentos: str = ""
+    procesamiento_datos: str = ""
+
+
+class MaestriaOperacionalizacionFilaIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    dimension: str = ""
+    indicador: str = ""
+    indice: str = ""
+    metodo_tecnica: str = ""
+    tecnica_instrumentos: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        remapped = dict(data)
+        aliases = {
+            "metodoTecnica": "metodo_tecnica",
+            "tecnicaInstrumentos": "tecnica_instrumentos",
+        }
+        for src, dst in aliases.items():
+            if src in remapped and dst not in remapped:
+                remapped[dst] = remapped[src]
+        return remapped
+
+
+class MaestriaOperacionalizacionIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    variable: str = ""
+    definicion_conceptual: str = ""
+    definicion_operacional: str = ""
+    filas: List[MaestriaOperacionalizacionFilaIn] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        remapped = dict(data)
+        aliases = {
+            "definicionConceptual": "definicion_conceptual",
+            "definicionOperacional": "definicion_operacional",
+            "rows": "filas",
+        }
+        for src, dst in aliases.items():
+            if src in remapped and dst not in remapped:
+                remapped[dst] = remapped[src]
+        return remapped
+
+
 class MaestriaDetailsIn(BaseModel):
     """
     Validated input model for UNAC Master's thesis details.
@@ -359,6 +464,7 @@ class MaestriaDetailsIn(BaseModel):
     # Datos generales
     titulo: str = Field(..., min_length=1, description="Título del proyecto (obligatorio)")
     linea_investigacion: Optional[str] = None
+    anio: Optional[str] = None
     # El sistema usará automáticamente el año 2026 para la carátula
     lugar_caratula: Optional[str] = None
 
@@ -383,6 +489,7 @@ class MaestriaDetailsIn(BaseModel):
     tipo: str = Field(..., min_length=1)
     enfoque: str = Field(..., min_length=1)
     diseno_investigacion: str = Field(..., min_length=1)
+    nivel_investigacion: Optional[str] = None
     facultad: Optional[str] = Field(None, description="Facultad del proyecto")
     unidad_investigacion: Optional[str] = Field(None, description="Unidad de Investigación de la facultad")
 
@@ -400,6 +507,10 @@ class MaestriaDetailsIn(BaseModel):
     muestra: str = Field(..., min_length=1)
     lugar: str = Field(..., min_length=1)
     temporal: str = Field(..., min_length=1)
+    abreviaturas: List[MaestriaAbreviaturaIn] = Field(default_factory=list)
+    matriz_consistencia: MaestriaMatrizConsistenciaIn = Field(default_factory=MaestriaMatrizConsistenciaIn)
+    operacionalizacion_vd: MaestriaOperacionalizacionIn = Field(default_factory=MaestriaOperacionalizacionIn)
+    operacionalizacion_vi: MaestriaOperacionalizacionIn = Field(default_factory=MaestriaOperacionalizacionIn)
 
     @model_validator(mode="before")
     @classmethod
@@ -410,6 +521,7 @@ class MaestriaDetailsIn(BaseModel):
         aliases = {
             "tituloProyecto": "titulo",
             "lineaInvestigacion": "linea_investigacion",
+            "anioTexto": "anio",
             "lugarCaratula": "lugar_caratula",
             "autor1Nombres": "autor1_nombres",
             "autor1Dni": "autor1_dni",
@@ -423,6 +535,7 @@ class MaestriaDetailsIn(BaseModel):
             "lugarEjecucion": "lugar_ejecucion",
             "unidadAnalisis": "unidad_analisis",
             "disenoInvestigacion": "diseno_investigacion",
+            "nivelInvestigacion": "nivel_investigacion",
             "temaOcde1": "tema_ocde_1",
             "temaOcde2": "tema_ocde_2",
             "temaOcde3": "tema_ocde_3",
@@ -435,47 +548,17 @@ class MaestriaDetailsIn(BaseModel):
             "muestra": "muestra",
             "lugar": "lugar",
             "temporal": "temporal",
+            "matrizConsistencia": "matriz_consistencia",
+            "operacionalizacionVD": "operacionalizacion_vd",
+            "operacionalizacionVI": "operacionalizacion_vi",
         }
         for src, dst in aliases.items():
             if src in remapped and dst not in remapped:
                 remapped[dst] = remapped[src]
         return remapped
 
-    def to_flat_values(self) -> Dict[str, Any]:
-        """Convert to flat projectValues dict ready for payload builder."""
-        titulo = str(self.titulo or "").strip()
-        return {
-            "titulo": titulo,
-            "title": titulo,
-            "tema": titulo,
-            "linea_investigacion": str(self.linea_investigacion or "").strip(),
-            "anio": "2026",  # Forzado por requerimiento institucional
-            "lugar_caratula": str(self.lugar_caratula or "").strip(),
-            "autor1_nombres": str(self.autor1_nombres or "").strip(),
-            "autor1_dni": str(self.autor1_dni or "").strip(),
-            "autor1_orcid": str(self.autor1_orcid or "").strip(),
-            "autor2_nombres": str(self.autor2_nombres or "").strip(),
-            "autor2_dni": str(self.autor2_dni or "").strip(),
-            "autor2_orcid": str(self.autor2_orcid or "").strip(),
-            "asesor_nombres": str(self.asesor_nombres or "").strip(),
-            "asesor_dni": str(self.asesor_dni or "").strip(),
-            "asesor_orcid": str(self.asesor_orcid or "").strip(),
-            "lugar_ejecucion": str(self.lugar_ejecucion or "").strip(),
-            "unidad_analisis": str(self.unidad_analisis or "").strip(),
-            "tipo": str(self.tipo or "").strip(),
-            "enfoque": str(self.enfoque or "").strip(),
-            "diseno_investigacion": str(self.diseno_investigacion or "").strip(),
-            "tema_ocde_1": str(self.tema_ocde_1 or "").strip(),
-            "tema_ocde_2": str(self.tema_ocde_2 or "").strip(),
-            "tema_ocde_3": str(self.tema_ocde_3 or "").strip(),
-            "facultad": str(self.facultad or "").strip(),
-            "unidad_investigacion": str(self.unidad_investigacion or "").strip(),
-            "objeto_estudio": str(self.objeto_estudio or "").strip(),
-            "variable_independiente": str(self.variable_independiente or "").strip(),
-            "variable_dependiente": str(self.variable_dependiente or "").strip(),
-            "poblacion": str(self.poblacion or "").strip(),
-            "muestra": str(self.muestra or "").strip(),
-            "lugar": str(self.lugar or "").strip(),
-            "temporal": str(self.temporal or "").strip(),
-        }
+    def to_structured_values(self) -> Dict[str, Any]:
+        return normalize_maestria_details(self.model_dump(exclude_none=True))
 
+    def to_flat_values(self) -> Dict[str, Any]:
+        return map_maestria_values(self.model_dump(exclude_none=True))

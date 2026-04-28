@@ -32,6 +32,10 @@ from app.core.services.ai.token_usage import (
 )
 from app.core.services.definition_compiler import compile_definition_to_section_index
 from app.core.services.format_service import FormatService
+from app.core.services.maestria_payload_mapper import (
+    map_maestria_values,
+    normalize_maestria_details,
+)
 from app.core.services.pricing import (
     PricingService,
     build_generation_cost_report,
@@ -124,6 +128,13 @@ TRACE_TERMINAL_STATUSES = {
     "ai_failed",
     "generation_failed",
 }
+
+
+def _maestria_details_and_values(raw: Any) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    if not isinstance(raw, dict):
+        return None, {}
+    details = normalize_maestria_details(raw)
+    return details, map_maestria_values(details)
 
 
 def _emit_project_trace(
@@ -1423,11 +1434,15 @@ def create_project_draft(payload: Optional[ProjectDraftIn] = None):
         else _default_selected_sections_from_package(prompt_snapshot)
     )
     draft_values = dict(payload.variables or {})
-    if payload.title and not str(draft_values.get("title") or "").strip():
-        draft_values["title"] = str(payload.title).strip()
+    maestria_details, maestria_values = _maestria_details_and_values(payload.maestria_details)
+    if maestria_values:
+        draft_values = {**draft_values, **maestria_values}
+    project_title = str(payload.title or draft_values.get("titulo") or draft_values.get("title") or "").strip()
+    if project_title and not str(draft_values.get("title") or "").strip():
+        draft_values["title"] = project_title
 
     project_data = {
-        "title": payload.title,
+        "title": project_title or payload.title,
         "prompt_id": payload.prompt_id,
         "prompt_name": prompt_snapshot.get("name") if prompt_snapshot else None,
         "system_instruction": prompt_snapshot.get("system_instruction") if prompt_snapshot else None,
@@ -1440,6 +1455,7 @@ def create_project_draft(payload: Optional[ProjectDraftIn] = None):
         "format_version": payload.format_version,
         "variables": draft_values,
         "values": draft_values,
+        "maestria_details": maestria_details,
         "status": "draft",
         "wizard_state": payload.wizard_state,
     }
@@ -1583,6 +1599,7 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
         prompt_snapshot=raw.get("prompt_snapshot"),
     )
     variables = raw.get("variables") if "variables" in raw else None
+    maestria_details, maestria_values = _maestria_details_and_values(raw.get("maestria_details"))
     reset_generated_state = bool(raw.get("reset_generated_state"))
     touch_project_timestamp = raw.get("touch_project_timestamp")
     if touch_project_timestamp is None:
@@ -1613,17 +1630,23 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
         "status": raw.get("status"),
         "wizard_state": raw.get("wizard_state"),
     }
+    if "maestria_details" in raw:
+        update_payload["maestria_details"] = maestria_details
 
     # Limpieza de valores nulos
     update_payload = {k: v for k, v in update_payload.items() if v is not None}
 
-    if variables is not None:
-        merged_values = dict(variables)
+    if variables is not None or maestria_values:
+        merged_values = dict(variables) if variables is not None else dict(current_project.get("variables") or {})
+        if maestria_values:
+            merged_values.update(maestria_values)
         raw_title = str(raw.get("title") or "").strip()
         if raw_title and not str(merged_values.get("title") or "").strip():
             merged_values["title"] = raw_title
         update_payload["variables"] = merged_values
         update_payload["values"] = merged_values
+        if not raw_title and str(maestria_values.get("titulo") or "").strip():
+            update_payload["title"] = str(maestria_values.get("titulo") or "").strip()
 
     if reset_generated_state:
         current_provider = ""
@@ -3692,14 +3715,17 @@ async def save_maestria_details(project_id: str, body: "MaestriaDetailsIn") -> d
     if not project:
         raise HTTPException(status_code=404, detail=f"Proyecto {project_id!r} no encontrado.")
 
+    structured_details = body.to_structured_values()
     flat_values = body.to_flat_values()
     existing_values = dict(project.get("variables") or project.get("values") or {})
     merged_values = {**existing_values, **flat_values}
 
-    projects.update_project(
+    updated = projects.update_project(
         project_id,
         {
+            "maestria_details": structured_details,
             "variables": merged_values,
+            "values": merged_values,
             "title": flat_values.get("titulo") or existing_values.get("title") or project.get("title") or "",
         },
     )
@@ -3709,4 +3735,5 @@ async def save_maestria_details(project_id: str, body: "MaestriaDetailsIn") -> d
         "project_id": project_id,
         "saved_fields": list(flat_values.keys()),
         "title": flat_values.get("titulo") or "",
+        "project": updated,
     }

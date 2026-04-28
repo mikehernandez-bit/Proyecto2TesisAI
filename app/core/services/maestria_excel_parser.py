@@ -1,14 +1,4 @@
-"""
-Maestría UNAC — Excel Parser
-
-Parses the filled Excel template uploaded by the user in Wizard Step 3.
-Returns a normalized, validated result with extracted fields, missing fields,
-warnings, and validation errors.
-
-This module is intentionally isolated from HTTP concerns — it only handles
-file parsing and business validation. The router calls it and wraps the result
-in HTTP responses.
-"""
+"""Excel parser for the UNAC Maestria wizard flow."""
 
 from __future__ import annotations
 
@@ -19,41 +9,80 @@ from typing import Any
 
 import openpyxl
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+from app.core.services.maestria_payload_mapper import map_maestria_values, normalize_maestria_details
+from app.core.utils.excel_template_builder import (
+    MATRIX_GENERAL_ROW,
+    MATRIX_SHEET_NAME,
+    MATRIX_SPECIFIC_END_ROW,
+    MATRIX_SPECIFIC_START_ROW,
+    OPER_VD_ROW_END,
+    OPER_VD_ROW_START,
+    OPER_VD_SHEET_NAME,
+    OPER_VI_ROW_END,
+    OPER_VI_ROW_START,
+    OPER_VI_SHEET_NAME,
+    SHEET_NAME,
+)
 
-SHEET_NAME = "Datos Maestría"
-_KEY_COLUMN = "D"  # Hidden column that maps rows to field keys
+_KEY_COLUMN = "D"
 _VALUE_COLUMN = "B"
-
+_YEAR_MIN = 2000
+_YEAR_MAX = 2100
+_ORCID_PATTERN = re.compile(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$")
+_DNI_PATTERN = re.compile(r"^\d{8}$")
+_VALID_ENFOQUE = {"cuantitativo", "cualitativo", "mixto"}
 _REQUIRED_FIELDS = {
     "titulo",
+    "linea_investigacion",
     "anio",
     "autor1_nombres",
     "asesor_nombres",
+    "objeto_estudio",
+    "variable_independiente",
+    "variable_dependiente",
     "lugar_ejecucion",
     "unidad_analisis",
     "tipo",
     "enfoque",
     "diseno_investigacion",
     "tema_ocde_1",
+    "poblacion",
+    "muestra",
+    "temporal",
 }
 
-_ORCID_PATTERN = re.compile(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$")
-_DNI_PERU_PATTERN = re.compile(r"^\d{8}$")
 
-_YEAR_MIN = 2000
-_YEAR_MAX = 2100
-
-# Valid controlled values (case-insensitive matching)
-_VALID_ENFOQUE = {"cuantitativo", "cualitativo", "mixto"}
-_VALID_TIPO = {"aplicada", "básica", "basica", "experimental", "descriptiva"}
+def _clean(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip().replace("\r\n", "\n").replace("\r", "\n")
+    return re.sub(r"[ \t]+", " ", text).strip()
 
 
-# ---------------------------------------------------------------------------
-# Data classes
-# ---------------------------------------------------------------------------
+def _split_lines(value: Any) -> list[str]:
+    return [line.strip() for line in _clean(value).split("\n") if line.strip()]
+
+
+def _extract_labeled_pair(value: Any) -> tuple[str, str]:
+    first = ""
+    second = ""
+    for line in _split_lines(value):
+        lower = line.lower()
+        if lower.startswith("tecnica:") or lower.startswith("técnica:"):
+            first = line.split(":", 1)[1].strip()
+        elif lower.startswith("metodo:") or lower.startswith("método:"):
+            first = line.split(":", 1)[1].strip()
+        elif lower.startswith("metodo y tecnica:") or lower.startswith("método y técnica:"):
+            first = line.split(":", 1)[1].strip()
+        elif lower.startswith("instrumento:") or lower.startswith("instrumentos:"):
+            second = line.split(":", 1)[1].strip()
+        elif not first:
+            first = line
+        elif not second:
+            second = line
+        else:
+            second = f"{second}\n{line}"
+    return first, second
 
 
 @dataclass
@@ -61,9 +90,6 @@ class AutorData:
     nombres: str = ""
     dni: str = ""
     orcid: str = ""
-
-    def is_empty(self) -> bool:
-        return not any([self.nombres, self.dni, self.orcid])
 
 
 @dataclass
@@ -88,7 +114,6 @@ class InvestigacionData:
 
 @dataclass
 class MaestriaExcelResult:
-    # Main fields
     titulo: str | None = None
     linea_investigacion: str | None = None
     anio: str | None = None
@@ -98,7 +123,9 @@ class MaestriaExcelResult:
     asesor: AutorData = field(default_factory=AutorData)
     coasesor: AutorData = field(default_factory=AutorData)
     investigacion: InvestigacionData = field(default_factory=InvestigacionData)
-    # Metadata
+    matriz_consistencia: dict[str, Any] = field(default_factory=dict)
+    operacionalizacion_vi: dict[str, Any] = field(default_factory=dict)
+    operacionalizacion_vd: dict[str, Any] = field(default_factory=dict)
     extracted_fields: list[str] = field(default_factory=list)
     missing_required: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -106,64 +133,7 @@ class MaestriaExcelResult:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "titulo": self.titulo,
-            "linea_investigacion": self.linea_investigacion,
-            "anio": self.anio,
-            "lugar_caratula": self.lugar_caratula,
-            "autor1": {
-                "nombres": self.autor1.nombres,
-                "dni": self.autor1.dni,
-                "orcid": self.autor1.orcid,
-            },
-            "autor2": {
-                "nombres": self.autor2.nombres,
-                "dni": self.autor2.dni,
-                "orcid": self.autor2.orcid,
-            },
-            "asesor": {
-                "nombres": self.asesor.nombres,
-                "dni": self.asesor.dni,
-                "orcid": self.asesor.orcid,
-            },
-            "coasesor": {
-                "nombres": self.coasesor.nombres,
-                "dni": self.coasesor.dni,
-                "orcid": self.coasesor.orcid,
-            },
-            "investigacion": {
-                "lugar_ejecucion": self.investigacion.lugar_ejecucion,
-                "unidad_analisis": self.investigacion.unidad_analisis,
-                "tipo": self.investigacion.tipo,
-                "enfoque": self.investigacion.enfoque,
-                "diseno_investigacion": self.investigacion.diseno_investigacion,
-                "nivel_investigacion": self.investigacion.nivel_investigacion,
-                "tema_ocde": self.investigacion.tema_ocde,
-                "vi": self.investigacion.variable_independiente,
-                "vd": self.investigacion.variable_dependiente,
-                "variable_independiente": self.investigacion.variable_independiente,
-                "variable_dependiente": self.investigacion.variable_dependiente,
-                "objeto_estudio": self.investigacion.objeto_estudio,
-                "poblacion": self.investigacion.poblacion,
-                "muestra": self.investigacion.muestra,
-                "lugar": self.investigacion.lugar,
-                "temporal": self.investigacion.temporal,
-            },
-            "extracted_fields": self.extracted_fields,
-            "missing_required": self.missing_required,
-            "warnings": self.warnings,
-            "validation_errors": self.validation_errors,
-        }
-
-    def to_flat_dict(self) -> dict[str, Any]:
-        """
-        Returns a flat dict suitable for merging into project values / wizard store.
-        This is what gets written into projectValues for the payload builder.
-        """
-        tema_ocde = (self.investigacion.tema_ocde or []) + ["", "", ""]
-        return {
             "titulo": self.titulo or "",
-            "title": self.titulo or "",
-            "tema": self.titulo or "",
             "linea_investigacion": self.linea_investigacion or "",
             "anio": self.anio or "",
             "lugar_caratula": self.lugar_caratula or "",
@@ -185,315 +155,265 @@ class MaestriaExcelResult:
             "enfoque": self.investigacion.enfoque,
             "diseno_investigacion": self.investigacion.diseno_investigacion,
             "nivel_investigacion": self.investigacion.nivel_investigacion,
+            "objeto_estudio": self.investigacion.objeto_estudio,
             "variable_independiente": self.investigacion.variable_independiente,
             "variable_dependiente": self.investigacion.variable_dependiente,
-            "objeto_estudio": self.investigacion.objeto_estudio,
             "poblacion": self.investigacion.poblacion,
             "muestra": self.investigacion.muestra,
             "lugar": self.investigacion.lugar,
             "temporal": self.investigacion.temporal,
-            "tema_ocde_1": tema_ocde[0],
-            "tema_ocde_2": tema_ocde[1],
-            "tema_ocde_3": tema_ocde[2],
+            "tema_ocde": list(self.investigacion.tema_ocde),
+            "tema_ocde_1": self.investigacion.tema_ocde[0] if len(self.investigacion.tema_ocde) > 0 else "",
+            "tema_ocde_2": self.investigacion.tema_ocde[1] if len(self.investigacion.tema_ocde) > 1 else "",
+            "tema_ocde_3": self.investigacion.tema_ocde[2] if len(self.investigacion.tema_ocde) > 2 else "",
+            "matriz_consistencia": self.matriz_consistencia,
+            "operacionalizacion_vi": self.operacionalizacion_vi,
+            "operacionalizacion_vd": self.operacionalizacion_vd,
         }
 
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
+    def to_flat_dict(self) -> dict[str, Any]:
+        return map_maestria_values(self.to_dict())
 
 
 def parse_excel_bytes(data: bytes) -> MaestriaExcelResult:
-    """
-    Parse Excel bytes from an uploaded file.
-
-    Args:
-        data: Raw .xlsx file bytes.
-
-    Returns:
-        MaestriaExcelResult with all extracted data and validation metadata.
-
-    Raises:
-        ValueError: If the file is not a valid Excel file or missing the expected sheet.
-    """
     try:
-        wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True)
+        workbook = openpyxl.load_workbook(io.BytesIO(data), data_only=False)
     except Exception as exc:
         raise ValueError(f"No se pudo leer el archivo Excel: {exc}") from exc
 
-    if SHEET_NAME not in wb.sheetnames:
-        available = ", ".join(wb.sheetnames)
+    if SHEET_NAME not in workbook.sheetnames:
+        available = ", ".join(workbook.sheetnames)
         raise ValueError(
             f"No se encontró la hoja '{SHEET_NAME}' en el archivo. "
-            f"Hojas disponibles: {available}. "
-            "Usa la plantilla oficial descargada desde GicaGen."
+            f"Hojas disponibles: {available}. Usa la plantilla oficial."
         )
 
-    ws = wb[SHEET_NAME]
-    raw_values = _extract_raw_values(ws)
-    result = _build_result(raw_values)
-    _run_validations(result)
+    raw_values = _extract_keyed_values(workbook[SHEET_NAME])
+    raw_values["matriz_consistencia"] = (
+        _parse_matrix_sheet(workbook) if MATRIX_SHEET_NAME in workbook.sheetnames else {}
+    )
+    raw_values["operacionalizacion_vi"] = (
+        _parse_oper_sheet(workbook[OPER_VI_SHEET_NAME], is_vd=False)
+        if OPER_VI_SHEET_NAME in workbook.sheetnames
+        else {}
+    )
+    raw_values["operacionalizacion_vd"] = (
+        _parse_oper_sheet(workbook[OPER_VD_SHEET_NAME], is_vd=True) if OPER_VD_SHEET_NAME in workbook.sheetnames else {}
+    )
+
+    details = normalize_maestria_details(raw_values)
+    details["matriz_consistencia"]["dimensiones_variable_independiente"] = _dimensions_from_rows(
+        details["matriz_consistencia"].get("dimensiones_variable_independiente"),
+        details["operacionalizacion_vi"].get("filas"),
+    )
+    details["matriz_consistencia"]["dimensiones_variable_dependiente"] = _dimensions_from_rows(
+        details["matriz_consistencia"].get("dimensiones_variable_dependiente"),
+        details["operacionalizacion_vd"].get("filas"),
+    )
+
+    result = _result_from_details(details)
+    result.extracted_fields = sorted(
+        {
+            *(key for key, value in raw_values.items() if value and not isinstance(value, dict)),
+            *(_table_fields_present(details)),
+        }
+    )
+    _run_validations(result, raw_values)
     return result
 
 
-# ---------------------------------------------------------------------------
-# Internal extraction
-# ---------------------------------------------------------------------------
-
-
-def _normalize_cell(value: Any) -> str:
-    """Normalize a cell value to a clean string or empty string."""
-    if value is None:
-        return ""
-    text = str(value).strip()
-    # Collapse multiple spaces
-    text = re.sub(r"  +", " ", text)
-    # Remove line break variants
-    text = text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
-    return text.strip()
-
-
-def _extract_raw_values(ws: Any) -> dict[str, str]:
-    """
-    Walk the worksheet and extract key→value pairs using column D as key map.
-
-    Column D holds the internal field key (hidden), column B holds the user value.
-    Skips MergedCell objects that do not have a column_letter attribute.
-    """
+def _extract_keyed_values(sheet: Any) -> dict[str, str]:
     raw: dict[str, str] = {}
-    for row in ws.iter_rows():
+    for row in sheet.iter_rows():
         key_cell = None
         value_cell = None
         for cell in row:
-            # Skip MergedCell placeholders (they lack column_letter / value attrs)
             if not hasattr(cell, "column_letter"):
                 continue
-            if cell.column_letter == "D":
+            if cell.column_letter == _KEY_COLUMN:
                 key_cell = cell
-            elif cell.column_letter == "B":
+            elif cell.column_letter == _VALUE_COLUMN:
                 value_cell = cell
-        if key_cell is None or value_cell is None:
+        if not key_cell or not value_cell:
             continue
-        key = _normalize_cell(key_cell.value)
-        if not key:
-            continue
-        value = _normalize_cell(value_cell.value)
-        raw[key] = value
+        key = _clean(key_cell.value)
+        if key:
+            raw[key] = _clean(value_cell.value)
     return raw
 
 
-def _get(raw: dict[str, str], key: str) -> str | None:
-    """Return None for empty strings, otherwise the value."""
-    value = raw.get(key, "").strip()
-    return value if value else None
+def _parse_matrix_sheet(workbook: Any) -> dict[str, Any]:
+    sheet = workbook[MATRIX_SHEET_NAME]
+    return {
+        "problema_general": _clean(sheet[f"A{MATRIX_GENERAL_ROW}"].value),
+        "objetivo_general": _clean(sheet[f"B{MATRIX_GENERAL_ROW}"].value),
+        "hipotesis_general": _clean(sheet[f"C{MATRIX_GENERAL_ROW}"].value),
+        "problemas_especificos": [
+            _clean(sheet[f"A{row}"].value)
+            for row in range(MATRIX_SPECIFIC_START_ROW, MATRIX_SPECIFIC_END_ROW + 1)
+            if _clean(sheet[f"A{row}"].value)
+        ],
+        "objetivos_especificos": [
+            _clean(sheet[f"B{row}"].value)
+            for row in range(MATRIX_SPECIFIC_START_ROW, MATRIX_SPECIFIC_END_ROW + 1)
+            if _clean(sheet[f"B{row}"].value)
+        ],
+        "hipotesis_especificas": [
+            _clean(sheet[f"C{row}"].value)
+            for row in range(MATRIX_SPECIFIC_START_ROW, MATRIX_SPECIFIC_END_ROW + 1)
+            if _clean(sheet[f"C{row}"].value)
+        ],
+        "tecnicas": _clean(sheet["B14"].value),
+        "instrumentos": _clean(sheet["B15"].value),
+        "procesamiento_datos": _clean(sheet["B16"].value),
+    }
 
 
-def _build_result(raw: dict[str, str]) -> MaestriaExcelResult:
-    """Populate a MaestriaExcelResult from the raw key→value dict."""
-    result = MaestriaExcelResult()
-    extracted: list[str] = []
-
-    def assign(key: str, setter_fn: Any) -> None:
-        value = _get(raw, key)
-        if value is not None:
-            setter_fn(value)
-            extracted.append(key)
-
-    # Datos generales
-    def set_titulo(v: str) -> None:
-        result.titulo = v
-
-    def set_linea(v: str) -> None:
-        result.linea_investigacion = v
-
-    def set_anio(v: str) -> None:
-        result.anio = v
-
-    def set_lugar(v: str) -> None:
-        result.lugar_caratula = v
-
-    assign("titulo", set_titulo)
-    assign("linea_investigacion", set_linea)
-    assign("anio", set_anio)
-    assign("lugar_caratula", set_lugar)
-
-    # Autor 1
-    _fill_autor(raw, result.autor1, "autor1", extracted)
-    # Autor 2
-    _fill_autor(raw, result.autor2, "autor2", extracted)
-    # Asesor
-    _fill_autor(raw, result.asesor, "asesor", extracted)
-    # Co-asesor
-    _fill_autor(raw, result.coasesor, "coasesor", extracted)
-
-    # Investigación
-    inv = result.investigacion
-
-    def set_lugar_ej(v: str) -> None:
-        inv.lugar_ejecucion = v
-
-    def set_unidad(v: str) -> None:
-        inv.unidad_analisis = v
-
-    def set_tipo(v: str) -> None:
-        inv.tipo = v
-
-    def set_enfoque(v: str) -> None:
-        inv.enfoque = v
-
-    def set_diseno(v: str) -> None:
-        inv.diseno_investigacion = v
-
-    def set_nivel(v: str) -> None:
-        inv.nivel_investigacion = v
-
-    def set_vi(v: str) -> None:
-        inv.variable_independiente = v
-        inv.vi = v
-
-    def set_vd(v: str) -> None:
-        inv.variable_dependiente = v
-        inv.vd = v
-
-    def set_objeto(v: str) -> None:
-        inv.objeto_estudio = v
-
-    def set_poblacion(v: str) -> None:
-        inv.poblacion = v
-
-    def set_muestra(v: str) -> None:
-        inv.muestra = v
-
-    def set_lugar(v: str) -> None:
-        inv.lugar = v
-
-    def set_temporal(v: str) -> None:
-        inv.temporal = v
-
-    assign("lugar_ejecucion", set_lugar_ej)
-    assign("unidad_analisis", set_unidad)
-    assign("tipo", set_tipo)
-    assign("enfoque", set_enfoque)
-    assign("diseno_investigacion", set_diseno)
-    assign("nivel_investigacion", set_nivel)
-    assign("variable_independiente", set_vi)
-    assign("variable_dependiente", set_vd)
-    assign("objeto_estudio", set_objeto)
-    assign("poblacion", set_poblacion)
-    assign("muestra", set_muestra)
-    assign("lugar", set_lugar)
-    assign("temporal", set_temporal)
-    # Compatibilidad con llaves cortas de versiones anteriores si existen
-    if not inv.variable_independiente: assign("vi", set_vi)
-    if not inv.variable_dependiente: assign("vd", set_vd)
-
-    temas: list[str] = []
-    for key in ("tema_ocde_1", "tema_ocde_2", "tema_ocde_3"):
-        v = _get(raw, key)
-        if v:
-            temas.append(v)
-            extracted.append(key)
-    inv.tema_ocde = temas
-
-    result.extracted_fields = extracted
-    return result
+def _parse_oper_sheet(sheet: Any, *, is_vd: bool) -> dict[str, Any]:
+    row_start = OPER_VD_ROW_START if is_vd else OPER_VI_ROW_START
+    row_end = OPER_VD_ROW_END if is_vd else OPER_VI_ROW_END
+    rows: list[dict[str, str]] = []
+    for row in range(row_start, row_end + 1):
+        method_text, instrument_text = _extract_labeled_pair(sheet[f"G{row}"].value)
+        item = {
+            "dimension": _clean(sheet[f"D{row}"].value),
+            "indicador": _clean(sheet[f"E{row}"].value),
+            "indice": _clean(sheet[f"F{row}"].value),
+            "metodo_tecnica": method_text,
+            "tecnica_instrumentos": instrument_text,
+        }
+        if any(item.values()):
+            rows.append(item)
+    return {
+        "definicion_conceptual": _clean(sheet[f"B{row_start}"].value),
+        "definicion_operacional": _clean(sheet[f"C{row_start}"].value),
+        "filas": rows,
+    }
 
 
-def _fill_autor(raw: dict[str, str], autor: AutorData, prefix: str, extracted: list[str]) -> None:
-    for suffix, attr in (("_nombres", "nombres"), ("_dni", "dni"), ("_orcid", "orcid")):
-        key = f"{prefix}{suffix}"
-        value = _get(raw, key)
-        if value is not None:
-            setattr(autor, attr, value)
-            extracted.append(key)
+def _dimensions_from_rows(existing: Any, rows: Any) -> list[str]:
+    dimensions = [item.strip() for item in (existing or []) if str(item).strip()]
+    if dimensions:
+        return dimensions
+    return [
+        str(item.get("dimension") or "").strip() for item in (rows or []) if str(item.get("dimension") or "").strip()
+    ]
 
 
-# ---------------------------------------------------------------------------
-# Validation
-# ---------------------------------------------------------------------------
+def _result_from_details(details: dict[str, Any]) -> MaestriaExcelResult:
+    temas = [details.get("tema_ocde_1"), details.get("tema_ocde_2"), details.get("tema_ocde_3")]
+    return MaestriaExcelResult(
+        titulo=details.get("titulo") or None,
+        linea_investigacion=details.get("linea_investigacion") or None,
+        anio=details.get("anio") or None,
+        lugar_caratula=details.get("lugar_caratula") or None,
+        autor1=AutorData(
+            details.get("autor1_nombres", ""),
+            details.get("autor1_dni", ""),
+            details.get("autor1_orcid", ""),
+        ),
+        autor2=AutorData(
+            details.get("autor2_nombres", ""),
+            details.get("autor2_dni", ""),
+            details.get("autor2_orcid", ""),
+        ),
+        asesor=AutorData(
+            details.get("asesor_nombres", ""),
+            details.get("asesor_dni", ""),
+            details.get("asesor_orcid", ""),
+        ),
+        coasesor=AutorData(
+            details.get("coasesor_nombres", ""),
+            details.get("coasesor_dni", ""),
+            details.get("coasesor_orcid", ""),
+        ),
+        investigacion=InvestigacionData(
+            lugar_ejecucion=details.get("lugar_ejecucion", ""),
+            unidad_analisis=details.get("unidad_analisis", ""),
+            tipo=details.get("tipo", ""),
+            enfoque=details.get("enfoque", ""),
+            diseno_investigacion=details.get("diseno_investigacion", ""),
+            nivel_investigacion=details.get("nivel_investigacion", ""),
+            tema_ocde=[item for item in temas if item],
+            vi=details.get("variable_independiente", ""),
+            vd=details.get("variable_dependiente", ""),
+            variable_independiente=details.get("variable_independiente", ""),
+            variable_dependiente=details.get("variable_dependiente", ""),
+            objeto_estudio=details.get("objeto_estudio", ""),
+            poblacion=details.get("poblacion", ""),
+            muestra=details.get("muestra", ""),
+            lugar=details.get("lugar", ""),
+            temporal=details.get("temporal", ""),
+        ),
+        matriz_consistencia=details.get("matriz_consistencia") or {},
+        operacionalizacion_vi=details.get("operacionalizacion_vi") or {},
+        operacionalizacion_vd=details.get("operacionalizacion_vd") or {},
+    )
 
 
-def _run_validations(result: MaestriaExcelResult) -> None:
-    """Populate missing_required, warnings, and validation_errors."""
+def _table_fields_present(details: dict[str, Any]) -> set[str]:
+    present: set[str] = set()
+    matrix = details.get("matriz_consistencia") or {}
+    if any(str(matrix.get(key) or "").strip() for key in ("problema_general", "objetivo_general", "hipotesis_general")):
+        present.add("matriz_consistencia")
+    if any((matrix.get("problemas_especificos") or [])) or any((matrix.get("objetivos_especificos") or [])):
+        present.add("matriz_consistencia")
+    if (details.get("operacionalizacion_vi") or {}).get("filas"):
+        present.add("operacionalizacion_vi")
+    if (details.get("operacionalizacion_vd") or {}).get("filas"):
+        present.add("operacionalizacion_vd")
+    return present
+
+
+def _run_validations(result: MaestriaExcelResult, raw_values: dict[str, Any] | None = None) -> None:
+    details = result.to_dict()
     missing: list[str] = []
     warnings: list[str] = []
     errors: list[str] = []
+    raw_values = raw_values or {}
 
-    # Required fields check:
-    # We compare against the CANONICAL source fields, not the reordered flat dict.
-    # For tema_ocde, we check tema_ocde_1 specifically by whether it was extracted.
-    extracted_set = set(result.extracted_fields)
-    direct_required_checks: dict[str, bool] = {
-        "titulo": bool(str(result.titulo or "").strip()),
-        "linea_investigacion": bool(str(result.linea_investigacion or "").strip()),
-        "anio": bool(str(result.anio or "").strip()),
-        "autor1_nombres": bool(str(result.autor1.nombres or "").strip()),
-        "asesor_nombres": bool(str(result.asesor.nombres or "").strip()),
-        "lugar_ejecucion": bool(str(result.investigacion.lugar_ejecucion or "").strip()),
-        "unidad_analisis": bool(str(result.investigacion.unidad_analisis or "").strip()),
-        "objeto_estudio": bool(str(result.investigacion.objeto_estudio or "").strip()),
-        "variable_independiente": bool(str(result.investigacion.variable_independiente or "").strip()),
-        "variable_dependiente": bool(str(result.investigacion.variable_dependiente or "").strip()),
-        "temporal": bool(str(result.investigacion.temporal or "").strip()),
-        "tipo": bool(str(result.investigacion.tipo or "").strip()),
-        "enfoque": bool(str(result.investigacion.enfoque or "").strip()),
-        "diseno_investigacion": bool(str(result.investigacion.diseno_investigacion or "").strip()),
-        # tema_ocde_1 must be explicitly present in extracted_fields AND non-empty
-        "tema_ocde_1": "tema_ocde_1" in extracted_set and len(result.investigacion.tema_ocde) > 0,
-    }
     for field_key in sorted(_REQUIRED_FIELDS):
-        if not direct_required_checks.get(field_key, False):
+        if field_key == "tema_ocde_1":
+            if not _clean(raw_values.get("tema_ocde_1")):
+                missing.append(field_key)
+            continue
+        if not _clean(details.get(field_key)):
             missing.append(field_key)
 
-    # Year validation
-    if result.anio:
-        if not re.fullmatch(r"\d{4}", result.anio):
+    year = _clean(result.anio)
+    if year:
+        if not re.fullmatch(r"\d{4}", year):
             errors.append("El año debe contener exactamente 4 dígitos.")
         else:
-            year = int(result.anio)
-            if year < _YEAR_MIN or year > _YEAR_MAX:
+            year_number = int(year)
+            if year_number < _YEAR_MIN or year_number > _YEAR_MAX:
                 errors.append(f"El año debe estar dentro del rango {_YEAR_MIN}-{_YEAR_MAX}.")
 
-    # ORCID validations
-    for label, orcid_val in [
+    for label, value in (
         ("Autor 1", result.autor1.orcid),
         ("Autor 2", result.autor2.orcid),
         ("Asesor", result.asesor.orcid),
-    ]:
-        if orcid_val and not _ORCID_PATTERN.match(orcid_val):
-            warnings.append(
-                f"ORCID de {label} '{orcid_val}' no tiene el formato esperado "
-                "(0000-0000-0000-0000)."
-            )
+    ):
+        if value and not _ORCID_PATTERN.match(value):
+            warnings.append(f"ORCID de {label} '{value}' no tiene el formato esperado (0000-0000-0000-0000).")
 
-    # DNI validations (Perú: 8 digits)
-    for label, dni_val in [
+    for label, value in (
         ("Autor 1", result.autor1.dni),
         ("Autor 2", result.autor2.dni),
         ("Asesor", result.asesor.dni),
-    ]:
-        if dni_val and not _DNI_PERU_PATTERN.match(dni_val):
-            warnings.append(
-                f"DNI de {label} '{dni_val}' no parece un DNI peruano válido (8 dígitos)."
-            )
+    ):
+        if value and not _DNI_PATTERN.match(value):
+            warnings.append(f"DNI de {label} '{value}' no parece un DNI peruano válido (8 dígitos).")
 
-    # Enfoque validation
-    if result.investigacion.enfoque:
-        if result.investigacion.enfoque.lower() not in _VALID_ENFOQUE:
-            warnings.append(
-                f"Enfoque '{result.investigacion.enfoque}' no es uno de los valores "
-                f"esperados: {', '.join(sorted(_VALID_ENFOQUE))}."
-            )
-
-    # Autor 2 coherence
-    autor2 = result.autor2
-    autor2_fields = [autor2.nombres, autor2.dni, autor2.orcid]
-    non_empty = [f for f in autor2_fields if f]
-    if 0 < len(non_empty) < 2:
+    if result.investigacion.enfoque and result.investigacion.enfoque.lower() not in _VALID_ENFOQUE:
         warnings.append(
-            "Autor 2: si va a incluir un segundo autor, se recomienda completar "
-            "al menos nombres y DNI."
+            f"Enfoque '{result.investigacion.enfoque}' no es uno de los valores esperados: "
+            f"{', '.join(sorted(_VALID_ENFOQUE))}."
         )
+
+    autor2_values = [result.autor2.nombres, result.autor2.dni, result.autor2.orcid]
+    if 0 < len([item for item in autor2_values if item]) < 2:
+        warnings.append("Autor 2: si va a incluir un segundo autor, se recomienda completar al menos nombres y DNI.")
 
     result.missing_required = missing
     result.warnings = warnings

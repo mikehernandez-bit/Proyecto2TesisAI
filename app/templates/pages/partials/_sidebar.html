@@ -8,28 +8,28 @@
   </div>
 
   <nav class="flex-1 p-4 space-y-2">
-    <button onclick="TesisAI.showView('dashboard')" id="nav-dashboard"
+    <button data-action="app.showView" data-view="dashboard" id="nav-dashboard"
       class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 bg-slate-800 text-blue-400">
       <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
     </button>
 
-    <button onclick="TesisAI.showView('wizard')" id="nav-wizard"
+    <button data-action="app.showView" data-view="wizard" id="nav-wizard"
       class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 text-slate-300">
       <i class="fa-solid fa-plus-circle w-5"></i> Nuevo Proyecto
     </button>
 
-    <button onclick="TesisAI.openSidebarBudget()" id="nav-budget"
+    <button data-action="app.openSidebarBudget" id="nav-budget"
       class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 text-slate-300">
       <i class="fa-solid fa-wallet w-5"></i> Presupuesto IA
     </button>
     <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase">Administración</div>
 
-    <button onclick="TesisAI.showView('admin-prompts')" id="nav-admin-prompts"
+    <button data-action="app.showView" data-view="admin-prompts" id="nav-admin-prompts"
       class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 text-slate-300">
       <i class="fa-solid fa-robot w-5"></i> Gestión Prompts
     </button>
 
-    <button onclick="TesisAI.showView('history')" id="nav-history"
+    <button data-action="app.showView" data-view="history" id="nav-history"
       class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 text-slate-300">
       <i class="fa-solid fa-clock-rotate-left w-5"></i> Historial
     </button>

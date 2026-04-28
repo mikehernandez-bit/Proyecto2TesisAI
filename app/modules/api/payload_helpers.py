@@ -6,9 +6,8 @@ These functions build, adapt, and normalize payloads for GicaTesis rendering.
 
 from __future__ import annotations
 
-from typing import Any
-import json
 import logging
+from typing import Any
 
 import httpx
 
@@ -16,12 +15,13 @@ from app.core.config import settings
 from app.core.services.ai.section_content_policy import (
     allows_structured_content,
 )
-from app.core.services.toc_detector import is_toc_path as _is_toc_path
-from app.integrations.gicatesis.types import validate_render_payload
 from app.core.services.maestria_payload_mapper import (
     is_maestria_format,
     map_maestria_values,
+    normalize_maestria_details,
 )
+from app.core.services.toc_detector import is_toc_path as _is_toc_path
+from app.integrations.gicatesis.types import validate_render_payload
 
 _logger = logging.getLogger(__name__)
 
@@ -191,17 +191,32 @@ def values_with_title(
     vals = project.get("values") if isinstance(project.get("values"), dict) else {}
     # 2. Merge wizard variables (these are more reliable as they come from Excel/UI)
     vars = project.get("variables") if isinstance(project.get("variables"), dict) else {}
-    
+
     # Combined base
     values: dict[str, Any] = {**vals, **vars, **(source_values or {})}
 
-    # SPECIAL HANDLING FOR UNAC MAESTRÍA:
+    def _is_unac_project_format(project_data: dict[str, Any]) -> bool:
+        category = str(project_data.get("category") or "").lower()
+        format_id = str(
+            project_data.get("format_id") or project_data.get("formatId") or project_data.get("id") or ""
+        ).lower()
+        university = str(project_data.get("university") or "").lower()
+        return ("unac-proyecto" in format_id) or (university == "unac" and "proyecto" in category)
+
+    # SPECIAL HANDLING FOR UNAC MAESTRÍA / UNAC PROYECTO:
     if is_maestria_format(project):
-        maestria_values = map_maestria_values(values)
+        maestria_details = project.get("maestria_details")
+        maestria_source = maestria_details if isinstance(maestria_details, dict) else values
+        maestria_values = map_maestria_values(normalize_maestria_details(maestria_source))
         # Update only if not empty to prevent wiping existing good data
         for k, v in maestria_values.items():
             if v:
                 values[k] = v
+        if _is_unac_project_format(project):
+            values["tipo_documento"] = "PROYECTO DE INVESTIGACIÓN"
+            values["frase_grado"] = "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO"
+            values["facultad"] = "ESCUELA DE POSGRADO"
+            values["escuela"] = "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA"
 
     # 3. Asegurar sincronización y prioridad del título
     # Priorizamos lo que hay en 'values' (que ya incluye vars) sobre el 'project.title' raíz
@@ -331,17 +346,11 @@ def extract_resume_seed_sections(ai_result_raw: Any) -> list[dict[str, Any]]:
 
         # We only take sections that have some content
         if path and content:
-            seed_sections.append({
-                "path": path,
-                "content": content
-            })
+            seed_sections.append({"path": path, "content": content})
     return seed_sections
 
 
-def decide_resume_mode(
-    project: dict[str, Any],
-    requested_mode: str = "auto"
-) -> tuple[bool, list[dict[str, Any]], str]:
+def decide_resume_mode(project: dict[str, Any], requested_mode: str = "auto") -> tuple[bool, list[dict[str, Any]], str]:
     """Decide if we should resume from partial results or restart.
 
     Args:

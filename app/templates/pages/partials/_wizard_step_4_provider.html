@@ -12,6 +12,9 @@
                 <p class="text-xs text-slate-500">Estado en tiempo real del proveedor y del modelo seleccionado.</p>
               </div>
               <button id="btn-provider-refresh" type="button"
+                data-action="app.refreshProviderStatus"
+                data-error-target="step4-error"
+                data-error-message="No se pudo actualizar el estado del proveedor."
                 class="text-xs px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-100">
                 <i class="fa-solid fa-rotate-right mr-1"></i> Actualizar estado
               </button>
@@ -50,7 +53,7 @@
           </div>
 
           <div class="mt-8 flex justify-between items-center">
-            <button onclick="TesisAI.prevStep(3)"
+            <button data-action="app.prevStep" data-step="3"
               class="text-gray-500 hover:text-gray-700 font-medium px-4">Atras</button>
 
             <div id="step4-loading"
@@ -59,7 +62,11 @@
               <span class="text-sm font-medium animate-pulse">Iniciando generacion...</span>
             </div>
 
-            <button id="btn-step4-generate" onclick="TesisAI.triggerGeneration()"
+            <button id="btn-step4-generate"
+              type="button"
+              data-action="app.triggerGeneration"
+              data-error-target="step4-error"
+              data-error-message="No se pudo iniciar la generacion."
               class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
               <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generar Documento
             </button>

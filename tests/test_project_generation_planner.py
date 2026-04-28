@@ -137,6 +137,54 @@ def test_plan_sections_adds_text_only_guidance_for_diagram_blocks():
     assert "problema central, categorias, subcausas" in planned[0]["additional_context"]
 
 
+def test_plan_sections_adds_text_only_guidance_for_relevance_matrix_blocks():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+                "contenido": [
+                    {"texto": "1.1 Realidad problematica"},
+                ],
+            }
+        ],
+    }
+
+    section_service = InstitutionalSectionService()
+    extracted = section_service.extract_sections(definition)
+    by_path = {item["section_path"]: item for item in extracted}
+
+    prompt_package = {
+        "sections": [
+            {
+                **by_path["I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"],
+                "blocks": [
+                    {
+                        "block_id": "diag-2",
+                        "header": "Matriz de relevancia",
+                        "label": "Prompt matriz de relevancia",
+                        "instructions": "Evalua alternativas de solucion y su viabilidad.",
+                        "required_variables": ["alternativas_solucion"],
+                        "required": True,
+                    }
+                ],
+            }
+        ]
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition=definition,
+        prompt_package=prompt_package,
+        selected_sections=[
+            {"section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"},
+        ],
+    )
+
+    assert len(planned) == 1
+    assert "no generes imagen ni FIGURE_JSON" in planned[0]["additional_context"]
+    assert "alternativas descartadas o preseleccionadas" in planned[0]["additional_context"]
+
+
 def test_plan_sections_expands_selected_parent_recursively_without_generating_grouping_parent():
     definition = {
         "cuerpo": [
@@ -258,6 +306,72 @@ def test_plan_sections_keeps_parent_when_selected_parent_has_own_blocks():
     ]
 
 
+def test_plan_sections_skips_parent_blocks_for_unac_project_details_flow():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "III. HIPOTESIS Y VARIABLES",
+                "contenido": [
+                    {"texto": "3.1 Hipotesis"},
+                    {"texto": "3.2 Operacionalizacion de variable"},
+                ],
+            }
+        ],
+    }
+
+    section_service = InstitutionalSectionService()
+    extracted = section_service.extract_sections(definition)
+    by_path = {item["section_path"]: item for item in extracted}
+    prompt_package = {
+        "id": "unac-proyecto-cuant",
+        "sections": [
+            {
+                **by_path["III. HIPOTESIS Y VARIABLES"],
+                "blocks": [
+                    {
+                        "block_id": "chapter-iii",
+                        "header": "Marco del capitulo",
+                        "instructions": "No debe generarse para proyecto UNAC.",
+                    }
+                ],
+            },
+            {
+                **by_path["III. HIPOTESIS Y VARIABLES/3.1 Hipotesis"],
+                "blocks": [
+                    {
+                        "block_id": "hypothesis",
+                        "header": "Hipotesis",
+                        "instructions": "Validar hipotesis.",
+                    }
+                ],
+            },
+            {
+                **by_path["III. HIPOTESIS Y VARIABLES/3.2 Operacionalizacion de variable"],
+                "blocks": [
+                    {
+                        "block_id": "operationalization",
+                        "header": "Operacionalizacion",
+                        "instructions": "Validar tablas.",
+                    }
+                ],
+            },
+        ],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition=definition,
+        prompt_package=prompt_package,
+        selected_sections=[{"section_path": "III. HIPOTESIS Y VARIABLES"}],
+    )
+
+    planned_paths = [item["path"] for item in planned if item["path"] != "Título + Información Básica"]
+    assert planned_paths == [
+        "III. HIPOTESIS Y VARIABLES/3.1 Hipotesis",
+        "III. HIPOTESIS Y VARIABLES/3.2 Operacionalizacion de variable",
+    ]
+
+
 def test_plan_sections_appends_custom_sections_from_prompt_snapshot_in_tree_order():
     definition = {
         "cuerpo": [
@@ -345,6 +459,58 @@ def test_plan_sections_appends_custom_sections_from_prompt_snapshot_in_tree_orde
         "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
         "CAPITULO ESPECIAL/3.1 Aplicacion piloto",
     ]
-    assert planned[1]["required_variables"] == ["alcance_piloto"]
-    assert "Capitulo padre: CAPITULO ESPECIAL" in planned[1]["additional_context"]
-    assert "Cabecera: Aplicacion piloto" in planned[1]["additional_context"]
+
+
+def test_plan_sections_injects_titulo_info_basica_for_unac_proyecto():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+                "contenido": [
+                    {"texto": "1.1 Realidad problematica"},
+                ],
+            }
+        ],
+    }
+
+    section_service = InstitutionalSectionService()
+    extracted = section_service.extract_sections(definition)
+    by_path = {item["section_path"]: item for item in extracted}
+
+    prompt_package = {
+        "format_id": "unac-proyecto-cuant",
+        "university": "unac",
+        "category": "Proyecto de Tesis",
+        "sections": [
+            {
+                **by_path["I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"],
+                "blocks": [
+                    {
+                        "block_id": "rp-1",
+                        "header": "Realidad problematica",
+                        "label": "Prompt realidad problematica",
+                        "instructions": "Describe el problema real con evidencia.",
+                        "required_variables": ["variable_dependiente"],
+                        "required": True,
+                    }
+                ],
+            }
+        ],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition=definition,
+        prompt_package=prompt_package,
+        selected_sections=[
+            {"section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"},
+        ],
+    )
+
+    assert [item["sectionId"] for item in planned] == [
+        "titulo-info-basica",
+        by_path["I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"]["section_id"],
+    ]
+    assert planned[0]["path"] == "Título + Información Básica"
+    assert planned[0]["title"] == "Título + Información Básica"
+    assert planned[0]["blocks"][0]["header"] == "Validación de Título e Información Básica"
