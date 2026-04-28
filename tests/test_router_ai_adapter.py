@@ -81,6 +81,23 @@ def test_values_with_title_keeps_existing_title():
     assert enriched["title"] == "Titulo definido en values"
 
 
+def test_values_with_title_forces_unac_project_cover_labels():
+    project = {
+        "title": "Titulo del proyecto",
+        "formatId": "unac-proyecto-cuant",
+        "university": "unac",
+        "category": "Proyecto de Tesis",
+        "variables": {"titulo": "Titulo del proyecto"},
+    }
+    values = {"tipo_documento": "Tesis de Maestría"}
+
+    enriched = _values_with_title(project, values)
+
+    assert enriched["tipo_documento"] == "PROYECTO DE INVESTIGACIÓN"
+    assert enriched["facultad"] == "ESCUELA DE POSGRADO"
+    assert enriched["escuela"] == "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA"
+
+
 def test_adapter_drops_toc_sections():
     """Sections with TOC/index paths must be dropped even if content is nonempty."""
     ai_result = {
@@ -172,6 +189,31 @@ def test_build_render_payload_canonicalizes_figure_placeholder():
     content = payload["aiResult"]["sections"][0]["content"]
     assert isinstance(content, list)
     assert content[0]["ruta_placeholder"] == "assets/placeholder_figura.png"
+
+
+def test_adapter_preserves_reality_problem_figures():
+    ai_result = {
+        "sections": [
+            {
+                "sectionId": "sec-problem",
+                "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                "content": [
+                    {"tipo": "parrafo", "texto": "Diagnostico tecnico suficiente."},
+                    {
+                        "tipo": "figura",
+                        "titulo": "Diagrama de Pareto de modos de falla en flota CAT 24M",
+                        "caption": "Diagrama de Pareto de modos de falla en flota CAT 24M",
+                        "ruta_placeholder": "assets/placeholder_figura.png",
+                    },
+                ],
+            }
+        ]
+    }
+
+    out = _adapt_ai_result_for_gicatesis(ai_result)
+    content = out["sections"][0]["content"]
+    assert isinstance(content, list)
+    assert content[1]["tipo"] == "figura"
 
 
 def test_build_render_payload_raises_for_invalid_structured_block():

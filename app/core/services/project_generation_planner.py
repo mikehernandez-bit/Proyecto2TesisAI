@@ -67,9 +67,11 @@ class ProjectGenerationPlanner:
                     ],
                 })
 
+        child_only_generation = is_maestria_format(prompt_package or {})
         selected_keys = self._resolve_selected_keys(
             selected_sections=selected_sections,
             merged_sections=merged_sections,
+            child_only_generation=child_only_generation,
         )
         if is_maestria_format(prompt_package or {}):
             special_key = "titulo-info-basica"
@@ -256,6 +258,7 @@ class ProjectGenerationPlanner:
         *,
         selected_sections: List[Dict[str, Any]] | List[str] | None,
         merged_sections: List[Dict[str, Any]],
+        child_only_generation: bool = False,
     ) -> Set[str]:
         path_to_section = {self._section_path(item): item for item in merged_sections if self._section_path(item)}
         children_by_parent: Dict[str, List[Dict[str, Any]]] = {}
@@ -282,6 +285,7 @@ class ProjectGenerationPlanner:
                 merged_sections=merged_sections,
                 path_to_section=path_to_section,
                 children_by_parent=children_by_parent,
+                child_only_generation=child_only_generation,
             )
 
         # SOLO si selected_sections es estrictamente None (no se envió nada),
@@ -297,6 +301,7 @@ class ProjectGenerationPlanner:
             merged_sections=merged_sections,
             path_to_section=path_to_section,
             children_by_parent=children_by_parent,
+            child_only_generation=child_only_generation,
         )
 
     def _expand_selected_keys(
@@ -306,6 +311,7 @@ class ProjectGenerationPlanner:
         merged_sections: List[Dict[str, Any]],
         path_to_section: Dict[str, Dict[str, Any]],
         children_by_parent: Dict[str, List[Dict[str, Any]]],
+        child_only_generation: bool = False,
     ) -> Set[str]:
         expanded_paths: Set[str] = set()
         for key in raw_selected_keys:
@@ -328,7 +334,9 @@ class ProjectGenerationPlanner:
             section_path = self._section_path(item)
             if not section_path or section_path not in expanded_paths:
                 continue
-            if self._section_has_children(item, children_by_parent) and not self._section_has_own_blocks(item):
+            if self._section_has_children(item, children_by_parent) and (
+                child_only_generation or not self._section_has_own_blocks(item)
+            ):
                 continue
             resolved.update(self._section_keys(item))
         return resolved
@@ -476,6 +484,20 @@ class ProjectGenerationPlanner:
                 "no generes imagen ni FIGURE_JSON; no describas vagamente; "
                 "incluye items, frecuencias o pesos, orden descendente, "
                 "acumulado, pasos de grafico e interpretacion del 80/20."
+            )
+        if "relevancia" in haystack:
+            return (
+                "Devuelve solo texto estructurado listo para construir manualmente una matriz de relevancia; "
+                "no generes imagen ni FIGURE_JSON; no describas vagamente; "
+                "incluye alternativas, criterios de evaluacion, lectura por celda, "
+                "decision final y como interpretar alternativas descartadas o preseleccionadas."
+            )
+        if "priorizacion" in haystack or "priorización" in haystack:
+            return (
+                "Devuelve solo texto estructurado listo para construir manualmente una matriz de priorizacion; "
+                "no generes imagen ni FIGURE_JSON; no describas vagamente; "
+                "incluye criterios ponderados, pesos, puntajes por alternativa, "
+                "total ponderado, nota de escala y como interpretar la alternativa ganadora."
             )
         if "6m" in haystack:
             return (

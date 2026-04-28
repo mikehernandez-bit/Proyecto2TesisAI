@@ -91,6 +91,18 @@ class FormatService:
         payload = json.dumps(formats, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+    def _catalog_format_version(self, format_id: str) -> str:
+        """Return the current catalog version for a specific format, if cached."""
+        target = str(format_id or "").strip()
+        if not target:
+            return ""
+        for item in self.cache.get_formats():
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("id") or "").strip() == target:
+                return str(item.get("version") or "").strip()
+        return ""
+
     async def check_version(self) -> Dict[str, Any]:
         """
         Check if catalog version changed.
@@ -235,12 +247,29 @@ class FormatService:
 
         Returns FormatDetail or None if not found.
         """
+        try:
+            await self.sync_catalog_if_needed()
+        except GicaTesisError:
+            logger.info("GicaTesis unavailable while checking catalog freshness; detail cache may be stale")
+
         # Check cache first
         cached = self.cache.get_detail(format_id)
-        if cached and isinstance(cached.get("definition"), dict):
+        cached_has_definition = bool(cached and isinstance(cached.get("definition"), dict))
+        catalog_format_version = self._catalog_format_version(format_id)
+        cached_format_version = str(cached.get("version") or "").strip() if cached else ""
+        if cached_has_definition and (
+            not catalog_format_version or not cached_format_version or cached_format_version == catalog_format_version
+        ):
             logger.debug(f"Format detail cache hit: {format_id}")
             return FormatDetail(**cached)
-        if cached:
+        if cached_has_definition:
+            logger.info(
+                "Format detail cache refresh required (version mismatch): %s cached=%s catalog=%s",
+                format_id,
+                cached_format_version or "<empty>",
+                catalog_format_version or "<unknown>",
+            )
+        elif cached:
             logger.info(f"Format detail cache refresh required (missing definition): {format_id}")
 
         # Fetch from GicaTesis
@@ -257,6 +286,9 @@ class FormatService:
                 e,
                 self._gicatesis_hint(),
             )
+            if cached_has_definition:
+                logger.info("Using stale cached format detail after refresh failure: %s", format_id)
+                return FormatDetail(**cached)
             if settings.GICAGEN_DEMO_MODE:
                 for item in self._load_demo_formats():
                     if item.get("id") != format_id:

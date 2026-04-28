@@ -96,6 +96,87 @@ class _EstimateOnlyProvider:
         return self._content
 
 
+def _project_quant_values() -> dict[str, object]:
+    return {
+        "title": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD INHERENTE",
+        "titulo": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD INHERENTE",
+        "tema": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD INHERENTE",
+        "linea_investigacion": "Gerencia de mantenimiento",
+        "objeto_estudio": "flota de motoniveladoras CAT 24M",
+        "variable_independiente": "Mantenimiento centrado en la confiabilidad",
+        "variable_dependiente": "Disponibilidad inherente",
+        "tipo": "Aplicada",
+        "enfoque": "Cuantitativo",
+        "diseno_investigacion": "Preexperimental",
+        "nivel_investigacion": "Explicativo",
+        "poblacion": "05 motoniveladoras CAT 24M",
+        "muestra": "Muestra censal (n=5)",
+        "lugar_ejecucion": "Unidad minera en Junin",
+        "unidad_analisis": "Equipos de mantenimiento",
+        "temporal": "2025",
+        "matriz_consistencia": {
+            "problema_general": (
+                "¿De que manera el plan RCM mejorara la disponibilidad inherente de la flota CAT 24M en 2025?"
+            ),
+            "objetivo_general": (
+                "Determinar como el plan RCM mejorara la disponibilidad inherente de la flota CAT 24M en 2025."
+            ),
+            "hipotesis_general": "El plan RCM mejorara la disponibilidad inherente de la flota CAT 24M en 2025.",
+            "dimensiones_variable_independiente": [
+                "Taxonomia de equipos",
+                "Analisis de criticidad",
+                "AMEF",
+                "Plan de mantenimiento",
+            ],
+            "dimensiones_variable_dependiente": [
+                "Confiabilidad",
+                "Mantenibilidad",
+            ],
+            "tecnicas": "Analisis documental y observacion directa",
+            "instrumentos": "Fichas ISO 14224 y hojas AMEF",
+            "procesamiento_datos": "Analisis estadistico de KPI y distribucion Weibull",
+        },
+        "operacionalizacion_vi": {
+            "variable": "Mantenimiento centrado en la confiabilidad",
+            "definicion_conceptual": "Metodologia para preservar funciones del activo.",
+            "definicion_operacional": "Se operacionaliza mediante taxonomia, criticidad, AMEF y plan de mantenimiento.",
+            "filas": [
+                {
+                    "dimension": "Taxonomia de equipos",
+                    "indicador": "Nivel de jerarquia taxonomica",
+                    "indice": "Ordinal",
+                    "tecnica_instrumentos": "Tecnica: Analisis documental | Instrumento: Fichas ISO 14224",
+                },
+                {
+                    "dimension": "Analisis de criticidad",
+                    "indicador": "Nivel de criticidad",
+                    "indice": "Ordinal",
+                    "tecnica_instrumentos": "Tecnica: Juicio de expertos | Instrumento: Matriz de criticidad",
+                },
+            ],
+        },
+        "operacionalizacion_vd": {
+            "variable": "Disponibilidad inherente",
+            "definicion_conceptual": "Tiempo durante el cual el equipo esta disponible para operar.",
+            "definicion_operacional": "Se operacionaliza mediante MTBF y MTTR.",
+            "filas": [
+                {
+                    "dimension": "Confiabilidad",
+                    "indicador": "MTBF",
+                    "indice": "Razon",
+                    "metodo_tecnica": "Tecnica: Analisis de datos",
+                },
+                {
+                    "dimension": "Mantenibilidad",
+                    "indicador": "MTTR",
+                    "indice": "Razon",
+                    "metodo_tecnica": "Tecnica: Analisis de datos",
+                },
+            ],
+        },
+    }
+
+
 class TestIsConfigured:
     def test_not_configured_when_no_provider_has_key(self, ai_svc):
         svc, gemini, mistral = ai_svc
@@ -758,6 +839,72 @@ class TestGenerate:
         assert "I. Planteamiento del problema/1.1 Descripcion de la realidad problematica" in first_prompt
         assert "I. Planteamiento del problema/1.2 Formulacion del problema" in second_prompt
         assert first_prompt != second_prompt
+
+    def test_generate_injects_editorial_contract_and_word_ranges_for_project_quant(self, ai_svc):
+        svc, _, _ = ai_svc
+        _set_selection(svc, "gemini", mode="fixed")
+        svc._clients = {
+            "gemini": _UsageProvider(
+                content="Contenido generado para proyecto cuantitativo.",
+                usage={"input_tokens": 90, "output_tokens": 30, "total_tokens": 120},
+            ),
+            "mistral": MagicMock(is_configured=MagicMock(return_value=False)),
+        }
+        values = _project_quant_values()
+        project = {
+            "id": "proj-project-quant-editorial-001",
+            "title": str(values["title"]),
+            "variables": values,
+            "values": values,
+        }
+        prompt = {
+            "template": "Contexto general del proyecto: {{title}}",
+            "format_id": "unac-proyecto-cuant",
+        }
+        planned_sections = [
+            {
+                "sectionId": "sec-0001",
+                "path": "INTRODUCCIÓN",
+                "title": "INTRODUCCIÓN",
+                "hints": "",
+                "additional_context": "",
+            },
+            {
+                "sectionId": "sec-0003",
+                "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+                "title": "1.1 Descripción de la realidad problemática",
+                "hints": "",
+                "additional_context": "",
+            },
+        ]
+        trace_events = []
+
+        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+            svc.generate(
+                project,
+                {"id": "unac-proyecto-cuant", "definition": {}},
+                prompt,
+                trace_hook=trace_events.append,
+                planned_sections=planned_sections,
+            )
+
+        base_prompt_event = next(evt for evt in trace_events if evt.get("step") == "prompt.base")
+        base_prompt_preview = str(base_prompt_event.get("preview", {}).get("prompt"))
+        assert "Contrato editorial global del formato" in base_prompt_preview
+        assert "no una tesis ya concluida" in base_prompt_preview
+
+        section_done_events = [
+            evt for evt in trace_events if evt.get("step") == "ai.generate.section" and evt.get("status") == "done"
+        ]
+        intro_prompt = str(section_done_events[0].get("preview", {}).get("prompt"))
+        problem_prompt = str(section_done_events[1].get("preview", {}).get("prompt"))
+
+        assert "Rango de palabras aceptable: 650 a 900 palabras." in intro_prompt
+        assert "Rango de palabras aceptable: 1800 a 2400 palabras." in problem_prompt
+        assert "Hechos estructurados relevantes del proyecto:" in problem_prompt
+        assert "Problema general:" in problem_prompt
+        assert "Variables o decisiones ya fijadas:" in problem_prompt
+        assert "Figura 1.1 Diagrama de Pareto" in problem_prompt
 
 
 class TestProviderStatus:

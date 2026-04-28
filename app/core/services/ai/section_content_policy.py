@@ -45,6 +45,7 @@ STRUCTURED_SECTION_KEYWORDS: frozenset[str] = frozenset(
         "RESULTADOS",
         "CRONOGRAMA",
         "PRESUPUESTO",
+        "REALIDAD PROBLEMATICA",
         "MATRIZ",
         "MATRICES",
         "ANEXO",
@@ -65,6 +66,7 @@ RECOMMENDED_FIGURE_KEYWORDS: frozenset[str] = frozenset(
         "DISCUSION DE RESULTADOS",
         "CRONOGRAMA",
         "FLUJO",
+        "REALIDAD PROBLEMATICA",
     }
 )
 
@@ -119,5 +121,5 @@ def render_prompt_policy_rules() -> str:
         "Conclusiones ni Recomendaciones.\n"
         "- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, "
         "Marco conceptual, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, "
-        "Operacionalizacion y Anexos.\n"
+        "Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n"
     )

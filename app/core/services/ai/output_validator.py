@@ -28,7 +28,9 @@ class OutputValidator:
 
     MIN_CONTENT_LENGTH = 20
     MAX_TABLE_BLOCKS = 2
+    MAX_REALITY_PROBLEM_TABLE_BLOCKS = 0
     MAX_FIGURE_BLOCKS = 1
+    MAX_PROBLEM_FIGURE_BLOCKS = 4
     _INDEX_TITLES = frozenset(
         {
             "indice",
@@ -72,6 +74,20 @@ class OutputValidator:
     def _is_abbreviations_path(cls, path: str) -> bool:
         normalized = cls._normalize_token(path)
         return "abreviaturas" in normalized
+
+    @classmethod
+    def _max_figure_blocks_for_path(cls, path: str) -> int:
+        normalized = cls._normalize_token(path)
+        if "planteamiento del problema" in normalized and "realidad problematica" in normalized:
+            return cls.MAX_PROBLEM_FIGURE_BLOCKS
+        return cls.MAX_FIGURE_BLOCKS
+
+    @classmethod
+    def _max_table_blocks_for_path(cls, path: str) -> int:
+        normalized = cls._normalize_token(path)
+        if "planteamiento del problema" in normalized and "realidad problematica" in normalized:
+            return cls.MAX_REALITY_PROBLEM_TABLE_BLOCKS
+        return cls.MAX_TABLE_BLOCKS
 
     @classmethod
     def _line_has_forbidden_phrase(cls, line: str) -> bool:
@@ -314,6 +330,18 @@ class OutputValidator:
         if title:
             normalized["titulo"] = title
 
+        note = cls._sanitize_text_content(item.get("nota") or item.get("note"))
+        if note:
+            normalized["nota"] = note
+
+        source = cls._sanitize_text_content(item.get("fuente") or item.get("source"))
+        if source:
+            normalized["fuente"] = source
+
+        placeholder_text = cls._sanitize_text_content(item.get("placeholder_text") or item.get("texto_placeholder"))
+        if placeholder_text:
+            normalized["placeholder_text"] = placeholder_text
+
         return normalized
 
     @classmethod
@@ -321,6 +349,8 @@ class OutputValidator:
         normalized: list[dict[str, Any]] = []
         table_count = 0
         figure_count = 0
+        max_table_blocks = cls._max_table_blocks_for_path(path)
+        max_figure_blocks = cls._max_figure_blocks_for_path(path)
 
         for item in content:
             if isinstance(item, str):
@@ -340,7 +370,7 @@ class OutputValidator:
                 continue
 
             if block_type == "tabla":
-                if table_count >= cls.MAX_TABLE_BLOCKS:
+                if table_count >= max_table_blocks:
                     continue
                 table_block = cls._normalize_table_block(item)
                 if table_block is not None:
@@ -349,7 +379,7 @@ class OutputValidator:
                 continue
 
             if block_type == "figura":
-                if figure_count >= cls.MAX_FIGURE_BLOCKS:
+                if figure_count >= max_figure_blocks:
                     continue
                 figure_block = cls._normalize_figure_block(item)
                 if figure_block is not None:
