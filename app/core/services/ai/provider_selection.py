@@ -10,17 +10,23 @@ from typing import Any, Dict
 
 from app.core.config import settings
 
-_PROVIDER_ORDER = ("mistral",)
+_PROVIDER_ORDER = ("gemini", "mistral")
 _PROVIDERS = set(_PROVIDER_ORDER)
 
 
 def _default_model(provider: str) -> str:
+    if provider == "gemini":
+        return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
     if provider == "mistral":
         return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
-    return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
+    return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
 
 
 def _fallback_for(provider: str) -> str:
+    if provider == "gemini":
+        return "mistral"
+    if provider == "mistral":
+        return "gemini"
     return ""
 
 
@@ -28,21 +34,24 @@ def _matches_provider_model(provider: str, model: str) -> bool:
     normalized = str(model or "").strip().lower()
     if not normalized:
         return False
+    if provider == "gemini":
+        return "gemini" in normalized
     if provider == "mistral":
         return "mistral" in normalized
     return False
 
 
 def _default_selection() -> Dict[str, str]:
-    primary = "mistral"
+    primary = str(getattr(settings, "AI_PRIMARY_PROVIDER", "gemini")).strip().lower()
     if primary not in _PROVIDERS:
         primary = _PROVIDER_ORDER[0]
+    fallback = _fallback_for(primary)
     return {
         "provider": primary,
         "model": _default_model(primary),
-        "fallback_provider": "",
-        "fallback_model": "",
-        "mode": "fixed",
+        "fallback_provider": fallback,
+        "fallback_model": _default_model(fallback) if fallback else "",
+        "mode": "auto",
     }
 
 
@@ -71,15 +80,27 @@ class ProviderSelectionService:
 
     @staticmethod
     def _normalize(payload: Dict[str, Any]) -> Dict[str, str]:
-        provider = "mistral"
-        fallback_provider = ""
+        base = _default_selection()
+        provider = str(payload.get("provider") or base["provider"]).strip().lower()
+        if provider not in _PROVIDERS:
+            provider = base["provider"]
+        fallback_provider = str(payload.get("fallback_provider") or _fallback_for(provider)).strip().lower()
+        if fallback_provider == provider or fallback_provider not in _PROVIDERS:
+            fallback_provider = _fallback_for(provider)
 
         model = str(payload.get("model") or "").strip()
         if not model or not _matches_provider_model(provider, model):
             model = _default_model(provider)
 
-        fallback_model = ""
-        mode = "fixed"
+        fallback_model = str(payload.get("fallback_model") or "").strip()
+        if fallback_provider and (not fallback_model or not _matches_provider_model(fallback_provider, fallback_model)):
+            fallback_model = _default_model(fallback_provider)
+        if not fallback_provider:
+            fallback_model = ""
+
+        mode = str(payload.get("mode") or base["mode"]).strip().lower()
+        if mode not in {"auto", "fixed"}:
+            mode = base["mode"]
 
         return {
             "provider": provider,

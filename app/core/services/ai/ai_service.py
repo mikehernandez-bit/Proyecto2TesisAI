@@ -3,8 +3,7 @@
 Coordinates the full generation pipeline:
   render prompt -> generate per section -> correct -> validate -> aiResult
 
-Uses a fixed Mistral provider selection. When the provider hits rate limits,
-the orchestrator waits for the retry-after window and retries the same provider.
+Uses provider selection with resilience routing, retries and fallback.
 """
 
 from __future__ import annotations
@@ -31,6 +30,7 @@ from app.core.services.ai.completeness_validator import (
 from app.core.services.ai.content_parser import parse_ai_content
 from app.core.services.ai.errors import GenerationCancelledError
 from app.core.services.ai.figure_recommendations import apply_figure_recommendations
+from app.core.services.ai.gemini_client import GeminiClient
 from app.core.services.ai.limiter import LLMLimiter
 from app.core.services.ai.mistral_client import MistralClient
 from app.core.services.ai.output_validator import OutputValidator, ValidationError
@@ -63,7 +63,7 @@ from app.core.services.definition_compiler import compile_definition_to_section_
 
 logger = logging.getLogger(__name__)
 
-_PROVIDER_ORDER = ("mistral",)
+_PROVIDER_ORDER = ("gemini", "mistral")
 _PROVIDER_SET = set(_PROVIDER_ORDER)
 
 # Throttle between section calls to avoid bursting through rate limits.
@@ -134,6 +134,17 @@ class _ProviderClient(Protocol):
 class AIService:
     """Orchestrates AI content generation with provider failover."""
 
+    @property
+    def _clients(self) -> Dict[str, _ProviderClient]:
+        return self._clients_map
+
+    @_clients.setter
+    def _clients(self, providers: Dict[str, _ProviderClient]) -> None:
+        self._clients_map = dict(providers or {})
+        router = getattr(self, "_resilience_router", None)
+        if router is not None:
+            router.set_providers(self._clients_map)
+
     @staticmethod
     def _is_unac_schedule_chapter_path(path: str) -> bool:
         normalized = " ".join(str(path or "").strip().lower().split())
@@ -143,6 +154,7 @@ class AIService:
         self.renderer = PromptRenderer()
         self.validator = OutputValidator()
         self._clients: Dict[str, _ProviderClient] = {
+            "gemini": GeminiClient(),
             "mistral": MistralClient(),
         }
         self._selection_store = ProviderSelectionService()
@@ -163,9 +175,11 @@ class AIService:
         self._phase_policies = build_phase_policies()
         self._limiter = LLMLimiter(
             provider_concurrency={
+                "gemini": int(getattr(settings, "MAX_INFLIGHT_GEMINI", 3)),
                 "mistral": int(getattr(settings, "MAX_INFLIGHT_MISTRAL", 3)),
             },
             provider_rpm={
+                "gemini": int(getattr(settings, "GEMINI_RPM", 60)),
                 "mistral": int(getattr(settings, "MISTRAL_RPM", 60)),
             },
             max_inflight_per_tenant=int(getattr(settings, "MAX_INFLIGHT_PER_TENANT", 2)),
@@ -197,17 +211,24 @@ class AIService:
 
     @staticmethod
     def _default_model_for_provider(provider: str) -> str:
+        if provider == "gemini":
+            return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
         if provider == "mistral":
             return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
-        return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
+        return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
 
     @staticmethod
     def _fallback_for(primary: str) -> str:
+        if primary == "gemini":
+            return "mistral"
+        if primary == "mistral":
+            return "gemini"
         return ""
 
     @staticmethod
     def _provider_display_name(provider: str) -> str:
         labels = {
+            "gemini": "Gemini",
             "mistral": "Mistral",
         }
         return labels.get(provider, provider.capitalize())
@@ -217,6 +238,8 @@ class AIService:
         normalized = str(model or "").strip().lower()
         if not normalized:
             return False
+        if provider == "gemini":
+            return "gemini" in normalized
         if provider == "mistral":
             return "mistral" in normalized
         return False
@@ -296,7 +319,7 @@ class AIService:
 
     def _provider_order(self, selection_override: Optional[Dict[str, Any]] = None) -> List[str]:
         selection = self._resolve_selection(selection_override)
-        primary = str(selection.get("provider") or "mistral").lower().strip()
+        primary = str(selection.get("provider") or _PROVIDER_ORDER[0]).lower().strip()
         if primary not in _PROVIDER_SET:
             primary = _PROVIDER_ORDER[0]
         return [primary]
@@ -422,9 +445,8 @@ class AIService:
 
     def providers_status_payload(self, selection_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         selection = self._resolve_selection(selection_override)
-        selected_provider = str(selection.get("provider") or _PROVIDER_ORDER[0]).lower().strip()
-        if selected_provider not in _PROVIDER_SET:
-            selected_provider = _PROVIDER_ORDER[0]
+        visible_providers = ("mistral",) if "mistral" in self._clients else _PROVIDER_ORDER
+        selected_provider = visible_providers[0]
         selected_model = str(selection.get("model") or self._default_model_for_provider(selected_provider))
         if not self._model_matches_provider(selected_provider, selected_model):
             selected_model = self._default_model_for_provider(selected_provider)
@@ -434,7 +456,7 @@ class AIService:
         fallback_model = ""
 
         providers_payload: List[Dict[str, Any]] = []
-        for provider in _PROVIDER_ORDER:
+        for provider in visible_providers:
             client = self._clients.get(provider)
             configured = bool(client and client.is_configured())
             if provider == selected_provider:
@@ -1800,7 +1822,10 @@ class AIService:
 
         runtime_selection = self._resolve_selection(selection)
         providers = self._provider_order(runtime_selection)
-        fallback_enabled = False
+        selection_mode = str(runtime_selection.get("mode") or "auto").strip().lower()
+        if selection_mode not in {"auto", "fixed"}:
+            selection_mode = "auto"
+        fallback_enabled = selection_mode == "auto" and bool(getattr(settings, "AI_FALLBACK_ON_QUOTA", True))
         disabled = disabled_for_job if disabled_for_job is not None else set()
 
         if preferred_provider in providers and preferred_provider not in disabled:
@@ -1818,7 +1843,7 @@ class AIService:
             tenant_id=str(getattr(settings, "APP_ENV", "") or "global"),
             preferred_provider=preferred_provider,
             provider_candidates=providers,
-            selection_mode="auto" if fallback_enabled else "fixed",
+            selection_mode=selection_mode if fallback_enabled else "fixed",
             metadata={
                 "request_id": f"{phase}:{section_id or section_path}:{int(time.time())}",
                 "section_current": section_current,
