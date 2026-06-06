@@ -996,7 +996,14 @@ class AIService:
             if value in (None, ""):
                 continue
             try:
-                return int(value)
+                if isinstance(value, bool):
+                    continue
+                if isinstance(value, int):
+                    return value
+                if isinstance(value, float):
+                    return int(value)
+                if isinstance(value, str):
+                    return int(value.strip())
             except (TypeError, ValueError):
                 continue
         return int(fallback)
@@ -1524,15 +1531,16 @@ class AIService:
 
             # Parse structured blocks (tables/figures) from AI output
             parsed_content = parse_ai_content(content)
+            canonical_values = values if isinstance(values, dict) else {}
             parsed_content, schedule_origin = self._canonicalize_schedule_content(
                 parsed_content,
                 path=path,
-                values=values,
+                values=canonical_values,
             )
             parsed_content, budget_origin = self._canonicalize_budget_content(
                 parsed_content,
                 path=path,
-                values=values,
+                values=canonical_values,
             )
             self._emit_schedule_origin_trace(
                 origin=schedule_origin,
