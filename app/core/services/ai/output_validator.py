@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
-from typing import Any
+from typing import Any, cast
 
 from app.core.services.ai.schedule_table_builder import (
     extract_schedule_plan_from_content,
@@ -1059,14 +1059,16 @@ class OutputValidator:
     def _schedule_merge_errors(cls, table: dict[str, Any]) -> list[str]:
         errors: list[str] = []
         year_value = str(table.get("anio") or "").strip()
-        combined = table.get("celdas_combinadas")
-        fused = table.get("celdas_fusionadas")
-        if not isinstance(combined, list) or not combined:
+        combined_raw = table.get("celdas_combinadas")
+        fused_raw = table.get("celdas_fusionadas")
+        if not isinstance(combined_raw, list) or not combined_raw:
             errors.append("celdas_combinadas_invalidas")
-        if not isinstance(fused, list) or not fused:
+        if not isinstance(fused_raw, list) or not fused_raw:
             errors.append("celdas_fusionadas_invalidas")
         if errors:
             return errors
+        combined = cast(list[Any], combined_raw)
+        fused = cast(list[Any], fused_raw)
 
         has_year_combined = any(
             isinstance(item, dict)
