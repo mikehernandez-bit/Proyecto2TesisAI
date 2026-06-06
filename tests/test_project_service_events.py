@@ -28,6 +28,43 @@ def test_append_event_truncates_to_200(tmp_path):
     assert updated["trace"] == events
 
 
+def test_storage_compaction_preserves_matriz_consistencia(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    matrix = {
+        "problema_general": "Problema general",
+        "objetivo_general": "Objetivo general",
+        "hipotesis_general": "Hipotesis general",
+        "problemas_especificos": ["PE1", "PE2", "PE3"],
+        "objetivos_especificos": ["OE1", "OE2", "OE3"],
+        "hipotesis_especificas": ["HE1", "HE2", "HE3"],
+        "variable_independiente": "Variable independiente",
+        "dimensiones_variable_independiente": ["DVI1", "DVI2"],
+        "variable_dependiente": "Variable dependiente",
+        "dimensiones_variable_dependiente": ["DVD1", "DVD2"],
+        "tecnicas": "Encuesta",
+        "instrumentos": "Cuestionario",
+        "procesamiento_datos": "Estadistica descriptiva",
+    }
+    project = service.create_project(
+        {
+            "title": "Matriz storage",
+            "values": {"titulo": "Titulo tesis", "matriz_consistencia": matrix},
+        }
+    )
+
+    for index in range(250):
+        service.append_event(project["id"], {"message": f"event-{index}"})
+
+    stored = service.store.read_list()[0]
+
+    assert len(stored["events"]) == 200
+    stored_matrix = stored["values"]["matriz_consistencia"]
+    stored_variables_matrix = stored["variables"]["matriz_consistencia"]
+    for key, value in matrix.items():
+        assert stored_matrix[key] == value
+        assert stored_variables_matrix[key] == value
+
+
 def test_mark_completed_with_warning_incidents_sets_incident_status(tmp_path):
     service = ProjectService(str(tmp_path / "projects.json"))
     project = service.create_project({"title": "Incidents status"})

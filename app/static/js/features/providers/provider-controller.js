@@ -7,6 +7,13 @@ export function createProviderController({
   getCurrentProjectId,
 }) {
   let providerStatusCache = null;
+  const FIXED_PROVIDER = "mistral";
+  const FIXED_MODE = "fixed";
+
+  function visibleProviders(payload = providerStatusCache) {
+    const providers = Array.isArray(payload?.providers) ? payload.providers : [];
+    return providers.filter((provider) => provider?.id === FIXED_PROVIDER);
+  }
 
   function setProviderSelectorError(message) {
     const element = getElement("provider-select-error");
@@ -87,7 +94,7 @@ export function createProviderController({
   }
 
   function findProvider(providerId) {
-    const providers = providerStatusCache?.providers;
+    const providers = visibleProviders();
     if (!Array.isArray(providers)) return null;
     return providers.find((item) => item && item.id === providerId) || null;
   }
@@ -105,9 +112,7 @@ export function createProviderController({
   }
 
   function fallbackOptionsForPrimary(primaryProvider) {
-    const providers = Array.isArray(providerStatusCache?.providers)
-      ? providerStatusCache.providers
-      : [];
+    const providers = visibleProviders();
     return providers.filter((item) =>
       item?.id &&
       item.id !== primaryProvider &&
@@ -146,20 +151,13 @@ export function createProviderController({
   }
 
   async function saveProviderSelection(payload, projectId = null) {
-    const selectedProvider = payload.provider || providerStatusCache?.selected_provider || "gemini";
-    const mode = payload.mode || providerStatusCache?.mode || "auto";
-    const fallbackDefault = computeFallbackSelection(selectedProvider);
-    const fallbackProviderRaw = payload.fallback_provider || providerStatusCache?.fallback_provider || fallbackDefault.fallback_provider;
-    const fallbackProvider = mode === "auto" && fallbackProviderRaw === selectedProvider
-      ? fallbackDefault.fallback_provider
-      : fallbackProviderRaw;
-    const fallbackProviderData = findProvider(fallbackProvider);
+    const selectedProvider = FIXED_PROVIDER;
     const body = {
       provider: selectedProvider,
       model: payload.model || findProvider(selectedProvider)?.model || providerStatusCache?.selected_model || "",
-      fallback_provider: fallbackProvider || "",
-      fallback_model: payload.fallback_model || fallbackProviderData?.model || providerStatusCache?.fallback_model || fallbackDefault.fallback_model,
-      mode,
+      fallback_provider: "",
+      fallback_model: "",
+      mode: FIXED_MODE,
     };
     const updated = await apiSend(providersSelectUrl(projectId), "POST", body);
     providerStatusCache = updated;
@@ -171,34 +169,25 @@ export function createProviderController({
   async function selectProvider(providerId) {
     const provider = findProvider(providerId);
     if (!provider) return null;
-    const mode = providerStatusCache?.mode || "auto";
-    const fallback = computeFallbackSelection(providerId);
     return saveProviderSelection({
-      provider: providerId,
+      provider: FIXED_PROVIDER,
       model: provider.model || "",
-      fallback_provider: mode === "auto" ? fallback.fallback_provider : (providerStatusCache?.fallback_provider || fallback.fallback_provider),
-      fallback_model: mode === "auto" ? fallback.fallback_model : (providerStatusCache?.fallback_model || fallback.fallback_model),
-      mode,
+      fallback_provider: "",
+      fallback_model: "",
+      mode: FIXED_MODE,
     }, getCurrentProjectId() || null);
   }
 
   async function setProviderMode(mode) {
     if (!providerStatusCache) return null;
-    const selectedProvider = providerStatusCache.selected_provider || "gemini";
+    const selectedProvider = FIXED_PROVIDER;
     const selectedModel = providerStatusCache.selected_model || (findProvider(selectedProvider)?.model || "");
-    const options = fallbackOptionsForPrimary(selectedProvider);
-    const currentFallback = providerStatusCache.fallback_provider || "";
-    const fallbackCandidate = options.find((item) => item.id === currentFallback) || options[0] || null;
-    const fallback = {
-      fallback_provider: fallbackCandidate?.id || "",
-      fallback_model: fallbackCandidate?.model || "",
-    };
     return saveProviderSelection({
       provider: selectedProvider,
       model: selectedModel,
-      fallback_provider: mode === "auto" ? fallback.fallback_provider : (providerStatusCache.fallback_provider || fallback.fallback_provider),
-      fallback_model: mode === "auto" ? fallback.fallback_model : (providerStatusCache.fallback_model || fallback.fallback_model),
-      mode,
+      fallback_provider: "",
+      fallback_model: "",
+      mode: FIXED_MODE,
     }, getCurrentProjectId() || null);
   }
 
@@ -206,78 +195,14 @@ export function createProviderController({
     const container = getElement("provider-cards");
     if (!container) return;
 
-    const providers = Array.isArray(payload?.providers) ? payload.providers : [];
+    const providers = visibleProviders(payload);
     if (!providers.length) {
-      container.innerHTML = '<div class="text-xs text-slate-500">No hay providers disponibles.</div>';
+      container.innerHTML = '<div class="text-xs text-slate-500">Mistral no está disponible en este momento.</div>';
       return;
     }
 
-    const selected = String(payload?.selected_provider || "");
-    const mode = String(payload?.mode || "auto");
+    const selected = FIXED_PROVIDER;
     const selectedProviderData = findProvider(selected);
-    const fallbackProviderData = findProvider(payload?.fallback_provider || "");
-    const fallbackText = mode === "auto"
-      ? (fallbackProviderData
-        ? `${fallbackProviderData.display_name || fallbackProviderData.id} (${payload?.fallback_model || fallbackProviderData.model || "-"})`
-        : "Sin proveedor de respaldo disponible")
-      : "Desactivado (modo fijo)";
-    if (getElement("provider-fallback-label")) {
-      getElement("provider-fallback-label").textContent = `Proveedor de respaldo: ${fallbackText}`;
-    }
-
-    const backupControl = getElement("provider-backup-control");
-    const backupSelect = getElement("provider-backup-select");
-    if (backupControl && backupSelect) {
-      if (mode === "auto") {
-        backupControl.classList.remove("hidden");
-        const options = fallbackOptionsForPrimary(selected);
-        if (!options.length) {
-          backupSelect.disabled = true;
-          backupSelect.innerHTML = '<option value="">Sin proveedor de respaldo disponible</option>';
-          backupSelect.onchange = null;
-        } else {
-          backupSelect.disabled = false;
-          backupSelect.innerHTML = options
-            .map((item) => {
-              const label = item.display_name || item.id;
-              return `<option value="${escapeHtml(item.id)}">${escapeHtml(label)} (${escapeHtml(item.model || "-")})</option>`;
-            })
-            .join("");
-          let selectedFallback = String(payload?.fallback_provider || "");
-          if (!options.some((item) => item.id === selectedFallback)) {
-            selectedFallback = options[0].id;
-          }
-          backupSelect.value = selectedFallback;
-          backupSelect.onchange = async () => {
-            const fallbackProvider = String(backupSelect.value || "").trim();
-            const fallbackData = findProvider(fallbackProvider);
-            try {
-              setProviderSelectorError("");
-              await saveProviderSelection(
-                {
-                  provider: selected,
-                  model: payload?.selected_model || selectedProviderData?.model || "",
-                  fallback_provider: fallbackProvider,
-                  fallback_model: fallbackData?.model || "",
-                  mode: "auto",
-                },
-                getCurrentProjectId() || null
-              );
-            } catch (error) {
-              setProviderSelectorError(error?.message || "No se pudo guardar el proveedor de respaldo.");
-            }
-          };
-        }
-      } else {
-        backupControl.classList.add("hidden");
-        backupSelect.disabled = true;
-        backupSelect.innerHTML = '<option value="">Desactivado en modo fijo</option>';
-        backupSelect.onchange = null;
-      }
-    }
-
-    if (getElement("provider-mode-fixed")) getElement("provider-mode-fixed").checked = mode === "fixed";
-    if (getElement("provider-mode-auto")) getElement("provider-mode-auto").checked = mode !== "fixed";
 
     container.innerHTML = providers.map((provider) => {
       const health = providerHealthMeta(provider);
@@ -340,28 +265,6 @@ export function createProviderController({
       };
     });
 
-    if (getElement("provider-mode-fixed")) {
-      getElement("provider-mode-fixed").onchange = async () => {
-        if (!getElement("provider-mode-fixed").checked) return;
-        try {
-          setProviderSelectorError("");
-          await setProviderMode("fixed");
-        } catch (error) {
-          setProviderSelectorError(error?.message || "No se pudo actualizar el modo.");
-        }
-      };
-    }
-    if (getElement("provider-mode-auto")) {
-      getElement("provider-mode-auto").onchange = async () => {
-        if (!getElement("provider-mode-auto").checked) return;
-        try {
-          setProviderSelectorError("");
-          await setProviderMode("auto");
-        } catch (error) {
-          setProviderSelectorError(error?.message || "No se pudo actualizar el modo.");
-        }
-      };
-    }
   }
 
   function needsAutoProviderProbe(payload) {

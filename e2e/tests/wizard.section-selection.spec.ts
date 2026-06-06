@@ -624,3 +624,306 @@ test("wizard step 2 no longer exposes package customization controls", async ({ 
   await expect(page.locator("#custom-structure-kind")).toHaveCount(0);
   await expect(page.locator("#btn-add-custom-structure")).toHaveCount(0);
 });
+
+test("wizard step 5 keeps institutional order from planned sections even when phase sections arrive scrambled", async ({ page }) => {
+  const draftPayloads: any[] = [];
+  let generationMode = false;
+
+  await page.route(/\/api\/projects(?:\?.*)?$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([]),
+    });
+  });
+
+  await page.route(/\/api\/formats(?:\/[^/?]+\/prompt-package)?(?:\?.*)?$/, async (route) => {
+    const url = route.request().url();
+    if (url.includes("/prompt-package")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(promptPackage),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        formats: [
+          {
+            id: formatId,
+            title: "Formato Demo Secciones",
+            university: "demo",
+            category: "general",
+            version: "v1",
+          },
+        ],
+        stale: false,
+        source: "demo",
+      }),
+    });
+  });
+
+  await page.route("**/api/projects/draft", async (route) => {
+    draftPayloads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: projectId,
+        projectId,
+        status: "draft",
+      }),
+    });
+  });
+
+  await page.route(`**/api/projects/${projectId}`, async (route) => {
+    if (route.request().method() === "PUT") {
+      const payload = route.request().postDataJSON();
+      draftPayloads.push(payload);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: projectId,
+          status: generationMode ? "processing" : "draft",
+          title: payload?.title || "Proyecto seleccion",
+          format_id: payload?.formatId || formatId,
+          prompt_id: payload?.promptId || promptPackage.id,
+          selected_sections: payload?.selectedSections || promptPackage.selected_sections,
+          prompt_snapshot: payload?.promptSnapshot || promptPackage,
+          values: payload?.values || {},
+        }),
+      });
+      return;
+    }
+
+    const selectedSections = draftPayloads[draftPayloads.length - 1]?.selectedSections || promptPackage.selected_sections;
+    if (!generationMode) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: projectId,
+          status: "draft",
+          format_id: formatId,
+          prompt_id: promptPackage.id,
+          selected_sections: selectedSections,
+          prompt_snapshot: promptPackage,
+          values: {},
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: projectId,
+        status: "processing",
+        format_id: formatId,
+        prompt_id: promptPackage.id,
+        selected_sections: selectedSections,
+        generation_phase: {
+          status: "running",
+          total_sections: 6,
+          completed_sections: 3,
+          current_path: "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulacion del problema",
+          current_section_path: "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulacion del problema",
+          base_prompt: "Base Proyecto seleccion",
+          planned_sections: [
+            {
+              section_id: "titulo-info-basica",
+              section_path: "Título + Información Básica",
+              path: "Título + Información Básica",
+              section_title: "Título + Información Básica",
+              parent_section_path: "",
+              section_level: 1,
+              section_order: -100,
+            },
+            {
+              section_id: "intro",
+              section_path: "INTRODUCCIÓN",
+              path: "INTRODUCCIÓN",
+              section_title: "INTRODUCCIÓN",
+              parent_section_path: "",
+              section_level: 1,
+              section_order: 1,
+            },
+            {
+              section_id: "cap1",
+              section_path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              section_title: "I. PLANTEAMIENTO DEL PROBLEMA",
+              parent_section_path: "",
+              section_level: 1,
+              section_order: 2,
+            },
+            {
+              section_id: "problema",
+              section_path: "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
+              path: "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
+              section_title: "1.1 Realidad problematica",
+              parent_section_path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              section_level: 2,
+              section_order: 3,
+            },
+            {
+              section_id: "formulacion",
+              section_path: "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulacion del problema",
+              path: "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulacion del problema",
+              section_title: "1.2 Formulacion del problema",
+              parent_section_path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              section_level: 2,
+              section_order: 4,
+            },
+            {
+              section_id: "anexos",
+              section_path: "ANEXOS",
+              path: "ANEXOS",
+              section_title: "ANEXOS",
+              parent_section_path: "",
+              section_level: 1,
+              section_order: 99,
+            },
+          ],
+          sections: [
+            {
+              section_id: "anexos",
+              section_path: "ANEXOS",
+              path: "ANEXOS",
+              section_title: "ANEXOS",
+              status: "pending",
+              provider: "",
+              model: "",
+            },
+            {
+              section_id: "intro",
+              section_path: "INTRODUCCIÓN",
+              path: "INTRODUCCIÓN",
+              section_title: "INTRODUCCIÓN",
+              status: "ok",
+              provider: "mistral",
+              model: "mistral-medium-2505",
+            },
+            {
+              section_id: "titulo-info-basica",
+              section_path: "Título + Información Básica",
+              path: "Título + Información Básica",
+              section_title: "Título + Información Básica",
+              status: "ok",
+              provider: "mistral",
+              model: "mistral-medium-2505",
+            },
+            {
+              section_id: "formulacion",
+              section_path: "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulacion del problema",
+              path: "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulacion del problema",
+              section_title: "1.2 Formulacion del problema",
+              parent_section_path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              section_level: 2,
+              status: "generating",
+              provider: "mistral",
+              model: "mistral-medium-2505",
+            },
+            {
+              section_id: "cap1",
+              section_path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              section_title: "I. PLANTEAMIENTO DEL PROBLEMA",
+              status: "pending",
+              provider: "",
+              model: "",
+            },
+            {
+              section_id: "problema",
+              section_path: "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
+              path: "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
+              section_title: "1.1 Realidad problematica",
+              parent_section_path: "I. PLANTEAMIENTO DEL PROBLEMA",
+              section_level: 2,
+              status: "ok",
+              provider: "mistral",
+              model: "mistral-medium-2505",
+            },
+          ],
+        },
+      }),
+    });
+  });
+
+  await page.route(/\/api\/providers\/status(?:\?.*)?$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(providerStatus),
+    });
+  });
+
+  await page.route(/\/api\/providers\/select(?:\?.*)?$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...providerStatus,
+        selection: {
+          provider: providerStatus.selected_provider,
+          model: providerStatus.selected_model,
+          fallback_provider: providerStatus.fallback_provider,
+          fallback_model: providerStatus.fallback_model,
+          mode: providerStatus.mode,
+        },
+      }),
+    });
+  });
+
+  await page.route(`**/api/projects/${projectId}/generate`, async (route) => {
+    generationMode = true;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        status: "processing",
+        mode: "ai",
+        provider: "mistral",
+        model: "mistral-medium-2505",
+        selectionMode: "fixed",
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await page.click("#nav-wizard");
+  await page.click("#formats-grid .format-card");
+  await page.click("#btn-step1-next");
+
+  await page.locator("#chapter-selection-grid .chapter-card").nth(1).click();
+  await page.click("#btn-step2-next");
+  await page.fill("#var_title", "Proyecto seleccion");
+  await page.fill('[data-variable="variable_dependiente"]', "Desempeno academico");
+  await page.fill('[data-variable="pregunta_principal"]', "Como mejorar el proceso");
+  await page.click("#btn-step3-next-provider");
+  await page.click("#btn-step4-generate");
+
+  await expect(page.locator("#gen-ai-section-list")).toContainText("Título + Información Básica");
+  await expect(page.locator("#gen-ai-section-list")).toContainText("INTRODUCCIÓN");
+  await expect(page.locator("#gen-ai-section-list")).toContainText("ANEXOS");
+
+  const orderedPaths = await page.locator("#gen-ai-section-list [data-ai-node-key]").evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute("data-ai-node-path")),
+  );
+
+  expect(orderedPaths).toEqual([
+    "Título + Información Básica",
+    "INTRODUCCIÓN",
+    "I. PLANTEAMIENTO DEL PROBLEMA",
+    "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica",
+    "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulacion del problema",
+    "ANEXOS",
+  ]);
+});

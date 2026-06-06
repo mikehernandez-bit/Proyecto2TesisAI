@@ -83,6 +83,12 @@ SYSTEM_PROMPT = (
     '"caption":"Figura X. Descripcion breve de la figura."}\n'
     "FIGURE_JSON>>>\n"
     "\n"
+    "Para FORMULAS, inserta exactamente:\n"
+    "<<<FORMULA_JSON\n"
+    '{"tipo":"formula","id":"eq_ID_UNICO","texto":"NPR = S x O x D",'
+    '"latex":"NPR = S \\\\times O \\\\times D","numero":"(1)","alineacion":"center"}\n'
+    "FORMULA_JSON>>>\n"
+    "\n"
     "REGLAS DE TABLAS/FIGURAS:\n"
     "- Solo sugiere tablas/figuras cuando REALMENTE aporten valor academico.\n"
     f"{render_prompt_policy_rules()}"
@@ -90,7 +96,7 @@ SYSTEM_PROMPT = (
     "nunca uses 'Diagrama ilustrativo' ni 'Figura de ejemplo'.\n"
     "- Si no tienes datos reales para una tabla, NO uses placeholders como [COMPLETAR]; "
     "omite la tabla y resuelve la idea con texto academico limpio.\n"
-    "- Maximo 2 tablas y 1 figura por seccion.\n"
+    "- Maximo 2 tablas y 1 figura por seccion, salvo que el contrato especifico de la seccion indique otro limite.\n"
     "- El texto ANTES y DESPUES de la tabla/figura debe fluir naturalmente.\n"
     "- NO uses Markdown para tablas (no |). Usa SOLO el bloque JSON delimitado.\n"
     "- Si la seccion NO necesita tabla/figura, devuelve solo texto plano normal.\n"

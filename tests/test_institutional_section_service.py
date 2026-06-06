@@ -90,6 +90,18 @@ def test_build_tree_preserves_stable_institutional_order():
     service = InstitutionalSectionService()
     sections = [
         {
+            "section_id": "sec-0",
+            "section_path": "TÍTULO + INFORMACIÓN BÁSICA",
+            "section_title": "TÍTULO + INFORMACIÓN BÁSICA",
+            "parent_section_path": "",
+            "section_level": 1,
+            "section_order": -100,
+            "optional": False,
+            "default_selected": True,
+            "source_hints": "",
+            "blocks": [],
+        },
+        {
             "section_id": "sec-2",
             "section_path": "CAPITULO I",
             "section_title": "CAPITULO I",
@@ -141,8 +153,115 @@ def test_build_tree_preserves_stable_institutional_order():
 
     tree = service.build_tree(sections)
 
-    assert [item["section_path"] for item in tree] == ["INTRODUCCION", "CAPITULO I"]
-    assert [item["section_path"] for item in tree[1]["children"]] == [
+    assert [item["section_path"] for item in tree] == [
+        "TÍTULO + INFORMACIÓN BÁSICA",
+        "INTRODUCCION",
+        "CAPITULO I",
+    ]
+    assert [item["section_path"] for item in tree[2]["children"]] == [
         "CAPITULO I/1.1 Realidad problematica",
         "CAPITULO I/1.2 Formulacion del problema",
     ]
+
+
+def test_extract_sections_excludes_misplaced_chapter_two_matrix_children():
+    service = InstitutionalSectionService()
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "II. MARCO TEORICO",
+                "contenido": [
+                    {
+                        "titulo": "2.2 Bases teoricas",
+                        "contenido": [
+                            {"texto": "Matriz de Consistencia de Implementacion"},
+                            {"texto": "Matriz de Operacionalizacion de Diseno"},
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+    sections = service.extract_sections(definition)
+    paths = [item["section_path"] for item in sections]
+
+    assert "II. MARCO TEORICO/2.2 Bases teoricas" in paths
+    assert all("Matriz de Consistencia" not in path for path in paths)
+    assert all("Matriz de Operacionalizacion" not in path for path in paths)
+
+
+def test_extract_sections_excludes_static_cronograma_resumido_table():
+    service = InstitutionalSectionService()
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "IV. METODOLOGIA DEL PROYECTO",
+                "contenido": [
+                    {"texto": "4.7 Aspectos eticos en Investigacion"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Cronograma Resumido de Actividades",
+                        "encabezados": ["Actividad", "Mes 1", "Mes 2"],
+                        "filas": [["Revision", "X", ""]],
+                    },
+                ],
+            },
+            {
+                "titulo": "V. CRONOGRAMA DE ACTIVIDADES",
+                "contenido": [
+                    {"texto": "Cronograma de ejecucion"},
+                ],
+            },
+        ]
+    }
+
+    sections = service.extract_sections(definition)
+    paths = [item["section_path"] for item in sections]
+
+    assert "IV. METODOLOGIA DEL PROYECTO" in paths
+    assert "V. CRONOGRAMA DE ACTIVIDADES" in paths
+    assert all(not path.startswith("V. CRONOGRAMA DE ACTIVIDADES/") for path in paths)
+    assert all("Cronograma Resumido de Actividades" not in path for path in paths)
+
+
+def test_extract_sections_sets_source_content_type_from_definition_nodes():
+    service = InstitutionalSectionService()
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "V. CRONOGRAMA DE ACTIVIDADES",
+                "contenido": [
+                    {"texto": "Cronograma de ejecucion"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Cronograma Detallado de Actividades",
+                        "encabezados": ["Actividad", "Mes 1"],
+                        "filas": [["Revision", "X"]],
+                    },
+                ],
+            },
+            {
+                "titulo": "VI. PRESUPUESTO",
+                "contenido": [
+                    {"texto": "Recursos y Presupuesto"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Presupuesto del Proyecto",
+                        "encabezados": ["Rubro", "Costo"],
+                        "filas": [["Materiales", "100"]],
+                    },
+                ],
+            },
+        ]
+    }
+
+    sections = service.extract_sections(definition)
+    by_path = {item["section_path"]: item for item in sections}
+
+    assert "V. CRONOGRAMA DE ACTIVIDADES" in by_path
+    assert "VI. PRESUPUESTO" in by_path
+    assert by_path["V. CRONOGRAMA DE ACTIVIDADES"]["source_content_type"] in {"texto", "tabla"}
+    assert by_path["VI. PRESUPUESTO"]["source_content_type"] in {"texto", "tabla"}
+    assert all(not key.startswith("V. CRONOGRAMA DE ACTIVIDADES/") for key in by_path)
+    assert all(not key.startswith("VI. PRESUPUESTO/") for key in by_path)

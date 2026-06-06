@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import unicodedata
 from typing import Any, Dict, List, Set
 
 from app.core.services.institutional_section_service import InstitutionalSectionService
@@ -66,6 +67,7 @@ class ProjectGenerationPlanner:
                         }
                     ],
                 })
+            merged_sections = self._apply_single_table_per_chapter_policy(merged_sections)
 
         child_only_generation = is_maestria_format(prompt_package or {})
         selected_keys = self._resolve_selected_keys(
@@ -79,6 +81,9 @@ class ProjectGenerationPlanner:
                 selected_keys.add(special_key)
         planned: List[Dict[str, Any]] = []
         for section in merged_sections:
+            section_path = self._section_path(section)
+            if self._is_excluded_static_table_path(section_path):
+                continue
             # SI SE PROPORCIONÓ UNA SELECCIÓN MANUAL, DEBEMOS RESPETARLA ESTRICTAMENTE.
             # No permitimos fallback a 'todo' si selected_sections no es None.
             if selected_sections is not None:
@@ -100,6 +105,8 @@ class ProjectGenerationPlanner:
                     "hints": str(section.get("source_hints") or "").strip(),
                     "optional": bool(section.get("optional")),
                     "default_selected": bool(section.get("default_selected")),
+                    "source_content_type": str(section.get("source_content_type") or "texto").strip().lower()
+                    or "texto",
                     "blocks": normalized_blocks,
                     "required_variables": self._section_required_variables(section),
                     "additional_context": self._build_additional_context(section),
@@ -121,7 +128,7 @@ class ProjectGenerationPlanner:
             if not isinstance(item, dict):
                 continue
             section_id = str(item.get("sectionId") or "").strip()
-            section_path = str(item.get("path") or "").strip()
+            section_path = self._canonicalize_schedule_budget_path(str(item.get("path") or "").strip())
             if not section_id and not section_path:
                 continue
             selected.append(
@@ -163,32 +170,69 @@ class ProjectGenerationPlanner:
         if not isinstance(sections, list):
             return []
         normalized: List[Dict[str, Any]] = []
+        by_path: Dict[str, Dict[str, Any]] = {}
         for item in sections:
             if not isinstance(item, dict):
                 continue
-            section_path = str(item.get("section_path") or item.get("path") or "").strip()
+            raw_section_path = str(item.get("section_path") or item.get("path") or "").strip()
+            section_path = ProjectGenerationPlanner._canonicalize_schedule_budget_path(raw_section_path)
             section_id = str(item.get("section_id") or item.get("sectionId") or section_path).strip()
             if not section_id and not section_path:
                 continue
+            if ProjectGenerationPlanner._is_misplaced_chapter_two_matrix_path(section_path):
+                continue
+            if ProjectGenerationPlanner._is_excluded_static_table_path(section_path):
+                continue
             parent_path = str(item.get("parent_section_path") or item.get("parentSectionPath") or "").strip()
             title = str(item.get("section_title") or item.get("title") or "").strip()
-            normalized.append(
-                {
-                    **dict(item),
-                    "section_id": section_id or section_path,
-                    "section_path": section_path or section_id,
-                    "section_title": title or (section_path.split("/")[-1].strip() if section_path else section_id),
-                    "parent_section_path": parent_path,
-                    "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
-                    "section_order": int(item.get("section_order") or item.get("sectionOrder") or 0),
-                    "source_hints": str(item.get("source_hints") or item.get("sourceHints") or "").strip(),
-                    "blocks": [
-                        dict(block)
-                        for block in (item.get("blocks") if isinstance(item.get("blocks"), list) else [])
-                        if isinstance(block, dict)
-                    ],
-                }
+            if section_path and raw_section_path and section_path != raw_section_path:
+                parent_path = ""
+                title = section_path.split("/")[-1].strip()
+
+            entry = {
+                **dict(item),
+                "section_id": section_id or section_path,
+                "section_path": section_path or section_id,
+                "section_title": title or (section_path.split("/")[-1].strip() if section_path else section_id),
+                "parent_section_path": parent_path,
+                "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                "section_order": int(item.get("section_order") or item.get("sectionOrder") or 0),
+                "source_hints": str(item.get("source_hints") or item.get("sourceHints") or "").strip(),
+                "source_content_type": str(
+                    item.get("source_content_type") or item.get("sourceContentType") or "texto"
+                )
+                .strip()
+                .lower()
+                or "texto",
+                "blocks": [
+                    dict(block)
+                    for block in (item.get("blocks") if isinstance(item.get("blocks"), list) else [])
+                    if isinstance(block, dict)
+                ],
+            }
+
+            dedupe_key = str(entry.get("section_path") or entry.get("section_id") or "").strip()
+            if not dedupe_key:
+                normalized.append(entry)
+                continue
+            existing = by_path.get(dedupe_key)
+            if existing is None:
+                by_path[dedupe_key] = entry
+                normalized.append(entry)
+                continue
+
+            hints = [str(existing.get("source_hints") or "").strip(), str(entry.get("source_hints") or "").strip()]
+            existing["source_hints"] = "\n".join(item for item in hints if item)
+            existing["section_order"] = min(
+                int(existing.get("section_order") or 0),
+                int(entry.get("section_order") or 0),
             )
+            if str(existing.get("source_content_type") or "") != "tabla" and str(entry.get("source_content_type") or "") == "tabla":
+                existing["source_content_type"] = "tabla"
+            if entry.get("blocks"):
+                merged_blocks = list(existing.get("blocks") or [])
+                merged_blocks.extend(entry["blocks"])
+                existing["blocks"] = merged_blocks
         return normalized
 
     @staticmethod
@@ -273,10 +317,16 @@ class ProjectGenerationPlanner:
                     key = item.strip()
                     if key:
                         raw_selected_keys.add(key)
+                        raw_selected_keys.add(self._canonicalize_schedule_budget_path(key))
                     continue
                 if not isinstance(item, dict):
                     continue
                 raw_selected_keys.update(self._section_keys(item))
+                section_path = str(
+                    item.get("section_path") or item.get("sectionPath") or item.get("path") or ""
+                ).strip()
+                if section_path:
+                    raw_selected_keys.add(self._canonicalize_schedule_budget_path(section_path))
             
             # Si se proporcionó una lista (Vacía o con datos), expandimos lo que haya 
             # y retornamos. NO permitimos caída al default_keys de abajo.
@@ -348,6 +398,17 @@ class ProjectGenerationPlanner:
             merged["default_selected"] = bool(
                 package_section.get("default_selected", merged.get("default_selected", True))
             )
+            merged["source_content_type"] = (
+                str(
+                    package_section.get("source_content_type")
+                    or package_section.get("sourceContentType")
+                    or merged.get("source_content_type")
+                    or "texto"
+                )
+                .strip()
+                .lower()
+                or "texto"
+            )
             source_hints = [
                 str(merged.get("source_hints") or "").strip(),
                 str(package_section.get("source_hints") or "").strip(),
@@ -360,8 +421,59 @@ class ProjectGenerationPlanner:
                 else []
             )
         else:
+            merged["source_content_type"] = str(merged.get("source_content_type") or "texto").strip().lower() or "texto"
             merged["blocks"] = []
         return merged
+
+    def _apply_single_table_per_chapter_policy(self, merged_sections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """For UNAC proyecto/maestria, keep only one table subsection in V and VI."""
+        if not merged_sections:
+            return merged_sections
+
+        by_parent: Dict[str, List[Dict[str, Any]]] = {}
+        for item in merged_sections:
+            parent_path = str(item.get("parent_section_path") or "").strip()
+            if parent_path:
+                by_parent.setdefault(parent_path, []).append(item)
+
+        chapter_predicates = (
+            self._is_schedule_chapter_path,
+            self._is_budget_chapter_path,
+        )
+        allowed_children_by_parent: Dict[str, str] = {}
+        for parent_path, children in by_parent.items():
+            if not any(predicate(parent_path) for predicate in chapter_predicates):
+                continue
+            table_children = [
+                child
+                for child in children
+                if str(child.get("source_content_type") or "").strip().lower() == "tabla"
+            ]
+            if not table_children:
+                continue
+            selected = sorted(
+                table_children,
+                key=lambda child: (
+                    int(child.get("section_order") or 0),
+                    self._section_path(child),
+                ),
+            )[0]
+            selected_path = self._section_path(selected)
+            if selected_path:
+                allowed_children_by_parent[parent_path] = selected_path
+
+        if not allowed_children_by_parent:
+            return merged_sections
+
+        filtered: List[Dict[str, Any]] = []
+        for item in merged_sections:
+            item_path = self._section_path(item)
+            parent_path = str(item.get("parent_section_path") or "").strip()
+            allowed_child = allowed_children_by_parent.get(parent_path)
+            if allowed_child and item_path and item_path != allowed_child:
+                continue
+            filtered.append(item)
+        return filtered
 
     def _collect_custom_package_sections(
         self,
@@ -416,7 +528,54 @@ class ProjectGenerationPlanner:
 
     @staticmethod
     def _normalize_text(value: Any) -> str:
-        return " ".join(str(value or "").lower().split())
+        lowered = str(value or "").strip().lower()
+        if not lowered:
+            return ""
+        ascii_only = unicodedata.normalize("NFKD", lowered).encode("ascii", "ignore").decode("ascii")
+        return " ".join(ascii_only.split())
+
+    @staticmethod
+    def _is_misplaced_chapter_two_matrix_path(path: str) -> bool:
+        normalized = ProjectGenerationPlanner._normalize_text(path)
+        if "bases te" not in normalized:
+            return False
+        return "matriz de consistencia" in normalized or "matriz de operacionalizaci" in normalized
+
+    @staticmethod
+    def _is_excluded_static_table_path(path: str) -> bool:
+        normalized = ProjectGenerationPlanner._normalize_text(path)
+        if not normalized:
+            return False
+        if "cronograma resumido de actividades" in normalized:
+            return True
+        if "matriz de consistencia de implementaci" in normalized:
+            return True
+        return "matriz de operacionalizaci" in normalized and (
+            "diseno" in normalized or "bases te" in normalized
+        )
+
+    @staticmethod
+    def _is_schedule_chapter_path(path: str) -> bool:
+        normalized = ProjectGenerationPlanner._normalize_text(path)
+        return "v. cronograma de actividades" in normalized
+
+    @staticmethod
+    def _is_budget_chapter_path(path: str) -> bool:
+        normalized = ProjectGenerationPlanner._normalize_text(path)
+        return "vi. presupuesto" in normalized
+
+    @classmethod
+    def _canonicalize_schedule_budget_path(cls, path: str) -> str:
+        raw = str(path or "").strip()
+        if not raw:
+            return ""
+        parts = [part.strip() for part in raw.split("/") if part.strip()]
+        if len(parts) <= 1:
+            return raw
+        chapter = parts[0]
+        if cls._is_schedule_chapter_path(chapter) or cls._is_budget_chapter_path(chapter):
+            return chapter
+        return raw
 
     def _section_blocks(self, section: Dict[str, Any]) -> List[Dict[str, Any]]:
         blocks = section.get("blocks")
@@ -521,7 +680,8 @@ class ProjectGenerationPlanner:
         section_path = self._section_path(section)
         section_title = self._section_title(section)
         level = max(1, int(section.get("section_level") or section.get("level") or 1))
-        section_order = max(0, int(section.get("section_order") or 0))
+        raw_section_order = section.get("section_order")
+        section_order = int(raw_section_order) if raw_section_order not in (None, "") else 0
         chapter_parent = section_path.split("/")[0].strip() if section_path else ""
 
         hierarchy_lines = [
@@ -530,7 +690,7 @@ class ProjectGenerationPlanner:
             f"- Path completo: {section_path or section_title or 'Sin path'}",
             f"- Nivel jerarquico: {level}",
         ]
-        if section_order:
+        if raw_section_order not in (None, ""):
             hierarchy_lines.append(f"- Orden institucional: {section_order}")
         if parent_path and parent_path != chapter_parent:
             hierarchy_lines.append(f"- Seccion padre inmediata: {parent_path.split('/')[-1].strip() or parent_path}")

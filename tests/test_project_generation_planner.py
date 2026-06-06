@@ -246,6 +246,164 @@ def test_plan_sections_expands_selected_parent_recursively_without_generating_gr
     ]
 
 
+def test_plan_sections_skips_misplaced_chapter_two_matrix_children():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "II. MARCO TEORICO",
+                "contenido": [
+                    {"texto": "2.1 Antecedentes"},
+                    {
+                        "titulo": "2.2 Bases teoricas",
+                        "contenido": [
+                            {"texto": "Matriz de Consistencia de Implementacion"},
+                            {"texto": "Matriz de Operacionalizacion de Diseno"},
+                        ],
+                    },
+                ],
+            }
+        ],
+    }
+
+    section_service = InstitutionalSectionService()
+    prompt_package = {
+        "format_id": "unac-proyecto-cuant",
+        "sections": [
+            {
+                "section_id": "bad-1",
+                "section_path": (
+                    "II. MARCO TEORICO/2.2 Bases teoricas/Matriz de Consistencia de Implementacion"
+                ),
+                "section_title": "Matriz de Consistencia de Implementacion",
+                "parent_section_path": "II. MARCO TEORICO/2.2 Bases teoricas",
+                "section_level": 3,
+                "default_selected": True,
+                "blocks": [{"header": "Matriz", "instructions": "No debe generarse."}],
+            }
+        ],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition=definition,
+        prompt_package=prompt_package,
+        selected_sections=[{"section_path": "II. MARCO TEORICO"}],
+    )
+
+    paths = [item["path"] for item in planned]
+    assert "II. MARCO TEORICO/2.1 Antecedentes" in paths
+    assert "II. MARCO TEORICO/2.2 Bases teoricas" in paths
+    assert all("Matriz de Consistencia" not in path for path in paths)
+    assert all("Matriz de Operacionalizacion" not in path for path in paths)
+
+
+def test_plan_sections_skips_static_table_sections_from_prompt_package():
+    section_service = InstitutionalSectionService()
+    prompt_package = {
+        "format_id": "unac-proyecto-cuant",
+        "sections": [
+            {
+                "section_id": "matrix-1",
+                "section_path": "II. MARCO TEORICO/2.2 Bases teoricas/Matriz de Consistencia de Implementacion",
+                "section_title": "Matriz de Consistencia de Implementacion",
+                "parent_section_path": "II. MARCO TEORICO/2.2 Bases teoricas",
+                "section_level": 3,
+                "default_selected": True,
+                "blocks": [{"header": "Matriz", "instructions": "No debe generarse."}],
+            },
+            {
+                "section_id": "matrix-2",
+                "section_path": "II. MARCO TEORICO/2.2 Bases teoricas/Matriz de Operacionalizacion de Diseno",
+                "section_title": "Matriz de Operacionalizacion de Diseno",
+                "parent_section_path": "II. MARCO TEORICO/2.2 Bases teoricas",
+                "section_level": 3,
+                "default_selected": True,
+                "blocks": [{"header": "Matriz", "instructions": "No debe generarse."}],
+            },
+            {
+                "section_id": "cron-resumen",
+                "section_path": "IV. METODOLOGIA DEL PROYECTO/Cronograma Resumido de Actividades",
+                "section_title": "Cronograma Resumido de Actividades",
+                "parent_section_path": "IV. METODOLOGIA DEL PROYECTO",
+                "section_level": 2,
+                "default_selected": True,
+                "blocks": [{"header": "Cronograma", "instructions": "No debe generarse."}],
+            },
+            {
+                "section_id": "cron-ejecucion",
+                "section_path": "V. CRONOGRAMA DE ACTIVIDADES/Cronograma de ejecucion",
+                "section_title": "Cronograma de ejecucion",
+                "parent_section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+                "section_level": 2,
+                "default_selected": True,
+                "blocks": [{"header": "Cronograma", "instructions": "Debe generarse."}],
+            },
+        ],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition={},
+        prompt_package=prompt_package,
+        selected_sections=None,
+    )
+
+    paths = [item["path"] for item in planned]
+    assert "V. CRONOGRAMA DE ACTIVIDADES" in paths
+    assert all(not path.startswith("V. CRONOGRAMA DE ACTIVIDADES/") for path in paths)
+    assert all("Cronograma Resumido de Actividades" not in path for path in paths)
+    assert all("Matriz de Consistencia de Implementacion" not in path for path in paths)
+    assert all("Matriz de Operacionalizacion de Diseno" not in path for path in paths)
+
+
+def test_plan_sections_skips_accented_static_tables_from_prompt_package():
+    section_service = InstitutionalSectionService()
+    prompt_package = {
+        "format_id": "unac-proyecto-cuant",
+        "sections": [
+            {
+                "section_id": "matrix-accent-1",
+                "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas/Matriz de Consistencia de Implementación",
+                "section_title": "Matriz de Consistencia de Implementación",
+                "parent_section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+                "section_level": 3,
+                "default_selected": True,
+                "blocks": [{"header": "Matriz", "instructions": "No debe generarse."}],
+            },
+            {
+                "section_id": "matrix-accent-2",
+                "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas/Matriz de Operacionalización de Diseño",
+                "section_title": "Matriz de Operacionalización de Diseño",
+                "parent_section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+                "section_level": 3,
+                "default_selected": True,
+                "blocks": [{"header": "Matriz", "instructions": "No debe generarse."}],
+            },
+            {
+                "section_id": "ok-1",
+                "section_path": "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variable",
+                "section_title": "3.2 Operacionalización de variable",
+                "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+                "section_level": 2,
+                "default_selected": True,
+                "blocks": [{"header": "Operacionalización", "instructions": "Debe generarse."}],
+            },
+        ],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition={},
+        prompt_package=prompt_package,
+        selected_sections=None,
+    )
+
+    paths = [item["path"] for item in planned]
+    assert "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variable" in paths
+    assert all("Matriz de Consistencia de Implementación" not in path for path in paths)
+    assert all("Matriz de Operacionalización de Diseño" not in path for path in paths)
+
+
 def test_plan_sections_keeps_parent_when_selected_parent_has_own_blocks():
     definition = {
         "cuerpo": [
@@ -512,5 +670,109 @@ def test_plan_sections_injects_titulo_info_basica_for_unac_proyecto():
         by_path["I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problematica"]["section_id"],
     ]
     assert planned[0]["path"] == "Título + Información Básica"
+
+
+def test_plan_sections_collapses_schedule_and_budget_to_parent_sections_for_unac_project():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "V. CRONOGRAMA DE ACTIVIDADES",
+                "contenido": [
+                    {"texto": "Cronograma de ejecucion"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Cronograma Detallado de Actividades",
+                        "encabezados": ["Actividad", "Mes 1"],
+                        "filas": [["Revision", "X"]],
+                    },
+                ],
+            },
+            {
+                "titulo": "VI. PRESUPUESTO",
+                "contenido": [
+                    {"texto": "Recursos y Presupuesto"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Presupuesto del Proyecto",
+                        "encabezados": ["Rubro", "Costo"],
+                        "filas": [["Materiales", "100"]],
+                    },
+                ],
+            },
+        ]
+    }
+
+    section_service = InstitutionalSectionService()
+    extracted = section_service.extract_sections(definition)
+    prompt_package = {
+        "format_id": "unac-proyecto-cuant",
+        "sections": [{**item, "blocks": []} for item in extracted],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition=definition,
+        prompt_package=prompt_package,
+        selected_sections=None,
+    )
+
+    planned_paths = [item["path"] for item in planned]
+    assert "V. CRONOGRAMA DE ACTIVIDADES" in planned_paths
+    assert "VI. PRESUPUESTO" in planned_paths
+    assert all(not path.startswith("V. CRONOGRAMA DE ACTIVIDADES/") for path in planned_paths)
+    assert all(not path.startswith("VI. PRESUPUESTO/") for path in planned_paths)
     assert planned[0]["title"] == "Título + Información Básica"
     assert planned[0]["blocks"][0]["header"] == "Validación de Título e Información Básica"
+
+def test_plan_sections_accepts_legacy_child_selection_and_maps_to_parent():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "V. CRONOGRAMA DE ACTIVIDADES",
+                "contenido": [
+                    {"texto": "Cronograma de ejecucion"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Cronograma Detallado de Actividades",
+                        "encabezados": ["Actividad", "Mes 1"],
+                        "filas": [["Revision", "X"]],
+                    },
+                ],
+            },
+            {
+                "titulo": "VI. PRESUPUESTO",
+                "contenido": [
+                    {"texto": "Recursos y Presupuesto"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Presupuesto del Proyecto",
+                        "encabezados": ["Rubro", "Costo"],
+                        "filas": [["Materiales", "100"]],
+                    },
+                ],
+            },
+        ]
+    }
+
+    section_service = InstitutionalSectionService()
+    extracted = section_service.extract_sections(definition)
+    prompt_package = {
+        "format_id": "unac-proyecto-cuant",
+        "sections": [{**item, "blocks": []} for item in extracted],
+    }
+
+    planner = ProjectGenerationPlanner(section_service=section_service)
+    planned = planner.plan_sections(
+        definition=definition,
+        prompt_package=prompt_package,
+        selected_sections=[
+            {"section_path": "V. CRONOGRAMA DE ACTIVIDADES/Cronograma de ejecucion"},
+            {"section_path": "VI. PRESUPUESTO/Presupuesto del Proyecto"},
+        ],
+    )
+
+    planned_paths = [item["path"] for item in planned]
+    assert "V. CRONOGRAMA DE ACTIVIDADES" in planned_paths
+    assert "VI. PRESUPUESTO" in planned_paths
+    assert all(not path.startswith("V. CRONOGRAMA DE ACTIVIDADES/") for path in planned_paths)
+    assert all(not path.startswith("VI. PRESUPUESTO/") for path in planned_paths)

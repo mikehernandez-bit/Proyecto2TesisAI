@@ -202,6 +202,32 @@ NON_GENERATIVE_SECTION_TITLES = frozenset(
     }
 )
 
+_EXCLUDED_STATIC_TABLE_TITLES = frozenset(
+    {
+        "cronograma resumido de actividades",
+        "matriz de consistencia de implementacion",
+        "matriz de operacionalizacion de diseno",
+    }
+)
+
+
+def _is_schedule_or_budget_chapter_title(title: str) -> bool:
+    normalized = _normalize_token(title)
+    if not normalized:
+        return False
+    if "cronograma de actividades" in normalized:
+        return True
+    return "presupuesto" in normalized
+
+
+def _is_schedule_or_budget_child_path(path_stack: List[str]) -> bool:
+    if len(path_stack) < 1:
+        return False
+    chapter_title = path_stack[0]
+    if not _is_schedule_or_budget_chapter_title(chapter_title):
+        return False
+    return len(path_stack) >= 1
+
 
 def _is_excluded_key(key: str) -> bool:
     """Check if a key should be excluded from output."""
@@ -245,6 +271,13 @@ def _is_non_generative_title(title: str) -> bool:
     if normalized.startswith("tabla ") or normalized.startswith("figura "):
         return True
     return False
+
+
+def _is_excluded_static_table_section(_path_stack: List[str], title: str) -> bool:
+    normalized_title = _normalize_token(title)
+    if not normalized_title:
+        return False
+    return normalized_title in _EXCLUDED_STATIC_TABLE_TITLES
 
 
 def _compile_section(
@@ -515,6 +548,14 @@ def _extract_section_title(section: Dict[str, Any]) -> str:
     return ""
 
 
+def _extract_source_content_type(section: Dict[str, Any]) -> str:
+    """Extract source content type from the definition node when available."""
+    raw_type = _normalize_text(section.get("tipo")).lower()
+    if raw_type in {"tabla", "figura", "formula", "parrafo", "texto"}:
+        return raw_type
+    return "texto"
+
+
 def _build_section_index_recursive(
     obj: Any,
     out: List[Dict[str, Any]],
@@ -544,7 +585,13 @@ def _build_section_index_recursive(
     next_level = level
 
     in_non_generative_branch = _is_non_generative_branch(ancestor_keys)
-    should_emit = bool(title) and not in_non_generative_branch and not _is_non_generative_title(title)
+    should_emit = (
+        bool(title)
+        and not in_non_generative_branch
+        and not _is_non_generative_title(title)
+        and not _is_excluded_static_table_section(path_stack, title)
+        and not _is_schedule_or_budget_child_path(path_stack)
+    )
 
     if should_emit:
         next_stack = path_stack + [title]
@@ -566,6 +613,7 @@ def _build_section_index_recursive(
                 "kind": "heading",
                 "title": title,
                 "hints": "\n".join(hints) if hints else "",
+                "source_content_type": _extract_source_content_type(obj),
             }
         )
         next_level = min(level + 1, 6)

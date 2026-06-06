@@ -41,6 +41,8 @@ copy .env.example .env
 GEMINI_API_KEY="tu-api-key-aqui"
 GEMINI_MODEL="gemini-2.0-flash"
 MISTRAL_API_KEY=""          # Opcional (fallback)
+MISTRAL_TIMEOUT_SECONDS="120"
+MISTRAL_RETRY_MAX="4"
 OPENROUTER_API_KEY=""       # Opcional (fallback)
 AI_PRIMARY_PROVIDER="gemini"
 AI_FALLBACK_ON_QUOTA="true"

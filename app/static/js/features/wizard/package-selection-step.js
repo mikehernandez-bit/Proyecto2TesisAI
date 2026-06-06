@@ -961,8 +961,7 @@ export function createPackageSelectionStep({
       expandedKeys = new Set();
       expansionHydrated = false;
       selectionHydrated = true;
-      store.setSelectedSections(initialSelection);
-      onSelectionChanged?.(initialSelection, new Set(selectedKeys));
+      commitSelection(promptPackage);
       render(promptPackage);
       return promptPackage;
     },

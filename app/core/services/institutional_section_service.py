@@ -20,6 +20,28 @@ _ANNEX_SECTION_MARKERS = {
     "anexos",
 }
 
+_EXCLUDED_STATIC_TABLE_TITLES = {
+    "cronograma resumido de actividades",
+    "matriz de consistencia de implementacion",
+    "matriz de operacionalizacion de diseno",
+}
+
+
+def _is_schedule_or_budget_chapter_name(label: str) -> bool:
+    normalized = _normalize_label(label)
+    if not normalized:
+        return False
+    if "cronograma de actividades" in normalized:
+        return True
+    return "presupuesto" in normalized
+
+
+def _is_schedule_or_budget_child_path(path: str) -> bool:
+    parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
+    if len(parts) <= 1:
+        return False
+    return _is_schedule_or_budget_chapter_name(parts[0])
+
 
 def _normalize_label(value: str) -> str:
     text = unicodedata.normalize("NFKD", str(value or ""))
@@ -28,6 +50,18 @@ def _normalize_label(value: str) -> str:
 
 class InstitutionalSectionService:
     """Derive reusable generative sections from a GicaTesis definition."""
+
+    @staticmethod
+    def _section_order_sort_value(section: Dict[str, Any]) -> int:
+        for key in ("section_order", "sectionOrder"):
+            value = section.get(key)
+            if value in (None, ""):
+                continue
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                continue
+        return 10**9
 
     def extract_sections(self, definition: Dict[str, Any] | None) -> List[Dict[str, Any]]:
         if not isinstance(definition, dict):
@@ -44,7 +78,13 @@ class InstitutionalSectionService:
                 continue
             if self._is_non_generative_annex_child(section_path):
                 continue
+            if self._is_misplaced_chapter_two_matrix(section_path):
+                continue
+            if _is_schedule_or_budget_child_path(section_path):
+                continue
             section_title = str(item.get("title") or section_path.split("/")[-1]).strip()
+            if self._is_excluded_static_table(section_path, section_title):
+                continue
             parent_section_path = self._parent_path(section_path)
             optional = self._is_optional_section(section_path, section_title)
             sections.append(
@@ -58,6 +98,11 @@ class InstitutionalSectionService:
                     "optional": optional,
                     "default_selected": not optional,
                     "source_hints": str(item.get("hints") or "").strip(),
+                    "source_content_type": str(
+                        item.get("source_content_type")
+                        or item.get("sourceContentType")
+                        or "texto"
+                    ).strip().lower(),
                     "kind": str(item.get("kind") or "").strip(),
                     "blocks": [],
                 }
@@ -91,14 +136,14 @@ class InstitutionalSectionService:
             if isinstance(children, list):
                 children.sort(
                     key=lambda item: (
-                        int(item.get("section_order") or 10**9),
+                        self._section_order_sort_value(item),
                         int(item.get("section_level") or 0),
                         str(item.get("section_path") or ""),
                     )
                 )
         roots.sort(
             key=lambda item: (
-                int(item.get("section_order") or 10**9),
+                self._section_order_sort_value(item),
                 int(item.get("section_level") or 0),
                 str(item.get("section_path") or ""),
             )
@@ -131,3 +176,13 @@ class InstitutionalSectionService:
             return False
         normalized_ancestors = [_normalize_label(part) for part in parts[:-1]]
         return any(marker in ancestor for ancestor in normalized_ancestors for marker in _ANNEX_SECTION_MARKERS)
+
+    def _is_misplaced_chapter_two_matrix(self, section_path: str) -> bool:
+        normalized = _normalize_label(section_path)
+        if "bases teo" not in normalized and "bases te" not in normalized:
+            return False
+        return "matriz de consistencia" in normalized or "matriz de operacionalizaci" in normalized
+
+    def _is_excluded_static_table(self, section_path: str, section_title: str) -> bool:
+        normalized_title = _normalize_label(section_title)
+        return normalized_title in _EXCLUDED_STATIC_TABLE_TITLES

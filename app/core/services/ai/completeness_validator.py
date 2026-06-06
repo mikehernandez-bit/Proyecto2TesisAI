@@ -157,7 +157,7 @@ def detect_placeholders(
                 if not isinstance(item, dict):
                     continue
                 block_type = str(item.get("tipo") or "").strip().lower()
-                if block_type in {"tabla", "figura"}:
+                if block_type in {"tabla", "figura", "formula"}:
                     has_structured_blocks = True
                     continue
                 if block_type == "parrafo":

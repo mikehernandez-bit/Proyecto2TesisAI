@@ -94,7 +94,7 @@ def _normalize_matriz_consistencia(raw: Any, root: dict[str, Any]) -> dict[str, 
     variable_dependiente = _as_dict(variables.get("dependiente"))
     metodologia = _as_dict(data.get("metodologia"))
 
-    return {
+    normalized = {
         "problema_general": _pick_text(data.get("problema_general"), problemas.get("general")),
         "objetivo_general": _pick_text(data.get("objetivo_general"), objetivos.get("general")),
         "hipotesis_general": _pick_text(data.get("hipotesis_general"), hipotesis.get("general")),
@@ -165,6 +165,45 @@ def _normalize_matriz_consistencia(raw: Any, root: dict[str, Any]) -> dict[str, 
             metodologia.get("procesamiento_datos"),
         ),
     }
+    normalized.update(
+        {
+            "problemas": {
+                "general": normalized["problema_general"],
+                "especificos": normalized["problemas_especificos"],
+            },
+            "objetivos": {
+                "general": normalized["objetivo_general"],
+                "especificos": normalized["objetivos_especificos"],
+            },
+            "hipotesis": {
+                "general": normalized["hipotesis_general"],
+                "especificos": normalized["hipotesis_especificas"],
+            },
+            "variables": {
+                "independiente": {
+                    "nombre": normalized["variable_independiente"],
+                    "dimensiones": normalized["dimensiones_variable_independiente"],
+                },
+                "dependiente": {
+                    "nombre": normalized["variable_dependiente"],
+                    "dimensiones": normalized["dimensiones_variable_dependiente"],
+                },
+            },
+            "metodologia": {
+                "tipo": normalized["tipo_investigacion"],
+                "nivel": normalized["nivel_investigacion"],
+                "enfoque": normalized["enfoque_investigacion"],
+                "diseno": normalized["diseno"],
+                "diseño": normalized["diseno"],
+                "poblacion": normalized["poblacion"],
+                "muestra": normalized["muestra"],
+                "tecnicas": normalized["tecnicas"],
+                "instrumentos": normalized["instrumentos"],
+                "procesamiento_datos": normalized["procesamiento_datos"],
+            },
+        }
+    )
+    return normalized
 
 
 def _normalize_operationalization_row(raw: Any) -> dict[str, str]:

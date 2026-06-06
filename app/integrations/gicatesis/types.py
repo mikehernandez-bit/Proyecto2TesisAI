@@ -95,13 +95,24 @@ class TableBlock(BaseModel):
     titulo: Optional[str] = None
     nota_pie: Optional[str] = None
     orientacion: Optional[Literal["portrait", "landscape"]] = None
+    subtipo: Optional[str] = None
+    anio: Optional[str] = None
+    meses: Optional[list[str]] = None
+    titulo_proyecto: Optional[str] = None
+    simbolo_marca: Optional[str] = None
+    filas_fase: Optional[list[int]] = None
+    filas_categoria: Optional[list[int]] = None
+    fila_total: Optional[int] = None
+    celdas_combinadas: Optional[list[dict[str, Any]]] = None
+    celdas_fusionadas: Optional[list[dict[str, Any]]] = None
+    estilos: Optional[dict[str, Any]] = None
+    estilo: Optional[dict[str, Any]] = None
 
     @field_validator("encabezados")
     @classmethod
     def _validate_headers(cls, value: list[str]) -> list[str]:
         headers = [str(item or "").strip() for item in value]
-        headers = [item for item in headers if item]
-        if not headers:
+        if not any(item for item in headers):
             raise ValueError("Table must define at least one non-empty header")
         return headers
 
@@ -142,6 +153,8 @@ class FigureBlock(BaseModel):
     id: Optional[str] = None
     titulo: Optional[str] = None
     fuente: Optional[str] = None
+    nota: Optional[str] = None
+    nota_color: Optional[str] = None
 
     @field_validator("caption")
     @classmethod
@@ -160,8 +173,29 @@ class FigureBlock(BaseModel):
         return text
 
 
+class FormulaBlock(BaseModel):
+    tipo: Literal["formula"]
+    id: Optional[str] = None
+    texto: Optional[str] = None
+    latex: Optional[str] = None
+    numero: Optional[str] = None
+    alineacion: Literal["center", "left", "right"] = "center"
+
+    @model_validator(mode="after")
+    def _validate_formula_text(self) -> "FormulaBlock":
+        text = str(self.texto or "").strip()
+        latex = str(self.latex or "").strip()
+        if not text and not latex:
+            raise ValueError("Formula must define texto or latex")
+        self.texto = text or None
+        self.latex = latex or None
+        if self.numero is not None:
+            self.numero = str(self.numero or "").strip() or None
+        return self
+
+
 RenderAIBlock = Annotated[
-    Union[ParagraphBlock, TableBlock, FigureBlock],
+    Union[ParagraphBlock, TableBlock, FigureBlock, FormulaBlock],
     Field(discriminator="tipo"),
 ]
 RenderAIContent = Union[str, list[RenderAIBlock]]
@@ -188,6 +222,7 @@ class RenderRequest(BaseModel):
     values: dict[str, Any] = Field(default_factory=dict)
     mode: str = Field(default="simulation")
     aiResult: RenderAIResult = Field(default_factory=RenderAIResult)
+    selectedSections: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class RenderPayloadValidationError(Exception):

@@ -112,7 +112,7 @@ def test_build_section_editorial_context_for_problem_detail():
         section_path="I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
         values=_sample_values(),
     )
-    assert "Rango de palabras aceptable: 1800 a 2400 palabras." in context
+    assert "Rango de palabras aceptable: 1300 a 1450 palabras narrativas" in context
     assert "contexto operativo macro de la mineria a cielo abierto" in context
     assert "Parrafos 5 y 6: diagnostico local" in context
     assert "No inventes porcentajes, costos, disponibilidad, MTBF, MTTR" in context
@@ -123,8 +123,8 @@ def test_build_section_editorial_context_for_problem_detail():
     assert "Horizonte temporal:" in context
     assert "Problemas especificos:" in context
     assert "Figura 1.1 Diagrama de Pareto" in context
-    assert "tabla base con columnas sistema/modo de falla, frecuencia" in context
-    assert "el eje Y derecho con porcentaje acumulado" in context
+    assert "Patron obligatorio: parrafo largo de analisis -> Figura 1.1" in context
+    assert "Debe parecerse al parrafo guia: disponibilidad inherente" in context
     assert "Figura 1.4 Matriz de Priorizacion" in context
     assert "Escala: 1 (Desfavorable) a 10 (Favorable)." in context
 
@@ -162,5 +162,5 @@ def test_build_section_editorial_context_for_delimitaciones_aliases():
         values=_sample_values(),
     )
 
-    assert "1.5.1 Delimitacion teorica." in canonical
-    assert "1.5.1 Delimitacion teorica." in legacy
+    assert "linea exacta '1.5.1 Delimitacion teorica'" in canonical
+    assert "linea exacta '1.5.1 Delimitacion teorica'" in legacy

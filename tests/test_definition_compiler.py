@@ -180,3 +180,53 @@ def test_introduccion_and_all_chapters_are_generative():
     ids = [item["sectionId"] for item in section_index]
     assert ids[0] == "sec-0001"
     assert all(sid.startswith("sec-") for sid in ids)
+
+
+def test_section_index_excludes_static_tables_for_cronograma_and_bases_teoricas():
+    definition = {
+        "cuerpo": [
+            {
+                "titulo": "II. MARCO TEORICO",
+                "contenido": [
+                    {"texto": "2.2 Bases teoricas"},
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Matriz de Consistencia de Implementacion",
+                        "encabezados": ["Col1", "Col2"],
+                        "filas": [["a", "b"]],
+                    },
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Matriz de Operacionalizacion de Diseno",
+                        "encabezados": ["Col1", "Col2"],
+                        "filas": [["a", "b"]],
+                    },
+                ],
+            },
+            {
+                "titulo": "IV. METODOLOGIA DEL PROYECTO",
+                "contenido": [
+                    {
+                        "tipo": "tabla",
+                        "titulo": "Cronograma Resumido de Actividades",
+                        "encabezados": ["Actividad", "Mes 1", "Mes 2"],
+                        "filas": [["Revision", "X", ""]],
+                    }
+                ],
+            },
+            {
+                "titulo": "V. CRONOGRAMA DE ACTIVIDADES",
+                "contenido": [{"texto": "Cronograma de ejecucion"}],
+            },
+        ]
+    }
+
+    section_index = compile_definition_to_section_index(definition)
+    paths = [item["path"] for item in section_index]
+
+    assert "II. MARCO TEORICO/2.2 Bases teoricas" in paths
+    assert "V. CRONOGRAMA DE ACTIVIDADES" in paths
+    assert all(not path.startswith("V. CRONOGRAMA DE ACTIVIDADES/") for path in paths)
+    assert all("Matriz de Consistencia de Implementacion" not in path for path in paths)
+    assert all("Matriz de Operacionalizacion de Diseno" not in path for path in paths)
+    assert all("Cronograma Resumido de Actividades" not in path for path in paths)
