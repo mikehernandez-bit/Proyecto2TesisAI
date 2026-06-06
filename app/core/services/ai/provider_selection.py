@@ -71,7 +71,6 @@ class ProviderSelectionService:
 
     @staticmethod
     def _normalize(payload: Dict[str, Any]) -> Dict[str, str]:
-        base = _default_selection()
         provider = "mistral"
         fallback_provider = ""
 

@@ -1,4 +1,5 @@
 """Tests for app.core.services.ai.ai_service provider routing and fallback."""
+# ruff: noqa: E501
 
 import json
 from types import SimpleNamespace
@@ -8,7 +9,6 @@ import pytest
 
 from app.core.services.ai.ai_service import AIService
 from app.core.services.ai.errors import ProviderAuthError, QuotaExceededError
-from app.core.services.ai.output_validator import ValidationError
 
 
 def _settings(
@@ -360,14 +360,80 @@ def _schedule_blueprint_raw_response() -> str:
                 ],
             }
             for index, title, activities in [
-                (1, "Planificacion y delimitacion tecnica del estudio", [("Delimitar alcance y unidad de analisis", 2, 2), ("Definir protocolo de datos", 2, 3), ("Alinear criterios metodologicos", 3, 3)]),
-                (2, "Levantamiento y organizacion de datos operacionales", [("Recopilar historiales de fallas y paradas", 2, 3), ("Caracterizar condiciones operativas", 3, 4), ("Homologar taxonomia de eventos", 4, 4)]),
-                (3, "Depuracion y construccion de base analitica", [("Consolidar base estructurada", 4, 5), ("Depurar duplicados y faltantes", 5, 6), ("Validar consistencia interna", 6, 6)]),
-                (4, "Linea base de confiabilidad y mantenibilidad", [("Calcular indicadores base", 6, 6), ("Segmentar resultados por sistema", 6, 7), ("Emitir diagnostico inicial", 7, 7)]),
-                (5, "Criticidad y priorizacion de modos de falla", [("Ejecutar analisis de criticidad", 7, 7), ("Desarrollar AMEF de modos de falla", 7, 8), ("Priorizar componentes criticos", 8, 8)]),
-                (6, "Diseno del plan RCM e implementacion piloto", [("Disenar tareas RCM", 7, 8), ("Definir frecuencias y recursos", 8, 9), ("Ajustar parametros del piloto", 9, 10), ("Ejecutar piloto de implementacion", 7, 10)]),
-                (7, "Validacion tecnica y contrastacion de resultados", [("Validar tecnicamente el plan", 8, 9), ("Contrastar resultados pre y post", 9, 10), ("Analizar sensibilidad de tiempos y tasas", 10, 11)]),
-                (8, "Cierre documental y preparacion de sustentacion", [("Redactar resultados y conclusiones", 10, 10), ("Levantar observaciones del asesor", 10, 11), ("Ajustar anexos y formato final", 11, 12), ("Preparar sustentacion final", 12, 12)]),
+                (
+                    1,
+                    "Planificacion y delimitacion tecnica del estudio",
+                    [
+                        ("Delimitar alcance y unidad de analisis", 2, 2),
+                        ("Definir protocolo de datos", 2, 3),
+                        ("Alinear criterios metodologicos", 3, 3),
+                    ],
+                ),
+                (
+                    2,
+                    "Levantamiento y organizacion de datos operacionales",
+                    [
+                        ("Recopilar historiales de fallas y paradas", 2, 3),
+                        ("Caracterizar condiciones operativas", 3, 4),
+                        ("Homologar taxonomia de eventos", 4, 4),
+                    ],
+                ),
+                (
+                    3,
+                    "Depuracion y construccion de base analitica",
+                    [
+                        ("Consolidar base estructurada", 4, 5),
+                        ("Depurar duplicados y faltantes", 5, 6),
+                        ("Validar consistencia interna", 6, 6),
+                    ],
+                ),
+                (
+                    4,
+                    "Linea base de confiabilidad y mantenibilidad",
+                    [
+                        ("Calcular indicadores base", 6, 6),
+                        ("Segmentar resultados por sistema", 6, 7),
+                        ("Emitir diagnostico inicial", 7, 7),
+                    ],
+                ),
+                (
+                    5,
+                    "Criticidad y priorizacion de modos de falla",
+                    [
+                        ("Ejecutar analisis de criticidad", 7, 7),
+                        ("Desarrollar AMEF de modos de falla", 7, 8),
+                        ("Priorizar componentes criticos", 8, 8),
+                    ],
+                ),
+                (
+                    6,
+                    "Diseno del plan RCM e implementacion piloto",
+                    [
+                        ("Disenar tareas RCM", 7, 8),
+                        ("Definir frecuencias y recursos", 8, 9),
+                        ("Ajustar parametros del piloto", 9, 10),
+                        ("Ejecutar piloto de implementacion", 7, 10),
+                    ],
+                ),
+                (
+                    7,
+                    "Validacion tecnica y contrastacion de resultados",
+                    [
+                        ("Validar tecnicamente el plan", 8, 9),
+                        ("Contrastar resultados pre y post", 9, 10),
+                        ("Analizar sensibilidad de tiempos y tasas", 10, 11),
+                    ],
+                ),
+                (
+                    8,
+                    "Cierre documental y preparacion de sustentacion",
+                    [
+                        ("Redactar resultados y conclusiones", 10, 10),
+                        ("Levantar observaciones del asesor", 10, 11),
+                        ("Ajustar anexos y formato final", 11, 12),
+                        ("Preparar sustentacion final", 12, 12),
+                    ],
+                ),
             ]
         ],
     }
@@ -409,13 +475,17 @@ def _failed_sec_0025_schedule_raw_response() -> str:
         ["5.3. Ejecucion de mantenimientos programados", "", "", "", "", "", "", "â—", "â—"] + [""] * 5,
         [phase_titles[5]] + [""] * 13,
         ["6.1. Recoleccion de datos de disponibilidad", "", "", "", "", "", "", "", "â—", "â—", "â—", "â—"] + [""] * 2,
-        ["6.2. Analisis de indicadores de confiabilidad", "", "", "", "", "", "", "", "â—", "â—", "â—", "â—"] + [""] * 2,
-        ["6.3. Comparacion con estandares de la industria", "", "", "", "", "", "", "", "â—", "â—", "â—", "â—"] + [""] * 2,
-        ["6.4. Evaluacion de impacto economico-operativo", "", "", "", "", "", "", "", "â—", "â—", "â—", "â—"] + [""] * 2,
+        ["6.2. Analisis de indicadores de confiabilidad", "", "", "", "", "", "", "", "â—", "â—", "â—", "â—"]
+        + [""] * 2,
+        ["6.3. Comparacion con estandares de la industria", "", "", "", "", "", "", "", "â—", "â—", "â—", "â—"]
+        + [""] * 2,
+        ["6.4. Evaluacion de impacto economico-operativo", "", "", "", "", "", "", "", "â—", "â—", "â—", "â—"]
+        + [""] * 2,
         [phase_titles[6]] + [""] * 13,
         ["7.1. Procesamiento estadistico de datos", "", "", "", "", "", "", "", "", "â—", "â—", "â—"] + [""] * 3,
         ["7.2. Elaboracion de informe tecnico", "", "", "", "", "", "", "", "", "â—", "â—", "â—"] + [""] * 3,
-        ["7.3. Redaccion de conclusiones y recomendaciones", "", "", "", "", "", "", "", "", "â—", "â—", "â—"] + [""] * 3,
+        ["7.3. Redaccion de conclusiones y recomendaciones", "", "", "", "", "", "", "", "", "â—", "â—", "â—"]
+        + [""] * 3,
         [phase_titles[7]] + [""] * 13,
         ["8.1. Preparacion de material de defensa", "", "", "", "", "", "", "", "", "", "", "â—", "â—", "â—"],
         ["8.2. Elaboracion de informe final", "", "", "", "", "", "", "", "", "", "", "â—", "â—", "â—"],
@@ -428,7 +498,21 @@ def _failed_sec_0025_schedule_raw_response() -> str:
         "titulo": "Tabla 5.1 Cronograma de actividades",
         "orientacion": "landscape",
         "subtipo": "cronograma_actividades",
-        "encabezados": ["FASES Y ACTIVIDADES", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"],
+        "encabezados": [
+            "FASES Y ACTIVIDADES",
+            "Ene",
+            "Feb",
+            "Mar",
+            "Abr",
+            "May",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Set",
+            "Oct",
+            "Nov",
+            "Dic",
+        ],
         "filas": rows,
         "anio": "2025",
         "meses": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"],
@@ -520,12 +604,18 @@ def _canonical_schedule_raw_response() -> str:
         "meses": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"],
         "filas_fase": [1, 5, 9, 13, 17, 21, 26, 30],
         "celdas_combinadas": [{"fila": -1, "col_inicio": 1, "col_fin": 12, "texto": "2025"}]
-        + [{"fila": row, "col_inicio": 0, "col_fin": 12, "texto": title} for row, title in zip([1, 5, 9, 13, 17, 21, 26, 30], phase_titles)],
+        + [
+            {"fila": row, "col_inicio": 0, "col_fin": 12, "texto": title}
+            for row, title in zip([1, 5, 9, 13, 17, 21, 26, 30], phase_titles)
+        ],
         "celdas_fusionadas": [
             {"fila": -1, "col": 0, "filas_span": 2, "cols_span": 1, "texto": "FASES Y ACTIVIDADES"},
             {"fila": -1, "col": 1, "filas_span": 1, "cols_span": 12, "texto": "2025"},
         ]
-        + [{"fila": row, "col": 0, "filas_span": 1, "cols_span": 13, "texto": title} for row, title in zip([1, 5, 9, 13, 17, 21, 26, 30], phase_titles)],
+        + [
+            {"fila": row, "col": 0, "filas_span": 1, "cols_span": 13, "texto": title}
+            for row, title in zip([1, 5, 9, 13, 17, 21, 26, 30], phase_titles)
+        ],
     }
     return f"<<<TABLE_JSON\n{json.dumps(payload, ensure_ascii=False)}\nTABLE_JSON>>>"
 

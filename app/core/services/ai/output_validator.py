@@ -12,17 +12,17 @@ import re
 import unicodedata
 from typing import Any, cast
 
-from app.core.services.ai.schedule_table_builder import (
-    extract_schedule_plan_from_content,
-    salvage_schedule_plan_from_legacy_table,
-    validate_schedule_plan,
-)
 from app.core.services.ai.budget_table_builder import (
     extract_budget_plan_from_content,
     salvage_budget_plan_from_legacy_table,
     validate_budget_plan,
 )
 from app.core.services.ai.completeness_validator import strip_placeholder_text
+from app.core.services.ai.schedule_table_builder import (
+    extract_schedule_plan_from_content,
+    salvage_schedule_plan_from_legacy_table,
+    validate_schedule_plan,
+)
 from app.core.services.content_sanitizer import sanitize_text_block
 from app.core.services.toc_detector import is_toc_path as _shared_is_toc_path
 
@@ -796,8 +796,7 @@ class OutputValidator:
 
         normalized: dict[str, Any] = {
             "tipo": "formula",
-            "alineacion": str(item.get("alineacion") or item.get("alignment") or "center").strip().lower()
-            or "center",
+            "alineacion": str(item.get("alineacion") or item.get("alignment") or "center").strip().lower() or "center",
         }
         if text:
             normalized["texto"] = text
@@ -973,9 +972,7 @@ class OutputValidator:
         if not isinstance(content, list):
             return []
         return [
-            item
-            for item in content
-            if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "figura"
+            item for item in content if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "figura"
         ]
 
     @classmethod
@@ -983,9 +980,7 @@ class OutputValidator:
         if not isinstance(content, list):
             return []
         return [
-            item
-            for item in content
-            if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "tabla"
+            item for item in content if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "tabla"
         ]
 
     @classmethod
@@ -1235,7 +1230,11 @@ class OutputValidator:
                     return []
             for table in table_blocks:
                 table_errors = set(cls._schedule_table_errors(table))
-                if table_errors and table_errors.issubset(cls._SCHEDULE_LEGACY_RECOVERABLE_ERRORS) and salvage_schedule_plan_from_legacy_table(table):
+                if (
+                    table_errors
+                    and table_errors.issubset(cls._SCHEDULE_LEGACY_RECOVERABLE_ERRORS)
+                    and salvage_schedule_plan_from_legacy_table(table)
+                ):
                     return []
             if not table_blocks:
                 return ["sin_table_json_canonico"]
@@ -1316,7 +1315,10 @@ class OutputValidator:
         raise ValidationError(
             f"Seccion {section_id} requiere una tabla estructurada valida de {section_kind}; "
             + "; ".join(error_messages)
-            + ". Regenera la seccion en formato TABLE_JSON canonico con subtipo, encabezados, filas y metadatos institucionales completos."
+            + (
+                ". Regenera la seccion en formato TABLE_JSON canonico con subtipo, "
+                "encabezados, filas y metadatos institucionales completos."
+            )
         )
 
     @classmethod
@@ -1339,13 +1341,11 @@ class OutputValidator:
         word_count = cls._word_count(narrative)
         if word_count < cls.MIN_REALITY_PROBLEM_NARRATIVE_WORDS:
             errors.append(
-                f"1.1 tiene {word_count} palabras narrativas; minimo "
-                f"{cls.MIN_REALITY_PROBLEM_NARRATIVE_WORDS}"
+                f"1.1 tiene {word_count} palabras narrativas; minimo {cls.MIN_REALITY_PROBLEM_NARRATIVE_WORDS}"
             )
         if word_count > cls.MAX_REALITY_PROBLEM_NARRATIVE_WORDS:
             errors.append(
-                f"1.1 tiene {word_count} palabras narrativas; maximo "
-                f"{cls.MAX_REALITY_PROBLEM_NARRATIVE_WORDS}"
+                f"1.1 tiene {word_count} palabras narrativas; maximo {cls.MAX_REALITY_PROBLEM_NARRATIVE_WORDS}"
             )
 
         missing = [label for label, pattern in cls._REALITY_PROBLEM_REQUIRED_PATTERNS if not pattern.search(narrative)]
@@ -1355,9 +1355,7 @@ class OutputValidator:
         if missing:
             errors.append("1.1 omite contenido obligatorio: " + ", ".join(missing))
 
-        generic_hits = [
-            phrase for phrase in cls._REALITY_PROBLEM_GENERIC_PHRASES if phrase in normalized_narrative
-        ]
+        generic_hits = [phrase for phrase in cls._REALITY_PROBLEM_GENERIC_PHRASES if phrase in normalized_narrative]
         if generic_hits:
             errors.append("1.1 conserva frases genericas sin sustento: " + ", ".join(generic_hits))
 
@@ -1365,9 +1363,7 @@ class OutputValidator:
             errors.append("1.1 debe llegar como bloques estructurados para controlar figuras e interpretaciones")
         else:
             figures = cls._figure_blocks(content)
-            figure_titles = [
-                cls._normalize_token(figure.get("titulo") or figure.get("caption")) for figure in figures
-            ]
+            figure_titles = [cls._normalize_token(figure.get("titulo") or figure.get("caption")) for figure in figures]
             expected_titles = [cls._normalize_token(title) for title in cls._REALITY_PROBLEM_REQUIRED_FIGURE_TITLES]
             if figure_titles != expected_titles:
                 errors.append(
@@ -1471,8 +1467,7 @@ class OutputValidator:
             previous_words = cls._word_count(str(content[previous_index].get("texto") or ""))
             if previous_words < cls.MIN_THEORETICAL_FIGURE_PREVIOUS_WORDS:
                 errors.append(
-                    "2.2 contiene una figura precedida por texto demasiado breve "
-                    f"({previous_words} palabras)"
+                    f"2.2 contiene una figura precedida por texto demasiado breve ({previous_words} palabras)"
                 )
 
         for position in formula_positions:
@@ -1483,8 +1478,7 @@ class OutputValidator:
             previous_words = cls._word_count(str(content[previous_index].get("texto") or ""))
             if previous_words < cls.MIN_THEORETICAL_FORMULA_PREVIOUS_WORDS:
                 errors.append(
-                    "2.2 contiene una formula precedida por texto demasiado breve "
-                    f"({previous_words} palabras)"
+                    f"2.2 contiene una formula precedida por texto demasiado breve ({previous_words} palabras)"
                 )
             if cls._next_paragraph_index(content, position) < 0:
                 errors.append("2.2 contiene una formula sin interpretacion posterior inmediata")
@@ -1502,13 +1496,10 @@ class OutputValidator:
     ) -> None:
         visible = cls._visible_content_text(content)
         normalized_visible = cls._normalize_token(visible)
-        missing = [
-            heading for heading in required_headings if cls._normalize_token(heading) not in normalized_visible
-        ]
+        missing = [heading for heading in required_headings if cls._normalize_token(heading) not in normalized_visible]
         if missing:
             raise ValidationError(
-                f"Calidad insuficiente en seccion {section_id}: faltan subtitulos obligatorios: "
-                + ", ".join(missing)
+                f"Calidad insuficiente en seccion {section_id}: faltan subtitulos obligatorios: " + ", ".join(missing)
             )
 
     @classmethod

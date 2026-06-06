@@ -486,9 +486,7 @@ def _refresh_schedule_prompt_snapshot_block(
             dict(section)
             for section in fresh_sections
             if isinstance(section, dict)
-            and _canonicalize_schedule_budget_section_path(
-                section.get("section_path") or section.get("path") or ""
-            )
+            and _canonicalize_schedule_budget_section_path(section.get("section_path") or section.get("path") or "")
             == "V. CRONOGRAMA DE ACTIVIDADES"
         ),
         None,
@@ -2033,11 +2031,7 @@ async def sim_download_docx(projectId: str, runId: Optional[str] = None):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -2141,11 +2135,7 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -3350,8 +3340,7 @@ async def trigger_generation(
                         "parent_section_path": str(
                             (
                                 planned_sections_lookup.get(
-                                    str(item.get("sectionId") or "").strip()
-                                    or str(item.get("path") or "").strip()
+                                    str(item.get("sectionId") or "").strip() or str(item.get("path") or "").strip()
                                 )
                                 or {}
                             ).get("parent_section_path")
@@ -3360,8 +3349,7 @@ async def trigger_generation(
                         "section_level": _coerce_int(
                             (
                                 planned_sections_lookup.get(
-                                    str(item.get("sectionId") or "").strip()
-                                    or str(item.get("path") or "").strip()
+                                    str(item.get("sectionId") or "").strip() or str(item.get("path") or "").strip()
                                 )
                                 or {}
                             ).get("section_level"),
@@ -3371,8 +3359,7 @@ async def trigger_generation(
                         "section_order": _coerce_int(
                             (
                                 planned_sections_lookup.get(
-                                    str(item.get("sectionId") or "").strip()
-                                    or str(item.get("path") or "").strip()
+                                    str(item.get("sectionId") or "").strip() or str(item.get("path") or "").strip()
                                 )
                                 or {}
                             ).get("section_order"),
@@ -3693,11 +3680,7 @@ async def render_docx(projectId: str = Query(..., description="Project ID")):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Proxy to GicaTesis render endpoint
@@ -3807,11 +3790,7 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Build structured definition with AI content injected into the

@@ -394,8 +394,8 @@ def _is_chapter_two_bases_path(path: str) -> bool:
 def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str, Any]]:
     notes = (
         (
-            "Construye un diagrama de Pareto titulado \"Diagrama de Pareto de modos de falla en flota "
-            "CAT 24M\". Usa los registros reales de fallas del periodo de línea base disponible en el CMMS "
+            'Construye un diagrama de Pareto titulado "Diagrama de Pareto de modos de falla en flota '
+            'CAT 24M". Usa los registros reales de fallas del periodo de línea base disponible en el CMMS '
             "o historial de mantenimiento. Coloca una tabla base con estas columnas obligatorias: sistema o "
             "modo de falla, frecuencia de fallas, porcentaje individual, porcentaje acumulado y costo de "
             "reparación si el dato existe. Agrupa nombres equivalentes antes de graficar; por ejemplo, no "
@@ -410,9 +410,9 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
             "que deben priorizarse en el plan RCM."
         ),
         (
-            "Construye un diagrama de Ishikawa titulado \"Análisis de Causa-Efecto de Baja Disponibilidad "
-            "(Ishikawa)\". Coloca en la cabeza del diagrama el efecto exacto: \"Baja disponibilidad inherente "
-            "de la flota CAT 24M\". Dibuja una espina central horizontal y seis ramas principales con el "
+            'Construye un diagrama de Ishikawa titulado "Análisis de Causa-Efecto de Baja Disponibilidad '
+            '(Ishikawa)". Coloca en la cabeza del diagrama el efecto exacto: "Baja disponibilidad inherente '
+            'de la flota CAT 24M". Dibuja una espina central horizontal y seis ramas principales con el '
             "enfoque 6M: Método, Medición, Mano de obra, Medio ambiente, Maquinaria y Materiales. En Método, "
             "coloca mantenimiento reactivo, rutinas preventivas insuficientes, ausencia de tareas RCM y "
             "procedimientos de lubricación no estandarizados. En Medición, coloca registros incompletos, "
@@ -426,8 +426,8 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
             "explican la mayor parte de la baja disponibilidad y cómo el RCM atacará esas causas."
         ),
         (
-            "Construye una matriz titulada \"Matriz de Relevancia para el filtrado de alternativas de "
-            "solución\". Coloca las alternativas en filas: mantenimiento correctivo mejorado, mantenimiento "
+            'Construye una matriz titulada "Matriz de Relevancia para el filtrado de alternativas de '
+            'solución". Coloca las alternativas en filas: mantenimiento correctivo mejorado, mantenimiento '
             "preventivo por horas, mantenimiento predictivo parcial, capacitación técnica focalizada y plan "
             "de mantenimiento centrado en confiabilidad (RCM). Coloca estos criterios en columnas: reducción "
             "esperada de fallas, viabilidad técnica, costo de implementación, tiempo de adaptación, "
@@ -435,20 +435,20 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
             "ejemplo, reducción esperada de fallas 0.30, viabilidad técnica 0.20, costo 0.15, tiempo 0.10, "
             "disponibilidad de datos 0.10 y alineación con causa raíz 0.15. Califica cada alternativa de 1 a "
             "5, donde 1 significa baja relevancia y 5 alta relevancia. Multiplica cada calificación por su "
-            "peso y suma el total por alternativa. Agrega una columna final llamada \"Decisión\" con tres "
+            'peso y suma el total por alternativa. Agrega una columna final llamada "Decisión" con tres '
             "opciones: descartada, condicionada o preseleccionada. Resalta el RCM como alternativa "
             "preseleccionada porque interviene modos de falla, criticidad y tareas de mantenimiento, no solo "
             "la reparación posterior a la falla."
         ),
         (
-            "Construye una matriz titulada \"Matriz de Priorización de soluciones factibles\". Coloca en las "
+            'Construye una matriz titulada "Matriz de Priorización de soluciones factibles". Coloca en las '
             "filas solo las alternativas que pasaron la matriz de relevancia. Coloca en las columnas estos "
             "criterios cuantitativos: impacto en disponibilidad inherente, reducción de fallas recurrentes, "
             "factibilidad técnica, costo-beneficio, tiempo de implementación y sostenibilidad operativa. "
             "Asigna un peso porcentual a cada criterio y verifica que la suma sea exactamente 100 %. Califica "
             "cada alternativa de 1 a 10, donde 1 es desfavorable y 10 favorable. En cada celda coloca el "
             "puntaje asignado; debajo o en una columna auxiliar calcula el puntaje ponderado multiplicando "
-            "peso por puntaje. Agrega una columna \"Total ponderado\" y suma los puntajes ponderados de cada "
+            'peso por puntaje. Agrega una columna "Total ponderado" y suma los puntajes ponderados de cada '
             "alternativa. Ordena las alternativas de mayor a menor total. Resalta en azul o sombreado la "
             "alternativa ganadora: implementación de un plan de mantenimiento centrado en confiabilidad "
             "(RCM). Debajo de la matriz coloca la escala: 1 (Desfavorable) a 10 (Favorable)."
@@ -817,9 +817,7 @@ def _chapter_two_insert_index(
 
 def _ensure_chapter_two_theoretical_figures(section: dict[str, Any]) -> None:
     blocks = _content_to_blocks(section.get("content"))
-    content_blocks = [
-        block for block in blocks if not _is_chapter_two_figure(block) and not _is_generic_figure(block)
-    ]
+    content_blocks = [block for block in blocks if not _is_chapter_two_figure(block) and not _is_generic_figure(block)]
 
     for index, figure in enumerate(_CHAPTER_TWO_FIGURES):
         figure_block = dict(figure)
@@ -885,9 +883,7 @@ def apply_figure_recommendations(
             current_content = section.get("content")
             blocks = _content_to_blocks(current_content)
             if any(_normalize_token(block.get("tipo")) != "parrafo" for block in blocks):
-                section["content"] = [
-                    block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"
-                ]
+                section["content"] = [block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"]
             continue
 
         if (
@@ -898,9 +894,7 @@ def apply_figure_recommendations(
             current_content = section.get("content")
             blocks = _content_to_blocks(current_content)
             if any(_normalize_token(block.get("tipo")) != "parrafo" for block in blocks):
-                section["content"] = [
-                    block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"
-                ]
+                section["content"] = [block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"]
             continue
 
         if is_chapter_four_design_section(path):
@@ -908,9 +902,7 @@ def apply_figure_recommendations(
             blocks = _content_to_blocks(current_content)
             if any(_normalize_token(block.get("tipo")) not in {"parrafo", "formula"} for block in blocks):
                 section["content"] = [
-                    block
-                    for block in blocks
-                    if _normalize_token(block.get("tipo")) in {"parrafo", "formula"}
+                    block for block in blocks if _normalize_token(block.get("tipo")) in {"parrafo", "formula"}
                 ]
             continue
 

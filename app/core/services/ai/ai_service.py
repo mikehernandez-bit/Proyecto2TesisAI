@@ -16,6 +16,13 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Set
 
 from app.core.config import settings
+from app.core.services.ai.budget_table_builder import (
+    build_budget_table_from_plan,
+    build_synthetic_budget_plan,
+    extract_budget_plan_from_content,
+    salvage_budget_plan_from_legacy_table,
+    validate_budget_plan,
+)
 from app.core.services.ai.circuit_breaker import CircuitBreaker
 from app.core.services.ai.completeness_validator import (
     autofill_section,
@@ -39,13 +46,6 @@ from app.core.services.ai.schedule_table_builder import (
     extract_schedule_plan_from_content,
     salvage_schedule_plan_from_legacy_table,
     validate_schedule_plan,
-)
-from app.core.services.ai.budget_table_builder import (
-    build_budget_table_from_plan,
-    build_synthetic_budget_plan,
-    extract_budget_plan_from_content,
-    salvage_budget_plan_from_legacy_table,
-    validate_budget_plan,
 )
 from app.core.services.ai.section_prompt_profiles import (
     build_format_editorial_contract,
@@ -1241,9 +1241,7 @@ class AIService:
             section_id = str(sec.get("sectionId") or f"sec-{i:04d}")
             path = str(sec.get("path") or f"Section {i}")
             section_parent_path = str(
-                sec.get("parent_section_path")
-                or sec.get("sectionParentPath")
-                or self._section_parent_path(path)
+                sec.get("parent_section_path") or sec.get("sectionParentPath") or self._section_parent_path(path)
             )
             section_level = int(
                 sec.get("level")
@@ -1550,8 +1548,7 @@ class AIService:
                 prompt_source=prompt_source,
                 prompt_block_id=prompt_block_id,
                 detail=(
-                    "La salida IA del cronograma se convirtio a la tabla canonica institucional "
-                    "antes de validacion."
+                    "La salida IA del cronograma se convirtio a la tabla canonica institucional antes de validacion."
                 )
                 if schedule_origin
                 else "",
@@ -1565,8 +1562,7 @@ class AIService:
                 prompt_source=prompt_source,
                 prompt_block_id=prompt_block_id,
                 detail=(
-                    "La salida IA del presupuesto se convirtio a la tabla canonica institucional "
-                    "antes de validacion."
+                    "La salida IA del presupuesto se convirtio a la tabla canonica institucional antes de validacion."
                 )
                 if budget_origin
                 else "",
@@ -1601,10 +1597,7 @@ class AIService:
 
         chosen_block = normalized_blocks[0]
         block_id = str(
-            chosen_block.get("block_id")
-            or chosen_block.get("id")
-            or chosen_block.get("legacy_prompt_id")
-            or ""
+            chosen_block.get("block_id") or chosen_block.get("id") or chosen_block.get("legacy_prompt_id") or ""
         ).strip()
         header = str(
             chosen_block.get("header")
@@ -1672,9 +1665,7 @@ class AIService:
         if isinstance(plan, dict):
             plan_errors = validate_schedule_plan(plan)
             fatal_plan_errors = [
-                error
-                for error in plan_errors
-                if error not in {"mes_fuera_de_ventana", "numeracion_semantica_invalida"}
+                error for error in plan_errors if error not in {"mes_fuera_de_ventana", "numeracion_semantica_invalida"}
             ]
             if not fatal_plan_errors:
                 return [build_schedule_table_from_plan(plan, values=values)], "cronograma_plan_generated"
@@ -2619,9 +2610,16 @@ class AIService:
                 "No agregues parrafos, listas, markdown, observaciones ni texto antes o despues del bloque.",
                 "No generes la tabla institucional final del cronograma.",
                 "Devuelve un blueprint semantico con tipo='tabla' y subtipo='cronograma_plan'.",
-                "La estructura obligatoria es: {tipo:'tabla', subtipo:'cronograma_plan', anio:'2025 o anio del proyecto', fases:[{numero, titulo, actividades:[{numero, titulo, mes_inicio, mes_fin}]}]}.",
+                (
+                    "La estructura obligatoria es: {tipo:'tabla', subtipo:'cronograma_plan', "
+                    "anio:'2025 o anio del proyecto', fases:[{numero, titulo, actividades:"
+                    "[{numero, titulo, mes_inicio, mes_fin}]}]}."
+                ),
                 "Deben existir exactamente 8 fases y 26 actividades con distribucion 3-3-3-3-3-4-3-4.",
-                "Las fases deben empezar con '1.' hasta '8.' y las actividades con '1.1.' hasta '8.4.' segun corresponda.",
+                (
+                    "Las fases deben empezar con '1.' hasta '8.' y las actividades con "
+                    "'1.1.' hasta '8.4.' segun corresponda."
+                ),
                 "No escribas encabezados, filas, celdas_combinadas, celdas_fusionadas, estilo ni orientacion final.",
                 "Cada actividad debe declarar mes_inicio y mes_fin como enteros del 1 al 12.",
                 "Ventanas mensuales obligatorias: F1=2-3, F2=2-4, F3=4-6, F4=6-7, F5=7-8, F6=7-10, F7=8-11, F8=10-12.",

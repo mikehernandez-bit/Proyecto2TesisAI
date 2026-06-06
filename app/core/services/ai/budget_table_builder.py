@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 CANONICAL_TABLE_ID = "tabla_6_1_presupuesto_investigacion"
 CANONICAL_TABLE_TITLE = "Tabla 6.1 Presupuesto de investigacion"
@@ -191,19 +191,14 @@ def _normalized_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
         items_out: List[Dict[str, Any]] = []
         for item_idx, item in enumerate(category["items"][:expected_count], start=1):
             number = f"{idx}.{item_idx}"
+            default_item = DEFAULT_BUDGET_PLAN["categorias"][idx - 1]["items"][item_idx - 1]
             items_out.append(
                 {
                     "numero": number,
                     "descripcion": _text(item.get("descripcion")),
-                    "cantidad": _text(item.get("cantidad") or DEFAULT_BUDGET_PLAN["categorias"][idx - 1]["items"][item_idx - 1]["cantidad"]),
-                    "costo_unitario": _normalize_money(
-                        item.get("costo_unitario")
-                        or DEFAULT_BUDGET_PLAN["categorias"][idx - 1]["items"][item_idx - 1]["costo_unitario"]
-                    ),
-                    "costo_total": _normalize_money(
-                        item.get("costo_total")
-                        or DEFAULT_BUDGET_PLAN["categorias"][idx - 1]["items"][item_idx - 1]["costo_total"]
-                    ),
+                    "cantidad": _text(item.get("cantidad") or default_item["cantidad"]),
+                    "costo_unitario": _normalize_money(item.get("costo_unitario") or default_item["costo_unitario"]),
+                    "costo_total": _normalize_money(item.get("costo_total") or default_item["costo_total"]),
                 }
             )
         categories.append(
@@ -303,7 +298,9 @@ def build_budget_table_from_plan(plan: Dict[str, Any], *, values: Optional[Dict[
     }
 
 
-def salvage_budget_plan_from_legacy_table(table: Dict[str, Any], *, values: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+def salvage_budget_plan_from_legacy_table(
+    table: Dict[str, Any], *, values: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
     rows = table.get("filas")
     if not isinstance(rows, list) or not rows:
         return None
@@ -326,4 +323,3 @@ def salvage_budget_plan_from_legacy_table(table: Dict[str, Any], *, values: Opti
     for item, desc in zip(flat_items, descriptions):
         item["descripcion"] = desc
     return plan
-

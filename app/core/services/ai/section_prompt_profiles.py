@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from __future__ import annotations
 
 import unicodedata
@@ -325,10 +326,7 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
                 "Si el objetivo general ya coincide con la variable dependiente "
                 "principal del proyecto, mantenlo sin reformularlo creativamente."
             ),
-            (
-                "No inviertas el orden de confiabilidad y mantenibilidad "
-                "cuando esas sean las dimensiones del estudio."
-            ),
+            ("No inviertas el orden de confiabilidad y mantenibilidad cuando esas sean las dimensiones del estudio."),
             "No agregues explicaciones ni justificaciones debajo de los objetivos.",
         ),
         context_mode="matrix_core",
@@ -835,99 +833,99 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
                 "Plantilla completa obligatoria (estructura exacta; reemplaza FASE/ACTIVIDAD/<ANIO> con contenido del tema actual):\n"
                 "<<<TABLE_JSON\n"
                 "{\n"
-                "  \"tipo\": \"tabla\",\n"
-                "  \"id\": \"tabla_5_1_cronograma_actividades\",\n"
-                "  \"titulo\": \"Tabla 5.1 Cronograma de actividades\",\n"
-                "  \"encabezados\": [\"FASES Y ACTIVIDADES\", \"<ANIO>\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "  \"filas\": [\n"
-                "    [\"\", \"Ene\", \"Feb\", \"Mar\", \"Abr\", \"May\", \"Jun\", \"Jul\", \"Ago\", \"Set\", \"Oct\", \"Nov\", \"Dic\"],\n"
-                "    [\"FASE 1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 1.1\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 1.2\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 1.3\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 2.1\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 2.2\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 2.3\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 3.1\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 3.2\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 3.3\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 4\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 4.1\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 4.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 4.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 5\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 5.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 5.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 5.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 6\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.4\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\"],\n"
-                "    [\"FASE 7\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 7.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\"],\n"
-                "    [\"ACTIVIDAD 7.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\"],\n"
-                "    [\"ACTIVIDAD 7.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"FASE 8\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 8.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"ACTIVIDAD 8.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"ACTIVIDAD 8.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"ACTIVIDAD 8.4\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"]\n"
+                '  "tipo": "tabla",\n'
+                '  "id": "tabla_5_1_cronograma_actividades",\n'
+                '  "titulo": "Tabla 5.1 Cronograma de actividades",\n'
+                '  "encabezados": ["FASES Y ACTIVIDADES", "<ANIO>", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '  "filas": [\n'
+                '    ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"],\n'
+                '    ["FASE 1", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 1.1", "", "X", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 1.2", "", "X", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 1.3", "", "", "X", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["FASE 2", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 2.1", "", "", "X", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 2.2", "", "", "", "X", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 2.3", "", "", "", "X", "", "", "", "", "", "", "", ""],\n'
+                '    ["FASE 3", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 3.1", "", "", "", "", "X", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 3.2", "", "", "", "", "X", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 3.3", "", "", "", "", "", "X", "", "", "", "", "", ""],\n'
+                '    ["FASE 4", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 4.1", "", "", "", "", "", "X", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 4.2", "", "", "", "", "", "", "X", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 4.3", "", "", "", "", "", "", "X", "", "", "", "", ""],\n'
+                '    ["FASE 5", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 5.1", "", "", "", "", "", "", "", "X", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 5.2", "", "", "", "", "", "", "", "X", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 5.3", "", "", "", "", "", "", "", "", "X", "", "", ""],\n'
+                '    ["FASE 6", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 6.1", "", "", "", "", "", "", "", "", "X", "", "", ""],\n'
+                '    ["ACTIVIDAD 6.2", "", "", "", "", "", "", "", "", "", "X", "", ""],\n'
+                '    ["ACTIVIDAD 6.3", "", "", "", "", "", "", "", "", "", "X", "", ""],\n'
+                '    ["ACTIVIDAD 6.4", "", "", "", "", "", "", "", "", "", "", "X", ""],\n'
+                '    ["FASE 7", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 7.1", "", "", "", "", "", "", "", "", "", "", "X", ""],\n'
+                '    ["ACTIVIDAD 7.2", "", "", "", "", "", "", "", "", "", "", "X", ""],\n'
+                '    ["ACTIVIDAD 7.3", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["FASE 8", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 8.1", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["ACTIVIDAD 8.2", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["ACTIVIDAD 8.3", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["ACTIVIDAD 8.4", "", "", "", "", "", "", "", "", "", "", "", "X"]\n'
                 "  ],\n"
-                "  \"orientacion\": \"landscape\",\n"
-                "  \"subtipo\": \"cronograma_actividades\",\n"
-                "  \"anio\": \"<ANIO>\",\n"
-                "  \"meses\": [\"Ene\", \"Feb\", \"Mar\", \"Abr\", \"May\", \"Jun\", \"Jul\", \"Ago\", \"Set\", \"Oct\", \"Nov\", \"Dic\"],\n"
-                "  \"simbolo_marca\": \"\\u25cf\",\n"
-                "  \"filas_fase\": [1, 5, 9, 13, 17, 21, 26, 30],\n"
-                "  \"celdas_combinadas\": [\n"
-                "    {\"fila\": -1, \"fila_fin\": 0, \"col_inicio\": 0, \"col_fin\": 0, \"texto\": \"FASES Y ACTIVIDADES\"},\n"
-                "    {\"fila\": -1, \"col_inicio\": 1, \"col_fin\": 12, \"texto\": \"<ANIO>\"},\n"
-                "    {\"fila\": 1, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 1\"},\n"
-                "    {\"fila\": 5, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 2\"},\n"
-                "    {\"fila\": 9, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 3\"},\n"
-                "    {\"fila\": 13, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 4\"},\n"
-                "    {\"fila\": 17, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 5\"},\n"
-                "    {\"fila\": 21, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 6\"},\n"
-                "    {\"fila\": 26, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 7\"},\n"
-                "    {\"fila\": 30, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 8\"}\n"
+                '  "orientacion": "landscape",\n'
+                '  "subtipo": "cronograma_actividades",\n'
+                '  "anio": "<ANIO>",\n'
+                '  "meses": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"],\n'
+                '  "simbolo_marca": "\\u25cf",\n'
+                '  "filas_fase": [1, 5, 9, 13, 17, 21, 26, 30],\n'
+                '  "celdas_combinadas": [\n'
+                '    {"fila": -1, "fila_fin": 0, "col_inicio": 0, "col_fin": 0, "texto": "FASES Y ACTIVIDADES"},\n'
+                '    {"fila": -1, "col_inicio": 1, "col_fin": 12, "texto": "<ANIO>"},\n'
+                '    {"fila": 1, "col_inicio": 0, "col_fin": 12, "texto": "FASE 1"},\n'
+                '    {"fila": 5, "col_inicio": 0, "col_fin": 12, "texto": "FASE 2"},\n'
+                '    {"fila": 9, "col_inicio": 0, "col_fin": 12, "texto": "FASE 3"},\n'
+                '    {"fila": 13, "col_inicio": 0, "col_fin": 12, "texto": "FASE 4"},\n'
+                '    {"fila": 17, "col_inicio": 0, "col_fin": 12, "texto": "FASE 5"},\n'
+                '    {"fila": 21, "col_inicio": 0, "col_fin": 12, "texto": "FASE 6"},\n'
+                '    {"fila": 26, "col_inicio": 0, "col_fin": 12, "texto": "FASE 7"},\n'
+                '    {"fila": 30, "col_inicio": 0, "col_fin": 12, "texto": "FASE 8"}\n'
                 "  ],\n"
-                "  \"celdas_fusionadas\": [\n"
-                "    {\"fila\": -1, \"col\": 0, \"filas_span\": 2, \"cols_span\": 1, \"texto\": \"FASES Y ACTIVIDADES\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": -1, \"col\": 1, \"filas_span\": 1, \"cols_span\": 12, \"texto\": \"<ANIO>\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 1, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 1\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 5, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 2\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 9, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 3\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 13, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 4\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 17, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 5\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 21, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 6\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 26, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 7\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 30, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 8\", \"bold\": true, \"alignment\": \"center\"}\n"
+                '  "celdas_fusionadas": [\n'
+                '    {"fila": -1, "col": 0, "filas_span": 2, "cols_span": 1, "texto": "FASES Y ACTIVIDADES", "bold": true, "alignment": "center"},\n'
+                '    {"fila": -1, "col": 1, "filas_span": 1, "cols_span": 12, "texto": "<ANIO>", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 1, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 1", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 5, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 2", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 9, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 3", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 13, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 4", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 17, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 5", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 21, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 6", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 26, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 7", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 30, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 8", "bold": true, "alignment": "center"}\n'
                 "  ],\n"
-                "  \"estilo\": {\n"
-                "    \"modelo_referencia\": \"cronograma_actividades.docx\",\n"
-                "    \"titulo_capitulo\": \"V. CRONOGRAMA DE ACTIVIDADES\",\n"
-                "    \"titulo_exacto\": true,\n"
-                "    \"titulo_tamano_pt\": 9.5,\n"
-                "    \"titulo_space_after_pt\": 6,\n"
-                "    \"ancho_tabla\": \"100%\",\n"
-                "    \"ancho_columnas\": [8.91, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59],\n"
-                "    \"alineacion_actividades\": \"left\",\n"
-                "    \"alineacion_meses\": \"center\",\n"
-                "    \"encabezados_negrita\": true,\n"
-                "    \"fases_negrita\": true,\n"
-                "    \"fases_centradas\": true,\n"
-                "    \"bordes\": \"grid\",\n"
-                "    \"fuente_tamano_pt\": 8,\n"
-                "    \"fuente_meses_pt\": 8,\n"
-                "    \"fuente_actividades_pt\": 8,\n"
-                "    \"fuente_fases_pt\": 8,\n"
-                "    \"fuente_marcas_pt\": 10,\n"
-                "    \"compactar_cronograma\": false,\n"
-                "    \"orientacion_pagina\": \"landscape\",\n"
-                "    \"margenes_reducidos\": true\n"
+                '  "estilo": {\n'
+                '    "modelo_referencia": "cronograma_actividades.docx",\n'
+                '    "titulo_capitulo": "V. CRONOGRAMA DE ACTIVIDADES",\n'
+                '    "titulo_exacto": true,\n'
+                '    "titulo_tamano_pt": 9.5,\n'
+                '    "titulo_space_after_pt": 6,\n'
+                '    "ancho_tabla": "100%",\n'
+                '    "ancho_columnas": [8.91, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59],\n'
+                '    "alineacion_actividades": "left",\n'
+                '    "alineacion_meses": "center",\n'
+                '    "encabezados_negrita": true,\n'
+                '    "fases_negrita": true,\n'
+                '    "fases_centradas": true,\n'
+                '    "bordes": "grid",\n'
+                '    "fuente_tamano_pt": 8,\n'
+                '    "fuente_meses_pt": 8,\n'
+                '    "fuente_actividades_pt": 8,\n'
+                '    "fuente_fases_pt": 8,\n'
+                '    "fuente_marcas_pt": 10,\n'
+                '    "compactar_cronograma": false,\n'
+                '    "orientacion_pagina": "landscape",\n'
+                '    "margenes_reducidos": true\n'
                 "  }\n"
                 "}\n"
                 "TABLE_JSON>>>"
@@ -986,64 +984,64 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
                 "Plantilla completa obligatoria (estructura exacta; reemplaza CATEGORIA/ITEM y montos con contenido del tema actual):\n"
                 "<<<TABLE_JSON\n"
                 "{\n"
-                "  \"tipo\": \"tabla\",\n"
-                "  \"id\": \"tabla_6_1_presupuesto_investigacion\",\n"
-                "  \"titulo\": \"Tabla 6.1 Presupuesto de investigacion\",\n"
-                "  \"encabezados\": [\"N°\", \"DESCRIPCION DEL GASTO\", \"CANTIDAD\", \"COSTO UNIT. (S/.)\", \"COSTO TOTAL (S/.)\"],\n"
-                "  \"filas\": [\n"
-                "    [\"1. CATEGORIA 1\", \"\", \"\", \"\", \"2,000.00\"],\n"
-                "    [\"1.1\", \"ITEM 1.1\", \"1\", \"2,000.00\", \"2,000.00\"],\n"
-                "    [\"2. CATEGORIA 2\", \"\", \"\", \"\", \"4,849.00\"],\n"
-                "    [\"2.1\", \"ITEM 2.1\", \"1\", \"2,999.00\", \"2,999.00\"],\n"
-                "    [\"2.2\", \"ITEM 2.2\", \"12\", \"50.00\", \"600.00\"],\n"
-                "    [\"2.3\", \"ITEM 2.3\", \"4\", \"250.00\", \"1,000.00\"],\n"
-                "    [\"2.4\", \"ITEM 2.4\", \"1\", \"250.00\", \"250.00\"],\n"
-                "    [\"3. CATEGORIA 3\", \"\", \"\", \"\", \"560.00\"],\n"
-                "    [\"3.1\", \"ITEM 3.1\", \"1\", \"150.00\", \"150.00\"],\n"
-                "    [\"3.2\", \"ITEM 3.2\", \"1\", \"350.00\", \"350.00\"],\n"
-                "    [\"3.3\", \"ITEM 3.3\", \"1\", \"60.00\", \"60.00\"],\n"
-                "    [\"4. CATEGORIA 4\", \"\", \"\", \"\", \"370.00\"],\n"
-                "    [\"4.1\", \"ITEM 4.1\", \"1\", \"370.00\", \"370.00\"],\n"
-                "    [\"TOTAL GENERAL\", \"\", \"\", \"\", \"S/. 7,779.00\"]\n"
+                '  "tipo": "tabla",\n'
+                '  "id": "tabla_6_1_presupuesto_investigacion",\n'
+                '  "titulo": "Tabla 6.1 Presupuesto de investigacion",\n'
+                '  "encabezados": ["N°", "DESCRIPCION DEL GASTO", "CANTIDAD", "COSTO UNIT. (S/.)", "COSTO TOTAL (S/.)"],\n'
+                '  "filas": [\n'
+                '    ["1. CATEGORIA 1", "", "", "", "2,000.00"],\n'
+                '    ["1.1", "ITEM 1.1", "1", "2,000.00", "2,000.00"],\n'
+                '    ["2. CATEGORIA 2", "", "", "", "4,849.00"],\n'
+                '    ["2.1", "ITEM 2.1", "1", "2,999.00", "2,999.00"],\n'
+                '    ["2.2", "ITEM 2.2", "12", "50.00", "600.00"],\n'
+                '    ["2.3", "ITEM 2.3", "4", "250.00", "1,000.00"],\n'
+                '    ["2.4", "ITEM 2.4", "1", "250.00", "250.00"],\n'
+                '    ["3. CATEGORIA 3", "", "", "", "560.00"],\n'
+                '    ["3.1", "ITEM 3.1", "1", "150.00", "150.00"],\n'
+                '    ["3.2", "ITEM 3.2", "1", "350.00", "350.00"],\n'
+                '    ["3.3", "ITEM 3.3", "1", "60.00", "60.00"],\n'
+                '    ["4. CATEGORIA 4", "", "", "", "370.00"],\n'
+                '    ["4.1", "ITEM 4.1", "1", "370.00", "370.00"],\n'
+                '    ["TOTAL GENERAL", "", "", "", "S/. 7,779.00"]\n'
                 "  ],\n"
-                "  \"orientacion\": \"portrait\",\n"
-                "  \"subtipo\": \"presupuesto_investigacion\",\n"
-                "  \"filas_categoria\": [0, 2, 7, 11],\n"
-                "  \"fila_total\": 13,\n"
-                "  \"celdas_combinadas\": [\n"
-                "    {\"fila\": 0, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"1. CATEGORIA 1\"},\n"
-                "    {\"fila\": 2, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"2. CATEGORIA 2\"},\n"
-                "    {\"fila\": 7, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"3. CATEGORIA 3\"},\n"
-                "    {\"fila\": 11, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"4. CATEGORIA 4\"},\n"
-                "    {\"fila\": 13, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"TOTAL GENERAL\"}\n"
+                '  "orientacion": "portrait",\n'
+                '  "subtipo": "presupuesto_investigacion",\n'
+                '  "filas_categoria": [0, 2, 7, 11],\n'
+                '  "fila_total": 13,\n'
+                '  "celdas_combinadas": [\n'
+                '    {"fila": 0, "col_inicio": 0, "col_fin": 3, "texto": "1. CATEGORIA 1"},\n'
+                '    {"fila": 2, "col_inicio": 0, "col_fin": 3, "texto": "2. CATEGORIA 2"},\n'
+                '    {"fila": 7, "col_inicio": 0, "col_fin": 3, "texto": "3. CATEGORIA 3"},\n'
+                '    {"fila": 11, "col_inicio": 0, "col_fin": 3, "texto": "4. CATEGORIA 4"},\n'
+                '    {"fila": 13, "col_inicio": 0, "col_fin": 3, "texto": "TOTAL GENERAL"}\n'
                 "  ],\n"
-                "  \"celdas_fusionadas\": [\n"
-                "    {\"fila\": 0, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"1. CATEGORIA 1\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 2, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"2. CATEGORIA 2\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 7, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"3. CATEGORIA 3\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 11, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"4. CATEGORIA 4\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 13, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"TOTAL GENERAL\", \"bold\": true, \"alignment\": \"center\"}\n"
+                '  "celdas_fusionadas": [\n'
+                '    {"fila": 0, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "1. CATEGORIA 1", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 2, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "2. CATEGORIA 2", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 7, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "3. CATEGORIA 3", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 11, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "4. CATEGORIA 4", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 13, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "TOTAL GENERAL", "bold": true, "alignment": "center"}\n'
                 "  ],\n"
-                "  \"estilo\": {\n"
-                "    \"modelo_referencia\": \"presupuesto_investigacion_vertical.docx\",\n"
-                "    \"titulo_capitulo\": \"VI. PRESUPUESTO\",\n"
-                "    \"titulo_exacto\": true,\n"
-                "    \"titulo_tamano_pt\": 10,\n"
-                "    \"titulo_space_after_pt\": 10,\n"
-                "    \"ancho_tabla\": \"100%\",\n"
-                "    \"ancho_columnas\": [1.4, 8, 2, 3.2, 3.2],\n"
-                "    \"orientacion_pagina\": \"portrait\",\n"
-                "    \"encabezados_negrita\": true,\n"
-                "    \"categorias_negrita\": true,\n"
-                "    \"total_negrita\": true,\n"
-                "    \"alineacion_descripcion\": \"left\",\n"
-                "    \"alineacion_numeros\": \"center\",\n"
-                "    \"alineacion_costos\": \"right\",\n"
-                "    \"bordes\": \"grid\",\n"
-                "    \"fuente_tamano_pt\": 9,\n"
-                "    \"fuente_encabezado_pt\": 8.5,\n"
-                "    \"fuente_categoria_pt\": 9,\n"
-                "    \"fuente_total_pt\": 9\n"
+                '  "estilo": {\n'
+                '    "modelo_referencia": "presupuesto_investigacion_vertical.docx",\n'
+                '    "titulo_capitulo": "VI. PRESUPUESTO",\n'
+                '    "titulo_exacto": true,\n'
+                '    "titulo_tamano_pt": 10,\n'
+                '    "titulo_space_after_pt": 10,\n'
+                '    "ancho_tabla": "100%",\n'
+                '    "ancho_columnas": [1.4, 8, 2, 3.2, 3.2],\n'
+                '    "orientacion_pagina": "portrait",\n'
+                '    "encabezados_negrita": true,\n'
+                '    "categorias_negrita": true,\n'
+                '    "total_negrita": true,\n'
+                '    "alineacion_descripcion": "left",\n'
+                '    "alineacion_numeros": "center",\n'
+                '    "alineacion_costos": "right",\n'
+                '    "bordes": "grid",\n'
+                '    "fuente_tamano_pt": 9,\n'
+                '    "fuente_encabezado_pt": 8.5,\n'
+                '    "fuente_categoria_pt": 9,\n'
+                '    "fuente_total_pt": 9\n'
                 "  }\n"
                 "}\n"
                 "TABLE_JSON>>>"

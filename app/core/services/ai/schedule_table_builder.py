@@ -433,7 +433,11 @@ def build_synthetic_schedule_plan(values: Optional[Dict[str, Any]] = None) -> Di
         [
             f"Delimitar alcance, unidad de analisis y contexto de {location}",
             "Definir protocolo de trabajo, fuentes y criterios de control",
-            f"Alinear objetivo general y supuestos de {topic}" if objective else f"Alinear problema y finalidad de {topic}",
+            (
+                f"Alinear objetivo general y supuestos de {topic}"
+                if objective
+                else f"Alinear problema y finalidad de {topic}"
+            ),
         ],
         [
             "Recopilar historiales, registros y documentos tecnicos",
@@ -510,4 +514,3 @@ def build_synthetic_schedule_plan(values: Optional[Dict[str, Any]] = None) -> Di
         "anio": _discover_year(values),
         "fases": phases,
     }
-
