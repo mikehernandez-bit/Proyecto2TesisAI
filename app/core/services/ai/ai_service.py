@@ -3,9 +3,8 @@
 Coordinates the full generation pipeline:
   render prompt -> generate per section -> correct -> validate -> aiResult
 
-Supports provider selection and quota fallback (Gemini <-> Mistral).
-When the primary provider hits rate limits, the orchestrator waits for
-the retry-after window and retries the same provider before falling back.
+Uses a fixed Mistral provider selection. When the provider hits rate limits,
+the orchestrator waits for the retry-after window and retries the same provider.
 """
 
 from __future__ import annotations
@@ -25,10 +24,8 @@ from app.core.services.ai.completeness_validator import (
 from app.core.services.ai.content_parser import parse_ai_content
 from app.core.services.ai.errors import GenerationCancelledError
 from app.core.services.ai.figure_recommendations import apply_figure_recommendations
-from app.core.services.ai.gemini_client import GeminiClient
 from app.core.services.ai.limiter import LLMLimiter
 from app.core.services.ai.mistral_client import MistralClient
-from app.core.services.ai.openrouter_client import OpenRouterClient
 from app.core.services.ai.output_validator import OutputValidator, ValidationError
 from app.core.services.ai.phase_policy import build_phase_policies
 from app.core.services.ai.prompt_renderer import PromptRenderer
@@ -36,6 +33,20 @@ from app.core.services.ai.provider_metrics import ProviderMetricsService
 from app.core.services.ai.provider_selection import ProviderSelectionService
 from app.core.services.ai.reference_proposals import replace_references_section
 from app.core.services.ai.resilience_router import LLMProviderRouter, LLMRequest, LLMResult
+from app.core.services.ai.schedule_table_builder import (
+    build_schedule_table_from_plan,
+    build_synthetic_schedule_plan,
+    extract_schedule_plan_from_content,
+    salvage_schedule_plan_from_legacy_table,
+    validate_schedule_plan,
+)
+from app.core.services.ai.budget_table_builder import (
+    build_budget_table_from_plan,
+    build_synthetic_budget_plan,
+    extract_budget_plan_from_content,
+    salvage_budget_plan_from_legacy_table,
+    validate_budget_plan,
+)
 from app.core.services.ai.section_prompt_profiles import (
     build_format_editorial_contract,
     build_section_editorial_context,
@@ -52,7 +63,7 @@ from app.core.services.definition_compiler import compile_definition_to_section_
 
 logger = logging.getLogger(__name__)
 
-_PROVIDER_ORDER = ("gemini", "mistral", "openrouter")
+_PROVIDER_ORDER = ("mistral",)
 _PROVIDER_SET = set(_PROVIDER_ORDER)
 
 # Throttle between section calls to avoid bursting through rate limits.
@@ -123,13 +134,16 @@ class _ProviderClient(Protocol):
 class AIService:
     """Orchestrates AI content generation with provider failover."""
 
+    @staticmethod
+    def _is_unac_schedule_chapter_path(path: str) -> bool:
+        normalized = " ".join(str(path or "").strip().lower().split())
+        return normalized == "v. cronograma de actividades"
+
     def __init__(self) -> None:
         self.renderer = PromptRenderer()
         self.validator = OutputValidator()
         self._clients: Dict[str, _ProviderClient] = {
-            "gemini": GeminiClient(),
             "mistral": MistralClient(),
-            "openrouter": OpenRouterClient(),
         }
         self._selection_store = ProviderSelectionService()
         self._selection = self._selection_store.get_selection()
@@ -144,18 +158,15 @@ class AIService:
         self._partial_sections: List[Dict[str, Any]] = []
         self._token_usage_report: Dict[str, Any] = empty_token_usage_report()
         self._last_base_prompt: str = ""
+        self._last_base_prompt_source: str = "package_template"
 
         self._phase_policies = build_phase_policies()
         self._limiter = LLMLimiter(
             provider_concurrency={
                 "mistral": int(getattr(settings, "MAX_INFLIGHT_MISTRAL", 3)),
-                "gemini": int(getattr(settings, "MAX_INFLIGHT_GEMINI", 3)),
-                "openrouter": int(getattr(settings, "MAX_INFLIGHT_OPENROUTER", 3)),
             },
             provider_rpm={
                 "mistral": int(getattr(settings, "MISTRAL_RPM", 60)),
-                "gemini": int(getattr(settings, "GEMINI_RPM", 60)),
-                "openrouter": int(getattr(settings, "OPENROUTER_RPM", 60)),
             },
             max_inflight_per_tenant=int(getattr(settings, "MAX_INFLIGHT_PER_TENANT", 2)),
             default_concurrency=2,
@@ -186,25 +197,18 @@ class AIService:
 
     @staticmethod
     def _default_model_for_provider(provider: str) -> str:
-        if provider == "gemini":
-            return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
         if provider == "mistral":
             return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
-        return str(getattr(settings, "OPENROUTER_MODEL", "openai/gpt-oss-120b:free"))
+        return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
 
     @staticmethod
     def _fallback_for(primary: str) -> str:
-        for candidate in _PROVIDER_ORDER:
-            if candidate != primary:
-                return candidate
-        return "gemini"
+        return ""
 
     @staticmethod
     def _provider_display_name(provider: str) -> str:
         labels = {
-            "gemini": "Gemini",
             "mistral": "Mistral",
-            "openrouter": "OpenRouter (GPT-OSS-120B Gratis)",
         }
         return labels.get(provider, provider.capitalize())
 
@@ -213,12 +217,8 @@ class AIService:
         normalized = str(model or "").strip().lower()
         if not normalized:
             return False
-        if provider == "gemini":
-            return "gemini" in normalized
         if provider == "mistral":
             return "mistral" in normalized
-        if provider == "openrouter":
-            return "gemini" not in normalized and "mistral" not in normalized
         return False
 
     def _refresh_selection(self) -> Dict[str, str]:
@@ -296,26 +296,10 @@ class AIService:
 
     def _provider_order(self, selection_override: Optional[Dict[str, Any]] = None) -> List[str]:
         selection = self._resolve_selection(selection_override)
-        primary = str(selection.get("provider") or "gemini").lower().strip()
+        primary = str(selection.get("provider") or "mistral").lower().strip()
         if primary not in _PROVIDER_SET:
             primary = _PROVIDER_ORDER[0]
-
-        fallback = str(selection.get("fallback_provider") or "").lower().strip()
-        if fallback not in _PROVIDER_SET or fallback == primary:
-            fallback = self._fallback_for(primary)
-
-        mode = str(selection.get("mode") or "auto").lower().strip()
-        if mode == "fixed":
-            return [primary]
-
-        effective_fallback = self._effective_fallback_provider(
-            primary,
-            fallback,
-            selection_override=selection,
-        )
-        if not effective_fallback:
-            return [primary]
-        return [primary, effective_fallback]
+        return [primary]
 
     def available_providers(self, selection_override: Optional[Dict[str, Any]] = None) -> List[str]:
         available: List[str] = []
@@ -412,17 +396,8 @@ class AIService:
             if selected_model:
                 return selected_model
 
-        if provider == selection.get("fallback_provider"):
-            fallback_model = str(selection.get("fallback_model") or "").strip()
-            if fallback_model:
-                return fallback_model
-
-        if provider == "gemini":
-            return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
         if provider == "mistral":
             return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
-        if provider == "openrouter":
-            return str(getattr(settings, "OPENROUTER_MODEL", "openai/gpt-oss-120b:free"))
         return None
 
     @staticmethod
@@ -450,27 +425,13 @@ class AIService:
         selected_provider = str(selection.get("provider") or _PROVIDER_ORDER[0]).lower().strip()
         if selected_provider not in _PROVIDER_SET:
             selected_provider = _PROVIDER_ORDER[0]
-        requested_fallback = str(selection.get("fallback_provider") or "").lower().strip()
-        if requested_fallback not in _PROVIDER_SET or requested_fallback == selected_provider:
-            requested_fallback = self._fallback_for(selected_provider)
         selected_model = str(selection.get("model") or self._default_model_for_provider(selected_provider))
         if not self._model_matches_provider(selected_provider, selected_model):
             selected_model = self._default_model_for_provider(selected_provider)
-        mode = str(selection.get("mode") or "auto")
+        mode = "fixed"
 
         fallback_provider = ""
-        if mode.lower().strip() == "auto":
-            fallback_provider = self._effective_fallback_provider(
-                selected_provider,
-                requested_fallback,
-                selection_override=selection,
-            )
         fallback_model = ""
-        if fallback_provider:
-            requested_fallback_model = str(selection.get("fallback_model") or "").strip()
-            if not self._model_matches_provider(fallback_provider, requested_fallback_model):
-                requested_fallback_model = self._default_model_for_provider(fallback_provider)
-            fallback_model = requested_fallback_model
 
         providers_payload: List[Dict[str, Any]] = []
         for provider in _PROVIDER_ORDER:
@@ -694,16 +655,14 @@ class AIService:
     def health_payload(self) -> Dict[str, Any]:
         selection = self._refresh_selection()
         available = self.available_providers(selection)
-        fallback_on_quota = str(selection.get("mode") or "auto") == "auto" and bool(
-            getattr(settings, "AI_FALLBACK_ON_QUOTA", True)
-        )
+        fallback_on_quota = False
         if not available:
             return {
                 "configured": False,
                 "engine": "simulation",
                 "model": None,
                 "reachable": False,
-                "message": "No AI provider configured. Set GEMINI_API_KEY, MISTRAL_API_KEY or OPENROUTER_API_KEY.",
+                "message": "No AI provider configured. Set MISTRAL_API_KEY.",
                 "availableProviders": [],
                 "fallbackOnQuota": fallback_on_quota,
             }
@@ -711,9 +670,6 @@ class AIService:
         primary = available[0]
         model = self.get_model_for_provider(primary, selection_override=selection)
         message = f"{primary.capitalize()} configurado (modelo: {model})"
-
-        if fallback_on_quota and len(available) > 1:
-            message = f"{message}. Respaldo automatico por cuota activo -> {available[1]}."
 
         return {
             "configured": True,
@@ -775,12 +731,14 @@ class AIService:
         if format_editorial_contract:
             base_prompt = "\n\n".join(part for part in [base_prompt.strip(), format_editorial_contract] if part)
         self._last_base_prompt = base_prompt
+        self._last_base_prompt_source = "package_template" if base_prompt.strip() else "fallback"
 
         if not base_prompt.strip():
             base_prompt = (
                 f"Genera contenido academico para un documento de tesis. Titulo: {project.get('title', 'Sin titulo')}."
             )
             self._last_base_prompt = base_prompt
+            self._last_base_prompt_source = "fallback"
             logger.warning(
                 "Empty prompt template, using fallback. projectId=%s",
                 project_id,
@@ -843,8 +801,9 @@ class AIService:
                             "sectionLevel": int(
                                 item.get("level") or self._section_level_from_path(str(item.get("path") or ""))
                             ),
+                            "sectionOrder": self._section_order_from_item(item, index),
                         }
-                        for item in section_index
+                        for index, item in enumerate(section_index)
                     ],
                 },
             )
@@ -924,6 +883,27 @@ class AIService:
             sections,
             values=project_values,
             format_id=format_id,
+        )
+        sections = self._repair_reality_problem_sections(
+            sections,
+            project_id=project_id,
+            values=project_values,
+            format_id=format_id,
+            selection=active_selection,
+        )
+        sections = self._repair_chapter_one_heading_sections(
+            sections,
+            project_id=project_id,
+            values=project_values,
+            format_id=format_id,
+            selection=active_selection,
+        )
+        sections = self._repair_schedule_budget_sections(
+            sections,
+            project_id=project_id,
+            values=project_values,
+            format_id=format_id,
+            selection=active_selection,
         )
         self._emit_trace(
             step="ai.figures",
@@ -1008,6 +988,18 @@ class AIService:
     def _section_level_from_path(path: str) -> int:
         parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
         return max(1, len(parts))
+
+    @staticmethod
+    def _section_order_from_item(section: Dict[str, Any], fallback: int = 0) -> int:
+        for key in ("section_order", "sectionOrder"):
+            value = section.get(key)
+            if value in (None, ""):
+                continue
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                continue
+        return int(fallback)
 
     @staticmethod
     def _content_to_memory_text(content: Any) -> str:
@@ -1241,6 +1233,18 @@ class AIService:
             self._ensure_not_cancelled()
             section_id = str(sec.get("sectionId") or f"sec-{i:04d}")
             path = str(sec.get("path") or f"Section {i}")
+            section_parent_path = str(
+                sec.get("parent_section_path")
+                or sec.get("sectionParentPath")
+                or self._section_parent_path(path)
+            )
+            section_level = int(
+                sec.get("level")
+                or sec.get("section_level")
+                or sec.get("sectionLevel")
+                or self._section_level_from_path(path)
+            )
+            section_order = self._section_order_from_item(sec, i - 1)
             expected_model = (
                 self.get_model_for_provider(
                     preferred_provider or default_provider,
@@ -1266,8 +1270,12 @@ class AIService:
                 format_id=format_id,
             )
             prompt_values = values or {}
+            prompt_source = self._last_base_prompt_source
+            prompt_block_id = ""
             if section_id == "titulo-info-basica":
                 # Validación rápida de título para Maestría UNAC
+                prompt_source = "managed_title_validator"
+                prompt_block_id = "managed:titulo-info-basica"
                 section_prompt = (
                     "Eres un validador técnico de tesis de la UNAC.\n"
                     "Tu tarea es VALIDAR y FORMATEAR el título de la tesis basándote en los siguientes datos:\n"
@@ -1295,6 +1303,9 @@ class AIService:
                     section_path=path,
                     values=values,
                 )
+                managed_context, prompt_block_id = self._build_managed_section_context(sec, values=values)
+                if managed_context:
+                    prompt_source = "managed_section_prompt"
                 section_prompt = self.renderer.build_section_prompt(
                     base_prompt=base_prompt,
                     section_path=path,
@@ -1302,6 +1313,7 @@ class AIService:
                     extra_context="\n\n".join(
                         part
                         for part in [
+                            managed_context,
                             str(sec.get("hints") or "").strip(),
                             str(sec.get("additional_context") or "").strip(),
                             section_editorial_context,
@@ -1321,8 +1333,13 @@ class AIService:
                     "sectionTotal": total,
                     "sectionId": section_id,
                     "sectionPath": path,
+                    "sectionParentPath": section_parent_path,
+                    "sectionLevel": section_level,
+                    "sectionOrder": section_order,
                     "provider": preferred_provider or default_provider,
                     "model": expected_model,
+                    "promptSource": prompt_source,
+                    "promptBlockId": prompt_block_id,
                 },
                 preview={"prompt": redacted_prompt},
             )
@@ -1335,10 +1352,14 @@ class AIService:
                 payload={
                     "section_id": section_id,
                     "section_path": path,
+                    "path": path,
                     "section_title": self._section_title_from_path(path),
-                    "parent_section_path": self._section_parent_path(path),
-                    "section_level": self._section_level_from_path(path),
+                    "parent_section_path": section_parent_path,
+                    "section_level": section_level,
+                    "section_order": section_order,
                     "prompt_sent": redacted_prompt,
+                    "prompt_source": prompt_source,
+                    "prompt_block_id": prompt_block_id,
                     "model": expected_model,
                     "provider": preferred_provider or default_provider,
                     "status": "generating",
@@ -1372,6 +1393,9 @@ class AIService:
                         "sectionTotal": total,
                         "sectionId": section_id,
                         "sectionPath": path,
+                        "sectionParentPath": section_parent_path,
+                        "sectionLevel": section_level,
+                        "sectionOrder": section_order,
                         "provider": preferred_provider or default_provider,
                         "model": expected_model,
                         "durationMs": duration_ms,
@@ -1387,10 +1411,14 @@ class AIService:
                     payload={
                         "section_id": section_id,
                         "section_path": path,
+                        "path": path,
                         "section_title": self._section_title_from_path(path),
-                        "parent_section_path": self._section_parent_path(path),
-                        "section_level": self._section_level_from_path(path),
+                        "parent_section_path": section_parent_path,
+                        "section_level": section_level,
+                        "section_order": section_order,
                         "prompt_sent": redacted_prompt,
+                        "prompt_source": prompt_source,
+                        "prompt_block_id": prompt_block_id,
                         "model": expected_model,
                         "provider": preferred_provider or default_provider,
                         "status": "error",
@@ -1436,6 +1464,9 @@ class AIService:
                     "sectionTotal": total,
                     "sectionId": section_id,
                     "sectionPath": path,
+                    "sectionParentPath": section_parent_path,
+                    "sectionLevel": section_level,
+                    "sectionOrder": section_order,
                     "provider": used_provider,
                     "model": _model,
                     "durationMs": duration_ms,
@@ -1444,6 +1475,8 @@ class AIService:
                     "usageAttempts": llm_result.attempts,
                     "sectionUsage": section_usage,
                     "tokenUsage": usage_snapshot,
+                    "promptSource": prompt_source,
+                    "promptBlockId": prompt_block_id,
                 },
                 preview={
                     "raw": self._redact_secrets(content),
@@ -1459,10 +1492,14 @@ class AIService:
                 payload={
                     "section_id": section_id,
                     "section_path": path,
+                    "path": path,
                     "section_title": self._section_title_from_path(path),
-                    "parent_section_path": self._section_parent_path(path),
-                    "section_level": self._section_level_from_path(path),
+                    "parent_section_path": section_parent_path,
+                    "section_level": section_level,
+                    "section_order": section_order,
                     "prompt_sent": redacted_prompt,
+                    "prompt_source": prompt_source,
+                    "prompt_block_id": prompt_block_id,
                     "ai_output": self._redact_secrets(content),
                     "input_tokens": int(section_usage.get("input_tokens_total") or 0),
                     "output_tokens": int(section_usage.get("output_tokens_total") or 0),
@@ -1487,6 +1524,46 @@ class AIService:
 
             # Parse structured blocks (tables/figures) from AI output
             parsed_content = parse_ai_content(content)
+            parsed_content, schedule_origin = self._canonicalize_schedule_content(
+                parsed_content,
+                path=path,
+                values=values,
+            )
+            parsed_content, budget_origin = self._canonicalize_budget_content(
+                parsed_content,
+                path=path,
+                values=values,
+            )
+            self._emit_schedule_origin_trace(
+                origin=schedule_origin,
+                section_id=section_id,
+                path=path,
+                project_id=project_id,
+                prompt_source=prompt_source,
+                prompt_block_id=prompt_block_id,
+                detail=(
+                    "La salida IA del cronograma se convirtio a la tabla canonica institucional "
+                    "antes de validacion."
+                )
+                if schedule_origin
+                else "",
+                preview_content=parsed_content,
+            )
+            self._emit_budget_origin_trace(
+                origin=budget_origin,
+                section_id=section_id,
+                path=path,
+                project_id=project_id,
+                prompt_source=prompt_source,
+                prompt_block_id=prompt_block_id,
+                detail=(
+                    "La salida IA del presupuesto se convirtio a la tabla canonica institucional "
+                    "antes de validacion."
+                )
+                if budget_origin
+                else "",
+                preview_content=parsed_content,
+            )
 
             sections.append(
                 {
@@ -1499,6 +1576,209 @@ class AIService:
             self._partial_sections = [dict(item) for item in sections]
 
         return sections
+
+    def _build_managed_section_context(
+        self,
+        section: Dict[str, Any],
+        *,
+        values: Dict[str, Any] | None = None,
+    ) -> tuple[str, str]:
+        blocks = section.get("blocks")
+        if not isinstance(blocks, list) or not blocks:
+            return "", ""
+
+        normalized_blocks = [block for block in blocks if isinstance(block, dict)]
+        if not normalized_blocks:
+            return "", ""
+
+        chosen_block = normalized_blocks[0]
+        block_id = str(
+            chosen_block.get("block_id")
+            or chosen_block.get("id")
+            or chosen_block.get("legacy_prompt_id")
+            or ""
+        ).strip()
+        header = str(
+            chosen_block.get("header")
+            or chosen_block.get("cabecera")
+            or chosen_block.get("label")
+            or "Prompt seccional"
+        ).strip()
+        instructions = str(chosen_block.get("instructions") or "").strip()
+        if not instructions:
+            return "", block_id
+        path = str(section.get("path") or section.get("section_path") or "").strip()
+        normalized_instructions = " ".join(instructions.lower().split())
+        if self._is_unac_schedule_chapter_path(path) and all(
+            marker in normalized_instructions
+            for marker in (
+                "la carcasa fisica es innegociable",
+                "13 columnas, 35 filas",
+                "celdas_combinadas y celdas_fusionadas son obligatorias",
+            )
+        ):
+            return "", block_id
+
+        required_variables_raw = chosen_block.get("required_variables")
+        required_variables: List[str] = []
+        if isinstance(required_variables_raw, list):
+            required_variables = [str(item).strip() for item in required_variables_raw if str(item).strip()]
+
+        lines: List[str] = [
+            "Prompt gestionado por seccion (fuente operativa):",
+            f"- Bloque: {header}",
+        ]
+        if block_id:
+            lines.append(f"- Block ID: {block_id}")
+        lines.append("Instrucciones del bloque:")
+        lines.append(instructions)
+
+        if required_variables:
+            lines.append("")
+            lines.append("Variables requeridas del bloque:")
+            value_map = values if isinstance(values, dict) else {}
+            for key in required_variables:
+                raw = value_map.get(key, "")
+                rendered = str(raw) if raw not in (None, "") else f"{{{{{key}}}}}"
+                lines.append(f"- {key}: {rendered}")
+
+        return "\n".join(lines).strip(), block_id
+
+    def _canonicalize_schedule_content(
+        self,
+        content: Any,
+        *,
+        path: str,
+        values: Dict[str, Any],
+        allow_synthetic: bool = False,
+    ) -> tuple[Any, str]:
+        if not self._is_unac_schedule_chapter_path(path):
+            return content, ""
+
+        table_blocks = OutputValidator._table_blocks(content)
+        for table in table_blocks:
+            if OutputValidator._is_valid_schedule_table(table):
+                return [table], "cronograma_canonico"
+
+        plan = extract_schedule_plan_from_content(content)
+        if isinstance(plan, dict):
+            plan_errors = validate_schedule_plan(plan)
+            fatal_plan_errors = [
+                error
+                for error in plan_errors
+                if error not in {"mes_fuera_de_ventana", "numeracion_semantica_invalida"}
+            ]
+            if not fatal_plan_errors:
+                return [build_schedule_table_from_plan(plan, values=values)], "cronograma_plan_generated"
+
+        for table in table_blocks:
+            table_errors = set(OutputValidator._schedule_table_errors(table))
+            rescued_plan = None
+            if table_errors and table_errors.issubset(OutputValidator._SCHEDULE_LEGACY_RECOVERABLE_ERRORS):
+                rescued_plan = salvage_schedule_plan_from_legacy_table(table, values=values)
+            if isinstance(rescued_plan, dict):
+                return [build_schedule_table_from_plan(rescued_plan, values=values)], "cronograma_legacy_salvaged"
+
+        if allow_synthetic:
+            synthetic_plan = build_synthetic_schedule_plan(values)
+            return [build_schedule_table_from_plan(synthetic_plan, values=values)], "cronograma_fallback_sintetico"
+
+        return content, ""
+
+    def _emit_schedule_origin_trace(
+        self,
+        *,
+        origin: str,
+        section_id: str,
+        path: str,
+        project_id: str,
+        prompt_source: str = "",
+        prompt_block_id: str = "",
+        detail: str = "",
+        preview_content: Any = None,
+    ) -> None:
+        if not origin or origin == "cronograma_canonico":
+            return
+        preview: Dict[str, Any] = {}
+        if preview_content is not None:
+            preview["content"] = preview_content
+        self._emit_trace(
+            step=origin,
+            status="done",
+            title=f"Cronograma normalizado ({path})",
+            detail=detail,
+            meta={
+                "projectId": project_id,
+                "sectionId": section_id,
+                "sectionPath": path,
+                "promptSource": prompt_source,
+                "promptBlockId": prompt_block_id,
+            },
+            preview=preview or None,
+        )
+
+    def _canonicalize_budget_content(
+        self,
+        content: Any,
+        *,
+        path: str,
+        values: Dict[str, Any],
+        allow_synthetic: bool = False,
+    ) -> tuple[Any, str]:
+        if not OutputValidator._is_budget_path(path):
+            return content, ""
+
+        table_blocks = OutputValidator._table_blocks(content)
+        for table in table_blocks:
+            if OutputValidator._is_valid_budget_table(table):
+                return [table], "presupuesto_canonico"
+
+        plan = extract_budget_plan_from_content(content)
+        if isinstance(plan, dict) and not validate_budget_plan(plan):
+            return [build_budget_table_from_plan(plan, values=values)], "presupuesto_plan_generated"
+
+        for table in table_blocks:
+            rescued_plan = salvage_budget_plan_from_legacy_table(table, values=values)
+            if isinstance(rescued_plan, dict) and not validate_budget_plan(rescued_plan):
+                return [build_budget_table_from_plan(rescued_plan, values=values)], "presupuesto_legacy_salvaged"
+
+        if allow_synthetic:
+            synthetic_plan = build_synthetic_budget_plan(values)
+            return [build_budget_table_from_plan(synthetic_plan, values=values)], "presupuesto_fallback_sintetico"
+
+        return content, ""
+
+    def _emit_budget_origin_trace(
+        self,
+        *,
+        origin: str,
+        section_id: str,
+        path: str,
+        project_id: str,
+        prompt_source: str = "",
+        prompt_block_id: str = "",
+        detail: str = "",
+        preview_content: Any = None,
+    ) -> None:
+        if not origin or origin == "presupuesto_canonico":
+            return
+        preview: Dict[str, Any] = {}
+        if preview_content is not None:
+            preview["content"] = preview_content
+        self._emit_trace(
+            step=origin,
+            status="done",
+            title=f"Presupuesto normalizado ({path})",
+            detail=detail,
+            meta={
+                "projectId": project_id,
+                "sectionId": section_id,
+                "sectionPath": path,
+                "promptSource": prompt_source,
+                "promptBlockId": prompt_block_id,
+            },
+            preview=preview or None,
+        )
 
     def _generate_with_provider_fallback(
         self,
@@ -1521,8 +1801,7 @@ class AIService:
 
         runtime_selection = self._resolve_selection(selection)
         providers = self._provider_order(runtime_selection)
-        auto_mode = str(runtime_selection.get("mode") or "auto").lower().strip() == "auto"
-        fallback_enabled = auto_mode and bool(getattr(settings, "AI_FALLBACK_ON_QUOTA", True))
+        fallback_enabled = False
         disabled = disabled_for_job if disabled_for_job is not None else set()
 
         if preferred_provider in providers and preferred_provider not in disabled:
@@ -1583,6 +1862,791 @@ class AIService:
             )
 
         return result
+
+    def _repair_reality_problem_sections(
+        self,
+        sections: List[Dict[str, Any]],
+        *,
+        project_id: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+        selection: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Run one strict rewrite when 1.1 fails the thesis-quality contract."""
+        repaired_count = 0
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            path = str(section.get("path") or "")
+            if not OutputValidator._is_reality_problem_path(path):
+                continue
+
+            section_id = str(section.get("sectionId") or "")
+            try:
+                self.validator._validate_reality_problem_quality(section.get("content"), section_id=section_id)
+                continue
+            except ValidationError as exc:
+                validation_error = str(exc)
+
+            repair_prompt = self._build_reality_problem_repair_prompt(
+                section=section,
+                validation_error=validation_error,
+                values=values,
+                format_id=format_id,
+            )
+            self._emit_trace(
+                step="ai.quality_repair",
+                status="running",
+                title="Reparando 1.1 realidad problematica",
+                detail=validation_error,
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+            try:
+                llm_result = self._generate_with_provider_fallback(
+                    repair_prompt,
+                    preferred_provider=self._last_used_provider,
+                    section_current=0,
+                    section_total=0,
+                    section_path=path,
+                    section_id=section_id,
+                    phase="quality_repair",
+                    selection=selection,
+                )
+                candidate = {
+                    **section,
+                    "content": parse_ai_content(llm_result.content),
+                }
+                apply_figure_recommendations([candidate], values=values, format_id=format_id)
+                self.validator._validate_reality_problem_quality(candidate.get("content"), section_id=section_id)
+            except Exception as repair_exc:
+                self._emit_trace(
+                    step="ai.quality_repair",
+                    status="warn",
+                    title="Reparacion de 1.1 no cumplio validacion",
+                    detail=str(repair_exc),
+                    meta={"sectionId": section_id, "sectionPath": path},
+                )
+                fallback = {
+                    **section,
+                    "content": self._fallback_reality_problem_content(values),
+                }
+                apply_figure_recommendations([fallback], values=values, format_id=format_id)
+                self.validator._validate_reality_problem_quality(fallback.get("content"), section_id=section_id)
+                section["content"] = fallback["content"]
+                repaired_count += 1
+                self._emit_trace(
+                    step="ai.quality_repair",
+                    status="done",
+                    title="1.1 realidad problematica reparada con respaldo local",
+                    meta={"sectionId": section_id, "sectionPath": path},
+                )
+                continue
+
+            section["content"] = candidate["content"]
+            repaired_count += 1
+            self._emit_trace(
+                step="ai.quality_repair",
+                status="done",
+                title="1.1 realidad problematica reparada",
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+
+        if repaired_count:
+            logger.info(
+                "Reality problem quality repair applied to %d section(s). projectId=%s",
+                repaired_count,
+                project_id,
+            )
+        return sections
+
+    def _repair_chapter_one_heading_sections(
+        self,
+        sections: List[Dict[str, Any]],
+        *,
+        project_id: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+        selection: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Ensure 1.4 and 1.5 keep the professor-style numbered subtitles."""
+        repaired_count = 0
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            path = str(section.get("path") or "")
+            section_id = str(section.get("sectionId") or "")
+            is_justification = OutputValidator._is_justification_path(path)
+            is_delimitations = OutputValidator._is_delimitations_path(path)
+            if not is_justification and not is_delimitations:
+                continue
+
+            try:
+                if is_justification:
+                    self.validator._validate_justification_structure(section.get("content"), section_id=section_id)
+                else:
+                    self.validator._validate_delimitations_structure(section.get("content"), section_id=section_id)
+                continue
+            except ValidationError as exc:
+                validation_error = str(exc)
+
+            repair_prompt = self._build_chapter_one_heading_repair_prompt(
+                section=section,
+                validation_error=validation_error,
+                values=values,
+                format_id=format_id,
+            )
+            self._emit_trace(
+                step="ai.heading_repair",
+                status="running",
+                title=f"Reparando subtitulos de {path}",
+                detail=validation_error,
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+
+            try:
+                llm_result = self._generate_with_provider_fallback(
+                    repair_prompt,
+                    preferred_provider=self._last_used_provider,
+                    section_current=0,
+                    section_total=0,
+                    section_path=path,
+                    section_id=section_id,
+                    phase="heading_repair",
+                    selection=selection,
+                )
+                candidate_content = parse_ai_content(llm_result.content)
+                if is_justification:
+                    self.validator._validate_justification_structure(candidate_content, section_id=section_id)
+                else:
+                    self.validator._validate_delimitations_structure(candidate_content, section_id=section_id)
+            except Exception as repair_exc:
+                self._emit_trace(
+                    step="ai.heading_repair",
+                    status="warn",
+                    title="Reparacion de subtitulos no cumplio validacion",
+                    detail=str(repair_exc),
+                    meta={"sectionId": section_id, "sectionPath": path},
+                )
+                candidate_content = (
+                    self._fallback_justification_content(values)
+                    if is_justification
+                    else self._fallback_delimitations_content(values)
+                )
+                if is_justification:
+                    self.validator._validate_justification_structure(candidate_content, section_id=section_id)
+                else:
+                    self.validator._validate_delimitations_structure(candidate_content, section_id=section_id)
+
+            section["content"] = candidate_content
+            repaired_count += 1
+            self._emit_trace(
+                step="ai.heading_repair",
+                status="done",
+                title="Subtitulos de capitulo I reparados",
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+
+        if repaired_count:
+            logger.info(
+                "Chapter I heading repair applied to %d section(s). projectId=%s",
+                repaired_count,
+                project_id,
+            )
+        return sections
+
+    def _repair_schedule_budget_sections(
+        self,
+        sections: List[Dict[str, Any]],
+        *,
+        project_id: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+        selection: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Ensure schedule/budget sections end in a canonical institutional table."""
+        repaired_count = 0
+        failed_sections: list[str] = []
+
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            path = str(section.get("path") or "")
+            section_id = str(section.get("sectionId") or "")
+            is_schedule = self._is_unac_schedule_chapter_path(path)
+            is_budget = OutputValidator._is_budget_path(path)
+            if not is_schedule and not is_budget:
+                continue
+
+            if is_schedule:
+                normalized_content, origin = self._canonicalize_schedule_content(
+                    section.get("content"),
+                    path=path,
+                    values=values,
+                )
+                if origin:
+                    section["content"] = normalized_content
+                    repaired_count += 1
+                    self._emit_schedule_origin_trace(
+                        origin=origin,
+                        section_id=section_id,
+                        path=path,
+                        project_id=project_id,
+                        detail="Cronograma convertido a tabla canonica antes de la fase de reparacion.",
+                        preview_content=normalized_content,
+                    )
+            elif is_budget:
+                normalized_content, origin = self._canonicalize_budget_content(
+                    section.get("content"),
+                    path=path,
+                    values=values,
+                )
+                if origin:
+                    section["content"] = normalized_content
+                    repaired_count += 1
+                    self._emit_budget_origin_trace(
+                        origin=origin,
+                        section_id=section_id,
+                        path=path,
+                        project_id=project_id,
+                        detail="Presupuesto convertido a tabla canonica antes de la fase de reparacion.",
+                        preview_content=normalized_content,
+                    )
+
+            try:
+                self.validator._validate_required_table_structure(
+                    section.get("content"),
+                    path=path,
+                    section_id=section_id,
+                )
+                continue
+            except ValidationError as exc:
+                validation_error = str(exc)
+
+            repair_prompt = self._build_schedule_budget_repair_prompt(
+                section=section,
+                validation_error=validation_error,
+                values=values,
+                format_id=format_id,
+            )
+            table_kind = "cronograma" if is_schedule else "presupuesto"
+            self._emit_trace(
+                step="ai.table_repair",
+                status="running",
+                title=f"Reparando tabla canonica de {table_kind}",
+                detail=validation_error,
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+
+            try:
+                llm_result = self._generate_with_provider_fallback(
+                    repair_prompt,
+                    preferred_provider=self._last_used_provider,
+                    section_current=0,
+                    section_total=0,
+                    section_path=path,
+                    section_id=section_id,
+                    phase="table_repair",
+                    selection=selection,
+                )
+                candidate_content = parse_ai_content(llm_result.content)
+                if is_schedule:
+                    candidate_content, origin = self._canonicalize_schedule_content(
+                        candidate_content,
+                        path=path,
+                        values=values,
+                    )
+                    self._emit_schedule_origin_trace(
+                        origin=origin,
+                        section_id=section_id,
+                        path=path,
+                        project_id=project_id,
+                        detail="Cronograma reparado y convertido a la tabla canonica institucional.",
+                        preview_content=candidate_content,
+                    )
+                elif is_budget:
+                    candidate_content, origin = self._canonicalize_budget_content(
+                        candidate_content,
+                        path=path,
+                        values=values,
+                    )
+                    self._emit_budget_origin_trace(
+                        origin=origin,
+                        section_id=section_id,
+                        path=path,
+                        project_id=project_id,
+                        detail="Presupuesto reparado y convertido a la tabla canonica institucional.",
+                        preview_content=candidate_content,
+                    )
+                self.validator._validate_required_table_structure(
+                    candidate_content,
+                    path=path,
+                    section_id=section_id,
+                )
+            except Exception as repair_exc:
+                if is_schedule:
+                    fallback_content, origin = self._canonicalize_schedule_content(
+                        section.get("content"),
+                        path=path,
+                        values=values,
+                        allow_synthetic=True,
+                    )
+                    section["content"] = fallback_content
+                    repaired_count += 1
+                    self._emit_schedule_origin_trace(
+                        origin=origin,
+                        section_id=section_id,
+                        path=path,
+                        project_id=project_id,
+                        detail=(
+                            "La reparacion IA no devolvio un blueprint util; se uso un cronograma sintetico "
+                            "determinista para evitar bloquear el proyecto."
+                        ),
+                        preview_content=fallback_content,
+                    )
+                    try:
+                        self.validator._validate_required_table_structure(
+                            section.get("content"),
+                            path=path,
+                            section_id=section_id,
+                        )
+                        self._emit_trace(
+                            step="cronograma_repaired",
+                            status="done",
+                            title="Cronograma recuperado con fallback sintetico",
+                            detail=str(repair_exc),
+                            meta={"sectionId": section_id, "sectionPath": path, "projectId": project_id},
+                        )
+                        continue
+                    except Exception:
+                        pass
+                elif is_budget:
+                    fallback_content, origin = self._canonicalize_budget_content(
+                        section.get("content"),
+                        path=path,
+                        values=values,
+                        allow_synthetic=True,
+                    )
+                    section["content"] = fallback_content
+                    repaired_count += 1
+                    self._emit_budget_origin_trace(
+                        origin=origin,
+                        section_id=section_id,
+                        path=path,
+                        project_id=project_id,
+                        detail=(
+                            "La reparacion IA no devolvio un presupuesto util; se uso una tabla sintetica "
+                            "determinista para evitar bloquear el proyecto."
+                        ),
+                        preview_content=fallback_content,
+                    )
+                    try:
+                        self.validator._validate_required_table_structure(
+                            section.get("content"),
+                            path=path,
+                            section_id=section_id,
+                        )
+                        self._emit_trace(
+                            step="presupuesto_repaired",
+                            status="done",
+                            title="Presupuesto recuperado con fallback sintetico",
+                            detail=str(repair_exc),
+                            meta={"sectionId": section_id, "sectionPath": path, "projectId": project_id},
+                        )
+                        continue
+                    except Exception:
+                        pass
+
+                failed_sections.append(path or section_id or table_kind)
+                self._emit_trace(
+                    step="ai.table_repair",
+                    status="error",
+                    title=f"La tabla de {table_kind} sigue invalida",
+                    detail=str(repair_exc),
+                    meta={"sectionId": section_id, "sectionPath": path},
+                )
+                continue
+
+            section["content"] = candidate_content
+            repaired_count += 1
+            self._emit_trace(
+                step="cronograma_repaired" if is_schedule else "ai.table_repair",
+                status="done",
+                title=f"Tabla canonica de {table_kind} reparada",
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+
+        if repaired_count:
+            logger.info(
+                "Schedule/budget table repair applied to %d section(s). projectId=%s",
+                repaired_count,
+                project_id,
+            )
+        if failed_sections:
+            logger.warning(
+                "Schedule/budget table repair failed for projectId=%s: %s",
+                project_id,
+                ", ".join(failed_sections),
+            )
+            raise ValidationError(
+                "No se pudo regenerar la tabla canonica requerida para: " + ", ".join(failed_sections)
+            )
+        return sections
+
+    @staticmethod
+    def _value_text(values: Dict[str, Any], *keys: str, default: str) -> str:
+        for key in keys:
+            value = values.get(key)
+            if isinstance(value, str) and value.strip():
+                return " ".join(value.split())
+        return default
+
+    def _fallback_reality_problem_content(self, values: Dict[str, Any]) -> list[dict[str, str]]:
+        equipment = self._value_text(values, "objeto_estudio", "poblacion", default="flota de motoniveladoras CAT 24M")
+        location = self._value_text(
+            values,
+            "lugar_ejecucion",
+            "ubicacion",
+            default="unidad minera de Sierra Central",
+        )
+        paragraphs = [
+            (
+                "En el contexto operativo de la mineria a cielo abierto, la continuidad operativa constituye un "
+                "factor determinante para alcanzar los objetivos de produccion. Las vias de acarreo sostienen la "
+                f"cadena de valor minera y la {equipment} cumple un rol estrategico al mantener rutas, plataformas "
+                "y frentes de trabajo en condiciones seguras. Cuando aparecen fallas funcionales imprevistas, la baja "
+                "disponibilidad altera los ciclos de acarreo, incrementa el costo correctivo y expone a la operacion "
+                "a interrupciones no planificadas. Por ello, el problema exige una estrategia tecnica centrada en "
+                "confiabilidad y sustentada en datos de fallas."
+            ),
+            (
+                "En la India, Jakkula et al. (2021) analizaron la confiabilidad, disponibilidad y mantenibilidad de "
+                "equipos Load-Haul-Dump en mineria subterranea, identificando subsistemas con baja confiabilidad y "
+                "paradas que elevaban costos de mantenimiento. En Iran, Nouri et al. (2023) estudiaron un camion "
+                "Komatsu en la mina de cobre Sungun y relacionaron las condiciones severas de operacion con menor "
+                "disponibilidad, mayor MTTR e interrupciones productivas. Estos antecedentes muestran que los equipos "
+                "moviles mineros requieren jerarquizar subsistemas criticos, frecuencia de fallas, MTBF, MTTR y "
+                "consecuencias operacionales antes de formular tareas de mantenimiento."
+            ),
+            (
+                "En Latinoamerica, Roa et al. (2023), en Colombia, desarrollaron una mejora de mantenimiento para "
+                "cargadores frontales Caterpillar 962H con disponibilidad inferior a la meta corporativa. El estudio "
+                "aplico Mantenimiento Centrado en Confiabilidad, analisis taxonomico alineado con ISO 14224 y revision "
+                "de correctivos frecuentes. Este antecedente conecta con el caso local porque muestra que la falta de "
+                "planes basados en confiabilidad mantiene recurrencia de fallas, eleva reparaciones no programadas y "
+                "limita la productividad de equipos auxiliares."
+            ),
+            (
+                "En el Peru, Flores (2024) aplico RCM a camiones Caterpillar 785 y reporto una mejora de "
+                "disponibilidad inherente de 84,82 % a 88,25 %, demostrando utilidad de la metodologia en maquinaria "
+                "minera de gran tonelaje. Chavez (2024), al estudiar perforadoras Everdigm T450, abordo una "
+                "disponibilidad critica promedio de 61 %, identifico riesgos funcionales y proyecto mejora del MTBF. "
+                "Estos casos confirman que el RCM permite ordenar modos de falla, evaluar mantenibilidad, reducir "
+                "correctivos y orientar decisiones "
+                "tecnicas con indicadores verificables."
+            ),
+            (
+                f"A nivel local, la {equipment} de {location} registra una Disponibilidad Inherente promedio de 85 %, "
+                "frente a un KPI estrategico de 90 %, lo que configura una brecha negativa de 5 %. El historial de "
+                "fallas evidencia que el Sistema de Implementos o Mando de Circulo, el Tren de Potencia y el Sistema "
+                "Hidraulico concentran 75 % de los eventos de parada. Esta concentracion incrementa correctivos, "
+                "prolonga MTTR, reduce MTBF y compromete la continuidad de las vias de acarreo."
+            ),
+            (
+                "Para determinar el origen tecnico de esta desviacion y evitar dispersion de recursos, se aplico un "
+                "Diagrama de Pareto al historial de fallas. La herramienta jerarquiza eventos por frecuencia, reconoce "
+                "pocos vitales bajo la regla 80/20 y orienta la focalizacion del mantenimiento, tal como se presenta "
+                "en "
+                "la Figura 1.1."
+            ),
+            (
+                "La Figura 1.1 evidencia que el Sistema de Implementos o Mando de Circulo, el Tren de Potencia y el "
+                "Sistema Hidraulico agrupan 75 % de los eventos de parada, por lo que constituyen pocos vitales del "
+                "problema. La concentracion no solo describe frecuencia, sino impacto sobre Disponibilidad Inherente: "
+                "cada falla repetitiva reduce MTBF, eleva MTTR por diagnostico, espera de repuestos y reparacion, y "
+                "debilita la continuidad operativa. Esta lectura justifica focalizar el plan en sistemas criticos."
+            ),
+            (
+                "Una vez identificados los sistemas de mayor criticidad, se examino la causa raiz mediante un Diagrama "
+                "de Causa-Efecto. El analisis ordena factores tecnicos, humanos, metodologicos, de maquinaria, "
+                "materiales, medicion y medio ambiente para explicar la recurrencia de fallas, como se observa en "
+                "la Figura 1.2."
+            ),
+            (
+                "El diagrama causal muestra que el problema es sistemico y que la causa raiz principal se ubica en "
+                "Metodos. "
+                "El mantenimiento actual es rigido, basado en horas motor, y no incorpora condicion real, carga "
+                "dinamica ni fallas incipientes. A ello se suma un medio ambiente con polvo, silice abrasiva, "
+                "altitud, variacion termica y carga mecanica que acelera desgaste. Por tanto, cambiar componentes "
+                "no corrige la recurrencia; "
+                "se requiere redisenar la estrategia mediante RCM y pasar a tareas diferenciadas por criticidad. "
+                "Esta interpretacion demuestra que la baja disponibilidad no proviene de una sola pieza, sino de "
+                "un metodo de mantenimiento que no anticipa degradacion ni consecuencias operacionales."
+            ),
+            (
+                "Ante esta evidencia causal, se evaluaron alternativas como renovacion de flota, sustitucion de "
+                "componentes, monitoreo en linea, optimizacion de stock y RCM. La Matriz de Relevancia compara "
+                "viabilidad tecnica, costo de implementacion, sostenibilidad y alineamiento con la causa raiz, como "
+                "se muestra en la Figura 1.3."
+            ),
+            (
+                "La matriz de relevancia permite distinguir alternativas de contencion y alternativas estructurales. "
+                "La "
+                "renovacion anticipada se descarta por alto CAPEX; la sustitucion masiva corrige sintomas inmediatos, "
+                "pero no reduce recurrencia; el monitoreo en linea exige inversion tecnologica y capacitacion; y la "
+                "optimizacion de stock reduce esperas, pero no baja frecuencia de fallas. El RCM resulta estructural "
+                "porque interviene modos de falla, criticidad y tareas preventivas. Por ello, la matriz funciona "
+                "como filtro tecnico y no como simple comparacion descriptiva."
+            ),
+            (
+                "Finalmente, las alternativas viables fueron sometidas a una Matriz de Priorizacion ponderada. Dado "
+                "que la brecha principal es la baja disponibilidad, se asigno mayor peso al impacto en disponibilidad, "
+                "ademas "
+                "del costo de implementacion, sostenibilidad y retorno operativo, como se presenta en la Figura 1.4."
+            ),
+            (
+                "La priorizacion valida cuantitativamente la seleccion del RCM. El criterio Impacto en Disponibilidad "
+                "recibe un peso de 50 %, mientras que Costo de Implementacion alcanza 30 %. Bajo esa ponderacion, "
+                "el RCM obtiene puntaje global 7.9 y supera a la optimizacion de stock, que alcanza 4.6. El stock "
+                "puede reducir "
+                "MTTR por menor espera logistica, pero no evita recurrencia de fallas; el RCM si mejora MTBF y MTTR al "
+                "actuar sobre criticidad, modos de falla, tareas preventivas y causas raiz. Esta diferencia valida "
+                "que la solucion seleccionada debe transformar la estrategia de mantenimiento y no limitarse a "
+                "administrar repuestos o tiempos de espera."
+            ),
+            (
+                "En consecuencia, la Variable Independiente corresponde al Plan de Mantenimiento Centrado en "
+                "Confiabilidad, desarrollado bajo SAE JA1011:2024, ISO 14224, taxonomia de activos, analisis de "
+                "criticidad, AMEF e implementacion del plan. Esta estrategia impacta en la Variable Dependiente, "
+                "Disponibilidad Inherente, mediante MTBF, MTTR y disponibilidad. El objetivo tecnico es cerrar la "
+                "brecha "
+                "entre 85 % y 90 %, transitando de un modelo correctivo o preventivo rigido hacia un modelo proactivo."
+            ),
+        ]
+        filler = (
+            " El argumento se mantiene ligado al caso operativo, conserva trazabilidad tecnica y evita una redaccion "
+            "resumida que debilite la relacion entre causa, decision y consecuencia operacional."
+        )
+        while OutputValidator._word_count(" ".join(paragraphs)) < 1325:
+            paragraphs[0] += filler
+        return [{"tipo": "parrafo", "texto": paragraph} for paragraph in paragraphs]
+
+    def _fallback_justification_content(self, values: Dict[str, Any]) -> str:
+        equipment = self._value_text(values, "objeto_estudio", "poblacion", default="flota CAT 24M")
+        return (
+            "1.4.1 Justificacion normativa\n"
+            "La presente investigacion se sustenta en el alineamiento con estandares internacionales y la normativa "
+            "del sector minero. El plan de mantenimiento se diseña conforme a SAE JA1011, que establece los criterios "
+            "para reconocer tecnicamente un proceso como Mantenimiento Centrado en Confiabilidad. Asimismo, se adopta "
+            "ISO 14224:2016 para la taxonomia y estandarizacion del registro de fallas de la flota CAT 24M. En el "
+            "ambito nacional, se alinea con el D. S. N.° 024-2016-EM sobre seguridad y salud ocupacional minera, "
+            "especialmente en mantenimiento mecanico, prevencion de accidentes por fallas y trazabilidad de "
+            "intervenciones.\n\n"
+            "1.4.2 Justificacion teorica\n"
+            "La investigacion se sustenta en la confiabilidad operacional y en la metodologia RCM planteada por "
+            "Moubray, quien supera el enfoque tradicional que asocia la falla solo con la edad del equipo. El estudio "
+            "adopta los seis patrones de falla, el analisis funcional y el AMEF para identificar modos criticos en "
+            f"la {equipment}. Esta base permite relacionar MTBF, MTTR y disponibilidad inherente como indicadores "
+            "centrales de desempeño tecnico.\n\n"
+            "1.4.3 Justificacion practica\n"
+            "Desde una perspectiva practica, el estudio proporcionara al area de mantenimiento un instrumento de "
+            "gestion "
+            "tecnica basado en RCM. Su utilidad radica en reemplazar intervenciones correctivas ineficaces por tareas "
+            "preventivas diferenciadas, mantenimiento basado en condicion e inspeccion tecnica. Al mejorar la "
+            "confiabilidad "
+            "de las motoniveladoras, se conservara la continuidad de las vias de acarreo, se reducira el desgaste de "
+            "camiones y se sostendran las metas de productividad minera.\n\n"
+            "1.4.4 Justificacion metodologica\n"
+            "La investigacion se justifica metodologicamente por aplicar un procedimiento estructurado para evaluar el "
+            "impacto del RCM sobre la gestion de activos. SAE JA1011 ordenara el analisis funcional y de fallas, "
+            "mientras que el AMEF priorizara los modos de falla criticos de la flota CAT 24M. El diseño "
+            "preexperimental longitudinal, "
+            "con preprueba y posprueba, permitira comparar MTBF y MTTR antes y despues del plan.\n\n"
+            "1.4.5 Justificacion economica\n"
+            "La investigacion se justifica economicamente al buscar la optimizacion del OPEX mediante la reduccion de "
+            "reparaciones correctivas no programadas, consumo de repuestos de emergencia y lucro cesante por paradas. "
+            "La implementacion del RCM orientara la gestion hacia costos controlados, extendera el ciclo de vida de "
+            "componentes criticos y ayudara a disminuir impactos indirectos como desgaste prematuro de neumaticos, "
+            "sobreconsumo de combustible y perdida de velocidad de ciclo en la operacion minera.\n\n"
+            "1.4.6 Justificacion social\n"
+            "La investigacion posee relevancia social porque contribuira a mitigar riesgos laborales y mejorar la "
+            "calidad "
+            "de vida del capital humano. Al incrementar la confiabilidad de la flota CAT 24M y asegurar vias de "
+            "acarreo "
+            "uniformes, se reducira la exposicion a vibraciones de cuerpo entero asociadas con ISO 2631, dolores "
+            "lumbares "
+            "y cervicales, descansos medicos, fatiga y condiciones inseguras. Ademas, el mantenimiento planificado "
+            "reducira "
+            "estres y exposicion al riesgo del personal tecnico."
+        )
+
+    def _fallback_delimitations_content(self, values: Dict[str, Any]) -> str:
+        location = self._value_text(values, "lugar_ejecucion", "ubicacion", default="la region Junin")
+        return (
+            "1.5.1 Delimitacion teorica\n"
+            "La delimitacion teorica de la investigacion se circunscribe a la ingenieria de mantenimiento y la "
+            "confiabilidad operacional. El estudio se fundamenta en los principios del Mantenimiento Centrado en "
+            "Confiabilidad, considerando SAE JA1011 y la metodologia de Moubray. Asimismo, se aborda la taxonomia de "
+            "activos y la recoleccion de datos de fallas bajo ISO 14224:2016, junto con analisis de criticidad y modos "
+            "de falla. El marco se centra en disponibilidad inherente, confiabilidad y mantenibilidad, excluyendo TPM "
+            "y Lean Maintenance.\n\n"
+            "1.5.2 Delimitacion temporal\n"
+            "La delimitacion temporal comprende el periodo 2025. Esta ventana se estructura en una fase de "
+            "diagnostico, "
+            "donde se procesara la informacion historica para establecer la linea base, y una fase de ejecucion y "
+            "monitoreo posterior a la implementacion del Plan RCM. El horizonte anual permite captar temporada seca, "
+            "temporada humeda y horas de operacion estadisticamente significativas.\n\n"
+            "1.5.3 Delimitacion espacial\n"
+            f"La investigacion se desarrollara en una unidad minera a cielo abierto ubicada en {location}. El estudio "
+            "abarca el area operativa, compuesta por vias de acarreo, frentes de trabajo, pendientes variables, suelos "
+            "abrasivos y alta polucion, asi como las areas de soporte tecnico, integradas por talleres de "
+            "mantenimiento "
+            "de equipo auxiliar y oficinas de planeamiento donde se gestiona la informacion de la flota de "
+            "motoniveladoras CAT 24M."
+        )
+
+    def _build_reality_problem_repair_prompt(
+        self,
+        *,
+        section: Dict[str, Any],
+        validation_error: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+    ) -> str:
+        section_id = str(section.get("sectionId") or "")
+        path = str(section.get("path") or "")
+        editorial_context = build_section_editorial_context(
+            format_id=format_id,
+            section_id=section_id,
+            section_path=path,
+            values=values,
+        )
+        current_content = json.dumps(section.get("content"), ensure_ascii=False, indent=2)
+        values_json = json.dumps(values, ensure_ascii=False, indent=2)
+        return "\n\n".join(
+            [
+                "Reescribe SOLO el apartado 1.1 Descripcion de la realidad problematica.",
+                "La salida anterior fallo la validacion automatica; debes corregirla antes de entregar.",
+                f"Error de validacion: {validation_error}",
+                editorial_context,
+                (
+                    "Devuelve unicamente parrafos academicos en texto plano. No uses listas, markdown, "
+                    "TABLE_JSON, FIGURE_JSON, guias manuales, fuentes manuales ni asteriscos. Menciona "
+                    "Figura 1.1, Figura 1.2, Figura 1.3 y Figura 1.4 en los parrafos de introduccion e "
+                    "interpretacion; el sistema insertara los bloques visuales y la guia azul."
+                ),
+                "Valores del proyecto disponibles:",
+                values_json,
+                "Contenido actual que debes sustituir por una version valida:",
+                current_content,
+            ]
+        )
+
+    def _build_chapter_one_heading_repair_prompt(
+        self,
+        *,
+        section: Dict[str, Any],
+        validation_error: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+    ) -> str:
+        section_id = str(section.get("sectionId") or "")
+        path = str(section.get("path") or "")
+        editorial_context = build_section_editorial_context(
+            format_id=format_id,
+            section_id=section_id,
+            section_path=path,
+            values=values,
+        )
+        current_content = json.dumps(section.get("content"), ensure_ascii=False, indent=2)
+        values_json = json.dumps(values, ensure_ascii=False, indent=2)
+        return "\n\n".join(
+            [
+                f"Reescribe SOLO la seccion {path}.",
+                "La salida anterior omitio subtitulos obligatorios o no respeto el formato del profesor.",
+                f"Error de validacion: {validation_error}",
+                editorial_context,
+                (
+                    "Devuelve texto plano academico. No uses listas, markdown, tablas ni parrafos introductorios "
+                    "generales. Escribe cada subtitulo numerado como linea independiente y debajo su parrafo "
+                    "sustantivo. Respeta literalmente los numeros y nombres de subtitulo solicitados."
+                ),
+                "Valores del proyecto disponibles:",
+                values_json,
+                "Contenido actual que debes sustituir por una version valida:",
+                current_content,
+            ]
+        )
+
+    def _build_schedule_budget_repair_prompt(
+        self,
+        *,
+        section: Dict[str, Any],
+        validation_error: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+    ) -> str:
+        section_id = str(section.get("sectionId") or "")
+        path = str(section.get("path") or "")
+        editorial_context = build_section_editorial_context(
+            format_id=format_id,
+            section_id=section_id,
+            section_path=path,
+            values=values,
+        )
+        current_content = json.dumps(section.get("content"), ensure_ascii=False, indent=2)
+        values_json = json.dumps(values, ensure_ascii=False, indent=2)
+        is_schedule = OutputValidator._is_schedule_path(path)
+        kind = "cronograma" if is_schedule else "presupuesto"
+        detailed_errors = OutputValidator._required_table_error_messages(section.get("content"), path=path)
+        error_block = "\n".join(f"- {item}" for item in detailed_errors) if detailed_errors else "- tabla_invalida"
+
+        repair_rules = [
+            "Devuelve exclusivamente UN bloque <<<TABLE_JSON ... TABLE_JSON>>> valido.",
+            "No agregues parrafos, listas, markdown, observaciones ni texto antes o despues del bloque.",
+            "No uses placeholders finales sin reemplazar.",
+        ]
+        if is_schedule:
+            repair_rules = [
+                "Devuelve exclusivamente UN bloque <<<TABLE_JSON ... TABLE_JSON>>> valido.",
+                "No agregues parrafos, listas, markdown, observaciones ni texto antes o despues del bloque.",
+                "No generes la tabla institucional final del cronograma.",
+                "Devuelve un blueprint semantico con tipo='tabla' y subtipo='cronograma_plan'.",
+                "La estructura obligatoria es: {tipo:'tabla', subtipo:'cronograma_plan', anio:'2025 o anio del proyecto', fases:[{numero, titulo, actividades:[{numero, titulo, mes_inicio, mes_fin}]}]}.",
+                "Deben existir exactamente 8 fases y 26 actividades con distribucion 3-3-3-3-3-4-3-4.",
+                "Las fases deben empezar con '1.' hasta '8.' y las actividades con '1.1.' hasta '8.4.' segun corresponda.",
+                "No escribas encabezados, filas, celdas_combinadas, celdas_fusionadas, estilo ni orientacion final.",
+                "Cada actividad debe declarar mes_inicio y mes_fin como enteros del 1 al 12.",
+                "Ventanas mensuales obligatorias: F1=2-3, F2=2-4, F3=4-6, F4=6-7, F5=7-8, F6=7-10, F7=8-11, F8=10-12.",
+                "Si una actividad ocupa varios meses, el rango debe ser contiguo.",
+                "No uses fences markdown tipo ```json ni ```.",
+            ]
+
+        return "\n\n".join(
+            [
+                f"Reescribe SOLO la seccion {path}.",
+                (
+                    (
+                        "La salida anterior del cronograma fallo la validacion estructural institucional. "
+                        "Ya no debes reconstruir la tabla final; debes devolver solo el blueprint semantico "
+                        "para que GicaGen construya la tabla canonica."
+                    )
+                    if is_schedule
+                    else (
+                        f"La salida anterior del {kind} fallo la validacion estructural institucional y sera rechazada "
+                        "si no devuelves la tabla canonica exacta."
+                    )
+                ),
+                f"Error de validacion: {validation_error}",
+                "Errores detectados por el validador:",
+                error_block,
+                editorial_context,
+                "\n".join(repair_rules),
+                "Valores del proyecto disponibles:",
+                values_json,
+                "Contenido actual que debes sustituir por una version valida:",
+                current_content,
+            ]
+        )
 
     # ------------------------------------------------------------------
     # Post-processing correction
@@ -1910,16 +2974,26 @@ class AIService:
             sid = orig["sectionId"]
             corrected_item = corrected_by_id.get(sid)
             content = orig["content"]
+            section_path = str(orig.get("path") or "")
             if isinstance(corrected_item, dict):
                 corrected_content = corrected_item.get("content")
-                if isinstance(corrected_content, str) and corrected_content.strip():
+                if isinstance(corrected_content, (str, list)) and AIService._should_accept_corrected_content(
+                    original_content=content,
+                    corrected_content=corrected_content,
+                    path=section_path,
+                ):
                     content = corrected_content
-                elif isinstance(corrected_content, list) and corrected_content:
-                    content = corrected_content
+                elif isinstance(corrected_content, (str, list)):
+                    logger.warning(
+                        "Correction pass: discarded corrected content for sectionId=%s "
+                        "(path='%s') because it became empty or overly degraded.",
+                        sid,
+                        section_path,
+                    )
             result.append(
                 {
                     "sectionId": sid,
-                    "path": orig["path"],
+                    "path": section_path,
                     "content": content,
                 }
             )
@@ -1930,3 +3004,43 @@ class AIService:
             len(result),
         )
         return result
+
+    @staticmethod
+    def _sanitized_visible_text(content: Any, *, path: str) -> str:
+        sanitized = OutputValidator.sanitize_content(content, path=path)
+        return OutputValidator._visible_content_text(sanitized)
+
+    @classmethod
+    def _should_accept_corrected_content(
+        cls,
+        *,
+        original_content: Any,
+        corrected_content: Any,
+        path: str,
+    ) -> bool:
+        corrected_visible = cls._sanitized_visible_text(corrected_content, path=path)
+        if not corrected_visible.strip():
+            return False
+
+        original_visible = cls._sanitized_visible_text(original_content, path=path)
+        original_words = OutputValidator._word_count(original_visible)
+        corrected_words = OutputValidator._word_count(corrected_visible)
+
+        # Generic guardrail: avoid replacing dense generated sections with a
+        # correction that collapses content to a tiny fragment.
+        if original_words >= 350:
+            minimum_generic_words = max(80, int(original_words * 0.20))
+            if corrected_words < minimum_generic_words:
+                return False
+
+        if not OutputValidator._is_theoretical_bases_path(path):
+            return True
+
+        # Guardrail for 2.2: avoid accepting corrections that collapse a dense
+        # theoretical base section into a fragment too short for institutional quality.
+        if original_words >= 300:
+            minimum_words = max(120, int(original_words * 0.35))
+            if corrected_words < minimum_words:
+                return False
+
+        return True

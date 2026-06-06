@@ -21,6 +21,8 @@ class TestMistralClient:
         mock_settings.MISTRAL_MODEL = "mistral-medium-2505"
         mock_settings.MISTRAL_TEMPERATURE = 0.7
         mock_settings.MISTRAL_MAX_TOKENS = 2048
+        mock_settings.MISTRAL_TIMEOUT_SECONDS = 120
+        mock_settings.MISTRAL_CONNECT_TIMEOUT_SECONDS = 10
         mock_settings.MISTRAL_RETRY_MAX = 2
         mock_settings.MISTRAL_RETRY_BACKOFF = 0.01
 
@@ -46,6 +48,7 @@ class TestMistralClient:
         result = client.generate("Prompt de prueba")
 
         assert result == "Texto generado por Mistral."
+        assert mock_session.post.call_args.kwargs.get("timeout") == (10.0, 120.0)
 
     @patch("app.core.services.ai.mistral_client.settings")
     def test_generate_429_raises_quota_error(self, mock_settings):
@@ -54,6 +57,8 @@ class TestMistralClient:
         mock_settings.MISTRAL_MODEL = "mistral-medium-2505"
         mock_settings.MISTRAL_TEMPERATURE = 0.7
         mock_settings.MISTRAL_MAX_TOKENS = 2048
+        mock_settings.MISTRAL_TIMEOUT_SECONDS = 120
+        mock_settings.MISTRAL_CONNECT_TIMEOUT_SECONDS = 10
         mock_settings.MISTRAL_RETRY_MAX = 1
         mock_settings.MISTRAL_RETRY_BACKOFF = 0.01
 
@@ -84,6 +89,8 @@ class TestMistralClient:
         mock_settings.MISTRAL_MODEL = "mistral-medium-2505"
         mock_settings.MISTRAL_TEMPERATURE = 0.7
         mock_settings.MISTRAL_MAX_TOKENS = 2048
+        mock_settings.MISTRAL_TIMEOUT_SECONDS = 120
+        mock_settings.MISTRAL_CONNECT_TIMEOUT_SECONDS = 10
         mock_settings.MISTRAL_RETRY_MAX = 1
         mock_settings.MISTRAL_RETRY_BACKOFF = 0.01
 
@@ -119,3 +126,38 @@ class TestMistralClient:
         result = client.probe()
 
         assert result["status"] == "EXHAUSTED"
+
+    @patch("app.core.services.ai.mistral_client.settings")
+    def test_generate_timeout_override(self, mock_settings):
+        mock_settings.MISTRAL_API_KEY = "mistral-key"
+        mock_settings.MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
+        mock_settings.MISTRAL_MODEL = "mistral-medium-2505"
+        mock_settings.MISTRAL_TEMPERATURE = 0.7
+        mock_settings.MISTRAL_MAX_TOKENS = 2048
+        mock_settings.MISTRAL_TIMEOUT_SECONDS = 120
+        mock_settings.MISTRAL_CONNECT_TIMEOUT_SECONDS = 10
+        mock_settings.MISTRAL_RETRY_MAX = 1
+        mock_settings.MISTRAL_RETRY_BACKOFF = 0.01
+
+        response = MagicMock()
+        response.status_code = 200
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "OK.",
+                    }
+                }
+            ]
+        }
+
+        mock_session = MagicMock()
+        mock_session.post.return_value = response
+
+        client = MistralClient()
+        client._session = mock_session
+        result = client.generate("Prompt de prueba", timeout=95)
+
+        assert result == "OK."
+        assert mock_session.post.call_args.kwargs.get("timeout") == (10.0, 95.0)

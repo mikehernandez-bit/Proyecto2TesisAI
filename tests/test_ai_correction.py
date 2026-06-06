@@ -56,6 +56,57 @@ def test_parse_corrected_json_ignores_invalid_content_type():
     assert out == original
 
 
+def test_parse_corrected_json_keeps_original_when_corrected_content_sanitizes_empty():
+    original = [
+        {
+            "sectionId": "sec-0010",
+            "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+            "content": "Texto teorico original suficientemente amplio para conservarse.",
+        }
+    ]
+    raw = json.dumps(
+        {
+            "sections": [
+                {
+                    "sectionId": "sec-0010",
+                    "content": (
+                        "<<<FORMULA_JSON\n"
+                        "{\"tipo\":\"formula\",\"texto\":\"NPR = S x O x D\"}\n"
+                        "FORMULA_JSON>>>"
+                    ),
+                }
+            ]
+        }
+    )
+
+    out = AIService._parse_corrected_json(raw, original, "proj-4")
+    assert out == original
+
+
+def test_parse_corrected_json_keeps_dense_theoretical_bases_when_correction_collapses():
+    original_text = " ".join(["fundamento"] * 420)
+    original = [
+        {
+            "sectionId": "sec-0010",
+            "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+            "content": original_text,
+        }
+    ]
+    raw = json.dumps(
+        {
+            "sections": [
+                {
+                    "sectionId": "sec-0010",
+                    "content": " ".join(["resumen"] * 40),
+                }
+            ]
+        }
+    )
+
+    out = AIService._parse_corrected_json(raw, original, "proj-5")
+    assert out == original
+
+
 def test_build_correction_prompt_replaces_markers(tmp_path):
     prompt_template = (
         "FORMAT_JSON:\\n<<<FORMAT_JSON>>>\\n"

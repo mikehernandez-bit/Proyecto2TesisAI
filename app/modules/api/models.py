@@ -297,11 +297,11 @@ class N8NCallbackIn(BaseModel):
 class ProviderSelectIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
-    provider: str = Field(default="gemini")
+    provider: str = Field(default="mistral")
     model: Optional[str] = None
     fallback_provider: Optional[str] = None
     fallback_model: Optional[str] = None
-    mode: str = Field(default="auto")
+    mode: str = Field(default="fixed")
     project_id: Optional[str] = None
 
     @model_validator(mode="before")

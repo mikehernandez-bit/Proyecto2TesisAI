@@ -15,6 +15,7 @@ import asyncio
 import datetime as dt
 import json
 import logging
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -230,17 +231,108 @@ def _section_selection_key(item: Dict[str, Any]) -> str:
     ).strip()
 
 
+def _normalize_section_label(value: Any) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    ascii_only = "".join(ch for ch in text if not unicodedata.combining(ch)).lower().strip()
+    return " ".join(ascii_only.split())
+
+
+def _is_schedule_or_budget_chapter_name(label: str) -> bool:
+    normalized = _normalize_section_label(label)
+    if not normalized:
+        return False
+    if "cronograma de actividades" in normalized:
+        return True
+    return "presupuesto" in normalized
+
+
+def _canonicalize_schedule_budget_section_path(path: Any) -> str:
+    raw = str(path or "").strip()
+    if not raw:
+        return ""
+    parts = [part.strip() for part in raw.split("/") if part.strip()]
+    if len(parts) <= 1:
+        return raw
+    if _is_schedule_or_budget_chapter_name(parts[0]):
+        return parts[0]
+    return raw
+
+
 def _normalize_selected_section_payload(item: Dict[str, Any]) -> dict[str, Any]:
+    raw_path = str(item.get("section_path") or item.get("sectionPath") or item.get("path") or "").strip()
+    section_path = _canonicalize_schedule_budget_section_path(raw_path)
+    section_title = str(item.get("section_title") or item.get("sectionTitle") or item.get("title") or "")
+    parent_path = str(item.get("parent_section_path") or item.get("parentSectionPath") or "")
+    if section_path and raw_path and section_path != raw_path:
+        section_title = section_path.split("/")[-1]
+        parent_path = ""
     return {
         "section_id": str(item.get("section_id") or item.get("sectionId") or "").strip(),
-        "section_path": str(item.get("section_path") or item.get("sectionPath") or item.get("path") or "").strip(),
-        "section_title": str(item.get("section_title") or item.get("sectionTitle") or item.get("title") or ""),
-        "parent_section_path": str(item.get("parent_section_path") or item.get("parentSectionPath") or ""),
-        "section_level": int(item.get("section_level") or item.get("sectionLevel") or 1),
-        "section_order": int(item.get("section_order") or item.get("sectionOrder") or 0),
+        "section_path": section_path,
+        "path": section_path,
+        "section_title": section_title,
+        "parent_section_path": parent_path,
+        "section_level": _coerce_int(item.get("section_level"), item.get("sectionLevel"), default=1),
+        "section_order": _coerce_int(item.get("section_order"), item.get("sectionOrder"), default=0),
         "optional": bool(item.get("optional")),
         "default_selected": bool(item.get("default_selected", True)),
     }
+
+
+def _canonicalize_selected_sections(
+    selected_sections: list[Dict[str, Any]] | list[str] | None,
+) -> list[Dict[str, Any]] | list[str] | None:
+    if not isinstance(selected_sections, list):
+        return selected_sections
+
+    normalized_items: list[Dict[str, Any]] = []
+    by_path: dict[str, Dict[str, Any]] = {}
+    by_id: dict[str, Dict[str, Any]] = {}
+    passthrough_strings: list[str] = []
+
+    for raw in selected_sections:
+        if isinstance(raw, str):
+            key = _canonicalize_schedule_budget_section_path(raw.strip())
+            if key:
+                passthrough_strings.append(key)
+            continue
+        if not isinstance(raw, dict):
+            continue
+        item = _normalize_selected_section_payload(raw)
+        section_path = str(item.get("section_path") or "").strip()
+        section_id = str(item.get("section_id") or "").strip()
+        if section_path:
+            existing = by_path.get(section_path)
+            if existing is None:
+                by_path[section_path] = item
+                normalized_items.append(item)
+            else:
+                existing["default_selected"] = bool(existing.get("default_selected", True)) or bool(
+                    item.get("default_selected", True)
+                )
+                existing["optional"] = bool(existing.get("optional")) and bool(item.get("optional"))
+                existing["section_order"] = min(
+                    _coerce_int(existing.get("section_order"), default=0),
+                    _coerce_int(item.get("section_order"), default=0),
+                )
+                if not str(existing.get("section_title") or "").strip():
+                    existing["section_title"] = str(item.get("section_title") or "").strip()
+            continue
+        if section_id and section_id not in by_id:
+            by_id[section_id] = item
+            normalized_items.append(item)
+
+    if normalized_items:
+        return normalized_items
+
+    deduped_strings: list[str] = []
+    seen: set[str] = set()
+    for key in passthrough_strings:
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped_strings.append(key)
+    return deduped_strings
 
 
 def _collect_concrete_default_sections(node: Dict[str, Any], result: Dict[str, Dict[str, Any]]) -> None:
@@ -325,15 +417,131 @@ def _resolve_project_selected_sections(
     # Si el proyecto tiene una lista de secciones definidas (resultado del Paso 2), la usamos directamente.
     # No verificamos 'if explicit_selected' porque una lista vacía [] es una selección válida (nada).
     if isinstance(project.get("selected_sections"), list):
-        return project["selected_sections"]
+        normalized = _canonicalize_selected_sections(project["selected_sections"])
+        return normalized if isinstance(normalized, list) else []
 
     # Solo inferimos o usamos defaults si no hay rastro de selección previa.
     ai_result = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else None
     inferred = generation_planner.infer_selected_sections_from_ai_result(ai_result)
     if inferred:
-        return inferred
+        normalized = _canonicalize_selected_sections(inferred)
+        return normalized if isinstance(normalized, list) else []
 
-    return _default_selected_sections_from_package(prompt_snapshot)
+    defaults = _default_selected_sections_from_package(prompt_snapshot)
+    normalized = _canonicalize_selected_sections(defaults)
+    return normalized if isinstance(normalized, list) else []
+
+
+_OBSOLETE_SCHEDULE_PROMPT_MARKERS = (
+    "la carcasa fisica es innegociable",
+    "13 columnas, 35 filas",
+    "celdas_combinadas y celdas_fusionadas son obligatorias",
+)
+
+
+def _is_obsolete_schedule_prompt_block(block: Any) -> bool:
+    if not isinstance(block, dict):
+        return False
+    instructions = " ".join(str(block.get("instructions") or "").lower().split())
+    if not instructions:
+        return False
+    return all(marker in instructions for marker in _OBSOLETE_SCHEDULE_PROMPT_MARKERS)
+
+
+def _refresh_schedule_prompt_snapshot_block(
+    prompt_snapshot: Dict[str, Any] | None,
+    *,
+    format_id: str,
+    format_detail: Optional[Dict[str, Any]] = None,
+) -> tuple[Dict[str, Any] | None, bool]:
+    if not isinstance(prompt_snapshot, dict):
+        return prompt_snapshot, False
+
+    sections = prompt_snapshot.get("sections")
+    if not isinstance(sections, list):
+        return prompt_snapshot, False
+
+    stale_index = -1
+    for index, section in enumerate(sections):
+        if not isinstance(section, dict):
+            continue
+        path = str(section.get("section_path") or section.get("path") or "").strip()
+        if _canonicalize_schedule_budget_section_path(path) != "V. CRONOGRAMA DE ACTIVIDADES":
+            continue
+        blocks = section.get("blocks")
+        if isinstance(blocks, list) and any(_is_obsolete_schedule_prompt_block(block) for block in blocks):
+            stale_index = index
+            break
+    if stale_index < 0:
+        return prompt_snapshot, False
+
+    fresh_prompt = prompts.get_prompt_by_format(format_id, format_detail=format_detail) if format_id else None
+    if not isinstance(fresh_prompt, dict):
+        return prompt_snapshot, False
+    fresh_sections = fresh_prompt.get("sections")
+    if not isinstance(fresh_sections, list):
+        return prompt_snapshot, False
+    fresh_schedule_section = next(
+        (
+            dict(section)
+            for section in fresh_sections
+            if isinstance(section, dict)
+            and _canonicalize_schedule_budget_section_path(
+                section.get("section_path") or section.get("path") or ""
+            )
+            == "V. CRONOGRAMA DE ACTIVIDADES"
+        ),
+        None,
+    )
+    if not isinstance(fresh_schedule_section, dict):
+        return prompt_snapshot, False
+
+    updated_snapshot = dict(prompt_snapshot)
+    updated_sections = [dict(section) for section in sections if isinstance(section, dict)]
+    updated_sections[stale_index] = fresh_schedule_section
+    updated_snapshot["sections"] = updated_sections
+    return updated_snapshot, True
+
+
+def _clear_schedule_generation_state(project: Dict[str, Any]) -> Dict[str, Any]:
+    updates: Dict[str, Any] = {}
+    schedule_path = "V. CRONOGRAMA DE ACTIVIDADES"
+
+    ai_result = project.get("ai_result")
+    if isinstance(ai_result, dict) and isinstance(ai_result.get("sections"), list):
+        filtered_ai_sections = [
+            section
+            for section in ai_result["sections"]
+            if _canonicalize_schedule_budget_section_path(section.get("path") or "") != schedule_path
+        ]
+        if len(filtered_ai_sections) != len(ai_result["sections"]):
+            updated_ai_result = dict(ai_result)
+            updated_ai_result["sections"] = filtered_ai_sections
+            updates["ai_result"] = updated_ai_result
+
+    generation_phase = project.get("generation_phase")
+    if isinstance(generation_phase, dict) and isinstance(generation_phase.get("sections"), list):
+        filtered_phase_sections = [
+            section
+            for section in generation_phase["sections"]
+            if _canonicalize_schedule_budget_section_path(section.get("section_path") or section.get("path") or "")
+            != schedule_path
+        ]
+        if len(filtered_phase_sections) != len(generation_phase["sections"]):
+            updated_phase = dict(generation_phase)
+            updated_phase["sections"] = filtered_phase_sections
+            updated_phase["completed_sections"] = max(0, len(filtered_phase_sections))
+            if filtered_phase_sections:
+                updated_phase["current_section_id"] = str(filtered_phase_sections[-1].get("section_id") or "")
+                updated_phase["current_section_path"] = str(
+                    filtered_phase_sections[-1].get("section_path") or filtered_phase_sections[-1].get("path") or ""
+                )
+            else:
+                updated_phase["current_section_id"] = ""
+                updated_phase["current_section_path"] = ""
+            updates["generation_phase"] = updated_phase
+
+    return updates
 
 
 _CONSTRUCTION_TASK_SPECS = (
@@ -466,6 +674,17 @@ def _section_level_from_path(path: str) -> int:
     return max(1, len(parts))
 
 
+def _coerce_int(*values: Any, default: int = 0) -> int:
+    for value in values:
+        if value in (None, ""):
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return int(default)
+
+
 def _usage_source_label(attempts: list[Dict[str, Any]]) -> str:
     if not attempts:
         return ""
@@ -576,6 +795,7 @@ def _upsert_generation_section(
     updated = {
         "section_id": section_id or str(current.get("section_id") or ""),
         "section_path": section_path or str(current.get("section_path") or ""),
+        "path": section_path or str(current.get("section_path") or current.get("path") or ""),
         "section_title": str(
             merged_payload.get("section_title")
             or current.get("section_title")
@@ -586,12 +806,20 @@ def _upsert_generation_section(
             or current.get("parent_section_path")
             or _section_parent_path(section_path or current.get("section_path") or "")
         ),
-        "section_level": int(
-            merged_payload.get("section_level")
-            or current.get("section_level")
-            or _section_level_from_path(section_path or current.get("section_path") or "")
+        "section_level": _coerce_int(
+            merged_payload.get("section_level"),
+            current.get("section_level"),
+            _section_level_from_path(section_path or current.get("section_path") or ""),
+            default=1,
+        ),
+        "section_order": _coerce_int(
+            merged_payload.get("section_order"),
+            current.get("section_order"),
+            default=0,
         ),
         "prompt_sent": str(merged_payload.get("prompt_sent") or current.get("prompt_sent") or ""),
+        "prompt_source": str(merged_payload.get("prompt_source") or current.get("prompt_source") or ""),
+        "prompt_block_id": str(merged_payload.get("prompt_block_id") or current.get("prompt_block_id") or ""),
         "ai_output": str(merged_payload.get("ai_output") or current.get("ai_output") or ""),
         "input_tokens": int(merged_payload.get("input_tokens") or current.get("input_tokens") or 0),
         "output_tokens": int(merged_payload.get("output_tokens") or current.get("output_tokens") or 0),
@@ -667,13 +895,17 @@ def _update_generation_phase_for_event(project_id: str, event: Dict[str, Any]) -
                 {
                     "section_id": str(item.get("sectionId") or ""),
                     "section_path": str(item.get("sectionPath") or ""),
+                    "path": str(item.get("sectionPath") or ""),
                     "section_title": _section_title_from_path(str(item.get("sectionPath") or "")),
                     "parent_section_path": str(
                         item.get("sectionParentPath") or _section_parent_path(str(item.get("sectionPath") or ""))
                     ),
-                    "section_level": int(
-                        item.get("sectionLevel") or _section_level_from_path(str(item.get("sectionPath") or ""))
+                    "section_level": _coerce_int(
+                        item.get("sectionLevel"),
+                        _section_level_from_path(str(item.get("sectionPath") or "")),
+                        default=1,
                     ),
+                    "section_order": _coerce_int(item.get("sectionOrder"), default=0),
                 }
                 for item in outline
                 if isinstance(item, dict) and (item.get("sectionId") or item.get("sectionPath"))
@@ -683,13 +915,17 @@ def _update_generation_phase_for_event(project_id: str, event: Dict[str, Any]) -
         section_payload = {
             "section_id": str(meta.get("sectionId") or ""),
             "section_path": str(meta.get("sectionPath") or ""),
+            "path": str(meta.get("sectionPath") or ""),
             "section_title": _section_title_from_path(str(meta.get("sectionPath") or "")),
             "parent_section_path": str(
                 meta.get("sectionParentPath") or _section_parent_path(str(meta.get("sectionPath") or ""))
             ),
-            "section_level": int(
-                meta.get("sectionLevel") or _section_level_from_path(str(meta.get("sectionPath") or ""))
+            "section_level": _coerce_int(
+                meta.get("sectionLevel"),
+                _section_level_from_path(str(meta.get("sectionPath") or "")),
+                default=1,
             ),
+            "section_order": _coerce_int(meta.get("sectionOrder"), default=0),
             "prompt_sent": str(preview.get("prompt") or ""),
             "ai_output": str(preview.get("raw") or ""),
             "model": str(meta.get("model") or ""),
@@ -776,6 +1012,8 @@ def _render_project_outputs_sync(
     format_id: str,
     values: dict[str, Any],
     ai_result_raw: dict[str, Any],
+    generation_phase: dict[str, Any] | None = None,
+    selected_sections: list[dict[str, Any]] | list[str] | None = None,
 ) -> tuple[Path, Path]:
     _set_construction_task(
         project_id,
@@ -809,6 +1047,8 @@ def _render_project_outputs_sync(
             format_id=format_id,
             values=values,
             ai_result_raw=ai_result_raw,
+            generation_phase=generation_phase,
+            selected_sections=selected_sections,
         )
     except RenderPayloadValidationError as exc:
         _set_construction_task(
@@ -1198,7 +1438,8 @@ def providers_select(payload: ProviderSelectIn, projectId: Optional[str] = Query
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
         selected = ai_service.normalize_provider_selection(raw)
-        projects.update_project(str(target_project_id), {"ai_selection": selected})
+        if project.get("ai_selection") != selected:
+            projects.update_project(str(target_project_id), {"ai_selection": selected})
         status_payload = ai_service.providers_status_payload(selection_override=selected)
         status_payload["projectId"] = str(target_project_id)
     else:
@@ -1209,9 +1450,9 @@ def providers_select(payload: ProviderSelectIn, projectId: Optional[str] = Query
     # can confirm what was saved, independent from runtime health filtering.
     status_payload["selected_provider"] = selected.get("provider") or status_payload.get("selected_provider", "")
     status_payload["selected_model"] = selected.get("model") or status_payload.get("selected_model", "")
-    status_payload["fallback_provider"] = selected.get("fallback_provider") or ""
-    status_payload["fallback_model"] = selected.get("fallback_model") or ""
-    status_payload["mode"] = selected.get("mode") or status_payload.get("mode", "auto")
+    status_payload["fallback_provider"] = ""
+    status_payload["fallback_model"] = ""
+    status_payload["mode"] = "fixed"
     status_payload["selection"] = selected
     return status_payload
 
@@ -1428,11 +1669,13 @@ def create_project_draft(payload: Optional[ProjectDraftIn] = None):
         format_id=str(format_id or ""),
         prompt_snapshot=payload.prompt_snapshot,
     )
-    selected_sections = (
-        payload.selected_sections
-        if isinstance(payload.selected_sections, list) and payload.selected_sections
-        else _default_selected_sections_from_package(prompt_snapshot)
-    )
+    if isinstance(payload.selected_sections, list):
+        selected_sections = payload.selected_sections
+    else:
+        selected_sections = _default_selected_sections_from_package(prompt_snapshot)
+    selected_sections = _canonicalize_selected_sections(selected_sections)
+    if not isinstance(selected_sections, list):
+        selected_sections = []
     draft_values = dict(payload.variables or {})
     maestria_details, maestria_values = _maestria_details_and_values(payload.maestria_details)
     if maestria_values:
@@ -1618,7 +1861,7 @@ def update_project(project_id: str, payload: ProjectUpdateIn):
         ),
         "sections": prompt_snapshot.get("sections") if prompt_snapshot else raw.get("sections"),
         "prompt_snapshot": prompt_snapshot,
-        "selected_sections": raw.get("selected_sections"),
+        "selected_sections": _canonicalize_selected_sections(raw.get("selected_sections")),
         "prompt_template": (
             prompt_snapshot.get("template")
             if prompt_snapshot
@@ -1790,6 +2033,11 @@ async def sim_download_docx(projectId: str, runId: Optional[str] = None):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
+    selected_sections = (
+        project.get("selected_sections")
+        if isinstance(project.get("selected_sections"), list)
+        else None
+    )
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -1799,6 +2047,8 @@ async def sim_download_docx(projectId: str, runId: Optional[str] = None):
             format_id=format_id,
             values=values,
             ai_result_raw=ai_result_raw,
+            generation_phase=project.get("generation_phase"),
+            selected_sections=selected_sections,
         )
     except RenderPayloadValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors)
@@ -1891,6 +2141,11 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
+    selected_sections = (
+        project.get("selected_sections")
+        if isinstance(project.get("selected_sections"), list)
+        else None
+    )
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -1900,6 +2155,8 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
             format_id=format_id,
             values=values,
             ai_result_raw=ai_result_raw,
+            generation_phase=project.get("generation_phase"),
+            selected_sections=selected_sections,
         )
     except RenderPayloadValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors)
@@ -2105,6 +2362,20 @@ async def _ai_generation_job(
                     prompt_snapshot=prompt_snapshot,
                     format_detail=format_detail_payload,
                 )
+                prompt_snapshot, snapshot_invalidated = _refresh_schedule_prompt_snapshot_block(
+                    prompt_snapshot,
+                    format_id=format_id,
+                    format_detail=format_detail_payload,
+                )
+                if snapshot_invalidated:
+                    _emit_project_trace(
+                        project_id,
+                        step="cronograma_snapshot_invalidated",
+                        status="warn",
+                        title="Snapshot del cronograma actualizado",
+                        detail="Se reemplazo el contrato viejo de sec-0025 por el blueprint vigente.",
+                        meta={"formatId": format_id, "stage": "queued"},
+                    )
                 selected_sections = _resolve_project_selected_sections(project, prompt_snapshot)
                 definition = format_detail_payload.get("definition")
                 planned_sections = generation_planner.plan_sections(
@@ -2112,6 +2383,26 @@ async def _ai_generation_job(
                     prompt_package=prompt_snapshot,
                     selected_sections=selected_sections,
                 )
+                if any(
+                    _canonicalize_schedule_budget_section_path(item.get("path") or "") == "V. CRONOGRAMA DE ACTIVIDADES"
+                    for item in planned_sections
+                    if isinstance(item, dict)
+                ):
+                    cleared_state = _clear_schedule_generation_state(projects.get_project(project_id) or project)
+                    if cleared_state:
+                        cleared_state["prompt_snapshot"] = prompt_snapshot
+                        projects.update_project(project_id, cleared_state)
+                        _emit_project_trace(
+                            project_id,
+                            step="cronograma_state_cleared",
+                            status="warn",
+                            title="Estado previo del cronograma limpiado",
+                            detail=(
+                                "Se elimino solo el estado persistido de V. CRONOGRAMA DE ACTIVIDADES "
+                                "antes de regenerar la seccion."
+                            ),
+                            meta={"formatId": format_id, "stage": "queued"},
+                        )
                 total_sections = len(planned_sections)
                 projects.update_progress(project_id, total=total_sections)
                 current_project_snapshot = projects.get_project(project_id) or {}
@@ -2143,10 +2434,11 @@ async def _ai_generation_job(
                                 {
                                     "section_id": str(item.get("sectionId") or ""),
                                     "section_path": str(item.get("path") or ""),
+                                    "path": str(item.get("path") or ""),
                                     "section_title": str(item.get("title") or item.get("path") or "").split("/")[-1],
                                     "parent_section_path": str(item.get("parent_section_path") or ""),
-                                    "section_level": int(item.get("level") or 1),
-                                    "section_order": int(item.get("section_order") or 0),
+                                    "section_level": _coerce_int(item.get("level"), default=1),
+                                    "section_order": _coerce_int(item.get("section_order"), default=0),
                                 }
                                 for item in planned_sections
                             ],
@@ -2536,6 +2828,8 @@ async def _ai_generation_job(
                 format_id=latest_format_id,
                 values=values,
                 ai_result_raw=ai_result,
+                generation_phase=latest_project.get("generation_phase"),
+                selected_sections=latest_project.get("selected_sections"),
             )
 
         docx_path, pdf_path = await asyncio.to_thread(_render_outputs_sync)
@@ -2879,9 +3173,9 @@ async def trigger_generation(
             str(progress.get("provider") or project_selection.get("provider") or settings.AI_PRIMARY_PROVIDER)
             .lower()
             .strip()
-            or "gemini"
+            or "mistral"
         )
-        mode = str(project_selection.get("mode") or "auto").lower().strip()
+        mode = "fixed"
         run_id = f"render-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
         stored_usage_report = normalize_token_usage_report(stored_ai_result.get("tokenUsage"))
         total_sections = int(progress.get("total") or len(stored_ai_sections))
@@ -3005,9 +3299,9 @@ async def trigger_generation(
         provider = (
             str(available[0]).lower().strip()
             if available
-            else str(selection.get("provider") or settings.AI_PRIMARY_PROVIDER).lower().strip() or "gemini"
+            else str(selection.get("provider") or settings.AI_PRIMARY_PROVIDER).lower().strip() or "mistral"
         )
-        mode = str(selection.get("mode") or "auto").lower().strip()
+        mode = "fixed"
         run_id = f"{provider}-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
         initial_usage_report = (
             normalize_token_usage_report(stored_ai_result.get("tokenUsage"))
@@ -3039,13 +3333,52 @@ async def trigger_generation(
                 "updated_at": _utc_now_z(),
             }
             if not seeded_generation_phase.get("sections") and resume_seed_sections:
+                planned_sections_lookup = {
+                    (
+                        str(item.get("section_id") or "").strip()
+                        or str(item.get("section_path") or item.get("path") or "").strip()
+                    ): item
+                    for item in seeded_generation_phase.get("planned_sections", [])
+                    if isinstance(item, dict)
+                }
                 seeded_generation_phase["sections"] = [
                     {
                         "section_id": str(item.get("sectionId") or ""),
                         "section_path": str(item.get("path") or ""),
+                        "path": str(item.get("path") or ""),
                         "section_title": _section_title_from_path(str(item.get("path") or "")),
-                        "parent_section_path": _section_parent_path(str(item.get("path") or "")),
-                        "section_level": _section_level_from_path(str(item.get("path") or "")),
+                        "parent_section_path": str(
+                            (
+                                planned_sections_lookup.get(
+                                    str(item.get("sectionId") or "").strip()
+                                    or str(item.get("path") or "").strip()
+                                )
+                                or {}
+                            ).get("parent_section_path")
+                            or _section_parent_path(str(item.get("path") or ""))
+                        ),
+                        "section_level": _coerce_int(
+                            (
+                                planned_sections_lookup.get(
+                                    str(item.get("sectionId") or "").strip()
+                                    or str(item.get("path") or "").strip()
+                                )
+                                or {}
+                            ).get("section_level"),
+                            _section_level_from_path(str(item.get("path") or "")),
+                            default=1,
+                        ),
+                        "section_order": _coerce_int(
+                            (
+                                planned_sections_lookup.get(
+                                    str(item.get("sectionId") or "").strip()
+                                    or str(item.get("path") or "").strip()
+                                )
+                                or {}
+                            ).get("section_order"),
+                            item.get("section_order"),
+                            default=0,
+                        ),
                         "prompt_sent": "",
                         "ai_output": "",
                         "input_tokens": 0,
@@ -3276,8 +3609,17 @@ async def trigger_generation(
         raise HTTPException(status_code=502, detail=error_msg)
 
     # ------------------------------------------------------------------
-    # Path C: no Gemini, no n8n => local demo (background task)
+    # Path C (explicit only): local demo fallback for legacy/manual use
     # ------------------------------------------------------------------
+    if not settings.GICAGEN_DEMO_MODE:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Generacion no disponible: no hay proveedor IA configurado ni ruta n8n activa. "
+                "Habilita proveedor IA o activa GICAGEN_DEMO_MODE=true solo para flujo demo legacy."
+            ),
+        )
+
     projects.clear_trace(projectId)
     projects.clear_incidents(projectId)
     projects.update_project(projectId, {"status": "processing", "cancel_requested": False})
@@ -3351,6 +3693,11 @@ async def render_docx(projectId: str = Query(..., description="Project ID")):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
+    selected_sections = (
+        project.get("selected_sections")
+        if isinstance(project.get("selected_sections"), list)
+        else None
+    )
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Proxy to GicaTesis render endpoint
@@ -3360,6 +3707,8 @@ async def render_docx(projectId: str = Query(..., description="Project ID")):
             format_id=format_id,
             values=values,
             ai_result_raw=ai_result_raw,
+            generation_phase=project.get("generation_phase"),
+            selected_sections=selected_sections,
         )
     except RenderPayloadValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors)
@@ -3458,6 +3807,11 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
+    selected_sections = (
+        project.get("selected_sections")
+        if isinstance(project.get("selected_sections"), list)
+        else None
+    )
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Build structured definition with AI content injected into the
@@ -3468,6 +3822,8 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
             format_id=format_id,
             values=values,
             ai_result_raw=ai_result_raw,
+            generation_phase=project.get("generation_phase"),
+            selected_sections=selected_sections,
         )
     except RenderPayloadValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors)
@@ -3642,7 +3998,7 @@ async def validate_maestria_title(body: "MaestriaDetailsIn") -> dict[str, Any]:
     Validates and corrects the thesis title based on the context variables.
     Returns the corrected title and a brief explanation.
     """
-    from app.core.services.ai.gemini_client import get_gemini_client
+    from app.core.services.ai.mistral_client import MistralClient
 
     flat = body.to_flat_values()
     context_keys = [
@@ -3675,12 +4031,13 @@ TITULO: [El título corregido va aquí]
 EXPLICACION: [Breve explicación de los cambios en 1 párrafo]
 """
     try:
-        client = get_gemini_client()
-        result = await client.generate_text(
-            prompt=prompt,
-            model=settings.GEMINI_MODEL,
+        client = MistralClient()
+        text = await asyncio.to_thread(
+            client.generate,
+            prompt,
+            model=settings.MISTRAL_MODEL,
         )
-        text = str(result.get("text", "")).strip()
+        text = str(text or "").strip()
 
         # Parse output
         titulo_validado = flat.get("titulo")

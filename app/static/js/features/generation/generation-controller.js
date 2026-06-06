@@ -107,6 +107,8 @@ export function createGenerationController({
       ? projectSnapshot.construction_phase
       : {};
     const constructionStatus = String(constructionPhase.status || "");
+    const generationCompleted = ["completed", "done", "ok"].includes(generationStatus.toLowerCase());
+    const constructionStarted = ["running", "completed", "error"].includes(constructionStatus.toLowerCase());
 
     if (GEN_SUCCESS_STATUSES.includes(projectStatus)) {
       setDownloadsFromProject(projectSnapshot);
@@ -123,10 +125,7 @@ export function createGenerationController({
 
     if (
       getCurrentStep() === 5
-      && (
-        ["completed", "failed", "blocked"].includes(generationStatus)
-        || ["running", "completed", "error"].includes(constructionStatus)
-      )
+      && (generationCompleted || constructionStarted)
     ) {
       nextStep(6);
     }
@@ -196,14 +195,13 @@ export function createGenerationController({
         ? project.construction_phase
         : null;
       const constructionStatus = String(constructionPhase?.status || "");
+      const generationCompleted = ["completed", "done", "ok"].includes(generationStatus.toLowerCase());
+      const constructionStarted = ["running", "completed", "error"].includes(constructionStatus.toLowerCase());
 
       if (
         project
         && getCurrentStep() === 5
-        && (
-          ["completed", "failed", "blocked"].includes(generationStatus)
-          || ["running", "completed", "error"].includes(constructionStatus)
-        )
+        && (generationCompleted || constructionStarted)
       ) {
         nextStep(6);
       }

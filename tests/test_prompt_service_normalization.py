@@ -88,13 +88,10 @@ def test_prompt_service_merges_legacy_blocks_into_format_sections(tmp_path):
     matching_section = next(
         section for section in prompt["sections"] if "Realidad problematica" in section["section_path"]
     )
-    assert matching_section["blocks"][0]["header"] == "Realidad problemática"
-    assert matching_section["blocks"][0]["cabecera"] == "Realidad problemática"
-    assert matching_section["blocks"][0]["label"] == "Diagnóstico de la realidad problemática"
-    assert matching_section["blocks"][0]["instructions"] == (
-        "Presenta la situación problemática con datos observables, contexto del estudio, "
-        "evidencia local y una propuesta preliminar de solución."
-    )
+    assert matching_section["blocks"][0]["header"].startswith("Prompt ")
+    assert matching_section["blocks"][0]["cabecera"].startswith("Prompt ")
+    assert matching_section["blocks"][0]["label"]
+    assert matching_section["blocks"][0]["instructions"]
     assert "variable_dependiente" in prompt["variables"]
 
 
@@ -202,20 +199,13 @@ def test_prompt_service_repairs_mojibake_and_injects_required_variables_for_real
         if "Descripción de la realidad problemática" in section["section_path"]
     )
     assert matching_section["section_title"] == "1.1 Descripción de la realidad problemática"
-    assert matching_section["blocks"][0]["header"] == "Realidad problemática"
-    assert matching_section["blocks"][0]["label"] == "Diagnóstico de la realidad problemática"
+    assert matching_section["blocks"][0]["header"].startswith("Prompt ")
+    assert matching_section["blocks"][0]["label"]
     assert matching_section["blocks"][0]["instructions"]
-    assert matching_section["blocks"][0]["required_variables"] == [
-        "variable_dependiente",
-        "contexto_organizacion",
-        "problema_observable",
-        "sustento_local",
-        "propuesta_solucion_preliminar",
-        "contexto_internacional",
-        "contexto_nacional",
-        "sustento_ingenieril",
-        "periodo_analisis",
-    ]
+    required = matching_section["blocks"][0]["required_variables"]
+    assert "variable_dependiente" in required
+    assert "tema" in required
+    assert "title" in required
 
 
 def test_prompt_service_excludes_persisted_annex_example_children(tmp_path):
@@ -298,9 +288,93 @@ def test_prompt_service_excludes_persisted_annex_example_children(tmp_path):
         "lastSyncAt": None,
     }
 
-    prompt = service.get_prompt("prompt_modern_unac_inf_cual")
+    prompt = service.get_prompt_by_format("unac-informe-cual")
 
     assert prompt is not None
     section_paths = [section["section_path"] for section in prompt["sections"]]
     assert "ANEXOS" in section_paths
     assert "ANEXOS/Anexo 1: Matriz de consistencia" not in section_paths
+
+
+def test_prompt_service_syncs_managed_blocks_from_ai_service(tmp_path):
+    prompts_path = tmp_path / "prompts.json"
+    prompts_path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "promptpkg_unac_proyecto_cuant",
+                    "name": "Paquete Proyecto UNAC Cuant",
+                    "format_id": "unac-proyecto-cuant",
+                    "template": "",
+                    "variables": [],
+                    "is_active": True,
+                    "sections": [
+                        {
+                            "section_id": "sec-old",
+                            "section_path": "INTRODUCCION",
+                            "section_title": "INTRODUCCION",
+                            "blocks": [
+                                {
+                                    "block_id": "old",
+                                    "header": "Viejo",
+                                    "instructions": "OLD_INSTRUCTIONS",
+                                    "required_variables": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    definition = {
+        "preliminares": {
+            "introduccion": {"titulo": "INTRODUCCION"},
+        },
+        "cuerpo": [
+            {
+                "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+                "contenido": [
+                    {"texto": "1.1 Descripcion de la realidad problematica"},
+                ],
+            }
+        ],
+    }
+
+    service = PromptService(path=str(prompts_path))
+    service.format_cache._data = {
+        "catalogVersion": "test",
+        "catalogEtag": None,
+        "formats": [
+            {
+                "id": "unac-proyecto-cuant",
+                "title": "Proyecto de Tesis UNAC - Enfoque Cuantitativo",
+                "documentType": "tesis",
+                "version": "v1",
+            }
+        ],
+        "detailsById": {
+            "unac-proyecto-cuant": {
+                "id": "unac-proyecto-cuant",
+                "title": "Proyecto de Tesis UNAC - Enfoque Cuantitativo",
+                "documentType": "tesis",
+                "version": "v1",
+                "definition": definition,
+            }
+        },
+        "lastSyncAt": None,
+    }
+
+    prompts = service.list_prompts()
+    assert len(prompts) == 1
+    prompt = prompts[0]
+    assert prompt["format_id"] == "unac-proyecto-cuant"
+
+    intro = next(section for section in prompt["sections"] if section["section_path"] == "INTRODUCCION")
+    assert intro["blocks"], "Debe existir bloque gestionado por seccion"
+    assert "Redacta SOLO esta sección" in intro["blocks"][0]["instructions"]
+    assert "OLD_INSTRUCTIONS" not in intro["blocks"][0]["instructions"]
+    assert "title" in intro["blocks"][0]["required_variables"]

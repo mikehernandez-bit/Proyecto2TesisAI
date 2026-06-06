@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.storage.json_store import JsonStore
 from app.core.utils.id import new_id
+from app.core.services.ai.section_prompt_profiles import build_section_editorial_context
+from app.core.services.ai.section_content_policy import render_prompt_policy_rules
 from app.integrations.gicatesis.cache.format_cache import FormatCache
 
 from .institutional_section_service import InstitutionalSectionService
@@ -79,6 +81,27 @@ def _is_non_generative_annex_child(section_path: Any) -> bool:
     return any(marker in ancestor for ancestor in normalized_ancestors for marker in _ANNEX_SECTION_MARKERS)
 
 
+def _is_schedule_or_budget_chapter_name(label: str) -> bool:
+    normalized = _normalize_match_text(label)
+    if not normalized:
+        return False
+    if "cronograma de actividades" in normalized:
+        return True
+    return "presupuesto" in normalized
+
+
+def _canonicalize_schedule_budget_section_path(section_path: Any) -> str:
+    raw = str(section_path or "").strip()
+    if not raw:
+        return ""
+    parts = [part.strip() for part in raw.split("/") if part.strip()]
+    if len(parts) <= 1:
+        return raw
+    if _is_schedule_or_budget_chapter_name(parts[0]):
+        return parts[0]
+    return raw
+
+
 _CRITICAL_SECTION_DEFAULTS: tuple[dict[str, Any], ...] = (
     {
         "matchers": (
@@ -118,8 +141,126 @@ class PromptService:
         self.store = JsonStore(path)
         self.format_cache = FormatCache()
         self.section_service = InstitutionalSectionService()
+        self._managed_sync_done = False
+
+    _MANAGED_BASE_VARIABLES: tuple[str, ...] = (
+        "title",
+        "tema",
+        "objetivo_general",
+        "problema_general",
+        "variable_independiente",
+        "variable_dependiente",
+        "poblacion",
+        "muestra",
+        "lugar",
+        "temporal",
+        "enfoque",
+        "diseno",
+    )
+
+    def _managed_placeholder_values(self) -> Dict[str, Any]:
+        return {key: f"{{{{{key}}}}}" for key in self._MANAGED_BASE_VARIABLES}
+
+    def _build_managed_block(self, *, format_id: str, section: Dict[str, Any], index: int) -> Dict[str, Any]:
+        section_id = str(section.get("section_id") or section.get("sectionId") or "").strip()
+        section_path = str(section.get("section_path") or section.get("path") or section_id).strip()
+        section_title = str(section.get("section_title") or section.get("title") or "").strip() or section_path
+        editorial = build_section_editorial_context(
+            format_id=format_id,
+            section_id=section_id,
+            section_path=section_path,
+            values=self._managed_placeholder_values(),
+        )
+        instructions = "\n\n".join(
+            part
+            for part in [
+                (
+                    "Redacta SOLO esta sección en texto académico plano. "
+                    "No agregues el título de la sección ni formato markdown."
+                ),
+                editorial.strip(),
+                "Reglas de política de contenido:\n" + render_prompt_policy_rules().strip(),
+            ]
+            if part and str(part).strip()
+        )
+        required = set(self._MANAGED_BASE_VARIABLES)
+        required.update(self._normalize_variable_list(section.get("required_variables")))
+        return {
+            "block_id": f"managed:{format_id}:{section_id or index}",
+            "header": f"Prompt {section_title}",
+            "cabecera": f"Prompt {section_title}",
+            "label": section_title,
+            "instructions": instructions,
+            "required_variables": sorted(required),
+            "required": True,
+            "legacy_prompt_id": "",
+        }
+
+    def _sync_managed_sections(self, package: Dict[str, Any], *, format_id: str) -> Dict[str, Any]:
+        sections = self._normalize_sections(package.get("sections"))
+        synced_sections: List[Dict[str, Any]] = []
+        for idx, section in enumerate(sections, start=1):
+            merged = dict(section)
+            merged["blocks"] = [self._build_managed_block(format_id=format_id, section=section, index=idx)]
+            synced_sections.append(merged)
+        package["sections"] = synced_sections
+        package["variables"] = self._aggregate_package_variables(package)
+        return package
+
+    def sync_managed_prompt_packages(self, *, overwrite: bool = True) -> None:
+        raw_items = [item for item in self.store.read_list() if isinstance(item, dict)]
+        existing_by_format: Dict[str, Dict[str, Any]] = {}
+        for item in raw_items:
+            fid = str(item.get("format_id") or item.get("formatId") or "").strip()
+            if fid:
+                existing_by_format[fid] = dict(item)
+
+        next_items: List[Dict[str, Any]] = []
+        for format_item in self.format_cache.get_formats():
+            format_id = str(format_item.get("id") or "").strip()
+            if not format_id:
+                continue
+            detail = self._format_metadata(format_id)
+            if not detail:
+                continue
+            base_payload = existing_by_format.get(format_id) if not overwrite else None
+            if not isinstance(base_payload, dict):
+                base_payload = {
+                    "id": f"promptpkg_{format_id.replace('-', '_')}",
+                    "name": f"Paquete {detail.get('title') or format_id}",
+                    "doc_type": detail.get("documentType") or "",
+                    "is_active": True,
+                    "format_id": format_id,
+                    "format_name": detail.get("title") or format_id,
+                    "format_version": detail.get("version") or "",
+                    "system_instruction": "",
+                    "template": "",
+                    "variables": [],
+                    "sections": self.section_service.extract_sections(detail.get("definition")),
+                }
+            normalized = self._normalize_package(base_payload, format_detail=detail, persisted=True)
+            synced = self._sync_managed_sections(normalized, format_id=format_id)
+            next_items.append(self._to_storage_record(synced))
+
+        # Preserve unrelated non-package records when overwrite is disabled.
+        if not overwrite:
+            covered_formats = {str(item.get("format_id") or "").strip() for item in next_items}
+            for item in raw_items:
+                fid = str(item.get("format_id") or item.get("formatId") or "").strip()
+                if fid and fid in covered_formats:
+                    continue
+                next_items.append(item)
+
+        self.store.write_list(next_items)
+        self._managed_sync_done = True
+
+    def _ensure_managed_sync(self) -> None:
+        if self._managed_sync_done:
+            return
+        self.sync_managed_prompt_packages(overwrite=True)
 
     def list_prompts(self) -> List[Dict[str, Any]]:
+        self._ensure_managed_sync()
         packages = self._build_packages(self.store.read_list())
         packages.sort(key=lambda item: str(item.get("name") or "").lower())
         return packages
@@ -139,6 +280,7 @@ class PromptService:
         *,
         format_detail: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
+        self._ensure_managed_sync()
         format_key = str(format_id or "").strip()
         if not format_key:
             return None
@@ -365,39 +507,73 @@ class PromptService:
         if not isinstance(raw_sections, list):
             return []
         normalized: List[Dict[str, Any]] = []
+        by_path: Dict[str, Dict[str, Any]] = {}
         for item in raw_sections:
             if not isinstance(item, dict):
                 continue
             section_id = str(item.get("section_id") or item.get("sectionId") or "").strip()
-            section_path = str(item.get("section_path") or item.get("path") or "").strip()
+            raw_section_path = str(item.get("section_path") or item.get("path") or "").strip()
+            section_path = _canonicalize_schedule_budget_section_path(raw_section_path)
             if not section_id and not section_path:
                 continue
             if _is_non_generative_annex_child(section_path or section_id):
                 continue
             raw_blocks = item.get("blocks")
             blocks = raw_blocks if isinstance(raw_blocks, list) else []
+            parent_path = str(item.get("parent_section_path") or item.get("parentSectionPath") or "").strip()
+            if section_path and raw_section_path and section_path != raw_section_path:
+                parent_path = ""
             section_title = (
                 item.get("section_title")
                 or item.get("sectionTitle")
                 or item.get("title")
                 or (section_path.split("/")[-1] if section_path else "")
             )
-            normalized.append(
-                {
-                    "section_id": section_id or section_path,
-                    "section_path": _clean_display_text(section_path or section_id),
-                    "section_title": _clean_display_text(section_title),
-                    "parent_section_path": _clean_display_text(
-                        item.get("parent_section_path") or item.get("parentSectionPath") or ""
-                    ),
-                    "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
-                    "section_order": int(item.get("section_order") or item.get("sectionOrder") or 0),
-                    "optional": bool(item.get("optional")),
-                    "default_selected": bool(item.get("default_selected", True)),
-                    "source_hints": _clean_display_text(item.get("source_hints") or item.get("sourceHints") or ""),
-                    "blocks": [PromptService._normalize_block(block) for block in blocks if isinstance(block, dict)],
-                }
+            if section_path and raw_section_path and section_path != raw_section_path:
+                section_title = section_path.split("/")[-1]
+            entry = {
+                "section_id": section_id or section_path,
+                "section_path": _clean_display_text(section_path or section_id),
+                "section_title": _clean_display_text(section_title),
+                "parent_section_path": _clean_display_text(parent_path),
+                "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
+                "section_order": int(item.get("section_order") or item.get("sectionOrder") or 0),
+                "optional": bool(item.get("optional")),
+                "default_selected": bool(item.get("default_selected", True)),
+                "source_hints": _clean_display_text(item.get("source_hints") or item.get("sourceHints") or ""),
+                "source_content_type": _clean_display_text(
+                    item.get("source_content_type") or item.get("sourceContentType") or "texto"
+                ).lower()
+                or "texto",
+                "blocks": [PromptService._normalize_block(block) for block in blocks if isinstance(block, dict)],
+            }
+
+            dedupe_key = str(entry.get("section_path") or entry.get("section_id") or "").strip()
+            if not dedupe_key:
+                normalized.append(entry)
+                continue
+            existing = by_path.get(dedupe_key)
+            if not existing:
+                by_path[dedupe_key] = entry
+                normalized.append(entry)
+                continue
+
+            hints = [str(existing.get("source_hints") or "").strip(), str(entry.get("source_hints") or "").strip()]
+            existing["source_hints"] = "\n".join(item for item in hints if item)
+            existing["optional"] = bool(existing.get("optional")) and bool(entry.get("optional"))
+            existing["default_selected"] = bool(existing.get("default_selected", True)) or bool(
+                entry.get("default_selected", True)
             )
+            existing["section_order"] = min(
+                int(existing.get("section_order") or 0),
+                int(entry.get("section_order") or 0),
+            )
+            if str(existing.get("source_content_type") or "") != "tabla" and str(entry.get("source_content_type") or "") == "tabla":
+                existing["source_content_type"] = "tabla"
+            if entry.get("blocks"):
+                merged_blocks = list(existing.get("blocks") or [])
+                merged_blocks.extend(entry["blocks"])
+                existing["blocks"] = merged_blocks
         return normalized
 
     @staticmethod
@@ -478,6 +654,15 @@ class PromptService:
                     "section_order": int(overlay.get("section_order") or base.get("section_order") or 0),
                     "optional": bool(overlay.get("optional", base.get("optional"))),
                     "default_selected": bool(overlay.get("default_selected", base.get("default_selected", True))),
+                    "source_content_type": str(
+                        overlay.get("source_content_type")
+                        or overlay.get("sourceContentType")
+                        or base.get("source_content_type")
+                        or "texto"
+                    )
+                    .strip()
+                    .lower()
+                    or "texto",
                     "source_hints": "\n".join(
                         item
                         for item in [

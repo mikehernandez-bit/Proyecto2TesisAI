@@ -56,7 +56,30 @@ class MistralClient:
     def is_configured(self) -> bool:
         return bool(settings.MISTRAL_API_KEY)
 
-    def generate(self, prompt: str, *, timeout: int = 60, model: Optional[str] = None) -> str:
+    @staticmethod
+    def _coerce_positive_float(raw: Any, fallback: float) -> float:
+        try:
+            value = float(raw)
+        except Exception:
+            return fallback
+        if value <= 0:
+            return fallback
+        return value
+
+    @classmethod
+    def _resolve_request_timeout(cls, timeout: Optional[int]) -> tuple[float, float]:
+        connect_default = cls._coerce_positive_float(
+            getattr(settings, "MISTRAL_CONNECT_TIMEOUT_SECONDS", 10),
+            10.0,
+        )
+        read_default = cls._coerce_positive_float(
+            getattr(settings, "MISTRAL_TIMEOUT_SECONDS", 120),
+            120.0,
+        )
+        read_timeout = cls._coerce_positive_float(timeout, read_default) if timeout is not None else read_default
+        return (connect_default, read_timeout)
+
+    def generate(self, prompt: str, *, timeout: Optional[int] = None, model: Optional[str] = None) -> str:
         text, _usage = self.generate_with_usage(prompt, timeout=timeout, model=model)
         return text
 
@@ -64,7 +87,7 @@ class MistralClient:
         self,
         prompt: str,
         *,
-        timeout: int = 60,
+        timeout: Optional[int] = None,
         model: Optional[str] = None,
     ) -> tuple[str, dict[str, Any]]:
         if not self.is_configured():
@@ -80,13 +103,14 @@ class MistralClient:
             "temperature": settings.MISTRAL_TEMPERATURE,
             "max_tokens": settings.MISTRAL_MAX_TOKENS,
         }
+        request_timeout = self._resolve_request_timeout(timeout)
 
         last_error: Optional[Exception] = None
 
         for attempt in range(settings.MISTRAL_RETRY_MAX):
             try:
                 session = self._get_session()
-                response = session.post(url, json=payload, timeout=timeout)
+                response = session.post(url, json=payload, timeout=request_timeout)
                 status_code = int(response.status_code)
 
                 if status_code in {401, 403}:

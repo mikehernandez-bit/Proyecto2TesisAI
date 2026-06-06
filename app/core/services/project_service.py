@@ -105,6 +105,17 @@ class ProjectService:
             "updated_at": "",
         }
 
+    @staticmethod
+    def _coerce_int(*values: Any, default: int = 0) -> int:
+        for value in values:
+            if value in (None, ""):
+                continue
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                continue
+        return int(default)
+
     @classmethod
     def _normalize_resume(
         cls,
@@ -199,10 +210,18 @@ class ProjectService:
                 {
                     "section_id": section_id,
                     "section_path": section_path,
+                    "path": section_path,
                     "section_title": section_title or (section_path.split("/")[-1].strip() if section_path else ""),
                     "parent_section_path": parent_section_path,
-                    "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
-                    "section_order": max(0, int(item.get("section_order") or item.get("sectionOrder") or 0)),
+                    "section_level": max(
+                        1,
+                        cls._coerce_int(item.get("section_level"), item.get("sectionLevel"), default=1),
+                    ),
+                    "section_order": cls._coerce_int(
+                        item.get("section_order"),
+                        item.get("sectionOrder"),
+                        default=0,
+                    ),
                     "optional": bool(item.get("optional")),
                     "default_selected": bool(item.get("default_selected", True)),
                 }
@@ -282,12 +301,20 @@ class ProjectService:
                     {
                         "section_id": section_id,
                         "section_path": section_path,
+                        "path": section_path,
                         "section_title": section_title,
                         "parent_section_path": str(
                             item.get("parent_section_path") or item.get("sectionParentPath") or ""
                         ),
-                        "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
-                        "section_order": max(0, int(item.get("section_order") or item.get("sectionOrder") or 0)),
+                        "section_level": max(
+                            1,
+                            cls._coerce_int(item.get("section_level"), item.get("sectionLevel"), default=1),
+                        ),
+                        "section_order": cls._coerce_int(
+                            item.get("section_order"),
+                            item.get("sectionOrder"),
+                            default=0,
+                        ),
                     }
                 )
         raw_sections = raw.get("sections")
@@ -310,13 +337,23 @@ class ProjectService:
                     {
                         "section_id": section_id,
                         "section_path": section_path,
+                        "path": section_path,
                         "section_title": section_title,
                         "parent_section_path": str(
                             item.get("parent_section_path") or item.get("sectionParentPath") or ""
                         ),
-                        "section_level": max(1, int(item.get("section_level") or item.get("sectionLevel") or 1)),
-                        "section_order": max(0, int(item.get("section_order") or item.get("sectionOrder") or 0)),
+                        "section_level": max(
+                            1,
+                            cls._coerce_int(item.get("section_level"), item.get("sectionLevel"), default=1),
+                        ),
+                        "section_order": cls._coerce_int(
+                            item.get("section_order"),
+                            item.get("sectionOrder"),
+                            default=0,
+                        ),
                         "prompt_sent": str(item.get("prompt_sent") or ""),
+                        "prompt_source": str(item.get("prompt_source") or ""),
+                        "prompt_block_id": str(item.get("prompt_block_id") or ""),
                         "ai_output": str(item.get("ai_output") or ""),
                         "input_tokens": max(0, int(item.get("input_tokens") or 0)),
                         "output_tokens": max(0, int(item.get("output_tokens") or 0)),
@@ -447,6 +484,8 @@ class ProjectService:
             event_list = [item for item in trace if isinstance(item, dict)]
         else:
             event_list = []
+        if len(event_list) > _TRACE_MAX_EVENTS:
+            event_list = event_list[-_TRACE_MAX_EVENTS:]
         normalized["events"] = event_list
         normalized["trace"] = event_list
 
@@ -493,6 +532,43 @@ class ProjectService:
         )
         normalized["wizard_state"] = cls._normalize_wizard_state(normalized.get("wizard_state"))
         return normalized
+
+    @classmethod
+    def _compact_project_for_storage(cls, project: Dict[str, Any]) -> Dict[str, Any]:
+        compact = dict(project)
+        event_list = cls._ensure_trace_list(compact)
+        if len(event_list) > _TRACE_MAX_EVENTS:
+            event_list = event_list[-_TRACE_MAX_EVENTS:]
+        compact["events"] = event_list
+        compact["trace"] = event_list
+
+        incidents = compact.get("incidents")
+        if isinstance(incidents, list):
+            compact["incidents"] = [item for item in incidents if isinstance(item, dict)][-200:]
+
+        snapshot = compact.get("generation_snapshot")
+        if isinstance(snapshot, dict):
+            compact_snapshot = dict(snapshot)
+            completed = compact_snapshot.get("completed_sections")
+            if isinstance(completed, list) and len(completed) > _TRACE_MAX_EVENTS:
+                compact_snapshot["completed_sections"] = completed[-_TRACE_MAX_EVENTS:]
+            compact["generation_snapshot"] = compact_snapshot
+
+        phase = compact.get("generation_phase")
+        if isinstance(phase, dict):
+            compact_phase = dict(phase)
+            planned = compact_phase.get("planned_sections")
+            if isinstance(planned, list) and len(planned) > _TRACE_MAX_EVENTS:
+                compact_phase["planned_sections"] = planned[-_TRACE_MAX_EVENTS:]
+            sections = compact_phase.get("sections")
+            if isinstance(sections, list) and len(sections) > _TRACE_MAX_EVENTS:
+                compact_phase["sections"] = sections[-_TRACE_MAX_EVENTS:]
+            compact["generation_phase"] = compact_phase
+
+        return compact
+
+    def _write_projects(self, items: List[Dict[str, Any]]) -> None:
+        self.store.write_list([self._compact_project_for_storage(item) for item in items])
 
     def list_projects(self) -> List[Dict[str, Any]]:
         normalized = [self._normalize_project(item) for item in self.store.read_list()]
@@ -552,7 +628,7 @@ class ProjectService:
             if touch_updated_at:
                 p["updated_at"] = dt.datetime.now().isoformat(timespec="seconds")
             items[i] = p
-            self.store.write_list(items)
+            self._write_projects(items)
             return p
         return None
 
@@ -623,7 +699,7 @@ class ProjectService:
             ),
         }
         items.insert(0, project)
-        self.store.write_list(items)
+        self._write_projects(items)
         return self._normalize_project(project)
 
     def update_project(
@@ -760,7 +836,7 @@ class ProjectService:
         remaining = [item for item in items if item.get("id") != project_id]
         if len(remaining) == len(items):
             return False
-        self.store.write_list(remaining)
+        self._write_projects(remaining)
         return True
 
     def clear_trace(self, project_id: str) -> Optional[Dict[str, Any]]:

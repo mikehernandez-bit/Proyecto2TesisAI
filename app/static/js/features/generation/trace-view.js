@@ -430,11 +430,20 @@ export function createTraceView({
   function renderConstruction(projectSnapshot) {
     const phase = normalizeConstructionPhase(projectSnapshot);
     const tasks = phase.tasks;
+    const projectStatus = String(projectSnapshot?.status || "").toLowerCase();
+    const generationStoppedBeforeConstruction = phase.status === "idle"
+      && ["failed", "blocked", "generation_failed", "ai_failed", "timeout", "cancel_requested"].includes(projectStatus);
     const doneCount = tasks.filter((item) => String(item.status || "") === "done").length;
     const totalCount = tasks.length || 0;
     const width = totalCount > 0 ? Math.min(100, Math.round((doneCount / totalCount) * 100)) : 0;
     const badge = statusBadgeClass(
-      phase.status === "completed" ? "done" : phase.status === "running" ? "generating" : phase.status,
+      generationStoppedBeforeConstruction
+        ? "failed"
+        : phase.status === "completed"
+          ? "done"
+          : phase.status === "running"
+            ? "generating"
+            : phase.status,
     );
 
     setText("construct-progress-count", `${doneCount}/${totalCount}`);
@@ -452,6 +461,8 @@ export function createTraceView({
       setText("construct-summary", "Armando el documento final a partir de la salida validada de IA.");
     } else if (phase.status === "error") {
       setText("construct-summary", "La construccion se detuvo por un error; revisa el timeline tecnico.");
+    } else if (generationStoppedBeforeConstruction) {
+      setText("construct-summary", "Construccion no iniciada: la generacion IA fallo o se detuvo antes de esta fase.");
     } else {
       setText("construct-summary", "Aun no inicia la fase de construccion.");
     }

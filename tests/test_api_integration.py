@@ -51,7 +51,7 @@ class TestHealthEndpoints:
         assert "engine" in data
         assert "availableProviders" in data
         if data["configured"]:
-            assert data["engine"] in ("gemini", "mistral", "openrouter")
+            assert data["engine"] == "mistral"
             assert "model" in data
 
     def test_providers_status(self, client):
@@ -66,9 +66,7 @@ class TestHealthEndpoints:
         assert isinstance(data.get("providers"), list)
         if data.get("providers"):
             provider_ids = {item.get("id") for item in data["providers"] if isinstance(item, dict)}
-            assert "gemini" in provider_ids
-            assert "mistral" in provider_ids
-            assert "openrouter" in provider_ids
+            assert provider_ids == {"mistral"}
             first = data["providers"][0]
             assert "last_probe_status" in first
             assert "last_probe_checked_at" in first
@@ -104,32 +102,20 @@ class TestHealthEndpoints:
         data = r.json()
         assert data["providers"][0]["last_probe_status"] == "RATE_LIMITED"
 
-    def test_providers_status_openrouter_offline_without_key(self, client):
-        from app.modules.api import router as router_module
-
-        with patch.object(router_module.ai_service._clients["openrouter"], "is_configured", return_value=False):
-            r = client.get("/api/providers/status")
-
-        assert r.status_code == 200
-        payload = r.json()
-        openrouter = next(item for item in payload["providers"] if item.get("id") == "openrouter")
-        assert openrouter["configured"] is False
-        assert openrouter["online"] is False
-
     def test_providers_select(self, client):
         selection_result = {
-            "provider": "gemini",
-            "model": "gemini-2.0-flash",
-            "fallback_provider": "mistral",
-            "fallback_model": "mistral-medium-2505",
-            "mode": "auto",
+            "provider": "mistral",
+            "model": "mistral-medium-2505",
+            "fallback_provider": "",
+            "fallback_model": "",
+            "mode": "fixed",
         }
         status_result = {
-            "selected_provider": "gemini",
-            "selected_model": "gemini-2.0-flash",
-            "fallback_provider": "mistral",
-            "fallback_model": "mistral-medium-2505",
-            "mode": "auto",
+            "selected_provider": "mistral",
+            "selected_model": "mistral-medium-2505",
+            "fallback_provider": "",
+            "fallback_model": "",
+            "mode": "fixed",
             "providers": [],
         }
         with (
@@ -147,16 +133,14 @@ class TestHealthEndpoints:
                 json={
                     "provider": "gemini",
                     "model": "gemini-2.0-flash",
-                    "fallback_provider": "mistral",
-                    "fallback_model": "mistral-medium-2505",
                     "mode": "auto",
                 },
             )
 
         assert r.status_code == 200
         payload = r.json()
-        assert payload["selected_provider"] == "gemini"
-        assert payload["mode"] == "auto"
+        assert payload["selected_provider"] == "mistral"
+        assert payload["mode"] == "fixed"
         assert "selection" in payload
 
     def test_providers_select_persists_selection_in_project(self, client):
@@ -188,7 +172,7 @@ class TestHealthEndpoints:
 
         project = client.get(f"/api/projects/{project_id}").json()
         assert project["ai_selection"]["provider"] == "mistral"
-        assert project["ai_selection"]["mode"] == "auto"
+        assert project["ai_selection"]["mode"] == "fixed"
 
         status = client.get(f"/api/providers/status?projectId={project_id}")
         assert status.status_code == 200
@@ -222,13 +206,13 @@ class TestHealthEndpoints:
         assert response.status_code == 200
         payload = response.json()
         assert payload["selected_provider"] == "mistral"
-        assert payload["fallback_provider"] == "gemini"
-        assert payload["fallback_model"] == "gemini-2.0-flash"
+        assert payload["fallback_provider"] == ""
+        assert payload["fallback_model"] == ""
 
         project = client.get(f"/api/projects/{project_id}").json()
         assert project["ai_selection"]["provider"] == "mistral"
-        assert project["ai_selection"]["fallback_provider"] == "gemini"
-        assert project["ai_selection"]["fallback_model"] == "gemini-2.0-flash"
+        assert project["ai_selection"]["fallback_provider"] == ""
+        assert project["ai_selection"]["fallback_model"] == ""
 
     def test_providers_select_normalizes_primary_model_provider_mismatch(self, client):
         draft = client.post(
@@ -255,12 +239,12 @@ class TestHealthEndpoints:
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["selected_provider"] == "gemini"
-        assert payload["selected_model"] == "gemini-2.0-flash"
+        assert payload["selected_provider"] == "mistral"
+        assert payload["selected_model"] == "mistral-medium-2505"
 
         project = client.get(f"/api/projects/{project_id}").json()
-        assert project["ai_selection"]["provider"] == "gemini"
-        assert project["ai_selection"]["model"] == "gemini-2.0-flash"
+        assert project["ai_selection"]["provider"] == "mistral"
+        assert project["ai_selection"]["model"] == "mistral-medium-2505"
 
     def test_n8n_health_deprecated(self, client):
         r = client.get("/api/integrations/n8n/health")
@@ -369,6 +353,111 @@ class TestProjectsEndpoints:
         data = r.json()
         assert "id" in data
         assert data["status"] == "draft"
+
+    def test_create_draft_preserves_explicit_selected_sections_subset(self, client, monkeypatch):
+        from app.modules.api import router as router_module
+
+        prompt_snapshot = {
+            "id": "promptpkg_unac_proyecto",
+            "name": "Paquete UNAC Proyecto",
+            "format_id": "unac-proyecto-cuant",
+            "sections": [
+                {
+                    "section_id": "intro",
+                    "section_path": "INTRODUCCIÓN",
+                    "section_title": "INTRODUCCIÓN",
+                    "section_level": 1,
+                    "section_order": 1,
+                    "default_selected": True,
+                    "optional": False,
+                    "blocks": [{"block_id": "intro-1"}],
+                },
+                {
+                    "section_id": "cap1",
+                    "section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+                    "section_title": "I. PLANTEAMIENTO DEL PROBLEMA",
+                    "section_level": 1,
+                    "section_order": 2,
+                    "default_selected": True,
+                    "optional": False,
+                    "blocks": [],
+                },
+                {
+                    "section_id": "cap1-1",
+                    "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción",
+                    "section_title": "1.1 Descripción",
+                    "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+                    "section_level": 2,
+                    "section_order": 3,
+                    "default_selected": True,
+                    "optional": False,
+                    "blocks": [{"block_id": "cap1-1"}],
+                },
+            ],
+        }
+
+        monkeypatch.setattr(
+            router_module,
+            "_resolve_prompt_snapshot",
+            lambda *args, **kwargs: prompt_snapshot,
+        )
+
+        payload = {
+            "title": "Subset draft",
+            "formatId": "unac-proyecto-cuant",
+            "selectedSections": [
+                {
+                    "section_id": "cap1-1",
+                    "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción",
+                }
+            ],
+        }
+
+        response = client.post("/api/projects/draft", json=payload)
+
+        assert response.status_code == 201
+        saved = response.json()["selected_sections"]
+        assert len(saved) == 1
+        assert saved[0]["section_path"] == "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción"
+
+    def test_create_draft_preserves_explicit_empty_selected_sections(self, client, monkeypatch):
+        from app.modules.api import router as router_module
+
+        prompt_snapshot = {
+            "id": "promptpkg_unac_proyecto",
+            "name": "Paquete UNAC Proyecto",
+            "format_id": "unac-proyecto-cuant",
+            "sections": [
+                {
+                    "section_id": "intro",
+                    "section_path": "INTRODUCCIÓN",
+                    "section_title": "INTRODUCCIÓN",
+                    "section_level": 1,
+                    "section_order": 1,
+                    "default_selected": True,
+                    "optional": False,
+                    "blocks": [{"block_id": "intro-1"}],
+                }
+            ],
+        }
+
+        monkeypatch.setattr(
+            router_module,
+            "_resolve_prompt_snapshot",
+            lambda *args, **kwargs: prompt_snapshot,
+        )
+
+        response = client.post(
+            "/api/projects/draft",
+            json={
+                "title": "Empty selection draft",
+                "formatId": "unac-proyecto-cuant",
+                "selectedSections": [],
+            },
+        )
+
+        assert response.status_code == 201
+        assert response.json()["selected_sections"] == []
 
     def test_get_project_not_found(self, client):
         r = client.get("/api/projects/nonexistent-id-12345")
@@ -747,6 +836,73 @@ class TestGenerationEndpoint:
         assert data["ok"] is True
         assert data["status"] == "generating"
         assert "mode" in data
+
+    def test_generate_without_ai_or_n8n_requires_explicit_demo_mode(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "No AI No n8n",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Sin proveedor"},
+        }
+        r = client.post("/api/projects/draft", json=payload)
+        project_id = r.json()["id"]
+
+        mock_settings = type(
+            "SettingsMock",
+            (),
+            {
+                "N8N_WEBHOOK_URL": "",
+                "GICAGEN_DEMO_MODE": False,
+            },
+        )()
+
+        with (
+            patch("app.modules.api.router.ai_service.is_configured", return_value=False),
+            patch.object(router_module, "settings", mock_settings),
+        ):
+            response = client.post(f"/api/projects/{project_id}/generate")
+
+        assert response.status_code == 503
+        assert "GICAGEN_DEMO_MODE=true" in response.json()["detail"]
+
+    def test_generate_can_use_demo_mode_only_when_explicitly_enabled(self, client):
+        from app.modules.api import router as router_module
+
+        payload = {
+            "title": "Demo Enabled",
+            "formatId": "demo",
+            "promptId": "prompt_tesis_estandar",
+            "values": {"tema": "Demo"},
+        }
+        r = client.post("/api/projects/draft", json=payload)
+        project_id = r.json()["id"]
+
+        mock_settings = type(
+            "SettingsMock",
+            (),
+            {
+                "N8N_WEBHOOK_URL": "",
+                "GICAGEN_DEMO_MODE": True,
+            },
+        )()
+
+        with (
+            patch("app.modules.api.router.ai_service.is_configured", return_value=False),
+            patch.object(router_module, "settings", mock_settings),
+            patch(
+                "app.modules.api.router._demo_generation_job",
+                new=AsyncMock(return_value=None),
+            ),
+        ):
+            response = client.post(f"/api/projects/{project_id}/generate")
+
+        assert response.status_code == 202
+        data = response.json()
+        assert data["ok"] is True
+        assert data["mode"] == "demo"
+        assert data["status"] == "processing"
 
     def test_generate_trace_endpoint(self, client):
         payload = {
@@ -1455,6 +1611,9 @@ class TestGenerationEndpoint:
                                     "sectionPath": (
                                         "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica"
                                     ),
+                                    "sectionParentPath": "I. PLANTEAMIENTO DEL PROBLEMA",
+                                    "sectionLevel": 2,
+                                    "sectionOrder": 3,
                                 },
                             ],
                         },
@@ -1470,6 +1629,9 @@ class TestGenerationEndpoint:
                             "sectionTotal": 1,
                             "sectionId": "sec-0001",
                             "sectionPath": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                            "sectionParentPath": "I. PLANTEAMIENTO DEL PROBLEMA",
+                            "sectionLevel": 2,
+                            "sectionOrder": 3,
                             "provider": "mistral",
                             "model": "mistral-medium-2505",
                             "durationMs": 840,
@@ -1498,9 +1660,11 @@ class TestGenerationEndpoint:
                     payload={
                         "section_id": "sec-0001",
                         "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
+                        "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica",
                         "section_title": "1.1 Descripcion de la realidad problematica",
                         "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
                         "section_level": 2,
+                        "section_order": 3,
                         "prompt_sent": "PROMPT SECCION INTRODUCCION",
                         "ai_output": "Salida IA para introduccion.",
                         "input_tokens": 210,
@@ -1592,11 +1756,22 @@ class TestGenerationEndpoint:
         assert project["generation_phase"]["base_prompt"] == "PROMPT BASE DEL PROYECTO"
         assert project["generation_phase"]["sections"][0]["prompt_sent"] == "PROMPT SECCION INTRODUCCION"
         assert project["generation_phase"]["sections"][0]["ai_output"] == "Salida IA para introduccion."
+        assert (
+            project["generation_phase"]["sections"][0]["path"]
+            == "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica"
+        )
         assert project["generation_phase"]["sections"][0]["parent_section_path"] == "I. PLANTEAMIENTO DEL PROBLEMA"
         assert project["generation_phase"]["sections"][0]["section_level"] == 2
+        assert project["generation_phase"]["sections"][0]["section_order"] == 3
         assert (
             project["generation_phase"]["planned_sections"][0]["parent_section_path"] == "I. PLANTEAMIENTO DEL PROBLEMA"
         )
+        assert (
+            project["generation_phase"]["planned_sections"][0]["path"]
+            == "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripcion de la realidad problematica"
+        )
+        assert project["generation_phase"]["planned_sections"][0]["section_level"] == 2
+        assert project["generation_phase"]["planned_sections"][0]["section_order"] == 3
         assert project["generation_phase"]["sections"][0]["total_tokens"] == 285
         assert project["generation_phase"]["sections"][0]["estimated_cost_usd"] == pytest.approx(0.00087)
         assert project["generation_phase"]["cost_summary"]["total_cost_usd"] == pytest.approx(0.00087)
@@ -1678,3 +1853,81 @@ class TestInvalidInputs:
     def test_download_nonexistent_project(self, client):
         r = client.get("/api/download/nonexistent-id-999")
         assert r.status_code >= 400
+
+
+def test_refresh_schedule_prompt_snapshot_block_replaces_obsolete_contract(monkeypatch):
+    from app.modules.api import router as router_module
+
+    stale_snapshot = {
+        "format_id": "unac-proyecto-cuant",
+        "sections": [
+            {
+                "section_id": "sec-0025",
+                "section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+                "blocks": [
+                    {
+                        "block_id": "managed:old:sec-0025",
+                        "instructions": (
+                            "La carcasa fisica es innegociable. "
+                            "13 columnas, 35 filas. "
+                            "celdas_combinadas y celdas_fusionadas son obligatorias."
+                        ),
+                    }
+                ],
+            }
+        ],
+    }
+    fresh_prompt = {
+        "format_id": "unac-proyecto-cuant",
+        "sections": [
+            {
+                "section_id": "sec-0025",
+                "section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+                "blocks": [
+                    {
+                        "block_id": "managed:new:sec-0025",
+                        "instructions": "Devuelve un blueprint semantico con subtipo cronograma_plan.",
+                    }
+                ],
+            }
+        ],
+    }
+
+    monkeypatch.setattr(router_module.prompts, "get_prompt_by_format", lambda *args, **kwargs: fresh_prompt)
+    refreshed, changed = router_module._refresh_schedule_prompt_snapshot_block(
+        stale_snapshot,
+        format_id="unac-proyecto-cuant",
+        format_detail={"definition": {}},
+    )
+
+    assert changed is True
+    assert refreshed["sections"][0]["blocks"][0]["block_id"] == "managed:new:sec-0025"
+
+
+def test_clear_schedule_generation_state_removes_only_schedule_section():
+    from app.modules.api import router as router_module
+
+    project = {
+        "ai_result": {
+            "sections": [
+                {"sectionId": "intro", "path": "INTRODUCCION", "content": "ok"},
+                {"sectionId": "sec-0025", "path": "V. CRONOGRAMA DE ACTIVIDADES", "content": "legacy"},
+            ]
+        },
+        "generation_phase": {
+            "sections": [
+                {"section_id": "intro", "section_path": "INTRODUCCION"},
+                {"section_id": "sec-0025", "section_path": "V. CRONOGRAMA DE ACTIVIDADES"},
+            ],
+            "completed_sections": 2,
+            "current_section_id": "sec-0025",
+            "current_section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+        },
+    }
+
+    cleared = router_module._clear_schedule_generation_state(project)
+
+    assert len(cleared["ai_result"]["sections"]) == 1
+    assert cleared["ai_result"]["sections"][0]["path"] == "INTRODUCCION"
+    assert len(cleared["generation_phase"]["sections"]) == 1
+    assert cleared["generation_phase"]["current_section_id"] == "intro"

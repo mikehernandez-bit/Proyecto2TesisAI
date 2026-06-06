@@ -1,8 +1,9 @@
 """Content parser for AI-generated structured blocks.
 
-Extracts <<<TABLE_JSON ... TABLE_JSON>>> and <<<FIGURE_JSON ... FIGURE_JSON>>>
-delimited blocks from AI text output and converts them into structured content
-arrays compatible with GicaTesis normalizer.
+Extracts <<<TABLE_JSON ... TABLE_JSON>>>, <<<FIGURE_JSON ... FIGURE_JSON>>>,
+and <<<FORMULA_JSON ... FORMULA_JSON>>> delimited blocks from AI text output
+and converts them into structured content arrays compatible with GicaTesis
+normalizer.
 
 If the AI output contains NO delimited blocks, it is returned as-is (plain string).
 """
@@ -24,12 +25,33 @@ _FIGURE_BLOCK_RE = re.compile(
     r"<<<FIGURE_JSON\s*\n(.*?)\nFIGURE_JSON>>>",
     re.DOTALL,
 )
+_FORMULA_BLOCK_RE = re.compile(
+    r"<<<FORMULA_JSON\s*\n(.*?)\nFORMULA_JSON>>>",
+    re.DOTALL,
+)
 
 # Combined pattern to split text around any delimited block
 _ANY_BLOCK_RE = re.compile(
-    r"(<<<(?:TABLE_JSON|FIGURE_JSON)\s*\n.*?\n(?:TABLE_JSON|FIGURE_JSON)>>>)",
+    r"(<<<(?:TABLE_JSON|FIGURE_JSON|FORMULA_JSON)\s*\n.*?\n(?:TABLE_JSON|FIGURE_JSON|FORMULA_JSON)>>>)",
     re.DOTALL,
 )
+_FENCE_LINE_RE = re.compile(r"^\s*```[\w-]*\s*$", re.MULTILINE)
+_MARKER_TOKENS = {"●", "•", "â—", "x", "X", "✔", "✓", "■"}
+
+
+def _strip_external_fences(raw: str) -> str:
+    """Remove standalone markdown fence lines around structured blocks."""
+    return _FENCE_LINE_RE.sub("", raw).strip()
+
+
+def _normalize_marker_value(value: Any) -> Any:
+    if isinstance(value, str) and value.strip() in _MARKER_TOKENS:
+        return "●"
+    if isinstance(value, list):
+        return [_normalize_marker_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _normalize_marker_value(item) for key, item in value.items()}
+    return value
 
 
 def _parse_json_block(raw: str, block_type: str) -> Optional[Dict[str, Any]]:
@@ -41,6 +63,9 @@ def _parse_json_block(raw: str, block_type: str) -> Optional[Dict[str, Any]]:
             return None
         if "tipo" not in obj:
             obj["tipo"] = block_type
+        normalized = _normalize_marker_value(obj)
+        if isinstance(normalized, dict):
+            return normalized
         return obj
     except json.JSONDecodeError as exc:
         logger.warning(
@@ -80,8 +105,14 @@ def parse_ai_content(raw_content: str) -> Union[str, List[Dict[str, Any]]]:
     if not isinstance(raw_content, str) or not raw_content.strip():
         return raw_content
 
+    raw_content = _strip_external_fences(raw_content)
+
     # Quick check: are there any delimited blocks at all?
-    if "<<<TABLE_JSON" not in raw_content and "<<<FIGURE_JSON" not in raw_content:
+    if (
+        "<<<TABLE_JSON" not in raw_content
+        and "<<<FIGURE_JSON" not in raw_content
+        and "<<<FORMULA_JSON" not in raw_content
+    ):
         return raw_content  # plain text, return as-is
 
     parts = _ANY_BLOCK_RE.split(raw_content)
@@ -112,9 +143,20 @@ def parse_ai_content(raw_content: str) -> Union[str, List[Dict[str, Any]]]:
                 result.append(obj)
             continue
 
+        # Check if this part is a FORMULA block
+        formula_match = _FORMULA_BLOCK_RE.search(part)
+        if formula_match:
+            obj = _parse_json_block(formula_match.group(1), "formula")
+            if obj:
+                obj.setdefault("alineacion", "center")
+                result.append(obj)
+            continue
+
         # Plain text paragraph(s)
         for paragraph in part_stripped.split("\n\n"):
             text = paragraph.strip()
+            if _FENCE_LINE_RE.fullmatch(text):
+                continue
             if text:
                 result.append({"tipo": "parrafo", "texto": text})
 
@@ -122,10 +164,11 @@ def parse_ai_content(raw_content: str) -> Union[str, List[Dict[str, Any]]]:
         return raw_content
 
     logger.info(
-        "content_parser: extracted %d structured blocks (%d tables, %d figures, %d paragraphs)",
+        "content_parser: extracted %d structured blocks (%d tables, %d figures, %d formulas, %d paragraphs)",
         len(result),
         sum(1 for r in result if r.get("tipo") == "tabla"),
         sum(1 for r in result if r.get("tipo") == "figura"),
+        sum(1 for r in result if r.get("tipo") == "formula"),
         sum(1 for r in result if r.get("tipo") == "parrafo"),
     )
     return result

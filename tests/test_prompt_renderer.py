@@ -93,6 +93,7 @@ class TestBuildSectionPrompt:
         assert "NO escribas el titulo" in SYSTEM_PROMPT
         assert "<<<TABLE_JSON" in SYSTEM_PROMPT
         assert "<<<FIGURE_JSON" in SYSTEM_PROMPT
+        assert "<<<FORMULA_JSON" in SYSTEM_PROMPT
         assert "<<SKIP_SECTION>>" in SYSTEM_PROMPT
         assert "NO sugieras tablas/figuras en Introduccion" in SYSTEM_PROMPT
         assert "Cronograma" in SYSTEM_PROMPT

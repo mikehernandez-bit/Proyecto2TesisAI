@@ -58,10 +58,25 @@ function resolveSectionLevel(section) {
   return Math.max(1, sectionPathParts(section?.section_path || section?.path || "").length);
 }
 
+function resolveNumericValue(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric;
+  }
+  return null;
+}
+
 function resolveSectionOrder(section, fallback = null) {
-  const explicitOrder = Number(section?.section_order ?? section?.sectionOrder);
-  if (Number.isFinite(explicitOrder) && explicitOrder >= 0) return explicitOrder;
-  return Number.isFinite(fallback) && fallback >= 0 ? fallback : null;
+  const explicitOrder = resolveNumericValue(section?.section_order, section?.sectionOrder);
+  if (Number.isFinite(explicitOrder)) return explicitOrder;
+  return resolveNumericValue(fallback);
+}
+
+function resolveSectionStableIndex(section, fallback = null) {
+  const explicitIndex = resolveNumericValue(section?.section_stable_index, section?.sectionStableIndex);
+  if (Number.isFinite(explicitIndex)) return explicitIndex;
+  return resolveNumericValue(fallback);
 }
 
 function sortGenerationSections(sections) {
@@ -73,6 +88,10 @@ function sortGenerationSections(sections) {
     const leftLevel = resolveSectionLevel(left);
     const rightLevel = resolveSectionLevel(right);
     if (leftLevel !== rightLevel) return leftLevel - rightLevel;
+
+    const leftStableIndex = resolveSectionStableIndex(left, Number.MAX_SAFE_INTEGER);
+    const rightStableIndex = resolveSectionStableIndex(right, Number.MAX_SAFE_INTEGER);
+    if (leftStableIndex !== rightStableIndex) return leftStableIndex - rightStableIndex;
 
     return String(left?.section_path || left?.path || "").localeCompare(
       String(right?.section_path || right?.path || ""),
@@ -135,7 +154,11 @@ function mergeGenerationSection(baseSection, incomingSection) {
       { section_order: base.section_order ?? base.sectionOrder },
       resolveSectionOrder({ section_order: incoming.section_order ?? incoming.sectionOrder }),
     ),
-    section_level: pickNumber(base.section_level, base.sectionLevel, incoming.section_level, incoming.sectionLevel) || 1,
+    section_stable_index: resolveSectionStableIndex(
+      { section_stable_index: base.section_stable_index ?? base.sectionStableIndex },
+      resolveSectionStableIndex({ section_stable_index: incoming.section_stable_index ?? incoming.sectionStableIndex }),
+    ),
+    section_level: resolveSectionLevel(base) || resolveSectionLevel(incoming) || 1,
     status: mergedStatus,
     prompt_sent: pickString(base.prompt_sent, incoming.prompt_sent),
     ai_output: pickString(base.ai_output, incoming.ai_output),
@@ -176,6 +199,7 @@ function normalizePlannedSection(item, index) {
     section_title: String(item?.section_title || item?.sectionTitle || ""),
     parent_section_path: String(item?.parent_section_path || item?.sectionParentPath || ""),
     section_order: resolveSectionOrder(item, index),
+    section_stable_index: resolveSectionStableIndex(item, index),
     section_level: Number(item?.section_level || item?.sectionLevel || 1) || 1,
     status: String(item?.status || "pending"),
     total_tokens: Number(item?.total_tokens || 0),
@@ -211,6 +235,7 @@ function normalizeAiResultSection(item, index, projectStatus = "") {
     section_title: String(item?.title || item?.section_title || "") || sectionTitleFromPath(item?.path || item?.section_path || ""),
     parent_section_path: resolveSectionParentPath(item),
     section_order: resolveSectionOrder(item, index),
+    section_stable_index: resolveSectionStableIndex(item, index),
     section_level: resolveSectionLevel(item),
     status: GEN_SUCCESS_STATUSES.includes(String(projectStatus || "")) ? "ok" : "pending",
     prompt_sent: String(item?.prompt_sent || item?.prompt || ""),
@@ -232,11 +257,47 @@ function normalizeAiResultSection(item, index, projectStatus = "") {
   };
 }
 
+function buildPlannedSectionLookup(plannedSections) {
+  const lookup = new Map();
+  asArray(plannedSections).forEach((section) => {
+    if (!section || typeof section !== "object") return;
+    const keys = [
+      String(section.section_id || section.sectionId || "").trim(),
+      String(section.section_path || section.sectionPath || section.path || "").trim(),
+    ].filter(Boolean);
+    keys.forEach((key) => lookup.set(key, section));
+  });
+  return lookup;
+}
+
+function inheritPlannedSectionMetadata(section, plannedLookup, fallbackIndex) {
+  if (!section || typeof section !== "object") return section;
+  const match = plannedLookup.get(sectionKey(section))
+    || plannedLookup.get(String(section?.section_path || section?.sectionPath || section?.path || "").trim())
+    || null;
+  const resolvedPath = String(section?.section_path || section?.sectionPath || section?.path || "").trim();
+  return {
+    ...section,
+    parent_section_path: String(
+      section?.parent_section_path
+      || section?.sectionParentPath
+      || match?.parent_section_path
+      || match?.sectionParentPath
+      || resolveSectionParentPath(section),
+    ).trim(),
+    section_level: resolveSectionLevel(section) || resolveSectionLevel(match) || 1,
+    section_order: resolveSectionOrder(section, resolveSectionOrder(match, fallbackIndex)),
+    section_stable_index: resolveSectionStableIndex(section, resolveSectionStableIndex(match, fallbackIndex)),
+    path: resolvedPath || String(match?.section_path || match?.sectionPath || match?.path || "").trim(),
+  };
+}
+
 export function resolveGenerationPhase(projectSnapshot) {
   const project = asObject(projectSnapshot);
   const phase = asObject(project.generation_phase);
   const planned = asArray(phase.planned_sections).map((item, index) => normalizePlannedSection(item, index));
-  const directSections = asArray(phase.sections).map((item, index) => normalizePlannedSection({
+  const plannedLookup = buildPlannedSectionLookup(planned);
+  const directSections = asArray(phase.sections).map((item, index) => normalizePlannedSection(inheritPlannedSectionMetadata({
     ...item,
     status: item?.status || "pending",
     prompt_sent: item?.prompt_sent || "",
@@ -251,8 +312,12 @@ export function resolveGenerationPhase(projectSnapshot) {
     duration_ms: item?.duration_ms || 0,
     source: item?.source || "",
     attempt_count: item?.attempt_count || 0,
-  }, index));
-  const aiSections = asArray(project.ai_result?.sections).map((item, index) => normalizeAiResultSection(item, planned.length + index, project.status));
+  }, plannedLookup, planned.length + index), planned.length + index));
+  const aiSections = asArray(project.ai_result?.sections).map((item, index) => normalizeAiResultSection(
+    inheritPlannedSectionMetadata(item, plannedLookup, planned.length + directSections.length + index),
+    planned.length + directSections.length + index,
+    project.status,
+  ));
 
   const mergedSections = mergeGenerationSections(planned, directSections, aiSections);
   const currentPath = String(
@@ -403,11 +468,13 @@ export function buildGenerationTree(sections) {
       section_title: String(rawSection.section_title || sectionTitleFromPath(rawSection.section_path || rawSection.path || "")).trim(),
       parent_section_path: resolveSectionParentPath(rawSection),
       section_order: resolveSectionOrder(rawSection, index),
+      section_stable_index: resolveSectionStableIndex(rawSection, index),
       section_level: resolveSectionLevel(rawSection),
     };
     const parts = sectionPathParts(section.section_path);
     if (!parts.length) return;
     const sectionOrder = resolveSectionOrder(section, index) ?? index;
+    const sectionStableIndex = resolveSectionStableIndex(section, index) ?? index;
 
     let parentNode = root;
     parts.forEach((part, depthIndex) => {
@@ -423,12 +490,17 @@ export function buildGenerationTree(sections) {
           childMap: new Map(),
           selfSection: null,
           order: sectionOrder,
+          stableIndex: sectionStableIndex,
         };
         parentNode.childMap.set(currentPath, currentNode);
         parentNode.children.push(currentNode);
       }
       const currentOrder = Number.isFinite(Number(currentNode.order)) ? Number(currentNode.order) : sectionOrder;
       currentNode.order = Math.min(currentOrder, sectionOrder);
+      const currentStableIndex = Number.isFinite(Number(currentNode.stableIndex))
+        ? Number(currentNode.stableIndex)
+        : sectionStableIndex;
+      currentNode.stableIndex = Math.min(currentStableIndex, sectionStableIndex);
       if (depthIndex === parts.length - 1) {
         currentNode.selfSection = currentNode.selfSection
           ? mergeGenerationSection(currentNode.selfSection, section)
@@ -443,6 +515,14 @@ export function buildGenerationTree(sections) {
       const byOrder = resolveSectionOrder({ section_order: left.order }, Number.MAX_SAFE_INTEGER)
         - resolveSectionOrder({ section_order: right.order }, Number.MAX_SAFE_INTEGER);
       if (byOrder !== 0) return byOrder;
+      const byStableIndex = resolveSectionStableIndex(
+        { section_stable_index: left.stableIndex },
+        Number.MAX_SAFE_INTEGER,
+      ) - resolveSectionStableIndex(
+        { section_stable_index: right.stableIndex },
+        Number.MAX_SAFE_INTEGER,
+      );
+      if (byStableIndex !== 0) return byStableIndex;
       return String(left.label || "").localeCompare(String(right.label || ""), "es");
     });
     node.children.forEach((child) => {

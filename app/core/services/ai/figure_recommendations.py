@@ -13,18 +13,64 @@ from typing import Any
 
 from app.core.services.ai.section_content_policy import (
     allows_recommended_figure,
+    is_chapter_four_design_section,
+    is_chapter_four_text_only_section,
+    is_chapter_three_hypotheses_section,
+    is_chapter_three_operationalization_section,
     normalized_path_segments,
 )
 
 _CANONICAL_PLACEHOLDER_PATH = "assets/placeholder_figura.png"
+_FIGURE_GUIDE_BLUE = "0000FF"
 _FIGURE_ID_RE = re.compile(r"[^a-z0-9]+")
 _BLANK_LINE_RE = re.compile(r"\n\s*\n")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])")
+_STALE_PROJECT_MARKDOWN_FIGURE_RE = re.compile(
+    r"(?:^|\n)\s*Figura\s+1\.[1-4]\s*\n\s*[^\n\r]*\s*\n"
+    r"\s*\*Fuente:\s*Elaboraci[oó]n propia\.?\*\s*\n"
+    r"\s*\*Gu[ií]a t[eé]cnica:.*?\*(?=\s*(?:\n[A-ZÁÉÍÓÚÑ0-9]|$))",
+    re.IGNORECASE | re.DOTALL,
+)
+_STALE_PROJECT_LOOSE_FIGURE_TITLE_PREFIXES = (
+    "diagrama de pareto de fallas",
+    "diagrama de pareto de modos de falla",
+    "diagrama de ishikawa",
+    "matriz de relevancia de alternativas",
+    "matriz de relevancia para alternativas",
+    "matriz de priorizacion de alternativas",
+    "matriz de priorizacion de estrategias",
+    "matriz de priorizacion de soluciones",
+)
+_STALE_PROJECT_GUIDE_LINE_PREFIXES = (
+    "guia tecnica",
+    "para elaborar este diagrama",
+    "para elaborar esta matriz",
+    "luego, se calcula",
+    "luego se calcula",
+    "el eje vertical",
+    "el eje horizontal",
+    "el eje x",
+    "el eje y",
+    "la linea de pareto",
+    "la interseccion",
+    "de esta espina",
+    "para el caso hidraulico",
+    "las relaciones se validan",
+    "la matriz se elabora",
+    "la matriz utiliza una escala",
+    "cada alternativa",
+    "el rcm obtiene",
+    "el rcm debe destacar",
+    "el rcm se posiciona",
+)
 _GENERIC_FIGURE_MARKERS = (
     "FIGURA DE EJEMPLO",
     "DIAGRAMA ILUSTRATIVO",
     "ARBOL DE PROBLEMAS",
     "ARQUETIPO GENERICO",
+    "ARQUITECTURA CONCEPTUAL APLICADA",
+    "MAPA CONCEPTUAL DEL ESTUDIO",
+    "PLACEHOLDER TECNICO",
 )
 _FIGURE_TRIGGER_MARKERS = (
     "ARQUITECTURA",
@@ -106,6 +152,104 @@ _PROJECT_PROBLEM_FIGURE_LEADS = (
         "Finalmente, las alternativas factibles se ordenan con una matriz de priorización para "
         "justificar la selección de la solución desarrollada."
     ),
+)
+_PROJECT_PROBLEM_ORDERED_ANCHORS = (
+    (
+        "diagnostico local",
+        "fallas registradas",
+        "fallas no programadas",
+        "concentracion de fallas",
+        "concentran",
+        "sistemas principales",
+        "modos de falla",
+        "pocos vitales",
+        "pareto",
+        "80/20",
+        "80 %",
+        "80%",
+    ),
+    (
+        "causa raiz",
+        "causas raiz",
+        "causa-efecto",
+        "ishikawa",
+        "metodo",
+        "metodos",
+        "mantenimiento rigido",
+        "mantenimiento reactivo",
+        "gestion reactiva",
+        "medio ambiente",
+        "maquinaria",
+        "desgaste acelerado",
+    ),
+    (
+        "matriz de relevancia",
+        "alternativas de solucion",
+        "alternativas factibles",
+        "viabilidad tecnica",
+        "viabilidad economica",
+        "alineamiento estrategico",
+        "descartadas",
+        "descartada",
+        "preseleccionadas",
+        "preseleccionada",
+        "medida de contencion",
+    ),
+    (
+        "matriz de priorizacion",
+        "priorizacion ponderada",
+        "priorizar cuantitativamente",
+        "analisis cuantitativo",
+        "puntaje global",
+        "puntaje ponderado",
+        "total ponderado",
+        "impacto en la disponibilidad",
+        "impacto en disponibilidad",
+        "seleccionar la estrategia optima",
+    ),
+)
+_CHAPTER_TWO_SUBTOPIC_ANCHORS = (
+    ("proceso del rcm", "siete preguntas", "arbol logico de decision"),
+    ("taxonomia", "iso 14224", "niveles taxonomicos"),
+    ("amef", "analisis de modos", "numero de prioridad de riesgo", "npr"),
+    ("motoniveladora cat 24m", "cat 24m", "c18 acert", "vertedera"),
+)
+_CHAPTER_TWO_FIGURES = (
+    {
+        "tipo": "figura",
+        "id": "fig_2_1_proceso_rcm",
+        "titulo": "Proceso del RCM",
+        "caption": "Figura 2.1 Proceso del RCM",
+        "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
+        "fuente": "Nota. Adaptado de RCM|Terotecnic Ingenieria.",
+    },
+    {
+        "tipo": "figura",
+        "id": "fig_2_2_niveles_taxonomicos",
+        "titulo": "Niveles taxonomicos",
+        "caption": "Figura 2.2 Niveles taxonomicos",
+        "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
+        "fuente": "Nota. La taxonomia de activos fisicos como fundamento. Reliability CONNECT.",
+    },
+    {
+        "tipo": "figura",
+        "id": "fig_2_3_amef",
+        "titulo": "Analisis de Modo y Efecto de Falla",
+        "caption": "Figura 2.3 Analisis de Modo y Efecto de Falla",
+        "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
+        "fuente": (
+            "Nota. Representacion del analisis de modos y efectos de falla aplicado al mantenimiento "
+            "centrado en confiabilidad."
+        ),
+    },
+    {
+        "tipo": "figura",
+        "id": "fig_2_4_motoniveladora_cat_24m",
+        "titulo": "Motoniveladora CAT 24M",
+        "caption": "Figura 2.4 Motoniveladora CAT 24M",
+        "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
+        "fuente": "Nota. Motoniveladora 24M.",
+    },
 )
 
 
@@ -227,40 +371,87 @@ def _is_reality_problem_path(path: str) -> bool:
     return "PLANTEAMIENTO DEL PROBLEMA" in joined and "REALIDAD PROBLEMATICA" in joined
 
 
+def _is_chapter_two_text_only_path(path: str) -> bool:
+    joined = " / ".join(normalized_path_segments(path))
+    if "MARCO TEORICO" not in joined:
+        return False
+    return any(
+        marker in joined
+        for marker in (
+            "ANTECEDENTES",
+            "MARCO CONCEPTUAL",
+            "DEFINICION DE TERMINOS BASICOS",
+            "DEFINICION DE TERMINOS",
+        )
+    )
+
+
+def _is_chapter_two_bases_path(path: str) -> bool:
+    joined = " / ".join(normalized_path_segments(path))
+    return "MARCO TEORICO" in joined and "BASES TEORICAS" in joined
+
+
 def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str, Any]]:
     notes = (
         (
-            "Elaborar el Diagrama de Pareto a partir del historial de fallas de la flota CAT 24M. En una "
-            "hoja de cálculo, registrar los sistemas o modos de falla en columnas: sistema, frecuencia de "
-            "eventos, porcentaje individual y porcentaje acumulado. Ordenar de mayor a menor frecuencia, "
-            "graficar barras para la frecuencia o porcentaje individual, agregar una línea acumulada en eje "
-            "secundario y trazar la referencia del 80 %. La figura debe permitir identificar los pocos "
-            "vitales que explican la mayor indisponibilidad y justificar por qué esos sistemas se analizan "
-            "con prioridad en el proyecto."
+            "Construye un diagrama de Pareto titulado \"Diagrama de Pareto de modos de falla en flota "
+            "CAT 24M\". Usa los registros reales de fallas del periodo de línea base disponible en el CMMS "
+            "o historial de mantenimiento. Coloca una tabla base con estas columnas obligatorias: sistema o "
+            "modo de falla, frecuencia de fallas, porcentaje individual, porcentaje acumulado y costo de "
+            "reparación si el dato existe. Agrupa nombres equivalentes antes de graficar; por ejemplo, no "
+            "separes una falla hidráulica repetida solo porque fue registrada con otra descripción. Ordena "
+            "las filas de mayor a menor frecuencia. Calcula el porcentaje individual como frecuencia del modo "
+            "de falla entre total de fallas por 100. Calcula el porcentaje acumulado sumando progresivamente "
+            "los porcentajes individuales. En el gráfico, coloca en el eje X los sistemas o modos de falla; "
+            "en el eje Y izquierdo, la frecuencia absoluta de fallas; en el eje Y derecho, el porcentaje "
+            "acumulado de 0 % a 100 %. Usa barras verticales para la frecuencia, una línea curva para el "
+            "porcentaje acumulado y una línea horizontal de referencia en 80 %. Marca con color distinto los "
+            "modos ubicados antes del cruce con el 80 % y agrega una lectura breve: esos son los pocos vitales "
+            "que deben priorizarse en el plan RCM."
         ),
         (
-            "Elaborar el Ishikawa colocando como efecto principal la baja disponibilidad inherente de la "
-            "flota CAT 24M. Dibujar la espina central y seis ramas 6M: Métodos, Medición, Mano de Obra, "
-            "Medio Ambiente, Maquinaria y Materiales. En cada rama incorporar al menos dos subcausas "
-            "técnicas derivadas del diagnóstico, por ejemplo mantenimiento rígido por horas, ausencia de "
-            "monitoreo, desgaste por abrasividad, estrés térmico, capacitación insuficiente o repuestos "
-            "críticos. La figura debe cerrar con una lectura causal que explique qué causa raíz será "
-            "atacada por el plan RCM."
+            "Construye un diagrama de Ishikawa titulado \"Análisis de Causa-Efecto de Baja Disponibilidad "
+            "(Ishikawa)\". Coloca en la cabeza del diagrama el efecto exacto: \"Baja disponibilidad inherente "
+            "de la flota CAT 24M\". Dibuja una espina central horizontal y seis ramas principales con el "
+            "enfoque 6M: Método, Medición, Mano de obra, Medio ambiente, Maquinaria y Materiales. En Método, "
+            "coloca mantenimiento reactivo, rutinas preventivas insuficientes, ausencia de tareas RCM y "
+            "procedimientos de lubricación no estandarizados. En Medición, coloca registros incompletos, "
+            "MTBF/MTTR no depurados, ausencia de trazabilidad ISO 14224 y falta de control de tiempos de "
+            "parada. En Mano de obra, coloca brechas de capacitación, inspecciones variables, diagnóstico "
+            "lento y dependencia de experiencia individual. En Medio ambiente, coloca polvo, abrasividad, "
+            "pendientes dinámicas, altitud operativa y variación climática. En Maquinaria, coloca desgaste "
+            "del tren de fuerza, sistema hidráulico, sistema eléctrico y componentes de desgaste rápido. En "
+            "Materiales, coloca calidad de repuestos, compatibilidad de fluidos, stock crítico insuficiente "
+            "y repuestos no homologados. Cierra la figura con una lectura causal que indique qué ramas "
+            "explican la mayor parte de la baja disponibilidad y cómo el RCM atacará esas causas."
         ),
         (
-            "Construir la Matriz de Relevancia con una fila por alternativa de solución y columnas de "
-            "criterio: viabilidad técnica, viabilidad económica y alineamiento con la causa raíz. Incluir "
-            "como mínimo una alternativa descartada por alto costo o bajo impacto, una alternativa logística "
-            "de contención y el plan RCM como alternativa estructural. Marcar la decisión final de cada "
-            "opción como descartada o preseleccionada, explicando por qué el RCM modifica el método de "
-            "mantenimiento y no solo reduce tiempos de reparación."
+            "Construye una matriz titulada \"Matriz de Relevancia para el filtrado de alternativas de "
+            "solución\". Coloca las alternativas en filas: mantenimiento correctivo mejorado, mantenimiento "
+            "preventivo por horas, mantenimiento predictivo parcial, capacitación técnica focalizada y plan "
+            "de mantenimiento centrado en confiabilidad (RCM). Coloca estos criterios en columnas: reducción "
+            "esperada de fallas, viabilidad técnica, costo de implementación, tiempo de adaptación, "
+            "disponibilidad de datos y alineación con la causa raíz. Asigna a cada criterio un peso; por "
+            "ejemplo, reducción esperada de fallas 0.30, viabilidad técnica 0.20, costo 0.15, tiempo 0.10, "
+            "disponibilidad de datos 0.10 y alineación con causa raíz 0.15. Califica cada alternativa de 1 a "
+            "5, donde 1 significa baja relevancia y 5 alta relevancia. Multiplica cada calificación por su "
+            "peso y suma el total por alternativa. Agrega una columna final llamada \"Decisión\" con tres "
+            "opciones: descartada, condicionada o preseleccionada. Resalta el RCM como alternativa "
+            "preseleccionada porque interviene modos de falla, criticidad y tareas de mantenimiento, no solo "
+            "la reparación posterior a la falla."
         ),
         (
-            "Elaborar la Matriz de Priorización con las alternativas factibles preseleccionadas. Definir "
-            "criterios ponderados, por ejemplo impacto en disponibilidad, costo de implementación y tiempo "
-            "de implementación; asignar pesos porcentuales, puntajes de 1 a 10 y calcular el total "
-            "ponderado de cada alternativa. La figura debe mostrar que la alternativa con mayor puntaje es "
-            "la que se desarrolla en el proyecto. Usar la nota: Escala: 1 (Desfavorable) a 10 (Favorable)."
+            "Construye una matriz titulada \"Matriz de Priorización de soluciones factibles\". Coloca en las "
+            "filas solo las alternativas que pasaron la matriz de relevancia. Coloca en las columnas estos "
+            "criterios cuantitativos: impacto en disponibilidad inherente, reducción de fallas recurrentes, "
+            "factibilidad técnica, costo-beneficio, tiempo de implementación y sostenibilidad operativa. "
+            "Asigna un peso porcentual a cada criterio y verifica que la suma sea exactamente 100 %. Califica "
+            "cada alternativa de 1 a 10, donde 1 es desfavorable y 10 favorable. En cada celda coloca el "
+            "puntaje asignado; debajo o en una columna auxiliar calcula el puntaje ponderado multiplicando "
+            "peso por puntaje. Agrega una columna \"Total ponderado\" y suma los puntajes ponderados de cada "
+            "alternativa. Ordena las alternativas de mayor a menor total. Resalta en azul o sombreado la "
+            "alternativa ganadora: implementación de un plan de mantenimiento centrado en confiabilidad "
+            "(RCM). Debajo de la matriz coloca la escala: 1 (Desfavorable) a 10 (Favorable)."
         ),
     )
     blocks: list[dict[str, Any]] = []
@@ -272,9 +463,9 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
                 "titulo": title,
                 "caption": title,
                 "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
-                "placeholder_text": "Figura pendiente de elaboración propia",
-                "nota": _augment_project_problem_figure_note(index, note),
                 "fuente": "Elaboración propia.",
+                "nota": _augment_project_problem_figure_note(index, note),
+                "nota_color": _FIGURE_GUIDE_BLUE,
             }
         )
     return blocks
@@ -283,31 +474,86 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
 def _augment_project_problem_figure_note(index: int, note: str) -> str:
     extra_details = {
         1: (
-            " Ademas, precisa que la tabla base debe salir del historial de fallas depurado; "
-            "cada fila debe representar un sistema o modo de falla homogeneo. El usuario debe verificar "
-            "que no existan categorias duplicadas, calcular el porcentaje individual sobre el total de eventos "
-            "y luego el porcentaje acumulado. La guia debe indicar con claridad el eje X, el eje Y izquierdo "
-            "y el eje Y derecho con porcentaje acumulado. La lectura final debe explicar por que los sistemas "
-            "ubicados antes del cruce con el 80 % se consideran prioritarios para el proyecto."
+            " Verifica que la tabla base salga del historial de fallas depurado y que cada fila represente "
+            "un sistema o modo de falla homogéneo. Revisa que no existan categorías duplicadas, calcula el "
+            "porcentaje individual sobre el total de eventos y luego el porcentaje acumulado. Muestra con "
+            "claridad el eje X, el eje Y izquierdo y el eje Y derecho con porcentaje acumulado. Cierra con "
+            "una lectura que explique por qué los sistemas ubicados antes del cruce con el 80 % se consideran "
+            "prioritarios para el proyecto."
         ),
         2: (
-            " Tambien debe indicarse que cada rama 6M debe contener subcausas concretas, escritas como factores "
-            "observables o tecnicos y no como frases vagas. El problema central debe ubicarse en la cabeza del pez. "
-            "La interpretacion debe cerrar senalando cual rama concentra la causa raiz dominante y por que eso obliga "
-            "a pasar de un mantenimiento reactivo o rigido a un enfoque RCM."
+            " Escribe cada subcausa como un factor observable y técnico, no como una frase vaga. Mantén el "
+            "problema central en la cabeza del diagrama y conecta cada subcausa con una rama 6M. Cierra la "
+            "interpretación señalando qué rama concentra la causa raíz dominante y por qué eso obliga a pasar "
+            "de un mantenimiento reactivo o rígido a un enfoque RCM."
         ),
         3: (
-            " La guia debe dejar claro que la matriz no solo compara opciones, sino que filtra cuales merecen "
-            "pasar a la evaluacion final. Por eso debe mostrarse una alternativa descartada, otra de contencion "
-            "y la alternativa estructural, explicando visualmente la decision en una columna final."
+            " Usa la matriz para filtrar qué opciones merecen pasar a la evaluación final. Incluye una "
+            "alternativa descartada, una alternativa de contención y la alternativa estructural. Explica "
+            "visualmente la decisión en la columna final para que se entienda por qué el RCM continúa a la "
+            "priorización."
         ),
         4: (
-            " La explicacion debe pedir que el usuario muestre el peso porcentual de cada criterio, el puntaje "
-            "asignado a cada alternativa, el producto peso por puntaje y el total ponderado. La conclusion de la "
-            "figura debe redactarse como validacion cuantitativa de la alternativa elegida."
+            " Muestra el peso porcentual de cada criterio, el puntaje asignado a cada alternativa, el producto "
+            "peso por puntaje y el total ponderado. Redacta la conclusión de la figura como una validación "
+            "cuantitativa de la alternativa elegida."
         ),
     }
-    return f"{note}{extra_details.get(index, '')}"
+    return f"Guía para elaborar la figura: {note}{extra_details.get(index, '')}"
+
+
+def _strip_stale_project_problem_visual_markup_from_text(text: str) -> str:
+    cleaned = _STALE_PROJECT_MARKDOWN_FIGURE_RE.sub("\n", text)
+    cleaned = _strip_stale_project_problem_loose_guides(cleaned)
+    return _BLANK_LINE_RE.sub("\n\n", cleaned).strip()
+
+
+def _is_stale_project_problem_loose_title(text: str) -> bool:
+    return any(text.startswith(prefix) for prefix in _STALE_PROJECT_LOOSE_FIGURE_TITLE_PREFIXES)
+
+
+def _is_stale_project_problem_guide_line(text: str) -> bool:
+    return any(text.startswith(prefix) for prefix in _STALE_PROJECT_GUIDE_LINE_PREFIXES)
+
+
+def _strip_stale_project_problem_loose_guides(text: str) -> str:
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    cleaned_lines: list[str] = []
+    skipping_guide = False
+
+    for line in lines:
+        normalized = _normalize_token(line)
+        if skipping_guide and not normalized:
+            continue
+        if _is_stale_project_problem_loose_title(normalized) or normalized.startswith("guia tecnica"):
+            skipping_guide = True
+            continue
+        if skipping_guide and _is_stale_project_problem_guide_line(normalized):
+            continue
+
+        skipping_guide = False
+        cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
+
+
+def _strip_stale_project_problem_visual_markup(content: Any) -> Any:
+    if isinstance(content, str):
+        return _strip_stale_project_problem_visual_markup_from_text(content)
+    if not isinstance(content, list):
+        return content
+
+    cleaned_blocks: list[Any] = []
+    for item in content:
+        if isinstance(item, dict) and _normalize_token(item.get("tipo")) == "parrafo":
+            text = _strip_stale_project_problem_visual_markup_from_text(str(item.get("texto") or ""))
+            if text:
+                next_item = dict(item)
+                next_item["texto"] = text
+                cleaned_blocks.append(next_item)
+            continue
+        cleaned_blocks.append(item)
+    return cleaned_blocks
 
 
 def _is_project_problem_figure(block: dict[str, Any]) -> bool:
@@ -317,6 +563,47 @@ def _is_project_problem_figure(block: dict[str, Any]) -> bool:
     return any(_normalize_token(title) == figure_title for title in _PROJECT_PROBLEM_FIGURE_TITLES)
 
 
+def _is_stale_project_problem_visual_paragraph(block: dict[str, Any]) -> bool:
+    if _normalize_token(block.get("tipo")) != "parrafo":
+        return False
+    text = _normalize_token(block.get("texto"))
+    if not text:
+        return False
+    stale_prefixes = (
+        "figura 1.1",
+        "figura 1.2",
+        "figura 1.3",
+        "figura 1.4",
+        "figura pendiente de elaboracion propia",
+        "fuente elaboracion propia",
+        "fuente: elaboracion propia",
+        "guia para elaborar la figura",
+        "guia para construir la figura",
+        "guia tecnica",
+        "diagrama de pareto de fallas",
+        "diagrama de pareto de modos de falla",
+        "diagrama de ishikawa",
+        "matriz de relevancia de alternativas",
+        "matriz de relevancia para alternativas",
+        "matriz de priorizacion de alternativas",
+        "matriz de priorizacion de estrategias",
+        "matriz de priorizacion de soluciones",
+        "nota tecnica la figura 1",
+        "nota tecnica figura 1",
+        "nota tecnica: la figura 1",
+        "nota tecnica: figura 1",
+        "este grafico debe",
+        "la construccion del pareto debe",
+        "este diagrama debe",
+        "esta matriz debe",
+        "la matriz debe incluir",
+        "cada alternativa debe calificarse",
+        "los puntajes deben",
+        "escala: 1",
+    )
+    return any(text.startswith(prefix) for prefix in stale_prefixes)
+
+
 def _paragraph_matches_anchor(block: dict[str, Any], anchors: tuple[str, ...]) -> bool:
     if _normalize_token(block.get("tipo")) != "parrafo":
         return False
@@ -324,14 +611,52 @@ def _paragraph_matches_anchor(block: dict[str, Any], anchors: tuple[str, ...]) -
     return any(_normalize_token(anchor) in text for anchor in anchors)
 
 
+def _paragraph_matches_ordered_anchor(block: dict[str, Any], figure_index: int) -> bool:
+    text = _normalize_token(block.get("texto"))
+    if _normalize_token(block.get("tipo")) != "parrafo" or not text:
+        return False
+    return _project_problem_anchor_score(block, figure_index) > 0
+
+
+def _project_problem_anchor_score(block: dict[str, Any], figure_index: int) -> int:
+    if _normalize_token(block.get("tipo")) != "parrafo":
+        return 0
+    text = _normalize_token(block.get("texto"))
+    if not text:
+        return 0
+    if figure_index == 2 and any(marker in text for marker in ("matriz de priorizacion", "priorizacion ponderada")):
+        return 0
+
+    anchors = _PROJECT_PROBLEM_ORDERED_ANCHORS[figure_index]
+    score = sum(8 for anchor in anchors if anchor in text)
+    if score == 0:
+        return 0
+
+    word_count = len(text.split())
+    score += min(word_count, 140) // 7
+    explicit_marker = f"figura 1.{figure_index + 1}"
+    if explicit_marker in text:
+        score += 90 if word_count >= 45 else 20
+    if word_count < 22:
+        score -= 18
+    return max(score, 0)
+
+
 def _paragraph_has_any_project_anchor(block: dict[str, Any]) -> bool:
     return any(_paragraph_matches_anchor(block, anchors) for anchors in _PROJECT_PROBLEM_FIGURE_ANCHORS)
+
+
+def _paragraph_project_anchor_count(block: dict[str, Any]) -> int:
+    return sum(1 for anchors in _PROJECT_PROBLEM_FIGURE_ANCHORS if _paragraph_matches_anchor(block, anchors))
 
 
 def _split_anchor_paragraphs(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     split_blocks: list[dict[str, Any]] = []
     for block in blocks:
         if _normalize_token(block.get("tipo")) != "parrafo" or not _paragraph_has_any_project_anchor(block):
+            split_blocks.append(block)
+            continue
+        if _paragraph_project_anchor_count(block) <= 1:
             split_blocks.append(block)
             continue
 
@@ -354,6 +679,28 @@ def _fallback_anchor_index(blocks: list[dict[str, Any]], figure_index: int) -> i
     # If the AI omits explicit figure mentions, still distribute figures near
     # the narrative paragraphs instead of grouping all of them at section end.
     return paragraph_indexes[min(figure_index, len(paragraph_indexes) - 1)]
+
+
+def _fallback_ordered_anchor_index(blocks: list[dict[str, Any]], figure_index: int, start_index: int) -> int:
+    paragraph_indexes = [
+        index
+        for index, block in enumerate(blocks)
+        if index >= start_index and _normalize_token(block.get("tipo")) == "parrafo"
+    ]
+    if paragraph_indexes:
+        return paragraph_indexes[min(figure_index, len(paragraph_indexes) - 1)]
+    return _fallback_anchor_index(blocks, figure_index)
+
+
+def _best_ordered_anchor_index(blocks: list[dict[str, Any]], figure_index: int, start_index: int) -> int:
+    scored = [
+        (_project_problem_anchor_score(blocks[block_index], figure_index), block_index)
+        for block_index in range(start_index, len(blocks))
+    ]
+    scored = [(score, block_index) for score, block_index in scored if score > 0]
+    if not scored:
+        return -1
+    return max(scored, key=lambda item: (item[0], -item[1]))[1]
 
 
 def _insert_after_index(
@@ -379,25 +726,26 @@ def _insert_after_index(
 
 def _ensure_project_problem_figures(section: dict[str, Any]) -> None:
     path = str(section.get("path") or "").strip()
-    blocks = _split_anchor_paragraphs(_content_to_blocks(section.get("content")))
+    cleaned_content = _strip_stale_project_problem_visual_markup(section.get("content"))
+    blocks = _content_to_blocks(cleaned_content)
     required_blocks = _project_problem_figure_blocks(str(section.get("sectionId") or ""), path)
     # Rebuild controlled project figures so stale generated output cannot leave
     # them appended as a consecutive group at the end of 1.1.
-    content_blocks = [block for block in blocks if not _is_project_problem_figure(block)]
+    content_blocks = [
+        block
+        for block in blocks
+        if _normalize_token(block.get("tipo")) != "figura"
+        and not _is_project_problem_figure(block)
+        and not _is_stale_project_problem_visual_paragraph(block)
+    ]
 
+    search_start = 0
     for index, block in enumerate(required_blocks):
-        anchor_index = next(
-            (
-                block_index
-                for block_index, content_block in enumerate(content_blocks)
-                if _paragraph_matches_anchor(content_block, _PROJECT_PROBLEM_FIGURE_ANCHORS[index])
-            ),
-            -1,
-        )
+        anchor_index = _best_ordered_anchor_index(content_blocks, index, search_start)
         if anchor_index < 0:
-            anchor_index = _fallback_anchor_index(content_blocks, index)
-        has_explicit_anchor = 0 <= anchor_index < len(content_blocks) and _paragraph_matches_anchor(
-            content_blocks[anchor_index], _PROJECT_PROBLEM_FIGURE_ANCHORS[index]
+            anchor_index = _fallback_ordered_anchor_index(content_blocks, index, search_start)
+        has_explicit_anchor = 0 <= anchor_index < len(content_blocks) and _paragraph_matches_ordered_anchor(
+            content_blocks[anchor_index], index
         )
         _insert_after_index(
             content_blocks,
@@ -405,6 +753,78 @@ def _ensure_project_problem_figures(section: dict[str, Any]) -> None:
             block,
             lead_text="" if has_explicit_anchor else _PROJECT_PROBLEM_FIGURE_LEADS[index],
         )
+        search_start = min(anchor_index + 2, len(content_blocks))
+
+    section["content"] = content_blocks
+
+
+def _is_chapter_two_figure(block: dict[str, Any]) -> bool:
+    if _normalize_token(block.get("tipo")) != "figura":
+        return False
+    figure_id = _normalize_token(block.get("id"))
+    title = _normalize_token(block.get("titulo") or block.get("caption"))
+    if figure_id.startswith("fig_2_"):
+        return True
+    controlled_titles = {_normalize_token(item["titulo"]) for item in _CHAPTER_TWO_FIGURES}
+    controlled_captions = {_normalize_token(item["caption"]) for item in _CHAPTER_TWO_FIGURES}
+    return title in controlled_titles or title in controlled_captions
+
+
+def _matches_any_anchor(block: dict[str, Any], anchors: tuple[str, ...]) -> bool:
+    if _normalize_token(block.get("tipo")) != "parrafo":
+        return False
+    text = _normalize_token(block.get("texto"))
+    return any(_normalize_token(anchor) in text for anchor in anchors)
+
+
+def _first_anchor_index(blocks: list[dict[str, Any]], anchors: tuple[str, ...], *, start: int = 0) -> int:
+    for index in range(max(0, start), len(blocks)):
+        if _matches_any_anchor(blocks[index], anchors):
+            return index
+    return -1
+
+
+def _chapter_two_insert_index(
+    blocks: list[dict[str, Any]],
+    *,
+    figure_index: int,
+) -> int:
+    anchors = _CHAPTER_TWO_SUBTOPIC_ANCHORS[figure_index]
+    start_index = _first_anchor_index(blocks, anchors)
+    if start_index < 0:
+        paragraph_indexes = [
+            index for index, block in enumerate(blocks) if _normalize_token(block.get("tipo")) == "parrafo"
+        ]
+        if not paragraph_indexes:
+            return -1
+        return paragraph_indexes[min(figure_index, len(paragraph_indexes) - 1)]
+
+    next_start_candidates = [
+        _first_anchor_index(blocks, next_anchors, start=start_index + 1)
+        for next_anchors in _CHAPTER_TWO_SUBTOPIC_ANCHORS[figure_index + 1 :]
+    ]
+    next_start = min((index for index in next_start_candidates if index >= 0), default=-1)
+    if next_start > start_index:
+        return next_start - 1
+
+    paragraph_indexes = [
+        index
+        for index, block in enumerate(blocks)
+        if index >= start_index and _normalize_token(block.get("tipo")) == "parrafo"
+    ]
+    return paragraph_indexes[-1] if paragraph_indexes else start_index
+
+
+def _ensure_chapter_two_theoretical_figures(section: dict[str, Any]) -> None:
+    blocks = _content_to_blocks(section.get("content"))
+    content_blocks = [
+        block for block in blocks if not _is_chapter_two_figure(block) and not _is_generic_figure(block)
+    ]
+
+    for index, figure in enumerate(_CHAPTER_TWO_FIGURES):
+        figure_block = dict(figure)
+        anchor_index = _chapter_two_insert_index(content_blocks, figure_index=index)
+        _insert_after_index(content_blocks, anchor_index, figure_block)
 
     section["content"] = content_blocks
 
@@ -438,7 +858,7 @@ def _build_recommended_figure(section_id: str, path: str, title: str) -> dict[st
         "titulo": title,
         "caption": title,
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
-        "fuente": "Placeholder tecnico controlado. Reemplazar por la figura validada por el autor.",
+        "fuente": "Nota. Figura sugerida para validacion del autor.",
     }
 
 
@@ -459,6 +879,43 @@ def apply_figure_recommendations(
 
         if _is_project_target_format(format_id) and _is_reality_problem_path(path):
             _ensure_project_problem_figures(section)
+            continue
+
+        if _is_chapter_two_text_only_path(path):
+            current_content = section.get("content")
+            blocks = _content_to_blocks(current_content)
+            if any(_normalize_token(block.get("tipo")) != "parrafo" for block in blocks):
+                section["content"] = [
+                    block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"
+                ]
+            continue
+
+        if (
+            is_chapter_three_hypotheses_section(path)
+            or is_chapter_three_operationalization_section(path)
+            or is_chapter_four_text_only_section(path)
+        ):
+            current_content = section.get("content")
+            blocks = _content_to_blocks(current_content)
+            if any(_normalize_token(block.get("tipo")) != "parrafo" for block in blocks):
+                section["content"] = [
+                    block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"
+                ]
+            continue
+
+        if is_chapter_four_design_section(path):
+            current_content = section.get("content")
+            blocks = _content_to_blocks(current_content)
+            if any(_normalize_token(block.get("tipo")) not in {"parrafo", "formula"} for block in blocks):
+                section["content"] = [
+                    block
+                    for block in blocks
+                    if _normalize_token(block.get("tipo")) in {"parrafo", "formula"}
+                ]
+            continue
+
+        if _is_project_target_format(format_id) and _is_chapter_two_bases_path(path):
+            _ensure_chapter_two_theoretical_figures(section)
             continue
 
         current_content = section.get("content")
