@@ -2707,7 +2707,9 @@ class AIService:
             )
 
         equipment = self._value_text(values, "objeto_estudio", "poblacion", default="motoniveladora CAT 24M")
-        location = self._value_text(values, "lugar_ejecucion", "ubicacion", default="unidad minera de la Sierra Central")
+        location = self._value_text(
+            values, "lugar_ejecucion", "ubicacion", default="unidad minera de la Sierra Central"
+        )
         return [
             {"tipo": "parrafo", "texto": "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM)"},
             {
@@ -2717,8 +2719,8 @@ class AIService:
                     "las funciones requeridas del activo dentro de su contexto operacional. Su valor teorico radica en "
                     "desplazar el mantenimiento rutinario basado solo en horas de uso hacia una logica de funciones, "
                     "fallas funcionales, modos de falla y consecuencias operacionales. Bajo este enfoque, el activo no "
-                    "se interviene por costumbre, sino segun la criticidad del riesgo tecnico que representa la perdida "
-                    "de su funcion."
+                    "se interviene por costumbre, sino segun la criticidad del riesgo tecnico que representa la "
+                    "perdida de su funcion."
                 ),
             },
             {
@@ -2739,9 +2741,9 @@ class AIService:
                 "texto": (
                     "El proceso del RCM se organiza alrededor de siete preguntas que ordenan la definicion de "
                     "funciones, fallas funcionales, modos de falla, efectos, consecuencias y tareas aplicables. Esta "
-                    "secuencia evita formular planes preventivos genericos y obliga a justificar cada decision con base "
-                    "en el comportamiento real del activo. En lugar de iniciar desde el calendario, el proceso inicia "
-                    "desde la funcion requerida y desde la forma en que esa funcion puede perderse."
+                    "secuencia evita formular planes preventivos genericos y obliga a justificar cada decision con "
+                    "base en el comportamiento real del activo. En lugar de iniciar desde el calendario, el "
+                    "proceso inicia desde la funcion requerida y desde la forma en que esa funcion puede perderse."
                 ),
             },
             {
@@ -2760,18 +2762,19 @@ class AIService:
                 "texto": (
                     "La taxonomia de equipos segun ISO 14224:2016 proporciona una estructura jerarquica para ordenar "
                     "activos, subsistemas, componentes y modos de falla bajo criterios uniformes de identificacion y "
-                    "registro. Su importancia en ingenieria de mantenimiento no se limita a clasificar activos; tambien "
-                    "garantiza trazabilidad de historiales, consistencia en la captura de fallas y comparabilidad entre "
-                    "analisis."
+                    "registro. Su importancia en ingenieria de mantenimiento no se limita a clasificar activos; "
+                    "tambien garantiza trazabilidad de historiales, consistencia en la captura de fallas y "
+                    "comparabilidad entre analisis."
                 ),
             },
             {
                 "tipo": "parrafo",
                 "texto": (
                     "Al trabajar con niveles taxonomicos claramente definidos, la informacion deja de depender de "
-                    "descripciones ambiguas de taller y puede vincularse con criticidad, frecuencia de falla, tiempo de "
-                    "reparacion y costo. En un estudio de confiabilidad, la taxonomia es el soporte estructural que "
-                    "permite pasar de reportes dispersos a una base analitica util para decisiones tecnicas."
+                    "descripciones ambiguas de taller y puede vincularse con criticidad, frecuencia de falla, "
+                    "tiempo de reparacion y costo. En un estudio de confiabilidad, la taxonomia es el soporte "
+                    "estructural que permite pasar de reportes dispersos a una base analitica util para "
+                    "decisiones tecnicas."
                 ),
             },
             {"tipo": "parrafo", "texto": "2.2.4 Analisis de Modos y Efecto de Fallas (AMEF)"},
@@ -2780,9 +2783,9 @@ class AIService:
                 "texto": (
                     "El Analisis de Modos y Efecto de Fallas (AMEF) es una herramienta sistematica para identificar "
                     "como falla un subsistema, que efectos produce la falla y con que severidad, ocurrencia y "
-                    "detectabilidad debe ser evaluada. Su aporte principal consiste en priorizar tecnicamente los modos "
-                    "de falla que comprometen la funcion del activo, evitando que el plan de mantenimiento trate todos "
-                    "los eventos con la misma importancia."
+                    "detectabilidad debe ser evaluada. Su aporte principal consiste en priorizar tecnicamente los "
+                    "modos de falla que comprometen la funcion del activo, evitando que el plan de mantenimiento "
+                    "trate todos los eventos con la misma importancia."
                 ),
             },
             {
@@ -2849,11 +2852,11 @@ class AIService:
             {
                 "tipo": "parrafo",
                 "texto": (
-                    "La mantenibilidad representa la capacidad del activo para ser restaurado a una condicion operativa "
-                    "en un tiempo determinado y bajo procedimientos, recursos y condiciones de reparacion definidas. "
-                    "Su analisis permite reconocer si los tiempos de intervencion responden a complejidad tecnica, "
-                    "accesibilidad, disponibilidad de repuestos, calidad del diagnostico o eficiencia del proceso de "
-                    "mantenimiento."
+                    "La mantenibilidad representa la capacidad del activo para ser restaurado a una "
+                    "condicion operativa en un tiempo determinado y bajo procedimientos, recursos y condiciones de "
+                    "reparacion definidas. Su analisis permite reconocer si los tiempos de intervencion responden "
+                    "a complejidad tecnica, accesibilidad, disponibilidad de repuestos, calidad del diagnostico o "
+                    "eficiencia del proceso de mantenimiento."
                 ),
             },
             {

@@ -1556,9 +1556,7 @@ def _problem_figure_contract(details: Dict[str, Any]) -> List[str]:
 
 def _is_maintenance_reliability_case(details: Dict[str, Any]) -> bool:
     tokens = " ".join(
-        _normalize_text(
-            details.get(key)
-        )
+        _normalize_text(details.get(key))
         for key in (
             "titulo",
             "title",
@@ -1585,9 +1583,7 @@ def _is_maintenance_reliability_case(details: Dict[str, Any]) -> bool:
         "minera",
     )
     hit_count = sum(1 for marker in markers if marker in tokens)
-    return hit_count >= 3 and (
-        "mantenimiento" in tokens or "confiabilidad" in tokens or "disponibilidad" in tokens
-    )
+    return hit_count >= 3 and ("mantenimiento" in tokens or "confiabilidad" in tokens or "disponibilidad" in tokens)
 
 
 def _chapter_two_bases_contract(details: Dict[str, Any]) -> List[str]:

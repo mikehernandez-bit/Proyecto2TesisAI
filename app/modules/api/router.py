@@ -2527,7 +2527,9 @@ async def _ai_generation_job(
                     for item in planned_sections
                     if isinstance(item, dict)
                 ):
-                    cleared_state = _clear_theoretical_bases_generation_state(projects.get_project(project_id) or project)
+                    cleared_state = _clear_theoretical_bases_generation_state(
+                        projects.get_project(project_id) or project
+                    )
                     if cleared_state:
                         cleared_state["prompt_snapshot"] = prompt_snapshot
                         projects.update_project(project_id, cleared_state)

@@ -15,8 +15,8 @@ from app.main import app
 @pytest.fixture
 def client(tmp_path):
     """Provide a TestClient instance for the FastAPI app."""
-    from app.modules.api import router as router_module
     from app.core.config import settings
+    from app.modules.api import router as router_module
 
     router_module.projects = ProjectService(str(tmp_path / "projects.json"))
     router_module.pricing_service = PricingService(path=str(tmp_path / "model_pricing.json"))

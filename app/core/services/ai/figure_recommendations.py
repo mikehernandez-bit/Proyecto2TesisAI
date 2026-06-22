@@ -225,7 +225,7 @@ _CHAPTER_TWO_FIGURES = (
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. Adaptado de RCM|Terotecnic Ingenieria.",
         "nota": (
-            "Guía para elaborar la figura: Diseña un diagrama de flujo estructurado titulado \"Proceso del RCM\" "
+            'Guía para elaborar la figura: Diseña un diagrama de flujo estructurado titulado "Proceso del RCM" '
             "que orqueste visualmente el ciclo completo de implementación del Mantenimiento Centrado en Confiabilidad. "
             "El gráfico debe ilustrar claramente las siete preguntas fundamentales de la norma SAE JA1011 distribuidas "
             "en bloques secuenciales: funciones del activo, fallas funcionales, modos de falla principales, efectos "
@@ -234,9 +234,9 @@ _CHAPTER_TWO_FIGURES = (
             "de tareas proactivas y óvalos para el inicio y fin del proceso. Conecta todos los elementos con líneas "
             "y flechas direccionales que indiquen la secuencia lógica. Agrega leyendas descriptivas a cada bloque y "
             "utiliza un código de colores contrastante para diferenciar las fases de preparación, análisis crítico "
-            "y toma de decisiones operativas. En la sección inferior del diagrama, incluye una nota técnica explicativa "
-            "que detalle cómo cada etapa del flujo alimenta directamente el desarrollo del AMEF y la optimización de "
-            "los planes de mantenimiento preventivo y predictivo en la organización."
+            "y toma de decisiones operativas. En la sección inferior del diagrama, incluye una nota técnica "
+            "explicativa que detalle cómo cada etapa del flujo alimenta directamente el desarrollo del AMEF y la "
+            "optimización de los planes de mantenimiento preventivo y predictivo en la organización."
         ),
         "nota_color": _FIGURE_GUIDE_BLUE,
     },
@@ -248,17 +248,19 @@ _CHAPTER_TWO_FIGURES = (
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. La taxonomia de activos fisicos como fundamento. Reliability CONNECT.",
         "nota": (
-            "Guía para elaborar la figura: Construye un diagrama piramidal o jerárquico titulado \"Niveles taxonómicos\" "
-            "basado estrictamente en la norma ISO 14224:2016 para la recolección de datos de mantenimiento y confiabilidad. "
-            "Estructura el gráfico en una jerarquía vertical descendente de nueve niveles divididos en tres categorías "
-            "principales: uso industrial (Nivel 1: Industria, Nivel 2: Categoría de negocio, Nivel 3: Instalación), "
-            "categoría de equipo (Nivel 4: Clase de equipo, Nivel 5: Unidad de equipo, Nivel 6: Subunidad o sistema "
-            "principal) y localización de falla (Nivel 7: Componente, Nivel 8: Parte o subcomponente, Nivel 9: Detalle "
-            "o elemento mínimo). Utiliza cajas rectangulares alineadas para cada nivel, conectadas con líneas jerárquicas "
-            "sólidas. Resalta visualmente el Nivel 5 (Unidad de equipo) y el Nivel 6 (Subunidad) como los puntos críticos "
-            "de recolección de datos operativos y de falla. Añade etiquetas descriptivas claras en cada bloque y un "
-            "cuadro lateral informativo que describa el impacto de una correcta taxonomía en la consistencia de los "
-            "indicadores MTBF y MTTR."
+            "Guía para elaborar la figura: Construye un diagrama piramidal o jerárquico titulado "
+            '"Niveles taxonómicos" basado estrictamente en la norma ISO 14224:2016 para la recolección de '
+            "datos de mantenimiento y confiabilidad. Estructura el gráfico en una jerarquía vertical "
+            "descendente de nueve niveles divididos en tres categorías principales: uso industrial "
+            "(Nivel 1: Industria, Nivel 2: Categoría de negocio, Nivel 3: Instalación), categoría de "
+            "equipo (Nivel 4: Clase de equipo, Nivel 5: Unidad de equipo, Nivel 6: Subunidad o sistema "
+            "principal) y localización de falla (Nivel 7: Componente, Nivel 8: Parte o subcomponente, "
+            "Nivel 9: Detalle o elemento mínimo). Utiliza cajas rectangulares alineadas para cada nivel, "
+            "conectadas con líneas jerárquicas sólidas. Resalta visualmente el Nivel 5 (Unidad de "
+            "equipo) y el Nivel 6 (Subunidad) como los puntos críticos de recolección de datos operativos "
+            "y de falla. Añade etiquetas descriptivas claras en cada bloque y un cuadro lateral informativo "
+            "que describa el impacto de una correcta taxonomía en la consistencia de los indicadores "
+            "MTBF y MTTR."
         ),
         "nota_color": _FIGURE_GUIDE_BLUE,
     },
@@ -273,17 +275,17 @@ _CHAPTER_TWO_FIGURES = (
             "centrado en confiabilidad."
         ),
         "nota": (
-            "Guía para elaborar la figura: Elabora un esquema conceptual titulado \"Análisis de Modo y Efecto de "
-            "Falla (AMEF)\" que represente gráficamente la estructura metodológica para evaluar y priorizar los riesgos "
-            "de falla en los activos críticos del proyecto. Dibuja un diagrama relacional que conecte en forma de "
-            "cascada de izquierda a derecha los siguientes elementos analíticos: el Componente, la Función asociada, "
-            "la Falla funcional potencial, los Modos de falla específicos y sus Efectos operativos y de seguridad. "
-            "Incorpora un bloque central destacado para el cálculo del Número de Prioridad de Riesgo (NPR), detallando "
-            "sus tres variables de entrada mediante multiplicadores: Severidad (S), Ocurrencia (O) y Detección (D), "
-            "en una escala del 1 al 10. Representa las conexiones con flechas y colores diferenciados para indicar "
-            "la ruta crítica de análisis. Incluye en la parte inferior del esquema la fórmula formal NPR = S x O x D "
-            "junto con una escala visual de criticidad (Baja, Media, Alta) para guiar al usuario en la definición "
-            "de acciones recomendadas de mantenimiento."
+            'Guía para elaborar la figura: Elabora un esquema conceptual titulado "Análisis de Modo y '
+            'Efecto de Falla (AMEF)" que represente gráficamente la estructura metodológica para evaluar y '
+            "priorizar los riesgos de falla en los activos críticos del proyecto. Dibuja un diagrama relacional "
+            "que conecte en forma de cascada de izquierda a derecha los siguientes elementos analíticos: el "
+            "Componente, la Función asociada, la Falla funcional potencial, los Modos de falla específicos y "
+            "sus Efectos operativos y de seguridad. Incorpora un bloque central destacado para el cálculo del "
+            "Número de Prioridad de Riesgo (NPR), detallando sus tres variables de entrada mediante multiplicadores: "
+            "Severidad (S), Ocurrencia (O) y Detección (D), en una escala del 1 al 10. Representa las conexiones "
+            "con flechas y colores diferenciados para indicar la ruta crítica de análisis. Incluye en la parte "
+            "inferior del esquema la fórmula formal NPR = S x O x D junto con una escala visual de criticidad "
+            "(Baja, Media, Alta) para guiar al usuario en la definición de acciones recomendadas de mantenimiento."
         ),
         "nota_color": _FIGURE_GUIDE_BLUE,
     },
@@ -295,8 +297,8 @@ _CHAPTER_TWO_FIGURES = (
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. Motoniveladora 24M.",
         "nota": (
-            "Guía para elaborar la figura: Construye un diagrama técnico de distribución titulado \"Motoniveladora "
-            "CAT 24M\" que identifique visualmente los sistemas y componentes críticos sometidos a análisis en este "
+            'Guía para elaborar la figura: Construye un diagrama técnico de distribución titulado "Motoniveladora '
+            'CAT 24M" que identifique visualmente los sistemas y componentes críticos sometidos a análisis en este '
             "proyecto. Utiliza una vista en corte lateral o despiece simplificado de la máquina como base gráfica. "
             "Rotula y apunta con líneas de referencia precisas a los componentes clave: el motor diésel CAT C18 ACERT, "
             "el sistema de transmisión y tren de fuerza, el sistema hidráulico principal de implementos, el mecanismo "
@@ -485,9 +487,7 @@ def _theoretical_bases_is_maintenance_case(content: Any, values: dict[str, Any] 
         )
     combined = " ".join(part for part in (content_text, values_text) if part)
     hits = sum(1 for marker in _THEORETICAL_MAINTENANCE_MARKERS if marker in combined)
-    return hits >= 3 and (
-        "mantenimiento" in combined or "confiabilidad" in combined or "disponibilidad" in combined
-    )
+    return hits >= 3 and ("mantenimiento" in combined or "confiabilidad" in combined or "disponibilidad" in combined)
 
 
 def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str, Any]]:
@@ -908,7 +908,9 @@ def _chapter_two_insert_index(
     current_heading_index = heading_indices.get(target_heading)
     if current_heading_index is not None:
         later_heading_indexes = [
-            index for number, index in heading_indices.items() if number > target_heading and index > current_heading_index
+            index
+            for number, index in heading_indices.items()
+            if number > target_heading and index > current_heading_index
         ]
         next_heading_index = min(later_heading_indexes) if later_heading_indexes else -1
         upper_bound = next_heading_index if next_heading_index >= 0 else len(blocks)
@@ -952,7 +954,7 @@ def _extract_heading_title(block: dict[str, Any]) -> str:
     first_line = str(block.get("texto") or "").strip().splitlines()[0].strip()
     match = _THEORETICAL_HEADING_RE.match(first_line)
     if match:
-        return first_line[match.end():].strip()
+        return first_line[match.end() :].strip()
     return first_line
 
 
@@ -971,7 +973,8 @@ def _ensure_chapter_two_theoretical_figures(
     # Eliminar figuras existentes del capítulo 2 (controladas o genéricas) para
     # reconstruirlas desde cero con la lógica dinámica.
     content_blocks = [
-        block for block in blocks
+        block
+        for block in blocks
         if _normalize_token(block.get("tipo")) != "figura"
         or (not _is_chapter_two_figure(block) and not _is_generic_figure(block))
     ]
@@ -1006,7 +1009,8 @@ def _ensure_chapter_two_theoretical_figures(
         upper_bound = min(next_heading_idxs) if next_heading_idxs else len(content_blocks)
 
         paragraph_idxs = [
-            idx for idx in range(heading_block_idx + 1, upper_bound)
+            idx
+            for idx in range(heading_block_idx + 1, upper_bound)
             if _normalize_token(content_blocks[idx].get("tipo")) == "parrafo"
         ]
         anchor_index = paragraph_idxs[-1] if paragraph_idxs else heading_block_idx
@@ -1057,7 +1061,7 @@ def _build_recommended_figure(section_id: str, path: str, title: str) -> dict[st
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. Figura sugerida para validacion del autor.",
         "nota": (
-            f"Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado \"{title}\" "
+            f'Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado "{title}" '
             "que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe "
             "estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según "
             "corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos "

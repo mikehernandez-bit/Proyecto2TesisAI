@@ -165,9 +165,7 @@ class OutputValidator:
     # Detects bare mathematical equations written as plain text (e.g. "MTBF = X / Y").
     # These are promoted to formula blocks so GicaTesis does not render them as
     # Heading 3 paragraphs and include them in the table of contents.
-    _INLINE_FORMULA_RE = re.compile(
-        r"^[A-ZÁÉÍÓÚ][A-Za-záéíóúñÑ\s]+=\s*[\w\s/()+\-*.áéíóúñ]+$"
-    )
+    _INLINE_FORMULA_RE = re.compile(r"^[A-ZÁÉÍÓÚ][A-Za-záéíóúñÑ\s]+=\s*[\w\s/()+\-*.áéíóúñ]+$")
     _SCHEDULE_PHASE_ROWS = [1, 5, 9, 13, 17, 21, 26, 30]
     _SCHEDULE_ACTIVITY_COUNTS = (3, 3, 3, 3, 3, 4, 3, 4)
     _SCHEDULE_LEGACY_RECOVERABLE_ERRORS = {
@@ -1455,7 +1453,8 @@ class OutputValidator:
         if generic_hits:
             errors.append("2.1 conserva antecedentes vagos: " + ", ".join(generic_hits))
 
-        # Enforce numbered Heading 3 headings for backgrounds: "2.1.1 Antecedentes internacionales" and "2.1.2 Antecedentes nacionales"
+        # Enforce numbered Heading 3 headings for backgrounds:
+        # "2.1.1 Antecedentes internacionales" and "2.1.2 Antecedentes nacionales"
         if not re.search(r"2\.1\.1\.?\s+antecedentes\s+internacionales", normalized_visible):
             errors.append("2.1 no contiene el subtitulo numerado '2.1.1 Antecedentes internacionales'")
         if not re.search(r"2\.1\.2\.?\s+antecedentes\s+nacionales", normalized_visible):
