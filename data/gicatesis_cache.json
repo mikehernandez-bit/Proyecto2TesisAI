@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "ff9da069f994ca2e44978eb0e44832cb29af549e89335c7210c5458ca9caeb65",
-  "catalogEtag": "\"ff9da069f994ca2e44978eb0e44832cb29af549e89335c7210c5458ca9caeb65\"",
+  "catalogVersion": "c2f15239637affa9800085235bcac20c40adcb7714afdc2c0425fb55d545a6a9",
+  "catalogEtag": "\"c2f15239637affa9800085235bcac20c40adcb7714afdc2c0425fb55d545a6a9\"",
   "formats": [
     {
       "id": "unac-informe-cual",
@@ -24,7 +24,7 @@
       "university": "unac",
       "category": "Tesis de Postgrado",
       "documentType": "cual",
-      "version": "e0d7caeedfc905c5"
+      "version": "19973d21344869a8"
     },
     {
       "id": "unac-maestria-cuant",
@@ -32,7 +32,7 @@
       "university": "unac",
       "category": "Tesis de Postgrado",
       "documentType": "cuant",
-      "version": "5024c8c55cf04cf8"
+      "version": "c066b8d66c8b421f"
     },
     {
       "id": "unac-proyecto-cual",
@@ -40,7 +40,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cual",
-      "version": "d629b0cce0937b83"
+      "version": "94f408746ca5cd36"
     },
     {
       "id": "unac-proyecto-cuant",
@@ -48,7 +48,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cuant",
-      "version": "be0370f9fb44c79e"
+      "version": "d11c2de0f178f95b"
     },
     {
       "id": "uni-informe-apa",
@@ -524,7 +524,7 @@
       "university": "unac",
       "category": "Tesis de Postgrado",
       "documentType": "cuant",
-      "version": "4a366be37e6d7ec6",
+      "version": "c066b8d66c8b421f",
       "templateRef": null,
       "fields": [
         {
@@ -554,7 +554,7 @@
           "label": "Escuela",
           "type": "text",
           "required": false,
-          "default": "UNIDAD DE POSGRADO DE LA FACULTAD DE [FACULTAD]",
+          "default": "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA",
           "options": null,
           "validation": null,
           "order": 3,
@@ -565,7 +565,7 @@
           "label": "Tipo Documento",
           "type": "text",
           "required": false,
-          "default": "TESIS DE MAESTRÍA",
+          "default": "PROYECTO DE INVESTIGACIÓN",
           "options": null,
           "validation": null,
           "order": 4,
@@ -576,7 +576,7 @@
           "label": "Titulo Placeholder",
           "type": "text",
           "required": false,
-          "default": "\"[TÍTULO COMPLETO DEL TRABAJO]\"",
+          "default": "\"[TÍTULO DE LA TESIS]\"",
           "options": null,
           "validation": null,
           "order": 5,
@@ -587,21 +587,10 @@
           "label": "Frase Grado",
           "type": "text",
           "required": false,
-          "default": "PARA OPTAR EL GRADO ACADÉMICO DE:",
+          "default": "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO",
           "options": null,
           "validation": null,
           "order": 6,
-          "section": null
-        },
-        {
-          "name": "grado_objetivo",
-          "label": "Grado Objetivo",
-          "type": "text",
-          "required": false,
-          "default": "MAESTRO EN [NOMBRE EXACTO DEL PROGRAMA]",
-          "options": null,
-          "validation": null,
-          "order": 7,
           "section": null
         },
         {
@@ -609,7 +598,18 @@
           "label": "Label Autor",
           "type": "text",
           "required": false,
-          "default": "AUTOR(ES)\n[NOMBRES Y APELLIDOS]",
+          "default": "AUTORES:",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "autores",
+          "label": "Autores",
+          "type": "text",
+          "required": false,
+          "default": null,
           "options": null,
           "validation": null,
           "order": 8,
@@ -620,10 +620,21 @@
           "label": "Label Asesor",
           "type": "text",
           "required": false,
-          "default": "ASESOR\n[NOMBRES Y APELLIDOS]",
+          "default": "ASESOR:",
           "options": null,
           "validation": null,
           "order": 9,
+          "section": null
+        },
+        {
+          "name": "asesor",
+          "label": "Asesor",
+          "type": "text",
+          "required": false,
+          "default": "[Apellidos y nombres]",
+          "options": null,
+          "validation": null,
+          "order": 10,
           "section": null
         },
         {
@@ -631,21 +642,43 @@
           "label": "Label Linea",
           "type": "text",
           "required": false,
-          "default": "LÍNEA DE INVESTIGACIÓN: [NOMBRE DE LA LÍNEA]",
-          "options": null,
-          "validation": null,
-          "order": 10,
-          "section": null
-        },
-        {
-          "name": "fecha",
-          "label": "Fecha",
-          "type": "date",
-          "required": false,
-          "default": "Callao, [AÑO]",
+          "default": "LÍNEA DE INVESTIGACIÓN:",
           "options": null,
           "validation": null,
           "order": 11,
+          "section": null
+        },
+        {
+          "name": "linea_investigacion",
+          "label": "Linea Investigacion",
+          "type": "text",
+          "required": false,
+          "default": "[Nombre de la línea]",
+          "options": null,
+          "validation": null,
+          "order": 12,
+          "section": null
+        },
+        {
+          "name": "lugar",
+          "label": "Lugar",
+          "type": "text",
+          "required": false,
+          "default": "Callao, 2026",
+          "options": null,
+          "validation": null,
+          "order": 13,
+          "section": null
+        },
+        {
+          "name": "anio",
+          "label": "Anio",
+          "type": "text",
+          "required": false,
+          "default": "2026",
+          "options": null,
+          "validation": null,
+          "order": 14,
           "section": null
         },
         {
@@ -656,22 +689,17 @@
           "default": "PERÚ",
           "options": null,
           "validation": null,
-          "order": 12,
-          "section": null
-        },
-        {
-          "name": "guia",
-          "label": "Guia",
-          "type": "text",
-          "required": false,
-          "default": "Contiene: variables, unidad de análisis, ámbito de estudio y temporalidad.\nMáx. 15 palabras; sin conectores ni nombres.",
-          "options": null,
-          "validation": null,
-          "order": 13,
+          "order": 15,
           "section": null
         }
       ],
-      "assets": [],
+      "assets": [
+        {
+          "id": "unac:logo:main",
+          "kind": "logo",
+          "url": "/api/v1/assets/unac/logo/main"
+        }
+      ],
       "rules": null,
       "definition": {
         "_meta": {
@@ -681,22 +709,31 @@
           "university": "unac",
           "category": "Tesis de Postgrado",
           "documentType": "cuant",
-          "title": "Tesis de Maestría UNAC - Enfoque Cuantitativo"
+          "title": "Tesis de Maestría UNAC - Enfoque Cuantitativo",
+          "descripcion": "Plantilla oficial de tesis de maestría (legacy).",
+          "version": "1.0.0"
+        },
+        "configuracion": {
+          "ruta_logo": "app/static/assets/LogoUNAC.png"
         },
         "caratula": {
           "universidad": "UNIVERSIDAD NACIONAL DEL CALLAO",
           "facultad": "ESCUELA DE POSGRADO",
-          "escuela": "UNIDAD DE POSGRADO DE LA FACULTAD DE [FACULTAD]",
-          "tipo_documento": "TESIS DE MAESTRÍA",
-          "titulo_placeholder": "\"[TÍTULO COMPLETO DEL TRABAJO]\"",
-          "frase_grado": "PARA OPTAR EL GRADO ACADÉMICO DE:",
-          "grado_objetivo": "MAESTRO EN [NOMBRE EXACTO DEL PROGRAMA]",
-          "label_autor": "AUTOR(ES)\n[NOMBRES Y APELLIDOS]",
-          "label_asesor": "ASESOR\n[NOMBRES Y APELLIDOS]",
-          "label_linea": "LÍNEA DE INVESTIGACIÓN: [NOMBRE DE LA LÍNEA]",
-          "fecha": "Callao, [AÑO]",
-          "pais": "PERÚ",
-          "guia": "Contiene: variables, unidad de análisis, ámbito de estudio y temporalidad.\nMáx. 15 palabras; sin conectores ni nombres."
+          "escuela": "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA",
+          "tipo_documento": "PROYECTO DE INVESTIGACIÓN",
+          "titulo_placeholder": "\"[TÍTULO DE LA TESIS]\"",
+          "frase_grado": "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO",
+          "label_autor": "AUTORES:",
+          "autores": [
+            "[Apellidos y nombres]"
+          ],
+          "label_asesor": "ASESOR:",
+          "asesor": "[Apellidos y nombres]",
+          "label_linea": "LÍNEA DE INVESTIGACIÓN:",
+          "linea_investigacion": "[Nombre de la línea]",
+          "lugar": "Callao, 2026",
+          "anio": "2026",
+          "pais": "PERÚ"
         },
         "preliminares": {
           "dedicatoria": {
@@ -762,7 +799,7 @@
                 "instruccion_detallada": "Describe, explica y evidencia la realidad problemática en el contexto internacional y/o nacional y, cuando corresponda, en el contexto institucional.\n\nSustente la identificación del problema relevante y evidencie el análisis de la problemática utilizando al menos una herramienta de ingeniería (por ejemplo: Pareto, Ishikawa, Árbol de problemas, Matriz de relevancia, Matriz de priorización, entre otras).\n\nSe debe mencionar la propuesta de solución del problema de investigación.",
                 "imagenes": [
                   {
-                    "titulo": "Figura 1.1. Herramienta de ingeniería (ejemplo)",
+                    "titulo": "Herramienta de ingeniería (ejemplo)",
                     "ruta": "placeholder",
                     "fuente": "Ejemplo de figura. Reemplace por un gráfico/diagrama real (Pareto, Ishikawa, árbol de problemas, etc.) con fuente."
                   }
@@ -806,7 +843,7 @@
                 "instruccion_detallada": "Desarrolle teorías, modelos y conceptos que sustentan las variables. Cite fuentes científicas.",
                 "imagenes": [
                   {
-                    "titulo": "Figura 2.1. Modelo conceptual / esquema (ejemplo)",
+                    "titulo": "Modelo conceptual / esquema (ejemplo)",
                     "ruta": "placeholder",
                     "fuente": "Ejemplo de figura para visualizar el formato. Reemplace por un esquema/modelo/diagrama propio con fuente."
                   }
@@ -823,11 +860,101 @@
             "contenido": [
               {
                 "texto": "3.1 Hipótesis",
-                "instruccion_detallada": "Formule la hipótesis general y específicas (si aplica) en coherencia con los objetivos."
+                "instruccion_detallada": "Formule la hipótesis general y específicas (si aplica) en coherencia con los objetivos.",
+                "imagenes": [
+                  {
+                    "titulo": "Modelo de relación entre variables",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
               },
               {
                 "texto": "3.2 Variables",
                 "instruccion_detallada": "Identifique claramente las variables (independiente y dependiente), dimensiones e indicadores.\n\nIncluya una matriz de consistencia (problema, objetivos, hipótesis, variables y metodología) y una matriz de operacionalización (variable, dimensión, indicador, escala, técnica/instrumento).\n\nUse definiciones conceptuales y operacionales; indique cómo se medirá cada indicador."
+              },
+              {
+                "tipo": "tabla",
+                "titulo": "Operacionalización de Variables",
+                "orientacion": "landscape",
+                "encabezados": [
+                  "Variable",
+                  "Definición Conceptual",
+                  "Definición Operacional",
+                  "Dimensiones",
+                  "Indicadores",
+                  "Escala"
+                ],
+                "filas": [
+                  [
+                    "Variable Independiente: [nombre]",
+                    "[Definición teórica]",
+                    "[Cómo se mide]",
+                    "Dimensión 1",
+                    "Indicador 1.1\nIndicador 1.2",
+                    "Ordinal"
+                  ],
+                  [
+                    "",
+                    "",
+                    "",
+                    "Dimensión 2",
+                    "Indicador 2.1\nIndicador 2.2",
+                    "Ordinal"
+                  ],
+                  [
+                    "Variable Dependiente: [nombre]",
+                    "[Definición teórica]",
+                    "[Cómo se mide]",
+                    "Dimensión A",
+                    "Indicador A.1\nIndicador A.2",
+                    "Nominal"
+                  ],
+                  [
+                    "",
+                    "",
+                    "",
+                    "Dimensión B",
+                    "Indicador B.1\nIndicador B.2",
+                    "Nominal"
+                  ]
+                ],
+                "celdas_fusionadas": [
+                  {
+                    "fila": 0,
+                    "col": 0,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 0,
+                    "col": 1,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 0,
+                    "col": 2,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 2,
+                    "col": 0,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 2,
+                    "col": 1,
+                    "filas_span": 2
+                  },
+                  {
+                    "fila": 2,
+                    "col": 2,
+                    "filas_span": 2
+                  }
+                ],
+                "estilo": {
+                  "encabezado_color": "D9D9D9",
+                  "fuente_size": 9
+                }
               }
             ]
           },
@@ -860,7 +987,14 @@
                   ]
                 },
                 "tabla_titulo": "Tabla 4.1. Matriz de operacionalización (ejemplo)",
-                "tabla_nota": "Ejemplo de tabla. Reemplace por su matriz de operacionalización completa."
+                "tabla_nota": "Ejemplo de tabla. Reemplace por su matriz de operacionalización completa.",
+                "imagenes": [
+                  {
+                    "titulo": "Diseño metodológico de la investigación",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia"
+                  }
+                ]
               },
               {
                 "texto": "4.2 Población y muestra",
@@ -873,6 +1007,80 @@
               {
                 "texto": "4.4 Procedimientos y análisis de datos",
                 "instruccion_detallada": "Explique el procedimiento paso a paso y el plan de análisis (estadística descriptiva e inferencial)."
+              },
+              {
+                "tipo": "tabla",
+                "titulo": "Cronograma de Actividades",
+                "orientacion": "portrait",
+                "encabezados": [
+                  "Actividad",
+                  "Mes 1",
+                  "Mes 2",
+                  "Mes 3",
+                  "Mes 4",
+                  "Mes 5",
+                  "Mes 6"
+                ],
+                "filas": [
+                  [
+                    "Revisión bibliográfica",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Diseño metodológico",
+                    "",
+                    "X",
+                    "X",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Recolección de datos",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    "",
+                    ""
+                  ],
+                  [
+                    "Análisis de resultados",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X",
+                    ""
+                  ],
+                  [
+                    "Redacción del informe",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X",
+                    "X"
+                  ],
+                  [
+                    "Sustentación",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "X"
+                  ]
+                ],
+                "estilo": {
+                  "encabezado_color": "4472C4",
+                  "fuente_size": 10
+                }
               }
             ]
           },
@@ -905,23 +1113,110 @@
                   ]
                 },
                 "tabla_titulo": "Tabla 5.1. Resultados por indicador (ejemplo)",
-                "tabla_nota": "Ejemplo de tabla de resultados. Reemplace por sus resultados reales e incluya fuente si aplica."
+                "tabla_nota": "Ejemplo de tabla de resultados. Reemplace por sus resultados reales e incluya fuente si aplica.",
+                "imagenes": [
+                  {
+                    "titulo": "Distribución de frecuencias de la variable principal",
+                    "ruta": "figura_ejemplo.png",
+                    "fuente": "Elaboración propia con datos de la encuesta"
+                  }
+                ]
               },
               {
-                "texto": "5.2 Discusión",
-                "instruccion_detallada": "Interprete y compare los resultados con la literatura (antecedentes y bases teóricas).\n\nExplique coincidencias y discrepancias, implicancias prácticas, y limitaciones del estudio."
+                "tipo": "tabla",
+                "titulo": "Resultados Descriptivos",
+                "orientacion": "portrait",
+                "encabezados": [
+                  "Indicador",
+                  "Media",
+                  "Desv. Estándar",
+                  "Mín.",
+                  "Máx."
+                ],
+                "filas": [
+                  [
+                    "Indicador 1",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]"
+                  ],
+                  [
+                    "Indicador 2",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]"
+                  ],
+                  [
+                    "Indicador 3",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]",
+                    "[valor]"
+                  ]
+                ],
+                "estilo": {
+                  "encabezado_color": "4472C4",
+                  "fuente_size": 10
+                }
               }
             ]
           },
           {
-            "titulo": "VI. CONCLUSIONES Y RECOMENDACIONES",
+            "titulo": "VI. DISCUSIÓN DE RESULTADOS",
+            "nota_capitulo": "Interprete y contraste los hallazgos con la literatura revisada. Explique coincidencias y discrepancias, implicancias prácticas, y limitaciones del estudio.",
             "contenido": [
               {
-                "texto": "6.1 Conclusiones",
-                "instruccion_detallada": "Redacte conclusiones directas y numeradas, alineadas a los objetivos e hipótesis.\n\nAñada recomendaciones aplicables y, si corresponde, propuestas de investigación futura."
+                "texto": "6.1 Discusión",
+                "instruccion_detallada": "Interprete y compare los resultados con la literatura (antecedentes y bases teóricas).\n\nExplique coincidencias y discrepancias, implicancias prácticas, y limitaciones del estudio."
               },
               {
-                "texto": "6.2 Recomendaciones",
+                "tipo": "tabla",
+                "titulo": "Comparación de resultados con antecedentes",
+                "orientacion": "portrait",
+                "encabezados": [
+                  "Autor/Estudio",
+                  "Variable",
+                  "Resultado del autor",
+                  "Resultado propio",
+                  "Coincide"
+                ],
+                "filas": [
+                  [
+                    "[Autor 1]",
+                    "[Variable]",
+                    "[Resultado]",
+                    "[Resultado]",
+                    "[Sí/No]"
+                  ],
+                  [
+                    "[Autor 2]",
+                    "[Variable]",
+                    "[Resultado]",
+                    "[Resultado]",
+                    "[Sí/No]"
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "titulo": "VII. CONCLUSIONES",
+            "nota_capitulo": "Sintetice los principales hallazgos y responda a los objetivos planteados.",
+            "contenido": [
+              {
+                "texto": "7.1 Conclusiones",
+                "instruccion_detallada": "Redacte conclusiones directas y numeradas, alineadas a los objetivos e hipótesis.\n\nDebe haber al menos una conclusión por cada objetivo específico y una para el objetivo general."
+              }
+            ]
+          },
+          {
+            "titulo": "VIII. RECOMENDACIONES",
+            "nota_capitulo": "Proponga acciones, mejoras o futuras líneas de investigación en función de los resultados.",
+            "contenido": [
+              {
+                "texto": "8.1 Recomendaciones",
                 "instruccion_detallada": "Presente recomendaciones aplicables para la institución/sector y sugerencias para futuras investigaciones."
               }
             ]
@@ -940,97 +1235,91 @@
           },
           "anexos": {
             "titulo_seccion": "ANEXOS",
-            "nota": "Incluya instrumentos, matrices (consistencia, operacionalización), evidencias, y documentos complementarios.\n\nNumere los anexos y refiéralos dentro del texto cuando corresponda.",
             "lista": [
               {
-                "titulo": "ANEXO 1. Matriz de consistencia (ejemplo completo)",
-                "nota": "Incluya la matriz de consistencia completa (problema, objetivos, hipótesis si aplica, variables, metodología).",
-                "tabla": {
-                  "headers": [
-                    "Problema",
-                    "Objetivo",
-                    "Hipótesis",
-                    "Variables",
-                    "Metodología"
-                  ],
-                  "rows": [
-                    [
-                      "¿Problema general?",
-                      "Objetivo general",
-                      "Hipótesis general",
-                      "VI/VD",
-                      "Tipo/diseño/nivel"
-                    ],
-                    [
-                      "Problema específico 1",
-                      "Objetivo específico 1",
-                      "Hipótesis específica 1",
-                      "Indicadores",
-                      "Población/muestra"
-                    ]
-                  ]
-                },
-                "tabla_titulo": "Tabla A1. Matriz de consistencia (ejemplo)",
-                "tabla_nota": "Ejemplo de anexo. Reemplace cada celda con su información real."
-              },
-              {
-                "titulo": "ANEXO 2. Instrumento / evidencias (ejemplo completo)",
-                "nota": "Adjunte el instrumento (cuestionario, guía de entrevista, ficha) y/o evidencias necesarias.",
-                "parrafos": [
-                  "Instrumento (ejemplo):",
-                  "1) Pregunta 1: ________________________________",
-                  "2) Pregunta 2: ________________________________",
-                  "3) Pregunta 3: ________________________________",
-                  "",
-                  "Evidencia (ejemplo): actas, resoluciones, autorizaciones, fotografías u otros documentos pertinentes."
-                ]
+                "titulo": "Anexo 1: Matriz de consistencia"
               }
             ]
           }
         },
-        "version": "1.0.0",
-        "descripcion": "Plantilla oficial de tesis de maestría (legacy).",
+        "matriz_consistencia": {
+          "problemas": {
+            "general": "¿[Problema general de la investigación]?",
+            "especificos": [
+              "¿[Problema específico 1]?",
+              "¿[Problema específico 2]?",
+              "¿[Problema específico 3]?"
+            ]
+          },
+          "objetivos": {
+            "general": "[Objetivo general de la investigación]",
+            "especificos": [
+              "[Objetivo específico 1]",
+              "[Objetivo específico 2]",
+              "[Objetivo específico 3]"
+            ]
+          },
+          "hipotesis": {
+            "general": "[Hipótesis general de la investigación]",
+            "especificos": [
+              "[Hipótesis específica 1]",
+              "[Hipótesis específica 2]",
+              "[Hipótesis específica 3]"
+            ]
+          },
+          "variables": {
+            "independiente": {
+              "nombre": "[Variable independiente]",
+              "dimensiones": [
+                "Dimensión 1",
+                "Dimensión 2"
+              ]
+            },
+            "dependiente": {
+              "nombre": "[Variable dependiente]",
+              "dimensiones": [
+                "Dimensión A",
+                "Dimensión B"
+              ]
+            }
+          },
+          "metodologia": {
+            "tipo": "[Tipo de investigación]",
+            "diseño": "[Diseño de investigación]",
+            "enfoque": "[Enfoque metodológico]",
+            "poblacion": "[Población y muestra]",
+            "tecnicas": "[Técnicas e instrumentos de recolección de datos]"
+          }
+        },
         "informacion_basica": {
           "titulo": "INFORMACIÓN BÁSICA",
-          "elementos": [
+          "facultad": "Facultad de Ingeniería Mecánica y de Energía",
+          "unidad_investigacion": "Unidad de Posgrado de la Facultad de Ingeniería Mecánica y de Energía",
+          "titulo_investigacion": "[Título de tesis]",
+          "autores": [
             {
-              "label": "FACULTAD:",
-              "valor": "[FACULTAD]"
-            },
-            {
-              "label": "UNIDAD DE INVESTIGACIÓN:",
-              "valor": "[Unidad de Investigación]"
-            },
-            {
-              "label": "TÍTULO:",
-              "valor": "[TÍTULO DE TESIS]"
-            },
-            {
-              "label": "AUTOR(ES) / CÓDIGO ORCID / DNI:",
-              "valor": "[AUTOR]\nCódigo orcid:[0000-0000-0000-0000]\nDNI:[00000000]"
-            },
-            {
-              "label": "ASESOR / COASESOR / CÓDIGO ORCID / DNI:",
-              "valor": "[ASESOR]\nCódigo orcid:[0000-0000-0000-0000]\nDNI:[00000000]"
-            },
-            {
-              "label": "LUGAR DE EJECUCIÓN:",
-              "valor": "[Lugar de ejecución]"
-            },
-            {
-              "label": "UNIDAD DE ANÁLISIS:",
-              "valor": "[Unidad de análisis]"
-            },
-            {
-              "label": "INVESTIGACIÓN:",
-              "valor": "TIPO: [Tipo] / ENFOQUE: CUANTITATIVO / DISEÑO: [Diseño] / NIVEL: [Nivel]"
-            },
-            {
-              "label": "TEMA OCDE:",
-              "valor": "[Código y descripción OCDE]"
+              "nombre": "Bach. [Apellidos y nombres]",
+              "dni": "[00000000]",
+              "orcid": "[0000-0000-0000-0000]"
             }
+          ],
+          "asesor": {
+            "nombre": "Dr. [Apellidos y nombres]",
+            "dni": "[00000000]",
+            "orcid": "[0000-0000-0000-0000]"
+          },
+          "lugar_ejecucion": "[Lugar de ejecución]",
+          "unidad_analisis": "[Unidad de análisis]",
+          "tipo": "[TIPO]",
+          "enfoque": "[ENFOQUE]",
+          "diseno_investigacion": "[DISEÑO DE INVESTIGACIÓN]",
+          "tema_ocde": [
+            "[LÍNEA OCDE 1]",
+            "[LÍNEA OCDE 2]",
+            "[LÍNEA OCDE 3]"
           ]
-        }
+        },
+        "pagina_respeto": {}
       }
     },
     "unac-proyecto-cual": {
@@ -1039,7 +1328,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cual",
-      "version": "f18ff7052c503ede",
+      "version": "94f408746ca5cd36",
       "templateRef": null,
       "fields": [
         {
@@ -1058,7 +1347,7 @@
           "label": "Facultad",
           "type": "text",
           "required": false,
-          "default": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "default": "ESCUELA DE POSGRADO",
           "options": null,
           "validation": null,
           "order": 2,
@@ -1069,7 +1358,7 @@
           "label": "Escuela",
           "type": "text",
           "required": false,
-          "default": "",
+          "default": "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA",
           "options": null,
           "validation": null,
           "order": 3,
@@ -1091,7 +1380,7 @@
           "label": "Titulo Placeholder",
           "type": "text",
           "required": false,
-          "default": "“TÍTULO DEL PROYECTO”",
+          "default": "\"[TÍTULO DE LA TESIS]\"",
           "options": null,
           "validation": null,
           "order": 5,
@@ -1102,21 +1391,10 @@
           "label": "Frase Grado",
           "type": "text",
           "required": false,
-          "default": "[Nota: Contiene: Las variables, unidad de análisis, ámbito de estudio. Máximo 15 palabras sin considerar artículos conectores.]",
+          "default": "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO",
           "options": null,
           "validation": null,
           "order": 6,
-          "section": null
-        },
-        {
-          "name": "grado_objetivo",
-          "label": "Grado Objetivo",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "options": null,
-          "validation": null,
-          "order": 7,
           "section": null
         },
         {
@@ -1124,7 +1402,18 @@
           "label": "Label Autor",
           "type": "text",
           "required": false,
-          "default": "AUTOR(ES)\n\n[NOMBRES Y APELLIDOS]\n[NOMBRES Y APELLIDOS]",
+          "default": "AUTORES:",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "autores",
+          "label": "Autores",
+          "type": "text",
+          "required": false,
+          "default": null,
           "options": null,
           "validation": null,
           "order": 8,
@@ -1135,10 +1424,21 @@
           "label": "Label Asesor",
           "type": "text",
           "required": false,
-          "default": "ASESOR\n[GRADO Y NOMBRES]",
+          "default": "ASESOR:",
           "options": null,
           "validation": null,
           "order": 9,
+          "section": null
+        },
+        {
+          "name": "asesor",
+          "label": "Asesor",
+          "type": "text",
+          "required": false,
+          "default": "[Apellidos y nombres]",
+          "options": null,
+          "validation": null,
+          "order": 10,
           "section": null
         },
         {
@@ -1146,10 +1446,21 @@
           "label": "Label Linea",
           "type": "text",
           "required": false,
-          "default": "LÍNEA DE INVESTIGACIÓN:\n[Unidad de Investigación]",
+          "default": "LÍNEA DE INVESTIGACIÓN:",
           "options": null,
           "validation": null,
-          "order": 10,
+          "order": 11,
+          "section": null
+        },
+        {
+          "name": "linea_investigacion",
+          "label": "Linea Investigacion",
+          "type": "text",
+          "required": false,
+          "default": "[Nombre de la línea]",
+          "options": null,
+          "validation": null,
+          "order": 12,
           "section": null
         },
         {
@@ -1157,10 +1468,10 @@
           "label": "Lugar",
           "type": "text",
           "required": false,
-          "default": "Callao, [AÑO]",
+          "default": "Callao, 2026",
           "options": null,
           "validation": null,
-          "order": 11,
+          "order": 13,
           "section": null
         },
         {
@@ -1168,10 +1479,21 @@
           "label": "Anio",
           "type": "text",
           "required": false,
+          "default": "2026",
+          "options": null,
+          "validation": null,
+          "order": 14,
+          "section": null
+        },
+        {
+          "name": "pais",
+          "label": "Pais",
+          "type": "text",
+          "required": false,
           "default": "PERÚ",
           "options": null,
           "validation": null,
-          "order": 12,
+          "order": 15,
           "section": null
         }
       ],
@@ -1203,17 +1525,22 @@
         },
         "caratula": {
           "universidad": "UNIVERSIDAD NACIONAL DEL CALLAO",
-          "facultad": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
-          "escuela": "",
+          "facultad": "ESCUELA DE POSGRADO",
+          "escuela": "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA",
           "tipo_documento": "PROYECTO DE INVESTIGACIÓN",
-          "titulo_placeholder": "“TÍTULO DEL PROYECTO”",
-          "frase_grado": "[Nota: Contiene: Las variables, unidad de análisis, ámbito de estudio. Máximo 15 palabras sin considerar artículos conectores.]",
-          "grado_objetivo": "",
-          "label_autor": "AUTOR(ES)\n\n[NOMBRES Y APELLIDOS]\n[NOMBRES Y APELLIDOS]",
-          "label_asesor": "ASESOR\n[GRADO Y NOMBRES]",
-          "label_linea": "LÍNEA DE INVESTIGACIÓN:\n[Unidad de Investigación]",
-          "lugar": "Callao, [AÑO]",
-          "anio": "PERÚ"
+          "titulo_placeholder": "\"[TÍTULO DE LA TESIS]\"",
+          "frase_grado": "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO",
+          "label_autor": "AUTORES:",
+          "autores": [
+            "[Apellidos y nombres]"
+          ],
+          "label_asesor": "ASESOR:",
+          "asesor": "[Apellidos y nombres]",
+          "label_linea": "LÍNEA DE INVESTIGACIÓN:",
+          "linea_investigacion": "[Nombre de la línea]",
+          "lugar": "Callao, 2026",
+          "anio": "2026",
+          "pais": "PERÚ"
         },
         "preliminares": {
           "indices": [
@@ -1381,7 +1708,7 @@
                 "instruccion_detallada": "Sustenta adecuadamente el por qué se realiza el trabajo de investigación de acuerdo con la naturaleza del problema explicando cuáles son las contribuciones científicas o sociales y los beneficiarios de su trabajo. Definir los tipos de justificación (teórica, práctica, metodológica, etc) citando adecuadamente y el sustento respectivo explicando las razones por las cuales la investigación posee dicha justificación. Se redacta en tiempo futuro."
               },
               {
-                "texto": "1.5 Delimitantes de la investigación",
+                "texto": "1.5 Delimitaciones de la investigación",
                 "nota": "Delimitante Teórica, Temporal y Espacial.",
                 "instruccion_detallada": "Delimitante Teórica: Especifica las teorías que soportan su investigación.\nDelimitante Temporal: Especifica en qué momento (tiempo) se realiza la investigación.\nDelimitante Espacial: Especifica en qué lugar se realiza la investigación."
               }
@@ -1589,80 +1916,6 @@
               {
                 "texto": "4.7 Aspectos éticos en Investigación",
                 "instruccion_detallada": "Considerar los principios del código de ética de la UNAC y especificar ¿Cómo se aplican los principios mencionados?"
-              },
-              {
-                "tipo": "tabla",
-                "titulo": "Cronograma Resumido de Actividades",
-                "orientacion": "portrait",
-                "encabezados": [
-                  "Actividad",
-                  "Mes 1",
-                  "Mes 2",
-                  "Mes 3",
-                  "Mes 4",
-                  "Mes 5",
-                  "Mes 6"
-                ],
-                "filas": [
-                  [
-                    "Revisión bibliográfica",
-                    "X",
-                    "X",
-                    "",
-                    "",
-                    "",
-                    ""
-                  ],
-                  [
-                    "Diseño metodológico",
-                    "",
-                    "X",
-                    "X",
-                    "",
-                    "",
-                    ""
-                  ],
-                  [
-                    "Recolección de datos",
-                    "",
-                    "",
-                    "X",
-                    "X",
-                    "",
-                    ""
-                  ],
-                  [
-                    "Análisis de resultados",
-                    "",
-                    "",
-                    "",
-                    "X",
-                    "X",
-                    ""
-                  ],
-                  [
-                    "Redacción del informe",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "X",
-                    "X"
-                  ],
-                  [
-                    "Sustentación",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "X"
-                  ]
-                ],
-                "estilo": {
-                  "encabezado_color": "4472C4",
-                  "fuente_size": 10
-                }
               }
             ]
           },
@@ -1670,42 +1923,45 @@
             "titulo": "V. CRONOGRAMA DE ACTIVIDADES",
             "contenido": [
               {
-                "texto": "Cronograma de ejecución",
-                "nota": "Secuencia del desarrollo de la investigación.",
-                "instruccion_detallada": "Evidencia la secuencia del desarrollo de la investigación hasta la elaboración del informe final. La frecuencia (meses / semanas / días) va a depender de la investigación. No requiere enumerar como tabla. No requiere indicar elaboración propia.",
-                "imagenes": [
-                  {
-                    "titulo": "Diagrama ilustrativo",
-                    "ruta": "figura_ejemplo.png",
-                    "fuente": "Elaboración propia"
-                  }
-                ]
-              },
-              {
                 "tipo": "tabla",
-                "titulo": "Cronograma Detallado de Actividades",
-                "orientacion": "landscape",
+                "id": "tabla_5_1_cronograma_actividades",
+                "titulo": "Tabla 5.1 Cronograma de actividades",
                 "encabezados": [
-                  "Actividad",
-                  "Mes 1",
-                  "Mes 2",
-                  "Mes 3",
-                  "Mes 4",
-                  "Mes 5",
-                  "Mes 6",
-                  "Mes 7",
-                  "Mes 8",
-                  "Mes 9",
-                  "Mes 10",
-                  "Mes 11",
-                  "Mes 12"
+                  "FASES Y ACTIVIDADES",
+                  "2025",
+                  "​",
+                  "​",
+                  "​",
+                  "​",
+                  "​",
+                  "​",
+                  "​",
+                  "​",
+                  "​",
+                  "​",
+                  "​"
                 ],
                 "filas": [
                   [
-                    "Revisión bibliográfica",
-                    "X",
-                    "X",
-                    "X",
+                    "",
+                    "Ene",
+                    "Feb",
+                    "Mar",
+                    "Abr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Ago",
+                    "Set",
+                    "Oct",
+                    "Nov",
+                    "Dic"
+                  ],
+                  [
+                    "1. PLANIFICACIÓN Y DISEÑO",
+                    "",
+                    "",
+                    "",
                     "",
                     "",
                     "",
@@ -1717,11 +1973,11 @@
                     ""
                   ],
                   [
-                    "Elaboración del marco teórico",
+                    "1.1. Definir alcance, unidad de análisis y límites del sistema",
                     "",
-                    "X",
-                    "X",
-                    "X",
+                    "●",
+                    "",
+                    "",
                     "",
                     "",
                     "",
@@ -1732,11 +1988,11 @@
                     ""
                   ],
                   [
-                    "Diseño metodológico",
+                    "1.2. Plan de gestión de datos (fuentes, permisos, estructura)",
+                    "",
+                    "●",
                     "",
                     "",
-                    "X",
-                    "X",
                     "",
                     "",
                     "",
@@ -1747,13 +2003,13 @@
                     ""
                   ],
                   [
-                    "Recolección de datos",
+                    "1.3. Instrumentos y protocolos (ficha extracción, reglas TBF/TTR)",
+                    "",
+                    "●",
                     "",
                     "",
                     "",
-                    "X",
-                    "X",
-                    "X",
+                    "",
                     "",
                     "",
                     "",
@@ -1762,37 +2018,41 @@
                     ""
                   ],
                   [
-                    "Procesamiento y análisis",
+                    "2. RECOLECCIÓN Y CONTEXTO OPERACIONAL",
                     "",
                     "",
                     "",
                     "",
                     "",
-                    "X",
-                    "X",
-                    "X",
+                    "",
+                    "",
+                    "",
                     "",
                     "",
                     "",
                     ""
                   ],
                   [
-                    "Redacción del informe",
+                    "2.1. Recopilación de historiales (OTs, fallas, paradas, tiempos)",
+                    "",
+                    "●",
+                    "●",
+                    "●",
                     "",
                     "",
                     "",
                     "",
                     "",
                     "",
-                    "",
-                    "X",
-                    "X",
-                    "X",
                     "",
                     ""
                   ],
                   [
-                    "Revisión y ajustes",
+                    "2.2. Observación en campo / entrevistas breves (condiciones reales)",
+                    "",
+                    "",
+                    "●",
+                    "●",
                     "",
                     "",
                     "",
@@ -1800,14 +2060,25 @@
                     "",
                     "",
                     "",
-                    "",
-                    "",
-                    "X",
-                    "X",
                     ""
                   ],
                   [
-                    "Sustentación",
+                    "2.3. Estandarización de taxonomía (sistemas, modos, causas, efectos)",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "3. BASE DE DATOS Y DEPURACIÓN",
                     "",
                     "",
                     "",
@@ -1819,12 +2090,646 @@
                     "",
                     "",
                     "",
-                    "X"
+                    ""
+                  ],
+                  [
+                    "3.1. Consolidación/digitalización de base (Excel/BD)",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "3.2. Depuración y calidad (duplicados, faltantes, unidades, outliers)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "3.3. Validación interna de datos (muestreo con responsables)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "4. LÍNEA BASE",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "4.1. Cálculo indicadores base (MTBF, MTTR, Disponibilidad)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "4.2. Segmentación por sistema/condición y preparación de análisis",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "4.3. Diagnóstico inicial (Pareto fallas/tiempos, tendencias)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "5. CRITICIDAD Y AMEF",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "5.1. Análisis de criticidad (matriz/score por sistema/modo)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "5.2. AMEF/AMFE (modos, causas, efectos, controles, NPR/RPN)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "5.3. Priorización final de equipos/modos críticos",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "6. PLAN RCM + IMPLEMENTACIÓN",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "6.1. Diseño de tareas RCM (árbol decisión: PM/PdM/detectivo/rediseño)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "●",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "6.2. Definición de frecuencias/intervalos y recursos",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "●",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "6.3. Modelado probabilístico (Weibull/Lognormal/Exponencial)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "",
+                    "●",
+                    "●",
+                    "",
+                    ""
+                  ],
+                  [
+                    "6.4. Implementación piloto",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "",
+                    "●",
+                    "",
+                    ""
+                  ],
+                  [
+                    "7. VALIDACIÓN Y CONTRASTE",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "7.1. Validación con expertos (taller y ajustes del plan)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "",
+                    "●",
+                    "",
+                    ""
+                  ],
+                  [
+                    "7.2. Contrastación/validación estadística (bondad de ajuste, comparación pre vs post)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    "●",
+                    ""
+                  ],
+                  [
+                    "7.3. Análisis de sensibilidad (frecuencias, tiempos, tasas de falla)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    ""
+                  ],
+                  [
+                    "8. REDACCIÓN Y CIERRE",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                  ],
+                  [
+                    "8.1. Redacción final (resultados, discusión, conclusiones, recomendaciones)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●",
+                    ""
+                  ],
+                  [
+                    "8.2. Revisión con asesor + levantamiento de observaciones",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●",
+                    "●"
+                  ],
+                  [
+                    "8.3. Formato final (normas, anexos, tablas/figuras, similitud)",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●"
+                  ],
+                  [
+                    "8.4. Diapositivas y preparación de sustentación",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "●"
                   ]
                 ],
+                "orientacion": "landscape",
+                "subtipo": "cronograma_actividades",
+                "anio": "2025",
+                "meses": [
+                  "Ene",
+                  "Feb",
+                  "Mar",
+                  "Abr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Ago",
+                  "Set",
+                  "Oct",
+                  "Nov",
+                  "Dic"
+                ],
+                "simbolo_marca": "●",
+                "filas_fase": [
+                  1,
+                  5,
+                  9,
+                  13,
+                  17,
+                  21,
+                  26,
+                  30
+                ],
+                "celdas_combinadas": [
+                  {
+                    "fila": -1,
+                    "fila_fin": 0,
+                    "col_inicio": 0,
+                    "col_fin": 0,
+                    "texto": "FASES Y ACTIVIDADES"
+                  },
+                  {
+                    "fila": -1,
+                    "col_inicio": 1,
+                    "col_fin": 12,
+                    "texto": "2025"
+                  },
+                  {
+                    "fila": 1,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "1. PLANIFICACIÓN Y DISEÑO"
+                  },
+                  {
+                    "fila": 5,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "2. RECOLECCIÓN Y CONTEXTO OPERACIONAL"
+                  },
+                  {
+                    "fila": 9,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "3. BASE DE DATOS Y DEPURACIÓN"
+                  },
+                  {
+                    "fila": 13,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "4. LÍNEA BASE"
+                  },
+                  {
+                    "fila": 17,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "5. CRITICIDAD Y AMEF"
+                  },
+                  {
+                    "fila": 21,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "6. PLAN RCM + IMPLEMENTACIÓN"
+                  },
+                  {
+                    "fila": 26,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "7. VALIDACIÓN Y CONTRASTE"
+                  },
+                  {
+                    "fila": 30,
+                    "col_inicio": 0,
+                    "col_fin": 12,
+                    "texto": "8. REDACCIÓN Y CIERRE"
+                  }
+                ],
+                "celdas_fusionadas": [
+                  {
+                    "fila": -1,
+                    "col": 0,
+                    "filas_span": 2,
+                    "cols_span": 1,
+                    "texto": "FASES Y ACTIVIDADES",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": -1,
+                    "col": 1,
+                    "filas_span": 1,
+                    "cols_span": 12,
+                    "texto": "2025",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 1,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "1. PLANIFICACIÓN Y DISEÑO",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 5,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "2. RECOLECCIÓN Y CONTEXTO OPERACIONAL",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 9,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "3. BASE DE DATOS Y DEPURACIÓN",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 13,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "4. LÍNEA BASE",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 17,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "5. CRITICIDAD Y AMEF",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 21,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "6. PLAN RCM + IMPLEMENTACIÓN",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 26,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "7. VALIDACIÓN Y CONTRASTE",
+                    "bold": true,
+                    "alignment": "center"
+                  },
+                  {
+                    "fila": 30,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 13,
+                    "texto": "8. REDACCIÓN Y CIERRE",
+                    "bold": true,
+                    "alignment": "center"
+                  }
+                ],
+                "estilos": {
+                  "modelo_referencia": "cronograma_actividades.docx",
+                  "titulo_capitulo": "V. CRONOGRAMA DE ACTIVIDADES",
+                  "titulo_exacto": true,
+                  "titulo_negrita": false,
+                  "titulo_tamano_pt": 9.5,
+                  "titulo_space_after_pt": 6,
+                  "ancho_tabla": "100%",
+                  "ancho_columnas": [
+                    8.91,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59
+                  ],
+                  "alineacion_actividades": "left",
+                  "alineacion_meses": "center",
+                  "encabezados_negrita": true,
+                  "encabezado_color": "",
+                  "fases_negrita": true,
+                  "fases_centradas": true,
+                  "bordes": "grid",
+                  "fuente_tamano_pt": 8,
+                  "fuente_size": 8,
+                  "fuente_meses_pt": 8,
+                  "fuente_actividades_pt": 8,
+                  "fuente_fases_pt": 8,
+                  "fuente_marcas_pt": 10,
+                  "compactar_cronograma": false,
+                  "orientacion_pagina": "landscape",
+                  "margenes_reducidos": true
+                },
                 "estilo": {
-                  "encabezado_color": "BDD7EE",
-                  "fuente_size": 8
+                  "modelo_referencia": "cronograma_actividades.docx",
+                  "titulo_capitulo": "V. CRONOGRAMA DE ACTIVIDADES",
+                  "titulo_exacto": true,
+                  "titulo_negrita": false,
+                  "titulo_tamano_pt": 9.5,
+                  "titulo_space_after_pt": 6,
+                  "ancho_tabla": "100%",
+                  "ancho_columnas": [
+                    8.91,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59,
+                    1.59
+                  ],
+                  "alineacion_actividades": "left",
+                  "alineacion_meses": "center",
+                  "encabezados_negrita": true,
+                  "encabezado_color": "",
+                  "fases_negrita": true,
+                  "fases_centradas": true,
+                  "bordes": "grid",
+                  "fuente_tamano_pt": 8,
+                  "fuente_size": 8,
+                  "fuente_meses_pt": 8,
+                  "fuente_actividades_pt": 8,
+                  "fuente_fases_pt": 8,
+                  "fuente_marcas_pt": 10,
+                  "compactar_cronograma": false,
+                  "orientacion_pagina": "landscape",
+                  "margenes_reducidos": true
                 }
               }
             ]
@@ -1833,75 +2738,263 @@
             "titulo": "VI. PRESUPUESTO",
             "contenido": [
               {
-                "texto": "Recursos y Presupuesto",
-                "nota": "Inversión, recursos humanos, materiales y financieros.",
-                "instruccion_detallada": "Se debe presentar lo que el investigador ha invertido bajo su responsabilidad, en la investigación. Se considera los recursos humanos, materiales y financieros necesarios para el desarrollo de la investigación (en soles) e indicar la fuente de financiamiento.",
-                "imagenes": [
-                  {
-                    "titulo": "Distribución del presupuesto",
-                    "ruta": "figura_ejemplo.png",
-                    "fuente": "Elaboración propia"
-                  }
-                ]
-              },
-              {
                 "tipo": "tabla",
-                "titulo": "Presupuesto del Proyecto",
-                "orientacion": "portrait",
+                "id": "tabla_6_1_presupuesto_investigacion",
+                "titulo": "Tabla 6.1 Presupuesto de investigación",
                 "encabezados": [
-                  "Rubro",
-                  "Descripción",
-                  "Cantidad",
-                  "Costo Unit. (S/)",
-                  "Total (S/)"
+                  "N°",
+                  "DESCRIPCIÓN DEL GASTO",
+                  "CANTIDAD",
+                  "COSTO UNIT. (S/.)",
+                  "COSTO TOTAL (S/.)"
                 ],
                 "filas": [
                   [
-                    "Materiales",
-                    "Útiles de escritorio",
+                    "1. RECURSOS HUMANOS",
+                    "",
+                    "",
+                    "",
+                    "2,000.00"
+                  ],
+                  [
+                    "1.1",
+                    "Investigador (dedicación/asistencia de investigación)",
                     "1",
+                    "2,000.00",
+                    "2,000.00"
+                  ],
+                  [
+                    "2. RECURSOS DE INVESTIGACIÓN",
+                    "",
+                    "",
+                    "",
+                    "4,849.00"
+                  ],
+                  [
+                    "2.1",
+                    "Equipo de cómputo para procesamiento y análisis (Laptop)",
+                    "1",
+                    "2,999.00",
+                    "2,999.00"
+                  ],
+                  [
+                    "2.2",
+                    "Servicio de Internet (Datos)",
+                    "12",
                     "50.00",
-                    "50.00"
+                    "600.00"
                   ],
                   [
-                    "Impresiones",
-                    "Copias y anillados",
-                    "5",
-                    "30.00",
+                    "2.3",
+                    "Movilidad y Viáticos (Lima–Junín)",
+                    "4",
+                    "250.00",
+                    "1,000.00"
+                  ],
+                  [
+                    "2.4",
+                    "Software / licencias (Office / almacenamiento nube o equivalente)",
+                    "1",
+                    "250.00",
+                    "250.00"
+                  ],
+                  [
+                    "3. RECURSOS CONSUMIBLES",
+                    "",
+                    "",
+                    "",
+                    "560.00"
+                  ],
+                  [
+                    "3.1",
+                    "Material de escritorio (papel, bolígrafos, etc.)",
+                    "1",
+                    "150.00",
                     "150.00"
                   ],
                   [
-                    "Software",
-                    "Licencia SPSS/NVivo",
+                    "3.2",
+                    "Impresiones y anillados (incluye versión final)",
                     "1",
-                    "200.00",
-                    "200.00"
+                    "350.00",
+                    "350.00"
                   ],
                   [
-                    "Transporte",
-                    "Movilidad para trabajo de campo",
-                    "10",
-                    "15.00",
-                    "150.00"
-                  ],
-                  [
-                    "Otros",
-                    "Imprevistos",
+                    "3.3",
+                    "Dispositivo de almacenamiento (USB)",
                     "1",
-                    "100.00",
-                    "100.00"
+                    "60.00",
+                    "60.00"
                   ],
                   [
+                    "4. CONTINGENCIA / IMPREVISTOS",
                     "",
                     "",
                     "",
-                    "TOTAL",
-                    "650.00"
+                    "370.00"
+                  ],
+                  [
+                    "4.1",
+                    "Imprevistos (5% del subtotal)",
+                    "1",
+                    "370.00",
+                    "370.00"
+                  ],
+                  [
+                    "TOTAL GENERAL",
+                    "",
+                    "",
+                    "",
+                    "S/. 7,779.00"
                   ]
                 ],
+                "orientacion": "portrait",
+                "subtipo": "presupuesto_investigacion",
+                "filas_categoria": [
+                  0,
+                  2,
+                  7,
+                  11
+                ],
+                "fila_total": 13,
+                "celdas_combinadas": [
+                  {
+                    "fila": 0,
+                    "col_inicio": 0,
+                    "col_fin": 3,
+                    "texto": "1. RECURSOS HUMANOS"
+                  },
+                  {
+                    "fila": 2,
+                    "col_inicio": 0,
+                    "col_fin": 3,
+                    "texto": "2. RECURSOS DE INVESTIGACIÓN"
+                  },
+                  {
+                    "fila": 7,
+                    "col_inicio": 0,
+                    "col_fin": 3,
+                    "texto": "3. RECURSOS CONSUMIBLES"
+                  },
+                  {
+                    "fila": 11,
+                    "col_inicio": 0,
+                    "col_fin": 3,
+                    "texto": "4. CONTINGENCIA / IMPREVISTOS"
+                  },
+                  {
+                    "fila": 13,
+                    "col_inicio": 0,
+                    "col_fin": 3,
+                    "texto": "TOTAL GENERAL"
+                  }
+                ],
+                "celdas_fusionadas": [
+                  {
+                    "fila": 0,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 4,
+                    "texto": "1. RECURSOS HUMANOS",
+                    "bold": true,
+                    "alignment": "left"
+                  },
+                  {
+                    "fila": 2,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 4,
+                    "texto": "2. RECURSOS DE INVESTIGACIÓN",
+                    "bold": true,
+                    "alignment": "left"
+                  },
+                  {
+                    "fila": 7,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 4,
+                    "texto": "3. RECURSOS CONSUMIBLES",
+                    "bold": true,
+                    "alignment": "left"
+                  },
+                  {
+                    "fila": 11,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 4,
+                    "texto": "4. CONTINGENCIA / IMPREVISTOS",
+                    "bold": true,
+                    "alignment": "left"
+                  },
+                  {
+                    "fila": 13,
+                    "col": 0,
+                    "filas_span": 1,
+                    "cols_span": 4,
+                    "texto": "TOTAL GENERAL",
+                    "bold": true,
+                    "alignment": "center"
+                  }
+                ],
+                "estilos": {
+                  "modelo_referencia": "presupuesto_investigacion_vertical.docx",
+                  "titulo_capitulo": "VI. PRESUPUESTO",
+                  "titulo_exacto": true,
+                  "titulo_negrita": false,
+                  "titulo_tamano_pt": 10,
+                  "titulo_space_after_pt": 10,
+                  "ancho_tabla": "100%",
+                  "ancho_columnas": [
+                    1.4,
+                    8.0,
+                    2.0,
+                    3.2,
+                    3.2
+                  ],
+                  "orientacion_pagina": "portrait",
+                  "encabezados_negrita": true,
+                  "encabezado_color": "",
+                  "categorias_negrita": true,
+                  "total_negrita": true,
+                  "alineacion_descripcion": "left",
+                  "alineacion_numeros": "center",
+                  "alineacion_costos": "right",
+                  "bordes": "grid",
+                  "fuente_tamano_pt": 9,
+                  "fuente_size": 9,
+                  "fuente_encabezado_pt": 8.5,
+                  "fuente_categoria_pt": 9,
+                  "fuente_total_pt": 9
+                },
                 "estilo": {
-                  "encabezado_color": "4472C4",
-                  "fuente_size": 10
+                  "modelo_referencia": "presupuesto_investigacion_vertical.docx",
+                  "titulo_capitulo": "VI. PRESUPUESTO",
+                  "titulo_exacto": true,
+                  "titulo_negrita": false,
+                  "titulo_tamano_pt": 10,
+                  "titulo_space_after_pt": 10,
+                  "ancho_tabla": "100%",
+                  "ancho_columnas": [
+                    1.4,
+                    8.0,
+                    2.0,
+                    3.2,
+                    3.2
+                  ],
+                  "orientacion_pagina": "portrait",
+                  "encabezados_negrita": true,
+                  "encabezado_color": "",
+                  "categorias_negrita": true,
+                  "total_negrita": true,
+                  "alineacion_descripcion": "left",
+                  "alineacion_numeros": "center",
+                  "alineacion_costos": "right",
+                  "bordes": "grid",
+                  "fuente_tamano_pt": 9,
+                  "fuente_size": 9,
+                  "fuente_encabezado_pt": 8.5,
+                  "fuente_categoria_pt": 9,
+                  "fuente_total_pt": 9
                 }
               }
             ]
@@ -1982,51 +3075,30 @@
         "pagina_respeto": {},
         "informacion_basica": {
           "titulo": "INFORMACIÓN BÁSICA",
-          "elementos": [
+          "facultad": "Facultad de Ingeniería Mecánica y de Energía",
+          "unidad_investigacion": "Unidad de Posgrado de la Facultad de Ingeniería Mecánica y de Energía",
+          "titulo_investigacion": "[Título de tesis]",
+          "autores": [
             {
-              "label": "FACULTAD:",
-              "valor": "Facultad de Ingeniería Mecánica y de Energía"
-            },
-            {
-              "label": "UNIDAD DE INVESTIGACIÓN:",
-              "valor": "Unidad de Posgrado..."
-            },
-            {
-              "label": "TÍTULO:",
-              "valor": "Implementación xxx"
-            },
-            {
-              "label": "AUTOR(ES):",
-              "valor": "Nombres y Apellidos / DNI: XXX / ORCID: YYYY"
-            },
-            {
-              "label": "ASESOR:",
-              "valor": "Dr. Abel Tapia Díaz / DNI: ... / ORCID: ..."
-            },
-            {
-              "label": "LUGAR DE EJECUCIÓN:",
-              "valor": ""
-            },
-            {
-              "label": "ESCENARIO Y PARTICIPANTES:",
-              "valor": "[Lugar y personas claves]"
-            },
-            {
-              "label": "TIPO:",
-              "valor": ""
-            },
-            {
-              "label": "ENFOQUE:",
-              "valor": ""
-            },
-            {
-              "label": "DISEÑO DE INVESTIGACIÓN:",
-              "valor": ""
-            },
-            {
-              "label": "TEMA OCDE:",
-              "valor": ""
+              "nombre": "Bach. [Apellidos y nombres]",
+              "dni": "[00000000]",
+              "orcid": "[0000-0000-0000-0000]"
             }
+          ],
+          "asesor": {
+            "nombre": "Dr. [Apellidos y nombres]",
+            "dni": "[00000000]",
+            "orcid": "[0000-0000-0000-0000]"
+          },
+          "lugar_ejecucion": "[Lugar de ejecución]",
+          "unidad_analisis": "[Unidad de análisis]",
+          "tipo": "[TIPO]",
+          "enfoque": "[ENFOQUE]",
+          "diseno_investigacion": "[DISEÑO DE INVESTIGACIÓN]",
+          "tema_ocde": [
+            "[LÍNEA OCDE 1]",
+            "[LÍNEA OCDE 2]",
+            "[LÍNEA OCDE 3]"
           ]
         }
       }
@@ -2037,7 +3109,7 @@
       "university": "unac",
       "category": "Proyecto de Tesis",
       "documentType": "cuant",
-      "version": "d96b964c3c8af464",
+      "version": "d11c2de0f178f95b",
       "templateRef": null,
       "fields": [
         {
@@ -2056,7 +3128,7 @@
           "label": "Facultad",
           "type": "text",
           "required": false,
-          "default": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
+          "default": "ESCUELA DE POSGRADO",
           "options": null,
           "validation": null,
           "order": 2,
@@ -2067,7 +3139,7 @@
           "label": "Escuela",
           "type": "text",
           "required": false,
-          "default": "",
+          "default": "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA",
           "options": null,
           "validation": null,
           "order": 3,
@@ -2089,7 +3161,7 @@
           "label": "Titulo Placeholder",
           "type": "text",
           "required": false,
-          "default": "“TÍTULO DEL PROYECTO”",
+          "default": "\"[TÍTULO DE LA TESIS]\"",
           "options": null,
           "validation": null,
           "order": 5,
@@ -2100,21 +3172,10 @@
           "label": "Frase Grado",
           "type": "text",
           "required": false,
-          "default": "[Nota: Contiene: Las variables, unidad de análisis, ámbito de estudio. Máximo 15 palabras sin considerar artículos conectores.]",
+          "default": "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO",
           "options": null,
           "validation": null,
           "order": 6,
-          "section": null
-        },
-        {
-          "name": "grado_objetivo",
-          "label": "Grado Objetivo",
-          "type": "text",
-          "required": false,
-          "default": "",
-          "options": null,
-          "validation": null,
-          "order": 7,
           "section": null
         },
         {
@@ -2122,7 +3183,18 @@
           "label": "Label Autor",
           "type": "text",
           "required": false,
-          "default": "AUTOR(ES)\n\n[NOMBRES Y APELLIDOS]\n[NOMBRES Y APELLIDOS]",
+          "default": "AUTORES:",
+          "options": null,
+          "validation": null,
+          "order": 7,
+          "section": null
+        },
+        {
+          "name": "autores",
+          "label": "Autores",
+          "type": "text",
+          "required": false,
+          "default": null,
           "options": null,
           "validation": null,
           "order": 8,
@@ -2133,10 +3205,21 @@
           "label": "Label Asesor",
           "type": "text",
           "required": false,
-          "default": "ASESOR\n[GRADO Y NOMBRES]",
+          "default": "ASESOR:",
           "options": null,
           "validation": null,
           "order": 9,
+          "section": null
+        },
+        {
+          "name": "asesor",
+          "label": "Asesor",
+          "type": "text",
+          "required": false,
+          "default": "[Apellidos y nombres]",
+          "options": null,
+          "validation": null,
+          "order": 10,
           "section": null
         },
         {
@@ -2144,10 +3227,21 @@
           "label": "Label Linea",
           "type": "text",
           "required": false,
-          "default": "LÍNEA DE INVESTIGACIÓN:\n[Unidad de Investigación]",
+          "default": "LÍNEA DE INVESTIGACIÓN:",
           "options": null,
           "validation": null,
-          "order": 10,
+          "order": 11,
+          "section": null
+        },
+        {
+          "name": "linea_investigacion",
+          "label": "Linea Investigacion",
+          "type": "text",
+          "required": false,
+          "default": "[Nombre de la línea]",
+          "options": null,
+          "validation": null,
+          "order": 12,
           "section": null
         },
         {
@@ -2155,10 +3249,10 @@
           "label": "Lugar",
           "type": "text",
           "required": false,
-          "default": "Callao, [AÑO]",
+          "default": "Callao, 2026",
           "options": null,
           "validation": null,
-          "order": 11,
+          "order": 13,
           "section": null
         },
         {
@@ -2166,10 +3260,21 @@
           "label": "Anio",
           "type": "text",
           "required": false,
+          "default": "2026",
+          "options": null,
+          "validation": null,
+          "order": 14,
+          "section": null
+        },
+        {
+          "name": "pais",
+          "label": "Pais",
+          "type": "text",
+          "required": false,
           "default": "PERÚ",
           "options": null,
           "validation": null,
-          "order": 12,
+          "order": 15,
           "section": null
         }
       ],
@@ -2201,17 +3306,22 @@
         },
         "caratula": {
           "universidad": "UNIVERSIDAD NACIONAL DEL CALLAO",
-          "facultad": "FACULTAD DE [NOMBRE DE LA FACULTAD]",
-          "escuela": "",
+          "facultad": "ESCUELA DE POSGRADO",
+          "escuela": "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA",
           "tipo_documento": "PROYECTO DE INVESTIGACIÓN",
-          "titulo_placeholder": "“TÍTULO DEL PROYECTO”",
-          "frase_grado": "[Nota: Contiene: Las variables, unidad de análisis, ámbito de estudio. Máximo 15 palabras sin considerar artículos conectores.]",
-          "grado_objetivo": "",
-          "label_autor": "AUTOR(ES)\n\n[NOMBRES Y APELLIDOS]\n[NOMBRES Y APELLIDOS]",
-          "label_asesor": "ASESOR\n[GRADO Y NOMBRES]",
-          "label_linea": "LÍNEA DE INVESTIGACIÓN:\n[Unidad de Investigación]",
-          "lugar": "Callao, [AÑO]",
-          "anio": "PERÚ"
+          "titulo_placeholder": "\"[TÍTULO DE LA TESIS]\"",
+          "frase_grado": "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO",
+          "label_autor": "AUTORES:",
+          "autores": [
+            "[Apellidos y nombres]"
+          ],
+          "label_asesor": "ASESOR:",
+          "asesor": "[Apellidos y nombres]",
+          "label_linea": "LÍNEA DE INVESTIGACIÓN:",
+          "linea_investigacion": "[Nombre de la línea]",
+          "lugar": "Callao, 2026",
+          "anio": "2026",
+          "pais": "PERÚ"
         },
         "preliminares": {
           "indices": [
@@ -2379,7 +3489,7 @@
                 "instruccion_detallada": "Sustenta adecuadamente el por qué se realiza el trabajo de investigación de acuerdo con la naturaleza del problema explicando cuáles son las contribuciones científicas o sociales y los beneficiarios de su trabajo. Definir los tipos de justificación (teórica, práctica, metodológica, etc) citando adecuadamente y el sustento respectivo explicando las razones por las cuales la investigación posee dicha justificación. Se redacta en tiempo futuro."
               },
               {
-                "texto": "1.5 Delimitantes de la investigación",
+                "texto": "1.5 Delimitaciones de la investigación",
                 "nota": "Delimitante Teórica, Temporal y Espacial.",
                 "instruccion_detallada": "Delimitante Teórica: Especifica las teorías que soportan su investigación.\nDelimitante Temporal: Especifica en qué momento (tiempo) se realiza la investigación.\nDelimitante Espacial: Especifica en qué lugar se realiza la investigación."
               }
@@ -3053,51 +4163,30 @@
         "pagina_respeto": {},
         "informacion_basica": {
           "titulo": "INFORMACIÓN BÁSICA",
-          "elementos": [
+          "facultad": "Facultad de Ingeniería Mecánica y de Energía",
+          "unidad_investigacion": "Unidad de Posgrado de la Facultad de Ingeniería Mecánica y de Energía",
+          "titulo_investigacion": "[Título de tesis]",
+          "autores": [
             {
-              "label": "FACULTAD:",
-              "valor": "Facultad de Ingeniería Mecánica y de Energía"
-            },
-            {
-              "label": "UNIDAD DE INVESTIGACIÓN:",
-              "valor": "Unidad de Posgrado..."
-            },
-            {
-              "label": "TÍTULO:",
-              "valor": "Implementación xxx"
-            },
-            {
-              "label": "AUTOR(ES):",
-              "valor": "Nombres y Apellidos / DNI: XXX / ORCID: YYYY"
-            },
-            {
-              "label": "ASESOR:",
-              "valor": "Dr. Abel Tapia Díaz / DNI: ... / ORCID: ..."
-            },
-            {
-              "label": "LUGAR DE EJECUCIÓN:",
-              "valor": ""
-            },
-            {
-              "label": "UNIDAD DE ANÁLISIS:",
-              "valor": ""
-            },
-            {
-              "label": "TIPO:",
-              "valor": ""
-            },
-            {
-              "label": "ENFOQUE:",
-              "valor": ""
-            },
-            {
-              "label": "DISEÑO DE INVESTIGACIÓN:",
-              "valor": ""
-            },
-            {
-              "label": "TEMA OCDE:",
-              "valor": ""
+              "nombre": "Bach. [Apellidos y nombres]",
+              "dni": "[00000000]",
+              "orcid": "[0000-0000-0000-0000]"
             }
+          ],
+          "asesor": {
+            "nombre": "Dr. [Apellidos y nombres]",
+            "dni": "[00000000]",
+            "orcid": "[0000-0000-0000-0000]"
+          },
+          "lugar_ejecucion": "[Lugar de ejecución]",
+          "unidad_analisis": "[Unidad de análisis]",
+          "tipo": "[TIPO]",
+          "enfoque": "[ENFOQUE]",
+          "diseno_investigacion": "[DISEÑO DE INVESTIGACIÓN]",
+          "tema_ocde": [
+            "[LÍNEA OCDE 1]",
+            "[LÍNEA OCDE 2]",
+            "[LÍNEA OCDE 3]"
           ]
         }
       }
@@ -5590,5 +6679,5 @@
       }
     }
   },
-  "lastSyncAt": "2026-04-17T11:37:02.867666"
+  "lastSyncAt": "2026-04-27T18:34:54.310344"
 }

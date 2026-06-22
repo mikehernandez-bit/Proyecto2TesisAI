@@ -3,8 +3,7 @@
 Coordinates the full generation pipeline:
   render prompt -> generate per section -> correct -> validate -> aiResult
 
-Uses a fixed Mistral provider selection. When the provider hits rate limits,
-the orchestrator waits for the retry-after window and retries the same provider.
+Uses provider selection with resilience routing, retries and fallback.
 """
 
 from __future__ import annotations
@@ -16,6 +15,13 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Set
 
 from app.core.config import settings
+from app.core.services.ai.budget_table_builder import (
+    build_budget_table_from_plan,
+    build_synthetic_budget_plan,
+    extract_budget_plan_from_content,
+    salvage_budget_plan_from_legacy_table,
+    validate_budget_plan,
+)
 from app.core.services.ai.circuit_breaker import CircuitBreaker
 from app.core.services.ai.completeness_validator import (
     autofill_section,
@@ -24,6 +30,7 @@ from app.core.services.ai.completeness_validator import (
 from app.core.services.ai.content_parser import parse_ai_content
 from app.core.services.ai.errors import GenerationCancelledError
 from app.core.services.ai.figure_recommendations import apply_figure_recommendations
+from app.core.services.ai.gemini_client import GeminiClient
 from app.core.services.ai.limiter import LLMLimiter
 from app.core.services.ai.mistral_client import MistralClient
 from app.core.services.ai.output_validator import OutputValidator, ValidationError
@@ -39,13 +46,6 @@ from app.core.services.ai.schedule_table_builder import (
     extract_schedule_plan_from_content,
     salvage_schedule_plan_from_legacy_table,
     validate_schedule_plan,
-)
-from app.core.services.ai.budget_table_builder import (
-    build_budget_table_from_plan,
-    build_synthetic_budget_plan,
-    extract_budget_plan_from_content,
-    salvage_budget_plan_from_legacy_table,
-    validate_budget_plan,
 )
 from app.core.services.ai.section_prompt_profiles import (
     build_format_editorial_contract,
@@ -63,7 +63,7 @@ from app.core.services.definition_compiler import compile_definition_to_section_
 
 logger = logging.getLogger(__name__)
 
-_PROVIDER_ORDER = ("mistral",)
+_PROVIDER_ORDER = ("gemini", "mistral")
 _PROVIDER_SET = set(_PROVIDER_ORDER)
 
 # Throttle between section calls to avoid bursting through rate limits.
@@ -134,6 +134,17 @@ class _ProviderClient(Protocol):
 class AIService:
     """Orchestrates AI content generation with provider failover."""
 
+    @property
+    def _clients(self) -> Dict[str, _ProviderClient]:
+        return self._clients_map
+
+    @_clients.setter
+    def _clients(self, providers: Dict[str, _ProviderClient]) -> None:
+        self._clients_map = dict(providers or {})
+        router = getattr(self, "_resilience_router", None)
+        if router is not None:
+            router.set_providers(self._clients_map)
+
     @staticmethod
     def _is_unac_schedule_chapter_path(path: str) -> bool:
         normalized = " ".join(str(path or "").strip().lower().split())
@@ -143,6 +154,7 @@ class AIService:
         self.renderer = PromptRenderer()
         self.validator = OutputValidator()
         self._clients: Dict[str, _ProviderClient] = {
+            "gemini": GeminiClient(),
             "mistral": MistralClient(),
         }
         self._selection_store = ProviderSelectionService()
@@ -163,9 +175,11 @@ class AIService:
         self._phase_policies = build_phase_policies()
         self._limiter = LLMLimiter(
             provider_concurrency={
+                "gemini": int(getattr(settings, "MAX_INFLIGHT_GEMINI", 3)),
                 "mistral": int(getattr(settings, "MAX_INFLIGHT_MISTRAL", 3)),
             },
             provider_rpm={
+                "gemini": int(getattr(settings, "GEMINI_RPM", 60)),
                 "mistral": int(getattr(settings, "MISTRAL_RPM", 60)),
             },
             max_inflight_per_tenant=int(getattr(settings, "MAX_INFLIGHT_PER_TENANT", 2)),
@@ -197,17 +211,24 @@ class AIService:
 
     @staticmethod
     def _default_model_for_provider(provider: str) -> str:
+        if provider == "gemini":
+            return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
         if provider == "mistral":
             return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
-        return str(getattr(settings, "MISTRAL_MODEL", "mistral-medium-2505"))
+        return str(getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash"))
 
     @staticmethod
     def _fallback_for(primary: str) -> str:
+        if primary == "gemini":
+            return "mistral"
+        if primary == "mistral":
+            return "gemini"
         return ""
 
     @staticmethod
     def _provider_display_name(provider: str) -> str:
         labels = {
+            "gemini": "Gemini",
             "mistral": "Mistral",
         }
         return labels.get(provider, provider.capitalize())
@@ -217,6 +238,8 @@ class AIService:
         normalized = str(model or "").strip().lower()
         if not normalized:
             return False
+        if provider == "gemini":
+            return "gemini" in normalized
         if provider == "mistral":
             return "mistral" in normalized
         return False
@@ -296,7 +319,7 @@ class AIService:
 
     def _provider_order(self, selection_override: Optional[Dict[str, Any]] = None) -> List[str]:
         selection = self._resolve_selection(selection_override)
-        primary = str(selection.get("provider") or "mistral").lower().strip()
+        primary = str(selection.get("provider") or _PROVIDER_ORDER[0]).lower().strip()
         if primary not in _PROVIDER_SET:
             primary = _PROVIDER_ORDER[0]
         return [primary]
@@ -422,9 +445,8 @@ class AIService:
 
     def providers_status_payload(self, selection_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         selection = self._resolve_selection(selection_override)
-        selected_provider = str(selection.get("provider") or _PROVIDER_ORDER[0]).lower().strip()
-        if selected_provider not in _PROVIDER_SET:
-            selected_provider = _PROVIDER_ORDER[0]
+        visible_providers = ("mistral",) if "mistral" in self._clients else _PROVIDER_ORDER
+        selected_provider = visible_providers[0]
         selected_model = str(selection.get("model") or self._default_model_for_provider(selected_provider))
         if not self._model_matches_provider(selected_provider, selected_model):
             selected_model = self._default_model_for_provider(selected_provider)
@@ -434,7 +456,7 @@ class AIService:
         fallback_model = ""
 
         providers_payload: List[Dict[str, Any]] = []
-        for provider in _PROVIDER_ORDER:
+        for provider in visible_providers:
             client = self._clients.get(provider)
             configured = bool(client and client.is_configured())
             if provider == selected_provider:
@@ -898,6 +920,13 @@ class AIService:
             format_id=format_id,
             selection=active_selection,
         )
+        sections = self._repair_theoretical_bases_sections(
+            sections,
+            project_id=project_id,
+            values=project_values,
+            format_id=format_id,
+            selection=active_selection,
+        )
         sections = self._repair_schedule_budget_sections(
             sections,
             project_id=project_id,
@@ -1241,9 +1270,7 @@ class AIService:
             section_id = str(sec.get("sectionId") or f"sec-{i:04d}")
             path = str(sec.get("path") or f"Section {i}")
             section_parent_path = str(
-                sec.get("parent_section_path")
-                or sec.get("sectionParentPath")
-                or self._section_parent_path(path)
+                sec.get("parent_section_path") or sec.get("sectionParentPath") or self._section_parent_path(path)
             )
             section_level = int(
                 sec.get("level")
@@ -1550,8 +1577,7 @@ class AIService:
                 prompt_source=prompt_source,
                 prompt_block_id=prompt_block_id,
                 detail=(
-                    "La salida IA del cronograma se convirtio a la tabla canonica institucional "
-                    "antes de validacion."
+                    "La salida IA del cronograma se convirtio a la tabla canonica institucional antes de validacion."
                 )
                 if schedule_origin
                 else "",
@@ -1565,8 +1591,7 @@ class AIService:
                 prompt_source=prompt_source,
                 prompt_block_id=prompt_block_id,
                 detail=(
-                    "La salida IA del presupuesto se convirtio a la tabla canonica institucional "
-                    "antes de validacion."
+                    "La salida IA del presupuesto se convirtio a la tabla canonica institucional antes de validacion."
                 )
                 if budget_origin
                 else "",
@@ -1601,10 +1626,7 @@ class AIService:
 
         chosen_block = normalized_blocks[0]
         block_id = str(
-            chosen_block.get("block_id")
-            or chosen_block.get("id")
-            or chosen_block.get("legacy_prompt_id")
-            or ""
+            chosen_block.get("block_id") or chosen_block.get("id") or chosen_block.get("legacy_prompt_id") or ""
         ).strip()
         header = str(
             chosen_block.get("header")
@@ -1672,9 +1694,7 @@ class AIService:
         if isinstance(plan, dict):
             plan_errors = validate_schedule_plan(plan)
             fatal_plan_errors = [
-                error
-                for error in plan_errors
-                if error not in {"mes_fuera_de_ventana", "numeracion_semantica_invalida"}
+                error for error in plan_errors if error not in {"mes_fuera_de_ventana", "numeracion_semantica_invalida"}
             ]
             if not fatal_plan_errors:
                 return [build_schedule_table_from_plan(plan, values=values)], "cronograma_plan_generated"
@@ -1809,7 +1829,10 @@ class AIService:
 
         runtime_selection = self._resolve_selection(selection)
         providers = self._provider_order(runtime_selection)
-        fallback_enabled = False
+        selection_mode = str(runtime_selection.get("mode") or "auto").strip().lower()
+        if selection_mode not in {"auto", "fixed"}:
+            selection_mode = "auto"
+        fallback_enabled = selection_mode == "auto" and bool(getattr(settings, "AI_FALLBACK_ON_QUOTA", True))
         disabled = disabled_for_job if disabled_for_job is not None else set()
 
         if preferred_provider in providers and preferred_provider not in disabled:
@@ -1827,7 +1850,7 @@ class AIService:
             tenant_id=str(getattr(settings, "APP_ENV", "") or "global"),
             preferred_provider=preferred_provider,
             provider_candidates=providers,
-            selection_mode="auto" if fallback_enabled else "fixed",
+            selection_mode=selection_mode if fallback_enabled else "fixed",
             metadata={
                 "request_id": f"{phase}:{section_id or section_path}:{int(time.time())}",
                 "section_current": section_current,
@@ -2057,6 +2080,102 @@ class AIService:
         if repaired_count:
             logger.info(
                 "Chapter I heading repair applied to %d section(s). projectId=%s",
+                repaired_count,
+                project_id,
+            )
+        return sections
+
+    def _repair_theoretical_bases_sections(
+        self,
+        sections: List[Dict[str, Any]],
+        *,
+        project_id: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+        selection: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Ensure 2.2 Bases teoricas follows numbered subtopics and controlled visual pattern."""
+        repaired_count = 0
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            path = str(section.get("path") or "")
+            if not OutputValidator._is_theoretical_bases_path(path):
+                continue
+
+            section_id = str(section.get("sectionId") or "")
+            try:
+                self.validator._validate_theoretical_bases_quality(section.get("content"), section_id=section_id)
+                continue
+            except ValidationError as exc:
+                validation_error = str(exc)
+
+            repair_prompt = self._build_theoretical_bases_repair_prompt(
+                section=section,
+                validation_error=validation_error,
+                values=values,
+                format_id=format_id,
+            )
+            self._emit_trace(
+                step="ai.bases_repair",
+                status="running",
+                title="Reparando 2.2 Bases teoricas",
+                detail=validation_error,
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+            try:
+                llm_result = self._generate_with_provider_fallback(
+                    repair_prompt,
+                    preferred_provider=self._last_used_provider,
+                    section_current=0,
+                    section_total=0,
+                    section_path=path,
+                    section_id=section_id,
+                    phase="bases_repair",
+                    selection=selection,
+                )
+                candidate = {
+                    **section,
+                    "content": parse_ai_content(llm_result.content),
+                }
+                apply_figure_recommendations([candidate], values=values, format_id=format_id)
+                self.validator._validate_theoretical_bases_quality(candidate.get("content"), section_id=section_id)
+            except Exception as repair_exc:
+                self._emit_trace(
+                    step="ai.bases_repair",
+                    status="warn",
+                    title="Reparacion de 2.2 no cumplio validacion",
+                    detail=str(repair_exc),
+                    meta={"sectionId": section_id, "sectionPath": path},
+                )
+                fallback = {
+                    **section,
+                    "content": self._fallback_theoretical_bases_content(values),
+                }
+                apply_figure_recommendations([fallback], values=values, format_id=format_id)
+                self.validator._validate_theoretical_bases_quality(fallback.get("content"), section_id=section_id)
+                section["content"] = fallback["content"]
+                repaired_count += 1
+                self._emit_trace(
+                    step="ai.bases_repair",
+                    status="done",
+                    title="2.2 Bases teoricas reparada con respaldo local",
+                    meta={"sectionId": section_id, "sectionPath": path},
+                )
+                continue
+
+            section["content"] = candidate["content"]
+            repaired_count += 1
+            self._emit_trace(
+                step="ai.bases_repair",
+                status="done",
+                title="2.2 Bases teoricas reparada",
+                meta={"sectionId": section_id, "sectionPath": path},
+            )
+
+        if repaired_count:
+            logger.info(
+                "Theoretical bases repair applied to %d section(s). projectId=%s",
                 repaired_count,
                 project_id,
             )
@@ -2512,6 +2631,272 @@ class AIService:
             "motoniveladoras CAT 24M."
         )
 
+    def _is_maintenance_theoretical_case(self, values: Dict[str, Any]) -> bool:
+        combined = " ".join(
+            self._value_text(
+                values,
+                key,
+                default="",
+            )
+            for key in (
+                "title",
+                "titulo",
+                "tema",
+                "linea_investigacion",
+                "objeto_estudio",
+                "variable_independiente",
+                "variable_dependiente",
+                "poblacion",
+                "muestra",
+            )
+        ).lower()
+        markers = (
+            "mantenimiento",
+            "confiabilidad",
+            "disponibilidad",
+            "amef",
+            "iso 14224",
+            "cat 24m",
+            "motoniveladora",
+            "mtbf",
+            "mttr",
+            "mineria",
+            "minera",
+        )
+        hits = sum(1 for marker in markers if marker in combined)
+        return hits >= 3 and (
+            "mantenimiento" in combined or "confiabilidad" in combined or "disponibilidad" in combined
+        )
+
+    def _fallback_theoretical_bases_content(self, values: Dict[str, Any]) -> list[dict[str, Any]] | str:
+        if not self._is_maintenance_theoretical_case(values):
+            variable_independiente = self._value_text(
+                values,
+                "variable_independiente",
+                default="la variable independiente del estudio",
+            )
+            variable_dependiente = self._value_text(
+                values,
+                "variable_dependiente",
+                default="la variable dependiente del estudio",
+            )
+            objeto = self._value_text(values, "objeto_estudio", "poblacion", default="el objeto de estudio")
+            return (
+                "2.2.1 Fundamento teorico de la variable independiente\n\n"
+                f"El desarrollo teorico de {variable_independiente} debe iniciar con su definicion formal, sus autores "
+                "de referencia, su alcance operativo y la razon por la cual se convierte en el eje explicativo del "
+                "proyecto. La redaccion debe vincular teoria, contexto y necesidad de aplicacion sin caer en "
+                "definiciones sueltas ni frases generales.\n\n"
+                "2.2.2 Proceso, modelo o enfoque aplicado al estudio\n\n"
+                "Luego debe explicarse el proceso, modelo o arquitectura que organiza la aplicacion de la propuesta, "
+                "describiendo fases, entradas, decisiones y salidas con lenguaje tecnico. Este subtema sirve para "
+                "preparar cualquier apoyo visual sin adelantarlo antes del sustento academico.\n\n"
+                "2.2.3 Categorias, taxonomia o dimensiones tecnicas\n\n"
+                "La seccion debe detallar la clasificacion que ordena el objeto de estudio y las dimensiones que se "
+                "usan para analizarlo. Aqui corresponde relacionar categorias, niveles o taxonomias con las "
+                "dimensiones registradas en el proyecto.\n\n"
+                "2.2.4 Metodo, herramienta o tecnica especializada\n\n"
+                "A continuacion se desarrolla la herramienta principal de analisis, justificando para que sirve, "
+                "como se aplica y de que manera soporta el diagnostico o la propuesta.\n\n"
+                "2.2.5 Indicadores o relaciones cuantitativas del estudio\n\n"
+                f"Finalmente, la teoria debe aterrizarse en los indicadores o relaciones cuantitativas que permiten "
+                f"interpretar {variable_dependiente}, explicando variables, unidad de medida y criterio de lectura.\n\n"
+                "2.2.6 Objeto de estudio y contexto aplicado\n\n"
+                f"El cierre de bases teoricas debe describir tecnicamente {objeto}, sus componentes, condiciones de "
+                "operacion o uso, y su relacion con la problematica real que la investigacion pretende abordar."
+            )
+
+        equipment = self._value_text(values, "objeto_estudio", "poblacion", default="motoniveladora CAT 24M")
+        location = self._value_text(
+            values, "lugar_ejecucion", "ubicacion", default="unidad minera de la Sierra Central"
+        )
+        return [
+            {"tipo": "parrafo", "texto": "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM)"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El Mantenimiento Centrado en Confiabilidad (RCM) constituye una metodologia orientada a preservar "
+                    "las funciones requeridas del activo dentro de su contexto operacional. Su valor teorico radica en "
+                    "desplazar el mantenimiento rutinario basado solo en horas de uso hacia una logica de funciones, "
+                    "fallas funcionales, modos de falla y consecuencias operacionales. Bajo este enfoque, el activo no "
+                    "se interviene por costumbre, sino segun la criticidad del riesgo tecnico que representa la "
+                    "perdida de su funcion."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La propuesta de Moubray redefine la relacion entre edad del componente y probabilidad de falla, "
+                    "mostrando que muchos activos complejos no siguen una curva de desgaste lineal. Por ello, el RCM "
+                    "prioriza tareas a condicion, tareas detectivas, redisenos o estrategias run to failure "
+                    "controladas, dependiendo del patron de falla y del impacto sobre seguridad, operacion, ambiente y "
+                    "costo. En equipos moviles mineros, esta perspectiva resulta especialmente pertinente porque las "
+                    "condiciones severas de carga, polvo, vibracion y altitud alteran la degradacion de subsistemas "
+                    "criticos."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.2 Proceso del RCM"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El proceso del RCM se organiza alrededor de siete preguntas que ordenan la definicion de "
+                    "funciones, fallas funcionales, modos de falla, efectos, consecuencias y tareas aplicables. Esta "
+                    "secuencia evita formular planes preventivos genericos y obliga a justificar cada decision con "
+                    "base en el comportamiento real del activo. En lugar de iniciar desde el calendario, el "
+                    "proceso inicia desde la funcion requerida y desde la forma en que esa funcion puede perderse."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Dentro de ese proceso, el arbol logico de decision permite determinar si la mejor respuesta es "
+                    "una tarea preventiva, predictiva, detectiva, un rediseño o incluso una aceptacion controlada de "
+                    "la falla. La utilidad del proceso del RCM en mineria se manifiesta cuando las decisiones deben "
+                    "sostener continuidad operativa y, al mismo tiempo, reducir correctivos repetitivos en equipos "
+                    "sometidos a alta exigencia mecanica."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.3 Taxonomia de equipos segun ISO 14224:2016"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La taxonomia de equipos segun ISO 14224:2016 proporciona una estructura jerarquica para ordenar "
+                    "activos, subsistemas, componentes y modos de falla bajo criterios uniformes de identificacion y "
+                    "registro. Su importancia en ingenieria de mantenimiento no se limita a clasificar activos; "
+                    "tambien garantiza trazabilidad de historiales, consistencia en la captura de fallas y "
+                    "comparabilidad entre analisis."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Al trabajar con niveles taxonomicos claramente definidos, la informacion deja de depender de "
+                    "descripciones ambiguas de taller y puede vincularse con criticidad, frecuencia de falla, "
+                    "tiempo de reparacion y costo. En un estudio de confiabilidad, la taxonomia es el soporte "
+                    "estructural que permite pasar de reportes dispersos a una base analitica util para "
+                    "decisiones tecnicas."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.4 Analisis de Modos y Efecto de Fallas (AMEF)"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El Analisis de Modos y Efecto de Fallas (AMEF) es una herramienta sistematica para identificar "
+                    "como falla un subsistema, que efectos produce la falla y con que severidad, ocurrencia y "
+                    "detectabilidad debe ser evaluada. Su aporte principal consiste en priorizar tecnicamente los "
+                    "modos de falla que comprometen la funcion del activo, evitando que el plan de mantenimiento "
+                    "trate todos los eventos con la misma importancia."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La estimacion del Numero de Prioridad de Riesgo (NPR) integra severidad, ocurrencia y "
+                    "detectabilidad para ordenar modos de falla y orientar acciones de control. Aunque el NPR no "
+                    "sustituye el juicio ingenieril, si ofrece una base cuantitativa para justificar inspecciones, "
+                    "tareas a condicion, rediseños o mejoras del plan de mantenimiento. En consecuencia, el AMEF "
+                    "funciona como puente entre diagnostico de fallas y definicion de tareas RCM."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.5 Disponibilidad inherente"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La disponibilidad inherente expresa la proporcion del tiempo en que el activo puede cumplir su "
+                    "funcion considerando solo la confiabilidad y la mantenibilidad, sin incorporar demoras "
+                    "administrativas o logisticas. Esta definicion es relevante porque permite evaluar el desempeño "
+                    "tecnico del equipo y aislar el efecto real de las fallas y de la capacidad de reparacion."
+                ),
+            },
+            {
+                "tipo": "formula",
+                "texto": "Disponibilidad Inherente = MTBF / (MTBF + MTTR)",
+                "numero": "(1)",
+                "alineacion": "center",
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La ecuacion muestra que la disponibilidad inherente mejora cuando aumenta el tiempo medio entre "
+                    "fallas y disminuye el tiempo medio de reparacion. Por ello, cualquier estrategia de "
+                    "mantenimiento que actue sobre modos de falla, preparacion tecnica y rapidez de intervencion "
+                    "impactara directamente en este indicador."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.6 Confiabilidad"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La confiabilidad se entiende como la probabilidad de que un activo opere sin fallar durante un "
+                    "intervalo determinado y bajo condiciones especificadas. En mantenimiento industrial, la "
+                    "confiabilidad no es una cualidad abstracta, sino una medida de continuidad funcional que se "
+                    "alimenta del comportamiento historico del equipo y del patron de ocurrencia de sus fallas."
+                ),
+            },
+            {
+                "tipo": "formula",
+                "texto": "MTBF = Tiempo total de operacion / Numero de fallas",
+                "numero": "(2)",
+                "alineacion": "center",
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El MTBF resume el intervalo medio entre eventos de falla y sirve para comparar el efecto de las "
+                    "tareas de mantenimiento sobre la estabilidad operacional del activo. En equipos moviles, un MTBF "
+                    "superior implica menos interrupciones, mejor continuidad del proceso y menor presion sobre el "
+                    "mantenimiento correctivo."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.7 Mantenibilidad"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La mantenibilidad representa la capacidad del activo para ser restaurado a una "
+                    "condicion operativa en un tiempo determinado y bajo procedimientos, recursos y condiciones de "
+                    "reparacion definidas. Su analisis permite reconocer si los tiempos de intervencion responden "
+                    "a complejidad tecnica, accesibilidad, disponibilidad de repuestos, calidad del diagnostico o "
+                    "eficiencia del proceso de mantenimiento."
+                ),
+            },
+            {
+                "tipo": "formula",
+                "texto": "MTTR = Tiempo total de reparacion / Numero de intervenciones correctivas",
+                "numero": "(3)",
+                "alineacion": "center",
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Cuando el MTTR disminuye, el activo retorna mas rapido a la operacion y mejora la disponibilidad "
+                    "inherente. Sin embargo, reducir MTTR sin actuar sobre las causas de falla solo contiene sintomas; "
+                    "por ello, la mantenibilidad debe analizarse de manera conjunta con la confiabilidad dentro del "
+                    "diseño del plan RCM."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.8 Motoniveladora CAT 24M"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    f"La {equipment} es un equipo auxiliar critico en mineria a cielo abierto porque conserva la "
+                    "geometria, transitabilidad y seguridad de las vias de acarreo. Su desempeño condiciona la "
+                    "velocidad de ciclo de los camiones, la estabilidad de las rutas y la continuidad de las "
+                    f"operaciones en {location}. Por esta razon, su analisis teorico no puede separarse de las cargas "
+                    "dinamicas, del ambiente abrasivo ni de la severidad del trabajo diario."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Desde la perspectiva funcional, la motoniveladora CAT 24M integra sistemas de implementos, tren "
+                    "de potencia, sistema hidraulico, sistema electrico y componentes estructurales que trabajan bajo "
+                    "altas exigencias. Describir tecnicamente el equipo permite entender por que la estrategia de "
+                    "mantenimiento debe adaptarse a sus subsistemas criticos y al contexto operacional donde se "
+                    "manifiestan las fallas recurrentes."
+                ),
+            },
+        ]
+
     def _build_reality_problem_repair_prompt(
         self,
         *,
@@ -2541,6 +2926,45 @@ class AIService:
                     "TABLE_JSON, FIGURE_JSON, guias manuales, fuentes manuales ni asteriscos. Menciona "
                     "Figura 1.1, Figura 1.2, Figura 1.3 y Figura 1.4 en los parrafos de introduccion e "
                     "interpretacion; el sistema insertara los bloques visuales y la guia azul."
+                ),
+                "Valores del proyecto disponibles:",
+                values_json,
+                "Contenido actual que debes sustituir por una version valida:",
+                current_content,
+            ]
+        )
+
+    def _build_theoretical_bases_repair_prompt(
+        self,
+        *,
+        section: Dict[str, Any],
+        validation_error: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+    ) -> str:
+        section_id = str(section.get("sectionId") or "")
+        path = str(section.get("path") or "")
+        editorial_context = build_section_editorial_context(
+            format_id=format_id,
+            section_id=section_id,
+            section_path=path,
+            values=values,
+        )
+        current_content = json.dumps(section.get("content"), ensure_ascii=False, indent=2)
+        values_json = json.dumps(values, ensure_ascii=False, indent=2)
+        return "\n\n".join(
+            [
+                f"Reescribe SOLO la seccion {path}.",
+                "La salida anterior no respeto el patron institucional de 2.2 Bases teoricas.",
+                f"Error de validacion: {validation_error}",
+                editorial_context,
+                (
+                    "Devuelve texto academico plano y, solo cuando corresponda, FORMULA_JSON. "
+                    "No uses Markdown, no uses **, no uses listas, no generes TABLE_JSON y no insertes "
+                    "figuras genericas. Cada subtitulo 2.2.x debe quedar como linea independiente, seguido de "
+                    "sus parrafos tecnicos. Si el caso corresponde a mantenimiento/confiabilidad, respeta el "
+                    "orden 2.2.1 a 2.2.8 y deja anclajes teoricos claros para que el sistema coloque las figuras "
+                    "controladas en 2.2.2, 2.2.3, 2.2.4 y 2.2.8."
                 ),
                 "Valores del proyecto disponibles:",
                 values_json,
@@ -2619,9 +3043,16 @@ class AIService:
                 "No agregues parrafos, listas, markdown, observaciones ni texto antes o despues del bloque.",
                 "No generes la tabla institucional final del cronograma.",
                 "Devuelve un blueprint semantico con tipo='tabla' y subtipo='cronograma_plan'.",
-                "La estructura obligatoria es: {tipo:'tabla', subtipo:'cronograma_plan', anio:'2025 o anio del proyecto', fases:[{numero, titulo, actividades:[{numero, titulo, mes_inicio, mes_fin}]}]}.",
+                (
+                    "La estructura obligatoria es: {tipo:'tabla', subtipo:'cronograma_plan', "
+                    "anio:'2025 o anio del proyecto', fases:[{numero, titulo, actividades:"
+                    "[{numero, titulo, mes_inicio, mes_fin}]}]}."
+                ),
                 "Deben existir exactamente 8 fases y 26 actividades con distribucion 3-3-3-3-3-4-3-4.",
-                "Las fases deben empezar con '1.' hasta '8.' y las actividades con '1.1.' hasta '8.4.' segun corresponda.",
+                (
+                    "Las fases deben empezar con '1.' hasta '8.' y las actividades con "
+                    "'1.1.' hasta '8.4.' segun corresponda."
+                ),
                 "No escribas encabezados, filas, celdas_combinadas, celdas_fusionadas, estilo ni orientacion final.",
                 "Cada actividad debe declarar mes_inicio y mes_fin como enteros del 1 al 12.",
                 "Ventanas mensuales obligatorias: F1=2-3, F2=2-4, F3=4-6, F4=6-7, F5=7-8, F6=7-10, F7=8-11, F8=10-12.",
@@ -3050,5 +3481,18 @@ class AIService:
             minimum_words = max(120, int(original_words * 0.35))
             if corrected_words < minimum_words:
                 return False
+
+        original_headings = OutputValidator._theoretical_heading_lines(original_content)
+        corrected_headings = OutputValidator._theoretical_heading_lines(corrected_content)
+        if len(original_headings) >= 5:
+            if len(corrected_headings) < 5:
+                return False
+            if len(corrected_headings) < len(original_headings):
+                return False
+
+        original_figures = OutputValidator._figure_blocks(original_content)
+        corrected_figures = OutputValidator._figure_blocks(corrected_content)
+        if not original_figures and corrected_figures:
+            return False
 
         return True

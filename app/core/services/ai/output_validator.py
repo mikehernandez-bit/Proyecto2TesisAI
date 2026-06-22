@@ -12,17 +12,17 @@ import re
 import unicodedata
 from typing import Any, cast
 
-from app.core.services.ai.schedule_table_builder import (
-    extract_schedule_plan_from_content,
-    salvage_schedule_plan_from_legacy_table,
-    validate_schedule_plan,
-)
 from app.core.services.ai.budget_table_builder import (
     extract_budget_plan_from_content,
     salvage_budget_plan_from_legacy_table,
     validate_budget_plan,
 )
 from app.core.services.ai.completeness_validator import strip_placeholder_text
+from app.core.services.ai.schedule_table_builder import (
+    extract_schedule_plan_from_content,
+    salvage_schedule_plan_from_legacy_table,
+    validate_schedule_plan,
+)
 from app.core.services.content_sanitizer import sanitize_text_block
 from app.core.services.toc_detector import is_toc_path as _shared_is_toc_path
 
@@ -162,6 +162,10 @@ class OutputValidator:
         "1.5.3 Delimitacion espacial",
     )
     _WORD_RE = re.compile(r"\b[\wÁÉÍÓÚÜÑáéíóúüñ]+(?:[-'][\wÁÉÍÓÚÜÑáéíóúüñ]+)?\b", re.UNICODE)
+    # Detects bare mathematical equations written as plain text (e.g. "MTBF = X / Y").
+    # These are promoted to formula blocks so GicaTesis does not render them as
+    # Heading 3 paragraphs and include them in the table of contents.
+    _INLINE_FORMULA_RE = re.compile(r"^[A-ZÁÉÍÓÚ][A-Za-záéíóúñÑ\s]+=\s*[\w\s/()+\-*.áéíóúñ]+$")
     _SCHEDULE_PHASE_ROWS = [1, 5, 9, 13, 17, 21, 26, 30]
     _SCHEDULE_ACTIVITY_COUNTS = (3, 3, 3, 3, 3, 4, 3, 4)
     _SCHEDULE_LEGACY_RECOVERABLE_ERRORS = {
@@ -572,7 +576,7 @@ class OutputValidator:
         text = re.sub(r"```[\s\S]*?```", " ", text)
         text = text.replace("```", " ")
         text = re.sub(r"^\s*#{1,6}\s*", "", text, flags=re.MULTILINE)
-        text = text.replace("**", "").replace("__", "")
+        text = text.replace("**", "").replace("__", "").replace("*", "")
         text = text.replace("|", " ")
 
         cleaned_lines: list[str] = []
@@ -796,8 +800,7 @@ class OutputValidator:
 
         normalized: dict[str, Any] = {
             "tipo": "formula",
-            "alineacion": str(item.get("alineacion") or item.get("alignment") or "center").strip().lower()
-            or "center",
+            "alineacion": str(item.get("alineacion") or item.get("alignment") or "center").strip().lower() or "center",
         }
         if text:
             normalized["texto"] = text
@@ -861,7 +864,29 @@ class OutputValidator:
             if block_type == "parrafo":
                 text = cls._sanitize_text_content(item.get("texto"), path=path)
                 if text:
-                    normalized.append({"tipo": "parrafo", "texto": text})
+                    # Fallback guard: if this paragraph looks like a bare inline
+                    # formula (single line, "X = Y / Z" pattern) in a theoretical
+                    # bases section, promote it to a formula block so GicaTesis
+                    # does not render it as Heading 3 / include it in the TOC.
+                    single_line = "\n" not in text
+                    is_theoretical = cls._is_theoretical_bases_path(path)
+                    if (
+                        single_line
+                        and is_theoretical
+                        and cls._INLINE_FORMULA_RE.match(text.strip())
+                        and formula_count < max_formula_blocks
+                    ):
+                        promoted = {"tipo": "formula", "texto": text.strip(), "alineacion": "center"}
+                        if cls._can_keep_theoretical_formula(normalized, path=path):
+                            normalized.append(promoted)
+                            formula_count += 1
+                            logger.debug(
+                                "output_validator: promoted inline formula to formula block in '%s': %r",
+                                path,
+                                text[:80],
+                            )
+                    else:
+                        normalized.append({"tipo": "parrafo", "texto": text})
                 continue
 
             if block_type == "tabla":
@@ -973,9 +998,7 @@ class OutputValidator:
         if not isinstance(content, list):
             return []
         return [
-            item
-            for item in content
-            if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "figura"
+            item for item in content if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "figura"
         ]
 
     @classmethod
@@ -983,9 +1006,7 @@ class OutputValidator:
         if not isinstance(content, list):
             return []
         return [
-            item
-            for item in content
-            if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "tabla"
+            item for item in content if isinstance(item, dict) and cls._normalize_token(item.get("tipo")) == "tabla"
         ]
 
     @classmethod
@@ -1235,7 +1256,11 @@ class OutputValidator:
                     return []
             for table in table_blocks:
                 table_errors = set(cls._schedule_table_errors(table))
-                if table_errors and table_errors.issubset(cls._SCHEDULE_LEGACY_RECOVERABLE_ERRORS) and salvage_schedule_plan_from_legacy_table(table):
+                if (
+                    table_errors
+                    and table_errors.issubset(cls._SCHEDULE_LEGACY_RECOVERABLE_ERRORS)
+                    and salvage_schedule_plan_from_legacy_table(table)
+                ):
                     return []
             if not table_blocks:
                 return ["sin_table_json_canonico"]
@@ -1316,7 +1341,10 @@ class OutputValidator:
         raise ValidationError(
             f"Seccion {section_id} requiere una tabla estructurada valida de {section_kind}; "
             + "; ".join(error_messages)
-            + ". Regenera la seccion en formato TABLE_JSON canonico con subtipo, encabezados, filas y metadatos institucionales completos."
+            + (
+                ". Regenera la seccion en formato TABLE_JSON canonico con subtipo, "
+                "encabezados, filas y metadatos institucionales completos."
+            )
         )
 
     @classmethod
@@ -1339,13 +1367,11 @@ class OutputValidator:
         word_count = cls._word_count(narrative)
         if word_count < cls.MIN_REALITY_PROBLEM_NARRATIVE_WORDS:
             errors.append(
-                f"1.1 tiene {word_count} palabras narrativas; minimo "
-                f"{cls.MIN_REALITY_PROBLEM_NARRATIVE_WORDS}"
+                f"1.1 tiene {word_count} palabras narrativas; minimo {cls.MIN_REALITY_PROBLEM_NARRATIVE_WORDS}"
             )
         if word_count > cls.MAX_REALITY_PROBLEM_NARRATIVE_WORDS:
             errors.append(
-                f"1.1 tiene {word_count} palabras narrativas; maximo "
-                f"{cls.MAX_REALITY_PROBLEM_NARRATIVE_WORDS}"
+                f"1.1 tiene {word_count} palabras narrativas; maximo {cls.MAX_REALITY_PROBLEM_NARRATIVE_WORDS}"
             )
 
         missing = [label for label, pattern in cls._REALITY_PROBLEM_REQUIRED_PATTERNS if not pattern.search(narrative)]
@@ -1355,9 +1381,7 @@ class OutputValidator:
         if missing:
             errors.append("1.1 omite contenido obligatorio: " + ", ".join(missing))
 
-        generic_hits = [
-            phrase for phrase in cls._REALITY_PROBLEM_GENERIC_PHRASES if phrase in normalized_narrative
-        ]
+        generic_hits = [phrase for phrase in cls._REALITY_PROBLEM_GENERIC_PHRASES if phrase in normalized_narrative]
         if generic_hits:
             errors.append("1.1 conserva frases genericas sin sustento: " + ", ".join(generic_hits))
 
@@ -1365,9 +1389,7 @@ class OutputValidator:
             errors.append("1.1 debe llegar como bloques estructurados para controlar figuras e interpretaciones")
         else:
             figures = cls._figure_blocks(content)
-            figure_titles = [
-                cls._normalize_token(figure.get("titulo") or figure.get("caption")) for figure in figures
-            ]
+            figure_titles = [cls._normalize_token(figure.get("titulo") or figure.get("caption")) for figure in figures]
             expected_titles = [cls._normalize_token(title) for title in cls._REALITY_PROBLEM_REQUIRED_FIGURE_TITLES]
             if figure_titles != expected_titles:
                 errors.append(
@@ -1431,9 +1453,12 @@ class OutputValidator:
         if generic_hits:
             errors.append("2.1 conserva antecedentes vagos: " + ", ".join(generic_hits))
 
-        for required_heading in ("antecedentes internacionales", "antecedentes nacionales"):
-            if required_heading not in normalized_visible:
-                errors.append(f"2.1 no contiene el subtitulo '{required_heading}'")
+        # Enforce numbered Heading 3 headings for backgrounds:
+        # "2.1.1 Antecedentes internacionales" and "2.1.2 Antecedentes nacionales"
+        if not re.search(r"2\.1\.1\.?\s+antecedentes\s+internacionales", normalized_visible):
+            errors.append("2.1 no contiene el subtitulo numerado '2.1.1 Antecedentes internacionales'")
+        if not re.search(r"2\.1\.2\.?\s+antecedentes\s+nacionales", normalized_visible):
+            errors.append("2.1 no contiene el subtitulo numerado '2.1.2 Antecedentes nacionales'")
 
         narrative_words = cls._word_count(cls._narrative_text(content))
         if narrative_words and narrative_words < 1200:
@@ -1443,11 +1468,30 @@ class OutputValidator:
             raise ValidationError(f"Calidad insuficiente en seccion {section_id}: " + " | ".join(errors))
 
     @classmethod
+    def _theoretical_heading_lines(cls, content: Any) -> list[str]:
+        if not isinstance(content, list):
+            return []
+        headings = []
+        for block in content:
+            if isinstance(block, dict) and cls._normalize_token(block.get("tipo")) == "parrafo":
+                text = str(block.get("texto") or "").strip()
+                if text:
+                    first_line = text.splitlines()[0].strip()
+                    if re.match(r"^\s*2\.2\.\d+", first_line):
+                        headings.append(first_line)
+        return headings
+
+    @classmethod
     def _validate_theoretical_bases_quality(cls, content: Any, *, section_id: str) -> None:
         if not isinstance(content, list):
             return
 
         errors: list[str] = []
+        # Check for numbered headings (2.2.x)
+        headings = cls._theoretical_heading_lines(content)
+        if not headings:
+            errors.append("2.2 no contiene subtitulos numerados (2.2.x)")
+
         figure_positions = [
             index
             for index, block in enumerate(content)
@@ -1471,8 +1515,7 @@ class OutputValidator:
             previous_words = cls._word_count(str(content[previous_index].get("texto") or ""))
             if previous_words < cls.MIN_THEORETICAL_FIGURE_PREVIOUS_WORDS:
                 errors.append(
-                    "2.2 contiene una figura precedida por texto demasiado breve "
-                    f"({previous_words} palabras)"
+                    f"2.2 contiene una figura precedida por texto demasiado breve ({previous_words} palabras)"
                 )
 
         for position in formula_positions:
@@ -1483,8 +1526,7 @@ class OutputValidator:
             previous_words = cls._word_count(str(content[previous_index].get("texto") or ""))
             if previous_words < cls.MIN_THEORETICAL_FORMULA_PREVIOUS_WORDS:
                 errors.append(
-                    "2.2 contiene una formula precedida por texto demasiado breve "
-                    f"({previous_words} palabras)"
+                    f"2.2 contiene una formula precedida por texto demasiado breve ({previous_words} palabras)"
                 )
             if cls._next_paragraph_index(content, position) < 0:
                 errors.append("2.2 contiene una formula sin interpretacion posterior inmediata")
@@ -1502,13 +1544,10 @@ class OutputValidator:
     ) -> None:
         visible = cls._visible_content_text(content)
         normalized_visible = cls._normalize_token(visible)
-        missing = [
-            heading for heading in required_headings if cls._normalize_token(heading) not in normalized_visible
-        ]
+        missing = [heading for heading in required_headings if cls._normalize_token(heading) not in normalized_visible]
         if missing:
             raise ValidationError(
-                f"Calidad insuficiente en seccion {section_id}: faltan subtitulos obligatorios: "
-                + ", ".join(missing)
+                f"Calidad insuficiente en seccion {section_id}: faltan subtitulos obligatorios: " + ", ".join(missing)
             )
 
     @classmethod

@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from __future__ import annotations
 
 import unicodedata
@@ -325,10 +326,7 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
                 "Si el objetivo general ya coincide con la variable dependiente "
                 "principal del proyecto, mantenlo sin reformularlo creativamente."
             ),
-            (
-                "No inviertas el orden de confiabilidad y mantenibilidad "
-                "cuando esas sean las dimensiones del estudio."
-            ),
+            ("No inviertas el orden de confiabilidad y mantenibilidad cuando esas sean las dimensiones del estudio."),
             "No agregues explicaciones ni justificaciones debajo de los objetivos.",
         ),
         context_mode="matrix_core",
@@ -478,9 +476,10 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
             "internacional y nacional sin figuras, tablas ni placeholders visibles."
         ),
         structure=(
-            "Inicia directamente con el subtitulo Antecedentes internacionales, sin introduccion generica.",
-            "Antecedentes internacionales: cinco antecedentes si el paquete no indica otra cantidad.",
-            "Antecedentes nacionales: cinco antecedentes si el paquete no indica otra cantidad.",
+            "Inicia directamente con el subtitulo '2.1.1 Antecedentes internacionales' como una linea independiente y limpia, sin markdown, sin asteriscos ni negritas y sin introduccion generica.",
+            "Antecedentes internacionales: cinco antecedentes si el paquete no indica otra cantidad. Cada antecedente debe desarrollarse en su propio parrafo.",
+            "Luego coloca el subtitulo '2.1.2 Antecedentes nacionales' como una linea independiente y limpia, sin markdown, sin asteriscos ni negritas.",
+            "Antecedentes nacionales: cinco antecedentes si el paquete no indica otra cantidad. Cada antecedente debe desarrollarse en su propio parrafo.",
             (
                 "Cada antecedente debe ser un parrafo largo de 190 a 300 palabras con autor(es) y año, "
                 "titulo exacto, problema abordado, pregunta o proposito, objetivo, tipo/enfoque/diseno, "
@@ -502,17 +501,19 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
     "ii. marco teorico/2.2 bases teoricas": SectionPromptProfile(
         word_range="1500 a 2200 palabras",
         purpose=(
-            "Desarrollar bases teoricas densas por subtema derivado del titulo, variables, dimensiones, "
-            "poblacion, muestra y contexto real del proyecto, con figuras o formulas solo cuando correspondan."
+            "Desarrollar bases teoricas densas, academicas y jerarquizadas por subtitulos 2.2.x derivados del "
+            "titulo, variables, dimensiones, poblacion, muestra y contexto real del proyecto, con patron "
+            "preciso de figuras y formulas cuando correspondan."
         ),
         structure=(
-            "Subtema teorico principal de la variable independiente: 2 a 3 parrafos antes de cualquier figura.",
+            "Cada subtema debe iniciar con una linea independiente tipo 2.2.x Titulo del subtema.",
+            "Cada subtitulo 2.2.x debe desarrollar 2 a 3 parrafos tecnicos antes de cambiar de subtema.",
+            "Subtema teorico principal de la variable independiente: fundamento, definicion, alcance y autores clave.",
             "Subtema de proceso, modelo, arquitectura, procedimiento o flujo si el proyecto lo requiere.",
             "Subtema de clasificacion, taxonomia, categorias o niveles si aporta a las dimensiones.",
             "Subtema de herramienta, metodo, instrumento, tecnica o tecnologia asociada al estudio.",
             "Subtemas de indicadores, indices o relaciones cuantitativas con formula solo si el tema los requiere.",
             "Subtema de equipo, sistema, objeto de estudio, poblacion, tecnologia o caso aplicado cuando corresponda.",
-            "Cada subtema debe iniciar con un titulo textual y desarrollar 1 a 3 parrafos tecnicos antes de visuales.",
             (
                 "Si el tema es de mantenimiento/confiabilidad, cubre explicitamente: RCM, proceso del RCM, "
                 "taxonomia ISO 14224, AMEF, disponibilidad inherente, confiabilidad, mantenibilidad y objeto de estudio."
@@ -521,6 +522,8 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
         quality_rules=(
             "No insertes matriz de consistencia ni matriz de operacionalizacion dentro de 2.2 Bases teoricas.",
             "No generes tablas Markdown ni TABLE_JSON en 2.2; las figuras deben ser bloques FIGURE_JSON.",
+            "Los subtitulos 2.2.x deben quedar como lineas independientes y limpias, no incrustados dentro del mismo parrafo.",
+            "No uses **negritas**, ##, bullets ni numeraciones de lista para simular subtitulos; usa lineas textuales 2.2.x.",
             "No arrastres nombres, autores, normas, indicadores o equipos del ejemplo guia si el proyecto no trata ese campo.",
             "Si el proyecto es de mantenimiento, usa teorias de mantenimiento, confiabilidad, disponibilidad y activos.",
             "Si el proyecto es de software, usa arquitectura, datos, interfaz, seguridad, algoritmos o metodologia tecnica.",
@@ -532,7 +535,7 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
             "No coloques figuras consecutivas sin texto teorico entre ellas.",
             "Usa formulas solo si el tema requiere indicadores, calculos, indices, ratios o ecuaciones.",
             "Toda formula debe ir despues de definir el concepto y sus variables, y antes de una interpretacion.",
-            "No uses encabezados Markdown (##, **, listas con guiones); usa subtitulos textuales limpios.",
+            "Si el caso es mantenimiento/confiabilidad, replica el patron del entregable 1 en cantidad y ubicacion de subtitulos, figuras y formulas, sin copiar frases literales.",
             "No muestres placeholders tecnicos ni frases como 'reemplazar por la figura validada por el autor'.",
         ),
         context_mode="theoretical_bases",
@@ -835,99 +838,99 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
                 "Plantilla completa obligatoria (estructura exacta; reemplaza FASE/ACTIVIDAD/<ANIO> con contenido del tema actual):\n"
                 "<<<TABLE_JSON\n"
                 "{\n"
-                "  \"tipo\": \"tabla\",\n"
-                "  \"id\": \"tabla_5_1_cronograma_actividades\",\n"
-                "  \"titulo\": \"Tabla 5.1 Cronograma de actividades\",\n"
-                "  \"encabezados\": [\"FASES Y ACTIVIDADES\", \"<ANIO>\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "  \"filas\": [\n"
-                "    [\"\", \"Ene\", \"Feb\", \"Mar\", \"Abr\", \"May\", \"Jun\", \"Jul\", \"Ago\", \"Set\", \"Oct\", \"Nov\", \"Dic\"],\n"
-                "    [\"FASE 1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 1.1\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 1.2\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 1.3\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 2.1\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 2.2\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 2.3\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 3.1\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 3.2\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 3.3\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 4\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 4.1\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 4.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 4.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 5\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 5.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 5.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 5.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\"],\n"
-                "    [\"FASE 6\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 6.4\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\"],\n"
-                "    [\"FASE 7\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 7.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\"],\n"
-                "    [\"ACTIVIDAD 7.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\", \"\"],\n"
-                "    [\"ACTIVIDAD 7.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"FASE 8\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n"
-                "    [\"ACTIVIDAD 8.1\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"ACTIVIDAD 8.2\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"ACTIVIDAD 8.3\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"],\n"
-                "    [\"ACTIVIDAD 8.4\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"X\"]\n"
+                '  "tipo": "tabla",\n'
+                '  "id": "tabla_5_1_cronograma_actividades",\n'
+                '  "titulo": "Tabla 5.1 Cronograma de actividades",\n'
+                '  "encabezados": ["FASES Y ACTIVIDADES", "<ANIO>", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '  "filas": [\n'
+                '    ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"],\n'
+                '    ["FASE 1", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 1.1", "", "X", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 1.2", "", "X", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 1.3", "", "", "X", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["FASE 2", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 2.1", "", "", "X", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 2.2", "", "", "", "X", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 2.3", "", "", "", "X", "", "", "", "", "", "", "", ""],\n'
+                '    ["FASE 3", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 3.1", "", "", "", "", "X", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 3.2", "", "", "", "", "X", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 3.3", "", "", "", "", "", "X", "", "", "", "", "", ""],\n'
+                '    ["FASE 4", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 4.1", "", "", "", "", "", "X", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 4.2", "", "", "", "", "", "", "X", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 4.3", "", "", "", "", "", "", "X", "", "", "", "", ""],\n'
+                '    ["FASE 5", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 5.1", "", "", "", "", "", "", "", "X", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 5.2", "", "", "", "", "", "", "", "X", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 5.3", "", "", "", "", "", "", "", "", "X", "", "", ""],\n'
+                '    ["FASE 6", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 6.1", "", "", "", "", "", "", "", "", "X", "", "", ""],\n'
+                '    ["ACTIVIDAD 6.2", "", "", "", "", "", "", "", "", "", "X", "", ""],\n'
+                '    ["ACTIVIDAD 6.3", "", "", "", "", "", "", "", "", "", "X", "", ""],\n'
+                '    ["ACTIVIDAD 6.4", "", "", "", "", "", "", "", "", "", "", "X", ""],\n'
+                '    ["FASE 7", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 7.1", "", "", "", "", "", "", "", "", "", "", "X", ""],\n'
+                '    ["ACTIVIDAD 7.2", "", "", "", "", "", "", "", "", "", "", "X", ""],\n'
+                '    ["ACTIVIDAD 7.3", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["FASE 8", "", "", "", "", "", "", "", "", "", "", "", ""],\n'
+                '    ["ACTIVIDAD 8.1", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["ACTIVIDAD 8.2", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["ACTIVIDAD 8.3", "", "", "", "", "", "", "", "", "", "", "", "X"],\n'
+                '    ["ACTIVIDAD 8.4", "", "", "", "", "", "", "", "", "", "", "", "X"]\n'
                 "  ],\n"
-                "  \"orientacion\": \"landscape\",\n"
-                "  \"subtipo\": \"cronograma_actividades\",\n"
-                "  \"anio\": \"<ANIO>\",\n"
-                "  \"meses\": [\"Ene\", \"Feb\", \"Mar\", \"Abr\", \"May\", \"Jun\", \"Jul\", \"Ago\", \"Set\", \"Oct\", \"Nov\", \"Dic\"],\n"
-                "  \"simbolo_marca\": \"\\u25cf\",\n"
-                "  \"filas_fase\": [1, 5, 9, 13, 17, 21, 26, 30],\n"
-                "  \"celdas_combinadas\": [\n"
-                "    {\"fila\": -1, \"fila_fin\": 0, \"col_inicio\": 0, \"col_fin\": 0, \"texto\": \"FASES Y ACTIVIDADES\"},\n"
-                "    {\"fila\": -1, \"col_inicio\": 1, \"col_fin\": 12, \"texto\": \"<ANIO>\"},\n"
-                "    {\"fila\": 1, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 1\"},\n"
-                "    {\"fila\": 5, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 2\"},\n"
-                "    {\"fila\": 9, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 3\"},\n"
-                "    {\"fila\": 13, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 4\"},\n"
-                "    {\"fila\": 17, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 5\"},\n"
-                "    {\"fila\": 21, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 6\"},\n"
-                "    {\"fila\": 26, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 7\"},\n"
-                "    {\"fila\": 30, \"col_inicio\": 0, \"col_fin\": 12, \"texto\": \"FASE 8\"}\n"
+                '  "orientacion": "landscape",\n'
+                '  "subtipo": "cronograma_actividades",\n'
+                '  "anio": "<ANIO>",\n'
+                '  "meses": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"],\n'
+                '  "simbolo_marca": "\\u25cf",\n'
+                '  "filas_fase": [1, 5, 9, 13, 17, 21, 26, 30],\n'
+                '  "celdas_combinadas": [\n'
+                '    {"fila": -1, "fila_fin": 0, "col_inicio": 0, "col_fin": 0, "texto": "FASES Y ACTIVIDADES"},\n'
+                '    {"fila": -1, "col_inicio": 1, "col_fin": 12, "texto": "<ANIO>"},\n'
+                '    {"fila": 1, "col_inicio": 0, "col_fin": 12, "texto": "FASE 1"},\n'
+                '    {"fila": 5, "col_inicio": 0, "col_fin": 12, "texto": "FASE 2"},\n'
+                '    {"fila": 9, "col_inicio": 0, "col_fin": 12, "texto": "FASE 3"},\n'
+                '    {"fila": 13, "col_inicio": 0, "col_fin": 12, "texto": "FASE 4"},\n'
+                '    {"fila": 17, "col_inicio": 0, "col_fin": 12, "texto": "FASE 5"},\n'
+                '    {"fila": 21, "col_inicio": 0, "col_fin": 12, "texto": "FASE 6"},\n'
+                '    {"fila": 26, "col_inicio": 0, "col_fin": 12, "texto": "FASE 7"},\n'
+                '    {"fila": 30, "col_inicio": 0, "col_fin": 12, "texto": "FASE 8"}\n'
                 "  ],\n"
-                "  \"celdas_fusionadas\": [\n"
-                "    {\"fila\": -1, \"col\": 0, \"filas_span\": 2, \"cols_span\": 1, \"texto\": \"FASES Y ACTIVIDADES\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": -1, \"col\": 1, \"filas_span\": 1, \"cols_span\": 12, \"texto\": \"<ANIO>\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 1, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 1\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 5, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 2\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 9, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 3\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 13, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 4\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 17, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 5\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 21, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 6\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 26, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 7\", \"bold\": true, \"alignment\": \"center\"},\n"
-                "    {\"fila\": 30, \"col\": 0, \"filas_span\": 1, \"cols_span\": 13, \"texto\": \"FASE 8\", \"bold\": true, \"alignment\": \"center\"}\n"
+                '  "celdas_fusionadas": [\n'
+                '    {"fila": -1, "col": 0, "filas_span": 2, "cols_span": 1, "texto": "FASES Y ACTIVIDADES", "bold": true, "alignment": "center"},\n'
+                '    {"fila": -1, "col": 1, "filas_span": 1, "cols_span": 12, "texto": "<ANIO>", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 1, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 1", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 5, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 2", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 9, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 3", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 13, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 4", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 17, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 5", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 21, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 6", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 26, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 7", "bold": true, "alignment": "center"},\n'
+                '    {"fila": 30, "col": 0, "filas_span": 1, "cols_span": 13, "texto": "FASE 8", "bold": true, "alignment": "center"}\n'
                 "  ],\n"
-                "  \"estilo\": {\n"
-                "    \"modelo_referencia\": \"cronograma_actividades.docx\",\n"
-                "    \"titulo_capitulo\": \"V. CRONOGRAMA DE ACTIVIDADES\",\n"
-                "    \"titulo_exacto\": true,\n"
-                "    \"titulo_tamano_pt\": 9.5,\n"
-                "    \"titulo_space_after_pt\": 6,\n"
-                "    \"ancho_tabla\": \"100%\",\n"
-                "    \"ancho_columnas\": [8.91, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59],\n"
-                "    \"alineacion_actividades\": \"left\",\n"
-                "    \"alineacion_meses\": \"center\",\n"
-                "    \"encabezados_negrita\": true,\n"
-                "    \"fases_negrita\": true,\n"
-                "    \"fases_centradas\": true,\n"
-                "    \"bordes\": \"grid\",\n"
-                "    \"fuente_tamano_pt\": 8,\n"
-                "    \"fuente_meses_pt\": 8,\n"
-                "    \"fuente_actividades_pt\": 8,\n"
-                "    \"fuente_fases_pt\": 8,\n"
-                "    \"fuente_marcas_pt\": 10,\n"
-                "    \"compactar_cronograma\": false,\n"
-                "    \"orientacion_pagina\": \"landscape\",\n"
-                "    \"margenes_reducidos\": true\n"
+                '  "estilo": {\n'
+                '    "modelo_referencia": "cronograma_actividades.docx",\n'
+                '    "titulo_capitulo": "V. CRONOGRAMA DE ACTIVIDADES",\n'
+                '    "titulo_exacto": true,\n'
+                '    "titulo_tamano_pt": 9.5,\n'
+                '    "titulo_space_after_pt": 6,\n'
+                '    "ancho_tabla": "100%",\n'
+                '    "ancho_columnas": [8.91, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59, 1.59],\n'
+                '    "alineacion_actividades": "left",\n'
+                '    "alineacion_meses": "center",\n'
+                '    "encabezados_negrita": true,\n'
+                '    "fases_negrita": true,\n'
+                '    "fases_centradas": true,\n'
+                '    "bordes": "grid",\n'
+                '    "fuente_tamano_pt": 8,\n'
+                '    "fuente_meses_pt": 8,\n'
+                '    "fuente_actividades_pt": 8,\n'
+                '    "fuente_fases_pt": 8,\n'
+                '    "fuente_marcas_pt": 10,\n'
+                '    "compactar_cronograma": false,\n'
+                '    "orientacion_pagina": "landscape",\n'
+                '    "margenes_reducidos": true\n'
                 "  }\n"
                 "}\n"
                 "TABLE_JSON>>>"
@@ -986,64 +989,64 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
                 "Plantilla completa obligatoria (estructura exacta; reemplaza CATEGORIA/ITEM y montos con contenido del tema actual):\n"
                 "<<<TABLE_JSON\n"
                 "{\n"
-                "  \"tipo\": \"tabla\",\n"
-                "  \"id\": \"tabla_6_1_presupuesto_investigacion\",\n"
-                "  \"titulo\": \"Tabla 6.1 Presupuesto de investigacion\",\n"
-                "  \"encabezados\": [\"N°\", \"DESCRIPCION DEL GASTO\", \"CANTIDAD\", \"COSTO UNIT. (S/.)\", \"COSTO TOTAL (S/.)\"],\n"
-                "  \"filas\": [\n"
-                "    [\"1. CATEGORIA 1\", \"\", \"\", \"\", \"2,000.00\"],\n"
-                "    [\"1.1\", \"ITEM 1.1\", \"1\", \"2,000.00\", \"2,000.00\"],\n"
-                "    [\"2. CATEGORIA 2\", \"\", \"\", \"\", \"4,849.00\"],\n"
-                "    [\"2.1\", \"ITEM 2.1\", \"1\", \"2,999.00\", \"2,999.00\"],\n"
-                "    [\"2.2\", \"ITEM 2.2\", \"12\", \"50.00\", \"600.00\"],\n"
-                "    [\"2.3\", \"ITEM 2.3\", \"4\", \"250.00\", \"1,000.00\"],\n"
-                "    [\"2.4\", \"ITEM 2.4\", \"1\", \"250.00\", \"250.00\"],\n"
-                "    [\"3. CATEGORIA 3\", \"\", \"\", \"\", \"560.00\"],\n"
-                "    [\"3.1\", \"ITEM 3.1\", \"1\", \"150.00\", \"150.00\"],\n"
-                "    [\"3.2\", \"ITEM 3.2\", \"1\", \"350.00\", \"350.00\"],\n"
-                "    [\"3.3\", \"ITEM 3.3\", \"1\", \"60.00\", \"60.00\"],\n"
-                "    [\"4. CATEGORIA 4\", \"\", \"\", \"\", \"370.00\"],\n"
-                "    [\"4.1\", \"ITEM 4.1\", \"1\", \"370.00\", \"370.00\"],\n"
-                "    [\"TOTAL GENERAL\", \"\", \"\", \"\", \"S/. 7,779.00\"]\n"
+                '  "tipo": "tabla",\n'
+                '  "id": "tabla_6_1_presupuesto_investigacion",\n'
+                '  "titulo": "Tabla 6.1 Presupuesto de investigacion",\n'
+                '  "encabezados": ["N°", "DESCRIPCION DEL GASTO", "CANTIDAD", "COSTO UNIT. (S/.)", "COSTO TOTAL (S/.)"],\n'
+                '  "filas": [\n'
+                '    ["1. CATEGORIA 1", "", "", "", "2,000.00"],\n'
+                '    ["1.1", "ITEM 1.1", "1", "2,000.00", "2,000.00"],\n'
+                '    ["2. CATEGORIA 2", "", "", "", "4,849.00"],\n'
+                '    ["2.1", "ITEM 2.1", "1", "2,999.00", "2,999.00"],\n'
+                '    ["2.2", "ITEM 2.2", "12", "50.00", "600.00"],\n'
+                '    ["2.3", "ITEM 2.3", "4", "250.00", "1,000.00"],\n'
+                '    ["2.4", "ITEM 2.4", "1", "250.00", "250.00"],\n'
+                '    ["3. CATEGORIA 3", "", "", "", "560.00"],\n'
+                '    ["3.1", "ITEM 3.1", "1", "150.00", "150.00"],\n'
+                '    ["3.2", "ITEM 3.2", "1", "350.00", "350.00"],\n'
+                '    ["3.3", "ITEM 3.3", "1", "60.00", "60.00"],\n'
+                '    ["4. CATEGORIA 4", "", "", "", "370.00"],\n'
+                '    ["4.1", "ITEM 4.1", "1", "370.00", "370.00"],\n'
+                '    ["TOTAL GENERAL", "", "", "", "S/. 7,779.00"]\n'
                 "  ],\n"
-                "  \"orientacion\": \"portrait\",\n"
-                "  \"subtipo\": \"presupuesto_investigacion\",\n"
-                "  \"filas_categoria\": [0, 2, 7, 11],\n"
-                "  \"fila_total\": 13,\n"
-                "  \"celdas_combinadas\": [\n"
-                "    {\"fila\": 0, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"1. CATEGORIA 1\"},\n"
-                "    {\"fila\": 2, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"2. CATEGORIA 2\"},\n"
-                "    {\"fila\": 7, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"3. CATEGORIA 3\"},\n"
-                "    {\"fila\": 11, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"4. CATEGORIA 4\"},\n"
-                "    {\"fila\": 13, \"col_inicio\": 0, \"col_fin\": 3, \"texto\": \"TOTAL GENERAL\"}\n"
+                '  "orientacion": "portrait",\n'
+                '  "subtipo": "presupuesto_investigacion",\n'
+                '  "filas_categoria": [0, 2, 7, 11],\n'
+                '  "fila_total": 13,\n'
+                '  "celdas_combinadas": [\n'
+                '    {"fila": 0, "col_inicio": 0, "col_fin": 3, "texto": "1. CATEGORIA 1"},\n'
+                '    {"fila": 2, "col_inicio": 0, "col_fin": 3, "texto": "2. CATEGORIA 2"},\n'
+                '    {"fila": 7, "col_inicio": 0, "col_fin": 3, "texto": "3. CATEGORIA 3"},\n'
+                '    {"fila": 11, "col_inicio": 0, "col_fin": 3, "texto": "4. CATEGORIA 4"},\n'
+                '    {"fila": 13, "col_inicio": 0, "col_fin": 3, "texto": "TOTAL GENERAL"}\n'
                 "  ],\n"
-                "  \"celdas_fusionadas\": [\n"
-                "    {\"fila\": 0, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"1. CATEGORIA 1\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 2, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"2. CATEGORIA 2\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 7, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"3. CATEGORIA 3\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 11, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"4. CATEGORIA 4\", \"bold\": true, \"alignment\": \"left\"},\n"
-                "    {\"fila\": 13, \"col\": 0, \"filas_span\": 1, \"cols_span\": 4, \"texto\": \"TOTAL GENERAL\", \"bold\": true, \"alignment\": \"center\"}\n"
+                '  "celdas_fusionadas": [\n'
+                '    {"fila": 0, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "1. CATEGORIA 1", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 2, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "2. CATEGORIA 2", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 7, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "3. CATEGORIA 3", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 11, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "4. CATEGORIA 4", "bold": true, "alignment": "left"},\n'
+                '    {"fila": 13, "col": 0, "filas_span": 1, "cols_span": 4, "texto": "TOTAL GENERAL", "bold": true, "alignment": "center"}\n'
                 "  ],\n"
-                "  \"estilo\": {\n"
-                "    \"modelo_referencia\": \"presupuesto_investigacion_vertical.docx\",\n"
-                "    \"titulo_capitulo\": \"VI. PRESUPUESTO\",\n"
-                "    \"titulo_exacto\": true,\n"
-                "    \"titulo_tamano_pt\": 10,\n"
-                "    \"titulo_space_after_pt\": 10,\n"
-                "    \"ancho_tabla\": \"100%\",\n"
-                "    \"ancho_columnas\": [1.4, 8, 2, 3.2, 3.2],\n"
-                "    \"orientacion_pagina\": \"portrait\",\n"
-                "    \"encabezados_negrita\": true,\n"
-                "    \"categorias_negrita\": true,\n"
-                "    \"total_negrita\": true,\n"
-                "    \"alineacion_descripcion\": \"left\",\n"
-                "    \"alineacion_numeros\": \"center\",\n"
-                "    \"alineacion_costos\": \"right\",\n"
-                "    \"bordes\": \"grid\",\n"
-                "    \"fuente_tamano_pt\": 9,\n"
-                "    \"fuente_encabezado_pt\": 8.5,\n"
-                "    \"fuente_categoria_pt\": 9,\n"
-                "    \"fuente_total_pt\": 9\n"
+                '  "estilo": {\n'
+                '    "modelo_referencia": "presupuesto_investigacion_vertical.docx",\n'
+                '    "titulo_capitulo": "VI. PRESUPUESTO",\n'
+                '    "titulo_exacto": true,\n'
+                '    "titulo_tamano_pt": 10,\n'
+                '    "titulo_space_after_pt": 10,\n'
+                '    "ancho_tabla": "100%",\n'
+                '    "ancho_columnas": [1.4, 8, 2, 3.2, 3.2],\n'
+                '    "orientacion_pagina": "portrait",\n'
+                '    "encabezados_negrita": true,\n'
+                '    "categorias_negrita": true,\n'
+                '    "total_negrita": true,\n'
+                '    "alineacion_descripcion": "left",\n'
+                '    "alineacion_numeros": "center",\n'
+                '    "alineacion_costos": "right",\n'
+                '    "bordes": "grid",\n'
+                '    "fuente_tamano_pt": 9,\n'
+                '    "fuente_encabezado_pt": 8.5,\n'
+                '    "fuente_categoria_pt": 9,\n'
+                '    "fuente_total_pt": 9\n'
                 "  }\n"
                 "}\n"
                 "TABLE_JSON>>>"
@@ -1551,23 +1554,68 @@ def _problem_figure_contract(details: Dict[str, Any]) -> List[str]:
     ]
 
 
-def _chapter_two_bases_contract() -> List[str]:
+def _is_maintenance_reliability_case(details: Dict[str, Any]) -> bool:
+    tokens = " ".join(
+        _normalize_text(details.get(key))
+        for key in (
+            "titulo",
+            "title",
+            "tema",
+            "linea_investigacion",
+            "objeto_estudio",
+            "variable_independiente",
+            "variable_dependiente",
+            "poblacion",
+            "muestra",
+        )
+    )
+    markers = (
+        "mantenimiento",
+        "confiabilidad",
+        "disponibilidad",
+        "amef",
+        "iso 14224",
+        "mtbf",
+        "mttr",
+        "cat 24m",
+        "motoniveladora",
+        "mineria",
+        "minera",
+    )
+    hit_count = sum(1 for marker in markers if marker in tokens)
+    return hit_count >= 3 and ("mantenimiento" in tokens or "confiabilidad" in tokens or "disponibilidad" in tokens)
+
+
+def _chapter_two_bases_contract(details: Dict[str, Any]) -> List[str]:
+    maintenance_case = _is_maintenance_reliability_case(details)
     return [
         "Contrato adaptativo de bloques para 2.2 Bases teoricas:",
         (
-            "- Deriva los subtemas del titulo, problema, variables, dimensiones, poblacion, muestra y contexto. "
-            "El ejemplo del profesor solo fija densidad, secuencia y criterio visual; no fija contenido."
+            "- La salida debe construirse por subtitulos numerados de tercer nivel y no por bloques corridos. "
+            "Cada subtitulo debe ir como linea independiente con patron 2.2.x y debajo debe desarrollar "
+            "2 a 3 parrafos tecnicos antes de pasar al siguiente subtema."
         ),
         (
-            "- Selector tematico: mantenimiento -> mantenimiento, confiabilidad, disponibilidad, activos e indicadores; "
+            "- Deriva los subtemas del titulo, problema, variables, dimensiones, poblacion, muestra y contexto. "
+            "El ejemplo del profesor fija densidad, secuencia, jerarquia de subtitulos y criterio visual; "
+            "no fija frases literales."
+        ),
+        (
+            "- Selector tematico: mantenimiento -> mantenimiento, confiabilidad, disponibilidad, activos, AMEF, "
+            "taxonomia, equipo e indicadores; "
             "software -> arquitectura, datos, interfaz, seguridad, tecnologias y algoritmos; educacion -> aprendizaje, "
             "didactica, competencias, evaluacion y rendimiento; estructuras -> cargas, resistencia, normas, materiales "
             "y modelamiento; salud -> fundamentos clinicos, epidemiologia, diagnostico, intervencion e instrumentos."
         ),
         (
-            "- Figuras: usa 0 a 5 segun necesidad. Emitelas como FIGURE_JSON solo despues de 1 a 3 parrafos "
-            "que expliquen el concepto, proceso, modelo, clasificacion, herramienta, instrumento, objeto o tecnologia. "
-            "No coloques una figura al inicio ni dos figuras consecutivas."
+            "- Las figuras nunca deben abrir la seccion ni un subtema. Primero va el subtitulo 2.2.x, luego el "
+            "desarrollo teorico, y recien despues el apoyo visual. No coloques una figura al inicio ni dos figuras "
+            "consecutivas."
+        ),
+        (
+            "- Figuras: usa 0 a 4 segun necesidad. Emitelas como FIGURE_JSON solo despues de 2 o 3 parrafos "
+            "que expliquen el concepto, proceso, clasificacion, herramienta o equipo. Despues de cada figura debe "
+            "existir un parrafo inmediato de lectura tecnica o conexion con el subtema siguiente."
         ),
         (
             "- Formulas: usa FORMULA_JSON solo si el tema requiere indicadores, calculos, indices, ratios o ecuaciones. "
@@ -1575,12 +1623,59 @@ def _chapter_two_bases_contract() -> List[str]:
             "temas cualitativos o conceptuales."
         ),
         (
-            "- Prohibido hardcodear elementos del ejemplo guia; usa teorias, autores, normas, indicadores y equipos "
-            "de mantenimiento solo si los datos reales del proyecto corresponden a ese dominio."
+            "- No uses encabezados Markdown, asteriscos, listas ni subtitulos en negrita. Los subtitulos 2.2.x deben "
+            "quedar como lineas limpias, sin ** ni ##."
         ),
         (
             "- No generes TABLE_JSON, matriz de consistencia, matriz de operacionalizacion, placeholders visibles, "
             "figuras de ejemplo ni notas como 'reemplazar por la figura validada por el autor' dentro de 2.2."
+        ),
+        (
+            "- Cuando un subtema use formula, evita dejar la ecuacion aislada: debe quedar entre una definicion previa "
+            "y una interpretacion posterior."
+        ),
+        (
+            "- La cantidad de figuras, formulas y subtitulos debe responder al dominio real del proyecto, no a una "
+            "plantilla ciega. Si el tema no corresponde a mantenimiento y confiabilidad, no arrastres RCM, AMEF, "
+            "ISO 14224 ni CAT 24M."
+        ),
+        "- Prohibido hardcodear elementos del ejemplo guia si no pertenecen al dominio real del proyecto.",
+        *(
+            [
+                (
+                    "- Caso mantenimiento/confiabilidad/mineria: usa obligatoriamente ocho subtitulos de tercer nivel "
+                    "en este orden exacto: 2.2.1 Mantenimiento Centrado en Confiabilidad (RCM); 2.2.2 Proceso del RCM; "
+                    "2.2.3 Taxonomia de equipos segun ISO 14224:2016; 2.2.4 Analisis de Modos y Efecto de Fallas "
+                    "(AMEF); 2.2.5 Disponibilidad inherente; 2.2.6 Confiabilidad; 2.2.7 Mantenibilidad; "
+                    "2.2.8 Motoniveladora CAT 24M."
+                ),
+                (
+                    "- En ese caso, la secuencia visual tambien es obligatoria: Figura 2.1 despues del subtema "
+                    "2.2.2; Figura 2.2 despues del subtema 2.2.3; Figura 2.3 despues del subtema 2.2.4; "
+                    "Figura 2.4 despues del subtema 2.2.8."
+                ),
+                (
+                    "- En el mismo caso, las formulas deben concentrarse en 2.2.5 Disponibilidad inherente, "
+                    "2.2.6 Confiabilidad y 2.2.7 Mantenibilidad. No pongas formulas en 2.2.1, 2.2.2, 2.2.3, "
+                    "2.2.4 ni 2.2.8."
+                ),
+                (
+                    "- CRITICO: Cada formula matematica de 2.2.5, 2.2.6 y 2.2.7 DEBE emitirse obligatoriamente "
+                    "como un bloque <<<FORMULA_JSON ... FORMULA_JSON>>>. Jamas escribas una ecuacion como texto "
+                    "plano aislado en un parrafo (por ejemplo 'MTBF = ...' o 'Disponibilidad = ...' como linea "
+                    "suelta). Una formula en texto plano es un error critico que la hace aparecer en el indice "
+                    "del documento como si fuera un titulo, arruinando la tabla de contenidos. Usa siempre el "
+                    "bloque FORMULA_JSON con los campos 'tipo', 'texto' y 'alineacion'."
+                ),
+                (
+                    "- Patron del entregable 1: 2.2.1 desarrolla fundamento teorico del RCM sin figura; "
+                    "2.2.2 explica el proceso del RCM y luego su figura; 2.2.3 explica la taxonomia y luego su figura; "
+                    "2.2.4 explica el AMEF y luego su figura; 2.2.5 a 2.2.7 desarrollan indicadores con formulas; "
+                    "2.2.8 describe tecnicamente el equipo y luego su figura."
+                ),
+            ]
+            if maintenance_case
+            else []
         ),
     ]
 
@@ -1645,7 +1740,7 @@ def build_section_editorial_context(
     ):
         lines.extend(_problem_figure_contract(details))
     if _is_theoretical_bases_key(_profile_key(section_id, section_path)):
-        lines.extend(_chapter_two_bases_contract())
+        lines.extend(_chapter_two_bases_contract(details))
 
     return "\n".join(lines)
 

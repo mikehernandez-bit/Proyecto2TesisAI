@@ -15,18 +15,28 @@ from app.main import app
 @pytest.fixture
 def client(tmp_path):
     """Provide a TestClient instance for the FastAPI app."""
+    from app.core.config import settings
     from app.modules.api import router as router_module
+
+    router_module.projects = ProjectService(str(tmp_path / "projects.json"))
+    router_module.pricing_service = PricingService(path=str(tmp_path / "model_pricing.json"))
 
     original_projects = router_module.projects
     original_pricing = router_module.pricing_service
-    router_module.projects = ProjectService(str(tmp_path / "projects.json"))
-    router_module.pricing_service = PricingService(path=str(tmp_path / "model_pricing.json"))
+    original_primary = settings.AI_PRIMARY_PROVIDER
+    original_gemini_key = settings.GEMINI_API_KEY
+
+    object.__setattr__(settings, "AI_PRIMARY_PROVIDER", "mistral")
+    object.__setattr__(settings, "GEMINI_API_KEY", "")
+
     try:
         with TestClient(app) as test_client:
             yield test_client
     finally:
         router_module.projects = original_projects
         router_module.pricing_service = original_pricing
+        object.__setattr__(settings, "AI_PRIMARY_PROVIDER", original_primary)
+        object.__setattr__(settings, "GEMINI_API_KEY", original_gemini_key)
 
 
 # =============================================================================
@@ -172,7 +182,7 @@ class TestHealthEndpoints:
 
         project = client.get(f"/api/projects/{project_id}").json()
         assert project["ai_selection"]["provider"] == "mistral"
-        assert project["ai_selection"]["mode"] == "fixed"
+        assert project["ai_selection"]["mode"] == "auto"
 
         status = client.get(f"/api/providers/status?projectId={project_id}")
         assert status.status_code == 200
@@ -211,8 +221,8 @@ class TestHealthEndpoints:
 
         project = client.get(f"/api/projects/{project_id}").json()
         assert project["ai_selection"]["provider"] == "mistral"
-        assert project["ai_selection"]["fallback_provider"] == ""
-        assert project["ai_selection"]["fallback_model"] == ""
+        assert project["ai_selection"]["fallback_provider"] == "gemini"
+        assert project["ai_selection"]["fallback_model"] == "gemini-2.0-flash"
 
     def test_providers_select_normalizes_primary_model_provider_mismatch(self, client):
         draft = client.post(
@@ -239,12 +249,12 @@ class TestHealthEndpoints:
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["selected_provider"] == "mistral"
-        assert payload["selected_model"] == "mistral-medium-2505"
+        assert payload["selected_provider"] == "gemini"
+        assert payload["selected_model"] == "gemini-2.0-flash"
 
         project = client.get(f"/api/projects/{project_id}").json()
-        assert project["ai_selection"]["provider"] == "mistral"
-        assert project["ai_selection"]["model"] == "mistral-medium-2505"
+        assert project["ai_selection"]["provider"] == "gemini"
+        assert project["ai_selection"]["model"] == "gemini-2.0-flash"
 
     def test_n8n_health_deprecated(self, client):
         r = client.get("/api/integrations/n8n/health")

@@ -36,7 +36,7 @@ class Settings:
     N8N_SHARED_SECRET: str = _get("N8N_SHARED_SECRET", "")
 
     # AI provider selection
-    AI_PRIMARY_PROVIDER: str = _get("AI_PRIMARY_PROVIDER", "gemini").lower()
+    AI_PRIMARY_PROVIDER: str = _get("AI_PRIMARY_PROVIDER", "mistral").lower()
     AI_FALLBACK_ON_QUOTA: bool = _get_bool("AI_FALLBACK_ON_QUOTA", True)
     AI_FORCE_FALLBACK_ON_TRANSIENT: bool = _get_bool("AI_FORCE_FALLBACK_ON_TRANSIENT", True)
     AI_CORRECTION_ENABLED: bool = _get_bool("AI_CORRECTION_ENABLED", True)
@@ -79,6 +79,8 @@ class Settings:
     MISTRAL_MODEL: str = _get("MISTRAL_MODEL", "mistral-medium-2505")
     MISTRAL_TEMPERATURE: float = float(_get("MISTRAL_TEMPERATURE", "0.7"))
     MISTRAL_MAX_TOKENS: int = int(_get("MISTRAL_MAX_TOKENS", "4096"))
+    MISTRAL_TIMEOUT_SECONDS: int = int(_get("MISTRAL_TIMEOUT_SECONDS", "120"))
+    MISTRAL_CONNECT_TIMEOUT_SECONDS: int = int(_get("MISTRAL_CONNECT_TIMEOUT_SECONDS", "10"))
     MISTRAL_RETRY_MAX: int = int(_get("MISTRAL_RETRY_MAX", "5"))
     MISTRAL_RETRY_BACKOFF: float = float(_get("MISTRAL_RETRY_BACKOFF", "3.0"))
 

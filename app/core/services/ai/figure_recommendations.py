@@ -24,6 +24,7 @@ _CANONICAL_PLACEHOLDER_PATH = "assets/placeholder_figura.png"
 _FIGURE_GUIDE_BLUE = "0000FF"
 _FIGURE_ID_RE = re.compile(r"[^a-z0-9]+")
 _BLANK_LINE_RE = re.compile(r"\n\s*\n")
+_THEORETICAL_HEADING_RE = re.compile(r"^\s*2\.2\.(\d+)\s+")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])")
 _STALE_PROJECT_MARKDOWN_FIGURE_RE = re.compile(
     r"(?:^|\n)\s*Figura\s+1\.[1-4]\s*\n\s*[^\n\r]*\s*\n"
@@ -214,6 +215,7 @@ _CHAPTER_TWO_SUBTOPIC_ANCHORS = (
     ("amef", "analisis de modos", "numero de prioridad de riesgo", "npr"),
     ("motoniveladora cat 24m", "cat 24m", "c18 acert", "vertedera"),
 )
+_CHAPTER_TWO_FIGURE_TARGET_HEADINGS = (2, 3, 4, 8)
 _CHAPTER_TWO_FIGURES = (
     {
         "tipo": "figura",
@@ -222,6 +224,21 @@ _CHAPTER_TWO_FIGURES = (
         "caption": "Figura 2.1 Proceso del RCM",
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. Adaptado de RCM|Terotecnic Ingenieria.",
+        "nota": (
+            'Guía para elaborar la figura: Diseña un diagrama de flujo estructurado titulado "Proceso del RCM" '
+            "que orqueste visualmente el ciclo completo de implementación del Mantenimiento Centrado en Confiabilidad. "
+            "El gráfico debe ilustrar claramente las siete preguntas fundamentales de la norma SAE JA1011 distribuidas "
+            "en bloques secuenciales: funciones del activo, fallas funcionales, modos de falla principales, efectos "
+            "de las fallas, consecuencias de las fallas, tareas proactivas aplicables y acciones a tomar si no hay "
+            "tareas eficaces. Utiliza rectángulos para las etapas de análisis, rombos de decisión para la selección "
+            "de tareas proactivas y óvalos para el inicio y fin del proceso. Conecta todos los elementos con líneas "
+            "y flechas direccionales que indiquen la secuencia lógica. Agrega leyendas descriptivas a cada bloque y "
+            "utiliza un código de colores contrastante para diferenciar las fases de preparación, análisis crítico "
+            "y toma de decisiones operativas. En la sección inferior del diagrama, incluye una nota técnica "
+            "explicativa que detalle cómo cada etapa del flujo alimenta directamente el desarrollo del AMEF y la "
+            "optimización de los planes de mantenimiento preventivo y predictivo en la organización."
+        ),
+        "nota_color": _FIGURE_GUIDE_BLUE,
     },
     {
         "tipo": "figura",
@@ -230,6 +247,22 @@ _CHAPTER_TWO_FIGURES = (
         "caption": "Figura 2.2 Niveles taxonomicos",
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. La taxonomia de activos fisicos como fundamento. Reliability CONNECT.",
+        "nota": (
+            "Guía para elaborar la figura: Construye un diagrama piramidal o jerárquico titulado "
+            '"Niveles taxonómicos" basado estrictamente en la norma ISO 14224:2016 para la recolección de '
+            "datos de mantenimiento y confiabilidad. Estructura el gráfico en una jerarquía vertical "
+            "descendente de nueve niveles divididos en tres categorías principales: uso industrial "
+            "(Nivel 1: Industria, Nivel 2: Categoría de negocio, Nivel 3: Instalación), categoría de "
+            "equipo (Nivel 4: Clase de equipo, Nivel 5: Unidad de equipo, Nivel 6: Subunidad o sistema "
+            "principal) y localización de falla (Nivel 7: Componente, Nivel 8: Parte o subcomponente, "
+            "Nivel 9: Detalle o elemento mínimo). Utiliza cajas rectangulares alineadas para cada nivel, "
+            "conectadas con líneas jerárquicas sólidas. Resalta visualmente el Nivel 5 (Unidad de "
+            "equipo) y el Nivel 6 (Subunidad) como los puntos críticos de recolección de datos operativos "
+            "y de falla. Añade etiquetas descriptivas claras en cada bloque y un cuadro lateral informativo "
+            "que describa el impacto de una correcta taxonomía en la consistencia de los indicadores "
+            "MTBF y MTTR."
+        ),
+        "nota_color": _FIGURE_GUIDE_BLUE,
     },
     {
         "tipo": "figura",
@@ -241,6 +274,20 @@ _CHAPTER_TWO_FIGURES = (
             "Nota. Representacion del analisis de modos y efectos de falla aplicado al mantenimiento "
             "centrado en confiabilidad."
         ),
+        "nota": (
+            'Guía para elaborar la figura: Elabora un esquema conceptual titulado "Análisis de Modo y '
+            'Efecto de Falla (AMEF)" que represente gráficamente la estructura metodológica para evaluar y '
+            "priorizar los riesgos de falla en los activos críticos del proyecto. Dibuja un diagrama relacional "
+            "que conecte en forma de cascada de izquierda a derecha los siguientes elementos analíticos: el "
+            "Componente, la Función asociada, la Falla funcional potencial, los Modos de falla específicos y "
+            "sus Efectos operativos y de seguridad. Incorpora un bloque central destacado para el cálculo del "
+            "Número de Prioridad de Riesgo (NPR), detallando sus tres variables de entrada mediante multiplicadores: "
+            "Severidad (S), Ocurrencia (O) y Detección (D), en una escala del 1 al 10. Representa las conexiones "
+            "con flechas y colores diferenciados para indicar la ruta crítica de análisis. Incluye en la parte "
+            "inferior del esquema la fórmula formal NPR = S x O x D junto con una escala visual de criticidad "
+            "(Baja, Media, Alta) para guiar al usuario en la definición de acciones recomendadas de mantenimiento."
+        ),
+        "nota_color": _FIGURE_GUIDE_BLUE,
     },
     {
         "tipo": "figura",
@@ -249,7 +296,34 @@ _CHAPTER_TWO_FIGURES = (
         "caption": "Figura 2.4 Motoniveladora CAT 24M",
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. Motoniveladora 24M.",
+        "nota": (
+            'Guía para elaborar la figura: Construye un diagrama técnico de distribución titulado "Motoniveladora '
+            'CAT 24M" que identifique visualmente los sistemas y componentes críticos sometidos a análisis en este '
+            "proyecto. Utiliza una vista en corte lateral o despiece simplificado de la máquina como base gráfica. "
+            "Rotula y apunta con líneas de referencia precisas a los componentes clave: el motor diésel CAT C18 ACERT, "
+            "el sistema de transmisión y tren de fuerza, el sistema hidráulico principal de implementos, el mecanismo "
+            "del círculo y vertedera, y el sistema de control electrónico. Cada etiqueta debe estar acompañada de "
+            "una breve descripción técnica de su función operativa y de su susceptibilidad a modos de falla críticos "
+            "identificados en la línea base. Asegura una presentación profesional con fondos neutros, fuentes "
+            "consistentes y líneas de cota claras. Agrega un cuadro lateral descriptivo que resuma la especificación "
+            "técnica general del equipo y su importancia en las operaciones mineras o de construcción de caminos."
+        ),
+        "nota_color": _FIGURE_GUIDE_BLUE,
     },
+)
+_THEORETICAL_MAINTENANCE_MARKERS = (
+    "mantenimiento",
+    "confiabilidad",
+    "disponibilidad inherente",
+    "iso 14224",
+    "amef",
+    "mtbf",
+    "mttr",
+    "cat 24m",
+    "motoniveladora",
+    "rcm",
+    "mineria",
+    "minera",
 )
 
 
@@ -309,6 +383,8 @@ def _visible_text(content: Any) -> str:
 
 
 def _is_generic_figure(block: dict[str, Any]) -> bool:
+    if _normalize_token(block.get("tipo")) != "figura":
+        return False
     caption = _normalize_token(block.get("caption"))
     title = _normalize_token(block.get("titulo"))
     if not caption and not title:
@@ -373,7 +449,7 @@ def _is_reality_problem_path(path: str) -> bool:
 
 def _is_chapter_two_text_only_path(path: str) -> bool:
     joined = " / ".join(normalized_path_segments(path))
-    if "MARCO TEORICO" not in joined:
+    if "MARCO TEORICO" not in joined and "REVISION DE LITERATURA" not in joined:
         return False
     return any(
         marker in joined
@@ -388,14 +464,37 @@ def _is_chapter_two_text_only_path(path: str) -> bool:
 
 def _is_chapter_two_bases_path(path: str) -> bool:
     joined = " / ".join(normalized_path_segments(path))
-    return "MARCO TEORICO" in joined and "BASES TEORICAS" in joined
+    return ("MARCO TEORICO" in joined or "REVISION DE LITERATURA" in joined) and "BASES TEORICAS" in joined
+
+
+def _theoretical_bases_is_maintenance_case(content: Any, values: dict[str, Any] | None = None) -> bool:
+    content_text = _normalize_token(_visible_text(content))
+    values_text = ""
+    if isinstance(values, dict):
+        values_text = " ".join(
+            _normalize_token(values.get(key))
+            for key in (
+                "title",
+                "titulo",
+                "tema",
+                "linea_investigacion",
+                "objeto_estudio",
+                "variable_independiente",
+                "variable_dependiente",
+                "poblacion",
+                "muestra",
+            )
+        )
+    combined = " ".join(part for part in (content_text, values_text) if part)
+    hits = sum(1 for marker in _THEORETICAL_MAINTENANCE_MARKERS if marker in combined)
+    return hits >= 3 and ("mantenimiento" in combined or "confiabilidad" in combined or "disponibilidad" in combined)
 
 
 def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str, Any]]:
     notes = (
         (
-            "Construye un diagrama de Pareto titulado \"Diagrama de Pareto de modos de falla en flota "
-            "CAT 24M\". Usa los registros reales de fallas del periodo de línea base disponible en el CMMS "
+            'Construye un diagrama de Pareto titulado "Diagrama de Pareto de modos de falla en flota '
+            'CAT 24M". Usa los registros reales de fallas del periodo de línea base disponible en el CMMS '
             "o historial de mantenimiento. Coloca una tabla base con estas columnas obligatorias: sistema o "
             "modo de falla, frecuencia de fallas, porcentaje individual, porcentaje acumulado y costo de "
             "reparación si el dato existe. Agrupa nombres equivalentes antes de graficar; por ejemplo, no "
@@ -410,9 +509,9 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
             "que deben priorizarse en el plan RCM."
         ),
         (
-            "Construye un diagrama de Ishikawa titulado \"Análisis de Causa-Efecto de Baja Disponibilidad "
-            "(Ishikawa)\". Coloca en la cabeza del diagrama el efecto exacto: \"Baja disponibilidad inherente "
-            "de la flota CAT 24M\". Dibuja una espina central horizontal y seis ramas principales con el "
+            'Construye un diagrama de Ishikawa titulado "Análisis de Causa-Efecto de Baja Disponibilidad '
+            '(Ishikawa)". Coloca en la cabeza del diagrama el efecto exacto: "Baja disponibilidad inherente '
+            'de la flota CAT 24M". Dibuja una espina central horizontal y seis ramas principales con el '
             "enfoque 6M: Método, Medición, Mano de obra, Medio ambiente, Maquinaria y Materiales. En Método, "
             "coloca mantenimiento reactivo, rutinas preventivas insuficientes, ausencia de tareas RCM y "
             "procedimientos de lubricación no estandarizados. En Medición, coloca registros incompletos, "
@@ -426,8 +525,8 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
             "explican la mayor parte de la baja disponibilidad y cómo el RCM atacará esas causas."
         ),
         (
-            "Construye una matriz titulada \"Matriz de Relevancia para el filtrado de alternativas de "
-            "solución\". Coloca las alternativas en filas: mantenimiento correctivo mejorado, mantenimiento "
+            'Construye una matriz titulada "Matriz de Relevancia para el filtrado de alternativas de '
+            'solución". Coloca las alternativas en filas: mantenimiento correctivo mejorado, mantenimiento '
             "preventivo por horas, mantenimiento predictivo parcial, capacitación técnica focalizada y plan "
             "de mantenimiento centrado en confiabilidad (RCM). Coloca estos criterios en columnas: reducción "
             "esperada de fallas, viabilidad técnica, costo de implementación, tiempo de adaptación, "
@@ -435,20 +534,20 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
             "ejemplo, reducción esperada de fallas 0.30, viabilidad técnica 0.20, costo 0.15, tiempo 0.10, "
             "disponibilidad de datos 0.10 y alineación con causa raíz 0.15. Califica cada alternativa de 1 a "
             "5, donde 1 significa baja relevancia y 5 alta relevancia. Multiplica cada calificación por su "
-            "peso y suma el total por alternativa. Agrega una columna final llamada \"Decisión\" con tres "
+            'peso y suma el total por alternativa. Agrega una columna final llamada "Decisión" con tres '
             "opciones: descartada, condicionada o preseleccionada. Resalta el RCM como alternativa "
             "preseleccionada porque interviene modos de falla, criticidad y tareas de mantenimiento, no solo "
             "la reparación posterior a la falla."
         ),
         (
-            "Construye una matriz titulada \"Matriz de Priorización de soluciones factibles\". Coloca en las "
+            'Construye una matriz titulada "Matriz de Priorización de soluciones factibles". Coloca en las '
             "filas solo las alternativas que pasaron la matriz de relevancia. Coloca en las columnas estos "
             "criterios cuantitativos: impacto en disponibilidad inherente, reducción de fallas recurrentes, "
             "factibilidad técnica, costo-beneficio, tiempo de implementación y sostenibilidad operativa. "
             "Asigna un peso porcentual a cada criterio y verifica que la suma sea exactamente 100 %. Califica "
             "cada alternativa de 1 a 10, donde 1 es desfavorable y 10 favorable. En cada celda coloca el "
             "puntaje asignado; debajo o en una columna auxiliar calcula el puntaje ponderado multiplicando "
-            "peso por puntaje. Agrega una columna \"Total ponderado\" y suma los puntajes ponderados de cada "
+            'peso por puntaje. Agrega una columna "Total ponderado" y suma los puntajes ponderados de cada '
             "alternativa. Ordena las alternativas de mayor a menor total. Resalta en azul o sombreado la "
             "alternativa ganadora: implementación de un plan de mantenimiento centrado en confiabilidad "
             "(RCM). Debajo de la matriz coloca la escala: 1 (Desfavorable) a 10 (Favorable)."
@@ -784,11 +883,46 @@ def _first_anchor_index(blocks: list[dict[str, Any]], anchors: tuple[str, ...], 
     return -1
 
 
+def _chapter_two_heading_indices(blocks: list[dict[str, Any]]) -> dict[int, int]:
+    indices: dict[int, int] = {}
+    for index, block in enumerate(blocks):
+        if _normalize_token(block.get("tipo")) != "parrafo":
+            continue
+        text = str(block.get("texto") or "").strip()
+        if not text:
+            continue
+        first_line = text.splitlines()[0].strip()
+        match = _THEORETICAL_HEADING_RE.match(first_line)
+        if match:
+            indices[int(match.group(1))] = index
+    return indices
+
+
 def _chapter_two_insert_index(
     blocks: list[dict[str, Any]],
     *,
     figure_index: int,
 ) -> int:
+    heading_indices = _chapter_two_heading_indices(blocks)
+    target_heading = _CHAPTER_TWO_FIGURE_TARGET_HEADINGS[figure_index]
+    current_heading_index = heading_indices.get(target_heading)
+    if current_heading_index is not None:
+        later_heading_indexes = [
+            index
+            for number, index in heading_indices.items()
+            if number > target_heading and index > current_heading_index
+        ]
+        next_heading_index = min(later_heading_indexes) if later_heading_indexes else -1
+        upper_bound = next_heading_index if next_heading_index >= 0 else len(blocks)
+        paragraph_indexes = [
+            index
+            for index in range(current_heading_index + 1, upper_bound)
+            if _normalize_token(blocks[index].get("tipo")) == "parrafo"
+        ]
+        if paragraph_indexes:
+            return paragraph_indexes[-1]
+        return current_heading_index
+
     anchors = _CHAPTER_TWO_SUBTOPIC_ANCHORS[figure_index]
     start_index = _first_anchor_index(blocks, anchors)
     if start_index < 0:
@@ -815,15 +949,82 @@ def _chapter_two_insert_index(
     return paragraph_indexes[-1] if paragraph_indexes else start_index
 
 
-def _ensure_chapter_two_theoretical_figures(section: dict[str, Any]) -> None:
+def _extract_heading_title(block: dict[str, Any]) -> str:
+    """Extrae el título puro de un bloque de párrafo que comienza con un encabezado 2.2.x."""
+    first_line = str(block.get("texto") or "").strip().splitlines()[0].strip()
+    match = _THEORETICAL_HEADING_RE.match(first_line)
+    if match:
+        return first_line[match.end() :].strip()
+    return first_line
+
+
+def _ensure_chapter_two_theoretical_figures(
+    section: dict[str, Any],
+    values: dict[str, Any] | None = None,
+) -> None:
+    """Inyecta una figura por cada subtítulo 2.2.x detectado en el contenido.
+
+    Funciona para cualquier tema (mantenimiento, software, salud, etc.) porque
+    detecta los encabezados reales que la IA generó en lugar de depender de
+    listas hardcodeadas de términos de mantenimiento.
+    """
     blocks = _content_to_blocks(section.get("content"))
+
+    # Eliminar figuras existentes del capítulo 2 (controladas o genéricas) para
+    # reconstruirlas desde cero con la lógica dinámica.
     content_blocks = [
-        block for block in blocks if not _is_chapter_two_figure(block) and not _is_generic_figure(block)
+        block
+        for block in blocks
+        if _normalize_token(block.get("tipo")) != "figura"
+        or (not _is_chapter_two_figure(block) and not _is_generic_figure(block))
     ]
 
-    for index, figure in enumerate(_CHAPTER_TWO_FIGURES):
-        figure_block = dict(figure)
-        anchor_index = _chapter_two_insert_index(content_blocks, figure_index=index)
+    # Detectar todos los encabezados 2.2.x y sus posiciones en el contenido
+    heading_indices = _chapter_two_heading_indices(content_blocks)
+
+    if not heading_indices:
+        section["content"] = content_blocks
+        return
+
+    subject = _subject(values)
+    sorted_headings = sorted(heading_indices.items())  # [(1, idx), (2, idx), ...]
+
+    # Recopilar inserciones (anchor_index, figura) en orden normal
+    # y luego insertar en orden inverso para no desplazar índices.
+    insertions: list[tuple[int, dict[str, Any]]] = []
+
+    for i, (heading_num, heading_block_idx) in enumerate(sorted_headings):
+        raw_title = _extract_heading_title(content_blocks[heading_block_idx])
+        if not raw_title:
+            continue
+
+        # Título de la figura: añade el tema del proyecto si no es genérico
+        if subject and subject != "el estudio desarrollado":
+            figure_title = f"{raw_title} aplicado a {subject}"
+        else:
+            figure_title = raw_title
+
+        # Punto de inserción: el último párrafo antes del siguiente encabezado
+        next_heading_idxs = [idx for h, idx in sorted_headings if h > heading_num]
+        upper_bound = min(next_heading_idxs) if next_heading_idxs else len(content_blocks)
+
+        paragraph_idxs = [
+            idx
+            for idx in range(heading_block_idx + 1, upper_bound)
+            if _normalize_token(content_blocks[idx].get("tipo")) == "parrafo"
+        ]
+        anchor_index = paragraph_idxs[-1] if paragraph_idxs else heading_block_idx
+
+        section_id = f"2_{heading_num}_{_FIGURE_ID_RE.sub('_', _normalize_token(raw_title))[:30]}"
+        figure_block = _build_recommended_figure(
+            section_id,
+            str(section.get("path") or ""),
+            figure_title,
+        )
+        insertions.append((anchor_index, figure_block))
+
+    # Insertar en orden inverso para preservar los índices correctamente
+    for anchor_index, figure_block in reversed(insertions):
         _insert_after_index(content_blocks, anchor_index, figure_block)
 
     section["content"] = content_blocks
@@ -859,6 +1060,22 @@ def _build_recommended_figure(section_id: str, path: str, title: str) -> dict[st
         "caption": title,
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. Figura sugerida para validacion del autor.",
+        "nota": (
+            f'Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado "{title}" '
+            "que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe "
+            "estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según "
+            "corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos "
+            "involucrados o la arquitectura del sistema. Conecta los elementos conceptuales con líneas "
+            "y flechas direccionales que muestren la secuencia lógica y el sentido de las relaciones. "
+            "Utiliza formas geométricas consistentes (rectángulos, óvalos o círculos) y un esquema de colores "
+            "sobrio y contrastante para mejorar la legibilidad. Asegura que todos los textos, variables y "
+            "rótulos de la figura utilicen una fuente Arial de 10 puntos sin negritas ni marcadores adicionales. "
+            "En la parte inferior de la figura, incluye siempre la fuente correspondiente en formato APA "
+            "estándar (por ejemplo, 'Fuente: Elaboración propia' o la cita del autor correspondiente) "
+            "y una nota técnica descriptiva que explique brevemente el contenido de la figura y su "
+            "vinculación directa con el sustento analítico del proyecto."
+        ),
+        "nota_color": _FIGURE_GUIDE_BLUE,
     }
 
 
@@ -885,9 +1102,7 @@ def apply_figure_recommendations(
             current_content = section.get("content")
             blocks = _content_to_blocks(current_content)
             if any(_normalize_token(block.get("tipo")) != "parrafo" for block in blocks):
-                section["content"] = [
-                    block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"
-                ]
+                section["content"] = [block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"]
             continue
 
         if (
@@ -898,9 +1113,7 @@ def apply_figure_recommendations(
             current_content = section.get("content")
             blocks = _content_to_blocks(current_content)
             if any(_normalize_token(block.get("tipo")) != "parrafo" for block in blocks):
-                section["content"] = [
-                    block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"
-                ]
+                section["content"] = [block for block in blocks if _normalize_token(block.get("tipo")) == "parrafo"]
             continue
 
         if is_chapter_four_design_section(path):
@@ -908,14 +1121,15 @@ def apply_figure_recommendations(
             blocks = _content_to_blocks(current_content)
             if any(_normalize_token(block.get("tipo")) not in {"parrafo", "formula"} for block in blocks):
                 section["content"] = [
-                    block
-                    for block in blocks
-                    if _normalize_token(block.get("tipo")) in {"parrafo", "formula"}
+                    block for block in blocks if _normalize_token(block.get("tipo")) in {"parrafo", "formula"}
                 ]
             continue
 
-        if _is_project_target_format(format_id) and _is_chapter_two_bases_path(path):
-            _ensure_chapter_two_theoretical_figures(section)
+        if _is_chapter_two_bases_path(path):
+            # Inyecta una figura por cada subtítulo 2.2.x detectado dinámicamente.
+            # Funciona para cualquier tema: el sistema lee los headings reales que
+            # la IA generó en lugar de depender de marcadores de mantenimiento.
+            _ensure_chapter_two_theoretical_figures(section, values)
             continue
 
         current_content = section.get("content")

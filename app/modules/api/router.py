@@ -437,6 +437,11 @@ _OBSOLETE_SCHEDULE_PROMPT_MARKERS = (
     "13 columnas, 35 filas",
     "celdas_combinadas y celdas_fusionadas son obligatorias",
 )
+_THEORETICAL_BASES_PROMPT_MARKERS = (
+    "cada subtitulo debe ir como linea independiente con patron 2.2.x",
+    "las figuras nunca deben abrir la seccion ni un subtema",
+    "prohibido hardcodear elementos del ejemplo guia",
+)
 
 
 def _is_obsolete_schedule_prompt_block(block: Any) -> bool:
@@ -446,6 +451,27 @@ def _is_obsolete_schedule_prompt_block(block: Any) -> bool:
     if not instructions:
         return False
     return all(marker in instructions for marker in _OBSOLETE_SCHEDULE_PROMPT_MARKERS)
+
+
+def _is_theoretical_bases_section_path(path: Any) -> bool:
+    raw = str(path or "").strip()
+    if not raw:
+        return False
+    parts = [_normalize_section_label(part) for part in raw.split("/") if str(part).strip()]
+    if not parts:
+        return False
+    chapter_match = any("marco teorico" in part or ("revision" in part and "literatura" in part) for part in parts)
+    section_match = any("2.2 bases teoricas" in part for part in parts)
+    return chapter_match and section_match
+
+
+def _is_obsolete_theoretical_bases_prompt_block(block: Any) -> bool:
+    if not isinstance(block, dict):
+        return False
+    instructions = " ".join(str(block.get("instructions") or "").lower().split())
+    if not instructions:
+        return False
+    return not all(marker in instructions for marker in _THEORETICAL_BASES_PROMPT_MARKERS)
 
 
 def _refresh_schedule_prompt_snapshot_block(
@@ -486,9 +512,7 @@ def _refresh_schedule_prompt_snapshot_block(
             dict(section)
             for section in fresh_sections
             if isinstance(section, dict)
-            and _canonicalize_schedule_budget_section_path(
-                section.get("section_path") or section.get("path") or ""
-            )
+            and _canonicalize_schedule_budget_section_path(section.get("section_path") or section.get("path") or "")
             == "V. CRONOGRAMA DE ACTIVIDADES"
         ),
         None,
@@ -499,6 +523,58 @@ def _refresh_schedule_prompt_snapshot_block(
     updated_snapshot = dict(prompt_snapshot)
     updated_sections = [dict(section) for section in sections if isinstance(section, dict)]
     updated_sections[stale_index] = fresh_schedule_section
+    updated_snapshot["sections"] = updated_sections
+    return updated_snapshot, True
+
+
+def _refresh_theoretical_bases_prompt_snapshot_block(
+    prompt_snapshot: Dict[str, Any] | None,
+    *,
+    format_id: str,
+    format_detail: Optional[Dict[str, Any]] = None,
+) -> tuple[Dict[str, Any] | None, bool]:
+    if not isinstance(prompt_snapshot, dict):
+        return prompt_snapshot, False
+
+    sections = prompt_snapshot.get("sections")
+    if not isinstance(sections, list):
+        return prompt_snapshot, False
+
+    stale_index = -1
+    for index, section in enumerate(sections):
+        if not isinstance(section, dict):
+            continue
+        path = str(section.get("section_path") or section.get("path") or "").strip()
+        if not _is_theoretical_bases_section_path(path):
+            continue
+        blocks = section.get("blocks")
+        if isinstance(blocks, list) and any(_is_obsolete_theoretical_bases_prompt_block(block) for block in blocks):
+            stale_index = index
+            break
+    if stale_index < 0:
+        return prompt_snapshot, False
+
+    fresh_prompt = prompts.get_prompt_by_format(format_id, format_detail=format_detail) if format_id else None
+    if not isinstance(fresh_prompt, dict):
+        return prompt_snapshot, False
+    fresh_sections = fresh_prompt.get("sections")
+    if not isinstance(fresh_sections, list):
+        return prompt_snapshot, False
+    fresh_bases_section = next(
+        (
+            dict(section)
+            for section in fresh_sections
+            if isinstance(section, dict)
+            and _is_theoretical_bases_section_path(section.get("section_path") or section.get("path") or "")
+        ),
+        None,
+    )
+    if not isinstance(fresh_bases_section, dict):
+        return prompt_snapshot, False
+
+    updated_snapshot = dict(prompt_snapshot)
+    updated_sections = [dict(section) for section in sections if isinstance(section, dict)]
+    updated_sections[stale_index] = fresh_bases_section
     updated_snapshot["sections"] = updated_sections
     return updated_snapshot, True
 
@@ -526,6 +602,43 @@ def _clear_schedule_generation_state(project: Dict[str, Any]) -> Dict[str, Any]:
             for section in generation_phase["sections"]
             if _canonicalize_schedule_budget_section_path(section.get("section_path") or section.get("path") or "")
             != schedule_path
+        ]
+        if len(filtered_phase_sections) != len(generation_phase["sections"]):
+            updated_phase = dict(generation_phase)
+            updated_phase["sections"] = filtered_phase_sections
+            updated_phase["completed_sections"] = max(0, len(filtered_phase_sections))
+            if filtered_phase_sections:
+                updated_phase["current_section_id"] = str(filtered_phase_sections[-1].get("section_id") or "")
+                updated_phase["current_section_path"] = str(
+                    filtered_phase_sections[-1].get("section_path") or filtered_phase_sections[-1].get("path") or ""
+                )
+            else:
+                updated_phase["current_section_id"] = ""
+                updated_phase["current_section_path"] = ""
+            updates["generation_phase"] = updated_phase
+
+    return updates
+
+
+def _clear_theoretical_bases_generation_state(project: Dict[str, Any]) -> Dict[str, Any]:
+    updates: Dict[str, Any] = {}
+
+    ai_result = project.get("ai_result")
+    if isinstance(ai_result, dict) and isinstance(ai_result.get("sections"), list):
+        filtered_ai_sections = [
+            section for section in ai_result["sections"] if not _is_theoretical_bases_section_path(section.get("path"))
+        ]
+        if len(filtered_ai_sections) != len(ai_result["sections"]):
+            updated_ai_result = dict(ai_result)
+            updated_ai_result["sections"] = filtered_ai_sections
+            updates["ai_result"] = updated_ai_result
+
+    generation_phase = project.get("generation_phase")
+    if isinstance(generation_phase, dict) and isinstance(generation_phase.get("sections"), list):
+        filtered_phase_sections = [
+            section
+            for section in generation_phase["sections"]
+            if not _is_theoretical_bases_section_path(section.get("section_path") or section.get("path"))
         ]
         if len(filtered_phase_sections) != len(generation_phase["sections"]):
             updated_phase = dict(generation_phase)
@@ -2033,11 +2146,7 @@ async def sim_download_docx(projectId: str, runId: Optional[str] = None):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -2141,11 +2250,7 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
     ai_result = _adapt_ai_result_for_gicatesis(ai_result_raw)
 
@@ -2376,6 +2481,20 @@ async def _ai_generation_job(
                         detail="Se reemplazo el contrato viejo de sec-0025 por el blueprint vigente.",
                         meta={"formatId": format_id, "stage": "queued"},
                     )
+                prompt_snapshot, bases_snapshot_invalidated = _refresh_theoretical_bases_prompt_snapshot_block(
+                    prompt_snapshot,
+                    format_id=format_id,
+                    format_detail=format_detail_payload,
+                )
+                if bases_snapshot_invalidated:
+                    _emit_project_trace(
+                        project_id,
+                        step="bases_teoricas_snapshot_invalidated",
+                        status="warn",
+                        title="Snapshot de bases teoricas actualizado",
+                        detail="Se reemplazo el bloque persistido de 2.2 Bases teoricas por el contrato vigente.",
+                        meta={"formatId": format_id, "stage": "queued"},
+                    )
                 selected_sections = _resolve_project_selected_sections(project, prompt_snapshot)
                 definition = format_detail_payload.get("definition")
                 planned_sections = generation_planner.plan_sections(
@@ -2399,6 +2518,28 @@ async def _ai_generation_job(
                             title="Estado previo del cronograma limpiado",
                             detail=(
                                 "Se elimino solo el estado persistido de V. CRONOGRAMA DE ACTIVIDADES "
+                                "antes de regenerar la seccion."
+                            ),
+                            meta={"formatId": format_id, "stage": "queued"},
+                        )
+                if any(
+                    _is_theoretical_bases_section_path(item.get("path") or "")
+                    for item in planned_sections
+                    if isinstance(item, dict)
+                ):
+                    cleared_state = _clear_theoretical_bases_generation_state(
+                        projects.get_project(project_id) or project
+                    )
+                    if cleared_state:
+                        cleared_state["prompt_snapshot"] = prompt_snapshot
+                        projects.update_project(project_id, cleared_state)
+                        _emit_project_trace(
+                            project_id,
+                            step="bases_teoricas_state_cleared",
+                            status="warn",
+                            title="Estado previo de 2.2 limpiado",
+                            detail=(
+                                "Se elimino solo el estado persistido de 2.2 Bases teoricas "
                                 "antes de regenerar la seccion."
                             ),
                             meta={"formatId": format_id, "stage": "queued"},
@@ -3350,8 +3491,7 @@ async def trigger_generation(
                         "parent_section_path": str(
                             (
                                 planned_sections_lookup.get(
-                                    str(item.get("sectionId") or "").strip()
-                                    or str(item.get("path") or "").strip()
+                                    str(item.get("sectionId") or "").strip() or str(item.get("path") or "").strip()
                                 )
                                 or {}
                             ).get("parent_section_path")
@@ -3360,8 +3500,7 @@ async def trigger_generation(
                         "section_level": _coerce_int(
                             (
                                 planned_sections_lookup.get(
-                                    str(item.get("sectionId") or "").strip()
-                                    or str(item.get("path") or "").strip()
+                                    str(item.get("sectionId") or "").strip() or str(item.get("path") or "").strip()
                                 )
                                 or {}
                             ).get("section_level"),
@@ -3371,8 +3510,7 @@ async def trigger_generation(
                         "section_order": _coerce_int(
                             (
                                 planned_sections_lookup.get(
-                                    str(item.get("sectionId") or "").strip()
-                                    or str(item.get("path") or "").strip()
+                                    str(item.get("sectionId") or "").strip() or str(item.get("path") or "").strip()
                                 )
                                 or {}
                             ).get("section_order"),
@@ -3693,11 +3831,7 @@ async def render_docx(projectId: str = Query(..., description="Project ID")):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Proxy to GicaTesis render endpoint
@@ -3807,11 +3941,7 @@ async def render_pdf(projectId: str = Query(..., description="Project ID")):
     # values_with_title merges project["variables"] + project["values"] automatically.
     # For maestría projects, details are stored in "variables" via save_maestria_details.
     values = _values_with_title(project)
-    selected_sections = (
-        project.get("selected_sections")
-        if isinstance(project.get("selected_sections"), list)
-        else None
-    )
+    selected_sections = project.get("selected_sections") if isinstance(project.get("selected_sections"), list) else None
     ai_result_raw = project.get("ai_result") if isinstance(project.get("ai_result"), dict) else {"sections": []}
 
     # Build structured definition with AI content injected into the

@@ -161,12 +161,16 @@ def test_chapter_two_theoretical_bases_context_places_figures_and_formulas():
     )
 
     assert "Subtema teorico principal de la variable independiente" in context
+    assert "Cada subtitulo debe ir como linea independiente con patron 2.2.x" in context
     assert "No arrastres nombres, autores, normas, indicadores o equipos del ejemplo guia" in context
-    assert "Figuras: usa 0 a 5 segun necesidad" in context
+    assert "Figuras: usa 0 a 4 segun necesidad" in context
     assert "Formulas: usa FORMULA_JSON solo si el tema requiere indicadores" in context
     assert "No insertes matriz de consistencia ni matriz de operacionalizacion" in context
-    assert "No coloques una figura al inicio ni dos figuras consecutivas" in context
+    assert "Las figuras nunca deben abrir la seccion ni un subtema" in context
     assert "Prohibido hardcodear elementos del ejemplo guia" in context
+    assert "ocho subtitulos de tercer nivel en este orden exacto" in context
+    assert "Figura 2.1 despues del subtema 2.2.2" in context
+    assert "2.2.5 Disponibilidad inherente, 2.2.6 Confiabilidad y 2.2.7 Mantenibilidad" in context
 
 
 def test_chapter_two_theoretical_bases_context_applies_to_literature_review_name():
@@ -178,7 +182,7 @@ def test_chapter_two_theoretical_bases_context_applies_to_literature_review_name
     )
 
     assert "Subtema teorico principal de la variable independiente" in context
-    assert "Figuras: usa 0 a 5 segun necesidad" in context
+    assert "Figuras: usa 0 a 4 segun necesidad" in context
     assert "No generes TABLE_JSON, matriz de consistencia" in context
 
 

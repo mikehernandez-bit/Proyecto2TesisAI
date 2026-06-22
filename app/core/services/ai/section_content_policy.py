@@ -107,7 +107,7 @@ def is_text_only_section(path: str) -> bool:
 def is_chapter_two_text_only_section(path: str) -> bool:
     segments = normalized_path_segments(path)
     joined = " / ".join(segments)
-    if "MARCO TEORICO" not in joined:
+    if "MARCO TEORICO" not in joined and "REVISION DE LITERATURA" not in joined:
         return False
     text_only_markers = (
         "ANTECEDENTES",
@@ -121,11 +121,7 @@ def is_chapter_two_text_only_section(path: str) -> bool:
 def is_chapter_three_hypotheses_section(path: str) -> bool:
     segments = normalized_path_segments(path)
     joined = " / ".join(segments)
-    return (
-        "HIPOTESIS Y VARIABLES" in joined
-        and "HIPOTESIS" in joined
-        and "OPERACIONALIZACION" not in joined
-    )
+    return "HIPOTESIS Y VARIABLES" in joined and "HIPOTESIS" in joined and "OPERACIONALIZACION" not in joined
 
 
 def is_chapter_three_operationalization_section(path: str) -> bool:
@@ -177,10 +173,7 @@ def allows_recommended_figure(path: str) -> bool:
     joined = " / ".join(segments)
     if joined == "MARCO TEORICO" or is_chapter_four_design_section(path):
         return False
-    if (
-        "METODOLOGIA" in joined
-        and (is_chapter_four_design_section(path) or is_chapter_four_text_only_section(path))
-    ):
+    if "METODOLOGIA" in joined and (is_chapter_four_design_section(path) or is_chapter_four_text_only_section(path)):
         return False
     return any(
         keyword in segment for segment in normalized_path_segments(path) for keyword in RECOMMENDED_FIGURE_KEYWORDS
@@ -199,7 +192,9 @@ def render_prompt_policy_rules() -> str:
         "Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras "
         "controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, "
         "no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n"
-        "- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n"
+        "- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente "
+        "(sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se "
+        "renderizan desde los datos estructurados del proyecto.\n"
         "- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir "
         "el esquema textual M O1 X O2 con su leyenda.\n"
         "- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, "

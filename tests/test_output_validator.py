@@ -787,6 +787,53 @@ class TestValidate:
         assert "faltan subtitulos obligatorios" in caplog.text
         assert "1.5.1 Delimitacion teorica" in caplog.text
 
+    def test_backgrounds_requires_numbered_subheadings(self, validator, caplog):
+        ai_result = {
+            "sections": [
+                {
+                    "sectionId": "sec-antecedentes",
+                    "path": "II. MARCO TEORICO/2.1 Antecedentes",
+                    "content": "Solo parrafos empiricos de antecedentes sin los subtitulos 2.1.1 y 2.1.2.",
+                }
+            ]
+        }
+
+        caplog.set_level(logging.WARNING, logger="app.core.services.ai.output_validator")
+        validator.validate(ai_result)
+
+        assert "no contiene el subtitulo numerado" in caplog.text
+        assert "2.1.1 Antecedentes internacionales" in caplog.text
+        assert "2.1.2 Antecedentes nacionales" in caplog.text
+
+    def test_backgrounds_accepts_valid_numbered_subheadings(self, validator, caplog):
+        ai_result = {
+            "sections": [
+                {
+                    "sectionId": "sec-antecedentes",
+                    "path": "II. MARCO TEORICO/2.1 Antecedentes",
+                    "content": (
+                        "2.1.1 Antecedentes internacionales\n"
+                        "Smith y Johnson (2020) en su investigacion titulada 'Implementation of RCM'...\n"
+                        "Garcia et al. (2019) en su investigacion...\n"
+                        "Wang y Lee (2018) en su investigacion...\n"
+                        "Brown y Miller (2017) en su investigacion...\n"
+                        "Chen y Zhao (2016) en su investigacion...\n"
+                        "2.1.2 Antecedentes nacionales\n"
+                        "Lopez y Ramirez (2021) en su investigacion titulada 'Aplicacion del RCM'...\n"
+                        "Mendoza et al. (2020) en su investigacion...\n"
+                        "Torres y Vargas (2019) en su investigacion...\n"
+                        "Flores y Diaz (2018) en su investigacion...\n"
+                        "Gomez y Ruiz (2017) en su investigacion..."
+                    ),
+                }
+            ]
+        }
+
+        caplog.set_level(logging.WARNING, logger="app.core.services.ai.output_validator")
+        validator.validate(ai_result)
+
+        assert "no contiene el subtitulo numerado" not in caplog.text
+
     def test_strips_raw_structured_repr_from_plain_text(self, validator):
         ai_result = {
             "sections": [
@@ -888,6 +935,162 @@ class TestValidate:
         assert len(result["sections"]) == 1
         assert result["sections"][0]["sectionId"] == "sec-0002"
 
+    def test_theoretical_bases_quality_accepts_maintenance_pattern(self, validator):
+        content = [
+            {"tipo": "parrafo", "texto": "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM)"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El mantenimiento centrado en confiabilidad establece funciones, fallas funcionales y modos de "
+                    "falla dentro de un contexto operacional definido, con el fin de preservar la continuidad del "
+                    "activo mediante tareas justificadas tecnicamente."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Su valor teorico consiste en reemplazar rutinas uniformes por decisiones vinculadas con "
+                    "criticidad, consecuencias y contexto de operacion, lo que resulta pertinente en mineria y en "
+                    "equipos CAT 24M sometidos a alta exigencia."
+                ),
+            },
+            {"tipo": "parrafo", "texto": "2.2.2 Proceso del RCM"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El proceso del RCM se apoya en siete preguntas para definir funciones, fallas funcionales, "
+                    "modos de falla, efectos, consecuencias y tareas aplicables dentro del arbol logico de decision."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Este proceso del RCM ordena la seleccion de actividades preventivas, predictivas, detectivas o "
+                    "de rediseño segun el riesgo tecnico asociado a cada falla del equipo, garantizando de esta manera "
+                    "que todos los recursos disponibles se enfoquen exclusivamente en los modos de falla realmente "
+                    "criticos para la continuidad de la operacion."
+                ),
+            },
+            _reality_problem_figure("Figura 2.1 Proceso del RCM"),
+            {
+                "tipo": "parrafo",
+                "texto": "La figura resume la secuencia de analisis que da sustento al diseño del plan RCM."
+            },
+            {"tipo": "parrafo", "texto": "2.2.3 Taxonomia de equipos segun ISO 14224:2016"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La taxonomia segun ISO 14224 organiza activos, subsistemas y componentes mediante niveles "
+                    "taxonomicos consistentes, permitiendo trazabilidad y comparacion de historiales."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El uso de la taxonomia de equipos estructurada evita por completo los registros ambiguos en las "
+                    "ordenes de trabajo diarias y vincula de manera sistematica cada evento de falla registrado con "
+                    "los analisis posteriores de confiabilidad operacional, mantenibilidad y disponibilidad inherente "
+                    "de toda la flota de activos en la mina."
+                ),
+            },
+            _reality_problem_figure("Figura 2.2 Niveles taxonomicos"),
+            {"tipo": "parrafo", "texto": "La figura muestra la jerarquia tecnica necesaria para depurar datos de fallas."},
+            {"tipo": "parrafo", "texto": "2.2.4 Analisis de Modos y Efecto de Fallas (AMEF)"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "El AMEF identifica modos de falla, causas y efectos, y utiliza severidad, ocurrencia y "
+                    "detectabilidad para priorizar eventos mediante el numero de prioridad de riesgo."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Este analisis detallado de modos y efectos permite enfocar todos los recursos y esfuerzos del "
+                    "personal en las fallas dominantes de los equipos auxiliares, logrando asi convertir de manera "
+                    "rapida y eficiente el diagnostico de campo en decisiones de mantenimiento concretas dentro del "
+                    "plan global de mantenimiento centrado en confiabilidad operacional."
+                ),
+            },
+            _reality_problem_figure("Figura 2.3 Analisis de Modo y Efecto de Falla"),
+            {"tipo": "parrafo", "texto": "La figura representa el AMEF como puente entre criticidad, modos de falla y tareas RCM."},
+            {"tipo": "parrafo", "texto": "2.2.5 Disponibilidad inherente"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La disponibilidad inherente relaciona directamente la confiabilidad y la mantenibilidad sin "
+                    "incorporar demoras externas de logistica o administracion, expresando el rendimiento tecnico "
+                    "propio y la capacidad de operacion del activo analizado."
+                ),
+            },
+            {"tipo": "formula", "texto": "Disponibilidad Inherente = MTBF / (MTBF + MTTR)", "numero": "(1)"},
+            {
+                "tipo": "parrafo",
+                "texto": "La ecuacion evidencia que mejorar MTBF y reducir MTTR incrementa la disponibilidad inherente."
+            },
+            {"tipo": "parrafo", "texto": "2.2.6 Confiabilidad"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La confiabilidad operacional se analiza matematicamente como la probabilidad de que un activo "
+                    "logre operar sin fallar durante un intervalo de tiempo dado bajo condiciones especificas y "
+                    "parametros de diseño definidos por el fabricante."
+                ),
+            },
+            {"tipo": "formula", "texto": "MTBF = Tiempo total de operacion / Numero de fallas", "numero": "(2)"},
+            {
+                "tipo": "parrafo",
+                "texto": "El MTBF resume la frecuencia de interrupciones y permite comparar estabilidad operacional."
+            },
+            {"tipo": "parrafo", "texto": "2.2.7 Mantenibilidad"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La mantenibilidad mide la capacidad del personal tecnico para restaurar el activo a su "
+                    "estado operativo dentro de un tiempo maximo predeterminado y con recursos logisticos previamente "
+                    "planificados."
+                ),
+            },
+            {"tipo": "formula", "texto": "MTTR = Tiempo total de reparacion / Numero de intervenciones", "numero": "(3)"},
+            {
+                "tipo": "parrafo",
+                "texto": "El MTTR expresa la rapidez de recuperacion y su reduccion impacta en la disponibilidad."
+            },
+            {"tipo": "parrafo", "texto": "2.2.8 Motoniveladora CAT 24M"},
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La motoniveladora CAT 24M es un equipo auxiliar critico para mantener vias de acarreo, frentes de "
+                    "trabajo y plataformas en mineria a cielo abierto."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "Su desempeño operativo general depende criticamente de la integracion y el estado de sus sistemas "
+                    "de implementos, el tren de potencia principal, el sistema hidraulico y de la severidad extrema "
+                    "del contexto altamente abrasivo y de polucion donde opera diariamente toda la flota de maquinaria "
+                    "auxiliar."
+                ),
+            },
+            _reality_problem_figure("Figura 2.4 Motoniveladora CAT 24M"),
+            {"tipo": "parrafo", "texto": "La figura presenta el equipo como referencia del objeto de estudio."},
+        ]
+
+        validator._validate_theoretical_bases_quality(content, section_id="sec-bases")
+
+    def test_theoretical_bases_quality_rejects_missing_numbered_headings(self, validator):
+        content = [
+            {"tipo": "parrafo", "texto": "Mantenimiento Centrado en Confiabilidad (RCM)"},
+            {
+                "tipo": "parrafo",
+                "texto": "Texto tecnico suficiente sobre el enfoque de confiabilidad y mantenimiento del activo."
+            },
+        ]
+
+        with pytest.raises(ValidationError, match="subtitulos numerados"):
+            validator._validate_theoretical_bases_quality(content, section_id="sec-bases")
+
 
 class TestBuildAiResult:
     def test_build_and_validate(self, validator):
@@ -897,3 +1100,113 @@ class TestBuildAiResult:
         result = validator.build_ai_result(sections)
         assert "sections" in result
         assert result["sections"][0]["sectionId"] == "s1"
+
+
+class TestInlineFormulaPromotion:
+    """Tests for the inline-formula-promotion guard in _normalize_structured_content.
+
+    Verifies that bare equation strings (e.g. "MTBF = X / Y") written as
+    plain-text paragraphs inside a 'bases teoricas' section are automatically
+    promoted to formula blocks so GicaTesis does not render them as Heading 3
+    and include them in the table of contents.
+    """
+
+    _THEORETICAL_PATH = "II. MARCO TEÓRICO/2.2 Bases teóricas"
+
+    def _normalize(self, content: list, path: str = _THEORETICAL_PATH) -> list:
+        result = OutputValidator._normalize_structured_content(content, path=path)
+        return list(result) if isinstance(result, list) else []
+
+    def _para(self, texto: str) -> dict:
+        return {"tipo": "parrafo", "texto": texto}
+
+    def _long_para(self) -> dict:
+        """A paragraph long enough to pass the minimum-words-before-formula guard."""
+        return self._para(
+            "La disponibilidad inherente relaciona confiabilidad y mantenibilidad sin "
+            "incorporar demoras externas ni logisticas, por lo que expresa el rendimiento "
+            "tecnico propio del activo bajo condiciones operacionales normales de la mina."
+        )
+
+    # ------------------------------------------------------------------
+    # Promotion cases
+    # ------------------------------------------------------------------
+
+    def test_mtbf_plain_text_promoted_to_formula(self):
+        """'MTBF = Tiempo total de operacion / Numero de fallas' must become formula."""
+        content = [
+            self._long_para(),
+            self._para("MTBF = Tiempo total de operacion / Numero de fallas"),
+        ]
+        result = self._normalize(content)
+        tipos = [b.get("tipo") for b in result]
+        assert "formula" in tipos, f"Expected a formula block; got tipos={tipos}"
+
+    def test_mttr_plain_text_promoted_to_formula(self):
+        """'MTTR = Tiempo total de reparacion / Numero de intervenciones' must become formula."""
+        content = [
+            self._long_para(),
+            self._para("MTTR = Tiempo total de reparacion / Numero de intervenciones correctivas"),
+        ]
+        result = self._normalize(content)
+        tipos = [b.get("tipo") for b in result]
+        assert "formula" in tipos, f"Expected a formula block; got tipos={tipos}"
+
+    def test_disponibilidad_inherente_promoted_to_formula(self):
+        """'Disponibilidad Inherente = MTBF / (MTBF + MTTR)' must become formula."""
+        content = [
+            self._long_para(),
+            self._para("Disponibilidad Inherente = MTBF / (MTBF + MTTR)"),
+        ]
+        result = self._normalize(content)
+        tipos = [b.get("tipo") for b in result]
+        assert "formula" in tipos, f"Expected a formula block; got tipos={tipos}"
+
+    # ------------------------------------------------------------------
+    # Non-promotion cases (must stay as parrafo)
+    # ------------------------------------------------------------------
+
+    def test_numbered_subheading_not_promoted(self):
+        """'2.2.5 Disponibilidad inherente' is a valid heading and must NOT become formula."""
+        content = [self._para("2.2.5 Disponibilidad inherente")]
+        result = self._normalize(content)
+        tipos = [b.get("tipo") for b in result]
+        assert "formula" not in tipos, f"Heading was incorrectly promoted; tipos={tipos}"
+        assert "parrafo" in tipos
+
+    def test_normal_paragraph_not_promoted(self):
+        """A multi-sentence paragraph must NOT be promoted to formula."""
+        content = [
+            self._para(
+                "El RCM prioriza tareas a condicion y detectivas para reducir "
+                "correctivos en equipos moviles mineros con alta exigencia mecanica."
+            )
+        ]
+        result = self._normalize(content)
+        tipos = [b.get("tipo") for b in result]
+        assert "formula" not in tipos
+        assert "parrafo" in tipos
+
+    def test_formula_outside_theoretical_path_stays_parrafo(self):
+        """The same equation in a non-theoretical section is NOT promoted."""
+        content = [
+            self._para("MTBF = Tiempo total de operacion / Numero de fallas"),
+        ]
+        result = self._normalize(content, path="I. PLANTEAMIENTO DEL PROBLEMA/1.1 Realidad problemática")
+        tipos = [b.get("tipo") for b in result]
+        assert "formula" not in tipos
+        assert "parrafo" in tipos
+
+    def test_already_formula_block_unchanged(self):
+        """Blocks already typed as formula must pass through the formula branch (not parrafo)."""
+        content = [
+            self._long_para(),
+            {
+                "tipo": "formula",
+                "texto": "MTBF = Tiempo total de operacion / Numero de fallas",
+                "alineacion": "center",
+            },
+        ]
+        result = self._normalize(content)
+        formula_blocks = [b for b in result if b.get("tipo") == "formula"]
+        assert len(formula_blocks) >= 1

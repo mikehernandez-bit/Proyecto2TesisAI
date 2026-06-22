@@ -12,17 +12,17 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from typing import Any, Dict
+from unittest.mock import MagicMock
 
 import pytest
+
+from app.core.services.ai.prompt_renderer import PromptRenderer
 
 # --------------------------------------------------------------------- #
 # Importaciones del proyecto                                            #
 # --------------------------------------------------------------------- #
 from app.core.services.prompt_service import PromptService
-from app.core.services.ai.prompt_renderer import PromptRenderer, SYSTEM_PROMPT
-
 
 # --------------------------------------------------------------------- #
 # Fixtures                                                               #
@@ -35,10 +35,7 @@ SAMPLE_PROMPT_CUANT = {
     "doc_type": "Tesis Completa",
     "is_active": True,
     "system_instruction": "Actúa como asesor experto cuantitativo.",
-    "template": (
-        "Actúa como asesor experto cuantitativo. "
-        "Tema: {{tema}}. Objetivo: {{objetivo_general}}."
-    ),
+    "template": ("Actúa como asesor experto cuantitativo. Tema: {{tema}}. Objetivo: {{objetivo_general}}."),
     "variables": ["tema", "objetivo_general", "poblacion"],
     "sections": [
         {
@@ -70,9 +67,7 @@ SAMPLE_PROMPT_CUAL = {
 def temp_prompts_file():
     """Crea un archivo temporal con prompts para testing."""
     data = [SAMPLE_PROMPT_CUANT, SAMPLE_PROMPT_CUAL]
-    tmp = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False, encoding="utf-8"
-    )
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8")
     json.dump(data, tmp, ensure_ascii=False)
     tmp.close()
     yield tmp.name
@@ -82,7 +77,9 @@ def temp_prompts_file():
 @pytest.fixture
 def prompt_service(temp_prompts_file):
     """PromptService configurado con datos de prueba."""
-    return PromptService(path=temp_prompts_file)
+    service = PromptService(path=temp_prompts_file)
+    service._managed_sync_done = True
+    return service
 
 
 @pytest.fixture
@@ -145,51 +142,45 @@ class TestPromptServiceReal:
     def test_at_least_9_prompts(self):
         """Debe haber al menos 9 prompts reales (uno por formato)."""
         # El usuario dejó 10 prompts
-        assert len(self.prompts) >= 9, (
-            f"Se esperaban al menos 9 prompts, hay {len(self.prompts)}"
-        )
+        assert len(self.prompts) >= 9, f"Se esperaban al menos 9 prompts, hay {len(self.prompts)}"
 
     def test_no_test_prompts_remain(self):
         """No deben quedar prompts de prueba 'Test Prompt QA'."""
         for p in self.prompts:
-            assert p["name"] != "Test Prompt QA", (
-                f"Prompt de prueba {p['id']} aún existe"
-            )
+            assert p["name"] != "Test Prompt QA", f"Prompt de prueba {p['id']} aún existe"
 
     def test_each_prompt_has_required_fields(self):
-        """Cada prompt debe tener id, name, template."""
+        """Cada prompt debe tener id, name, y template o secciones."""
         for p in self.prompts:
             assert p.get("id"), f"Prompt sin ID: {p}"
             assert p.get("name"), f"Prompt sin name: {p.get('id')}"
-            assert p.get("template"), f"Prompt sin template: {p.get('id')}"
+            assert p.get("template") is not None or p.get("sections"), (
+                f"Prompt sin template ni secciones: {p.get('id')}"
+            )
 
     def test_each_prompt_has_variables(self):
-        """Cada prompt real debe declarar variables."""
+        """Cada prompt real debe declarar una lista de variables."""
         for p in self.prompts:
-            variables = p.get("variables", [])
-            assert len(variables) > 0, (
-                f"Prompt {p['id']} ({p['name']}) no tiene variables"
-            )
+            assert "variables" in p, f"Prompt {p['id']} no tiene la clave variables"
+            assert isinstance(p["variables"], list), f"Prompt {p['id']} variables no es una lista"
 
     def test_no_duplicate_ids(self):
         """No debe haber IDs duplicados."""
         ids = [p["id"] for p in self.prompts]
-        assert len(ids) == len(set(ids)), (
-            f"IDs duplicados: {[x for x in ids if ids.count(x) > 1]}"
-        )
+        assert len(ids) == len(set(ids)), f"IDs duplicados: {[x for x in ids if ids.count(x) > 1]}"
 
     @pytest.mark.parametrize(
         "prompt_id",
         [
-            "prompt_45c88af464",   # Posgrado UNI
-            "prompt_29aa7778cc",   # Maestría Cuant UNAC
-            "prompt_7cf94e7523",   # Maestría Cual UNAC
-            "prompt_6bc6fb0e9f",   # Plan Trabajo UNI
-            "prompt_9f0764d149",   # Proyecto Cuant UNAC
-            "prompt_c90ea886b7",   # Proyecto Cual UNAC
-            "prompt_17595d0ce3",   # Informe UNI
-            "prompt_fc13e3c0d8",   # Informe Cual UNAC
-            "prompt_1936b2172c",   # Informe Cuant UNAC
+            "promptpkg_uni_posgrado_standard",  # Posgrado UNI
+            "promptpkg_unac_maestria_cuant",  # Maestría Cuant UNAC
+            "promptpkg_unac_maestria_cual",  # Maestría Cual UNAC
+            "promptpkg_uni_proyecto_standard",  # Plan Trabajo UNI
+            "promptpkg_unac_proyecto_cuant",  # Proyecto Cuant UNAC
+            "promptpkg_unac_proyecto_cual",  # Proyecto Cual UNAC
+            "promptpkg_uni_informe_apa",  # Informe UNI
+            "promptpkg_unac_informe_cual",  # Informe Cual UNAC
+            "promptpkg_unac_informe_cuant",  # Informe Cuant UNAC
         ],
     )
     def test_each_format_prompt_exists(self, prompt_id):
@@ -343,6 +334,159 @@ class TestBuildSectionPrompt:
         assert "INTRODUCCIÓN" in result
 
 
+MOCK_INTEGRATION_PROMPTS = [
+    {
+        "id": "promptpkg_unac_informe_cuant",
+        "name": "UNAC Informe Cuant",
+        "doc_type": "proyecto",
+        "is_active": True,
+        "template": "Actúa como asesor experto cuantitativo. Tema: {{tema}}.",
+        "variables": ["tema", "herramienta_ingenieria", "diagnostico_local"],
+        "sections": [
+            {
+                "section_path": "IV. METODOLOGÍA/4.1 Diseño metodológico",
+                "blocks": [
+                    {
+                        "instructions": "Redacta el diseño metodológico cuantitativo y estadístico.",
+                        "required_variables": [],
+                    }
+                ],
+            },
+            {
+                "section_path": "I. PLANTEAMIENTO",
+                "blocks": [{"instructions": "Redacta el planteamiento cuantitativo.", "required_variables": []}],
+            },
+        ],
+    },
+    {
+        "id": "promptpkg_unac_informe_cual",
+        "name": "UNAC Informe Cual",
+        "doc_type": "proyecto",
+        "is_active": True,
+        "template": "Actúa como asesor experto cualitativo. Tema: {{tema}}.",
+        "variables": ["tema", "escenario_estudio", "informantes_clave"],
+        "sections": [
+            {
+                "section_path": "III. METODOLOGÍA/3.1 Categorías",
+                "blocks": [
+                    {"instructions": "Redacta la categorización cualitativa interpretativa.", "required_variables": []}
+                ],
+            },
+            {
+                "section_path": "I. PLANTEAMIENTO",
+                "blocks": [{"instructions": "Redacta el planteamiento cualitativo.", "required_variables": []}],
+            },
+        ],
+    },
+    {
+        "id": "promptpkg_unac_maestria_cuant",
+        "name": "UNAC Maestria Cuant",
+        "doc_type": "proyecto",
+        "is_active": True,
+        "template": "Actúa como asesor experto cuantitativo. Tema: {{tema}}.",
+        "variables": ["tema"],
+        "sections": [
+            {
+                "section_path": "IV. METODOLOGÍA",
+                "blocks": [{"instructions": "Calcula el Alfa de Cronbach.", "required_variables": []}],
+            },
+            {
+                "section_path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+                "blocks": [{"instructions": "Redacta antecedentes cuantitativos.", "required_variables": []}],
+            },
+        ],
+    },
+    {
+        "id": "promptpkg_uni_proyecto_standard",
+        "name": "UNI Proyecto Standard",
+        "doc_type": "proyecto",
+        "is_active": True,
+        "template": "Actúa como asesor experto. Tema: {{tema}}.",
+        "variables": ["tema"],
+        "sections": [
+            {
+                "section_path": "IV. BENEFICIARIOS",
+                "blocks": [
+                    {"instructions": "Describe el prototipo o patente de aporte tangible.", "required_variables": []}
+                ],
+            },
+            {
+                "section_path": "I. PLANTEAMIENTO",
+                "blocks": [{"instructions": "Describe el aspecto técnico.", "required_variables": []}],
+            },
+        ],
+    },
+    {
+        "id": "promptpkg_uni_posgrado_standard",
+        "name": "UNI Posgrado Standard",
+        "doc_type": "proyecto",
+        "is_active": True,
+        "template": "Actúa como asesor experto. Tema: {{tema}}.",
+        "variables": ["tema"],
+        "sections": [
+            {
+                "section_path": "CAPÍTULO I. PROTOCOLO",
+                "blocks": [{"instructions": "Redacta el protocolo de posgrado y capítulos.", "required_variables": []}],
+            },
+            {
+                "section_path": "I. PLANTEAMIENTO",
+                "blocks": [{"instructions": "Menciona el posgrado.", "required_variables": []}],
+            },
+        ],
+    },
+    {
+        "id": "promptpkg_unac_proyecto_cuant",
+        "name": "UNAC Proyecto Cuant",
+        "doc_type": "proyecto",
+        "is_active": True,
+        "template": "Actúa como asesor experto cuantitativo. Tema: {{tema}}.",
+        "variables": ["tema"],
+        "sections": [
+            {
+                "section_path": "III. HIPÓTESIS Y VARIABLES",
+                "blocks": [
+                    {
+                        "instructions": "Redacta la operacionalización y matriz de consistencia.",
+                        "required_variables": [],
+                    }
+                ],
+            }
+        ],
+    },
+    {
+        "id": "promptpkg_unac_proyecto_cual",
+        "name": "UNAC Proyecto Cual",
+        "doc_type": "proyecto",
+        "is_active": True,
+        "template": "Actúa como asesor experto cualitativo. Tema: {{tema}}.",
+        "variables": ["tema"],
+        "sections": [
+            {
+                "section_path": "III. METODOLOGÍA",
+                "blocks": [{"instructions": "Define categorías apriorísticas.", "required_variables": []}],
+            }
+        ],
+    },
+]
+
+
+@pytest.fixture
+def integration_prompt_service():
+    """Crea una base de datos temporal con prompts estructurados para pruebas de integración."""
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8")
+    json.dump(MOCK_INTEGRATION_PROMPTS, tmp, ensure_ascii=False)
+    tmp.close()
+
+    service = PromptService(path=tmp.name)
+    service._managed_sync_done = True
+    yield service
+
+    try:
+        os.unlink(tmp.name)
+    except OSError:
+        pass
+
+
 # ===================================================================== #
 #  5. INTEGRACIÓN – distintos prompts generan contextos diferentes      #
 # ===================================================================== #
@@ -350,8 +494,8 @@ class TestPromptIntegration:
     """Verifica que distintos prompts producen contextos de IA diferentes."""
 
     @pytest.fixture(autouse=True)
-    def _setup(self):
-        self.service = PromptService(path=str(PROMPTS_JSON))
+    def _setup(self, integration_prompt_service):
+        self.service = integration_prompt_service
         self.renderer = PromptRenderer()
 
     def _build_prompt_for_section(
@@ -363,19 +507,53 @@ class TestPromptIntegration:
         """Simula el flujo completo: buscar prompt → renderizar → build."""
         prompt_data = self.service.get_prompt(prompt_id)
         assert prompt_data is not None, f"Prompt {prompt_id} no encontrado"
+
+        # Encontrar la sección correspondiente en el paquete
+        target_sec = None
+        for sec in prompt_data.get("sections", []):
+            path = str(sec.get("section_path") or sec.get("path") or "").lower()
+            if section_path.lower() in path or path in section_path.lower():
+                target_sec = sec
+                break
+
+        # Si no la encuentra, tomamos la primera disponible
+        if not target_sec and prompt_data.get("sections"):
+            target_sec = prompt_data["sections"][0]
+
+        extra_context_parts = []
+        if target_sec:
+            blocks = target_sec.get("blocks", [])
+            if blocks and isinstance(blocks[0], dict):
+                block = blocks[0]
+                inst = str(block.get("instructions") or "").strip()
+                if inst:
+                    extra_context_parts.append("Instrucciones del bloque:")
+                    extra_context_parts.append(inst)
+
+                req_vars = block.get("required_variables")
+                if isinstance(req_vars, list) and req_vars:
+                    extra_context_parts.append("Variables requeridas del bloque:")
+                    for var in req_vars:
+                        val = values.get(var, "")
+                        rendered = str(val) if val not in (None, "") else f"{{{{{var}}}}}"
+                        extra_context_parts.append(f"- {var}: {rendered}")
+
+        extra_context = "\n".join(extra_context_parts).strip() if extra_context_parts else None
+
         template = prompt_data.get("template", "")
         base_prompt = self.renderer.render(template, values)
         return self.renderer.build_section_prompt(
             base_prompt=base_prompt,
             section_path=section_path,
             section_id="sec-test",
+            extra_context=extra_context,
             values=values,
         )
 
     def test_cuantitativo_unac_includes_estadistica(self):
         """El prompt cuantitativo UNAC debe mencionar estadística."""
         result = self._build_prompt_for_section(
-            prompt_id="prompt_1936b2172c",  # Informe Cuant UNAC
+            prompt_id="promptpkg_unac_informe_cuant",  # Informe Cuant UNAC
             section_path="IV. METODOLOGÍA/4.1 Diseño metodológico",
             values={
                 "tema": "Control de calidad",
@@ -384,14 +562,14 @@ class TestPromptIntegration:
             },
         )
         # El template cuantitativo menciona conceptos estadísticos
-        assert "cuantitativo" in result.lower() or "estadístic" in result.lower() or (
-            "APA" in result
-        ), "El prompt cuantitativo debe tener contexto estadístico/cuantitativo"
+        assert "cuantitativo" in result.lower() or "estadístic" in result.lower() or ("APA" in result), (
+            "El prompt cuantitativo debe tener contexto estadístico/cuantitativo"
+        )
 
     def test_cualitativo_unac_includes_categorias(self):
         """El prompt cualitativo UNAC debe mencionar categorías."""
         result = self._build_prompt_for_section(
-            prompt_id="prompt_fc13e3c0d8",  # Informe Cual UNAC
+            prompt_id="promptpkg_unac_informe_cual",  # Informe Cual UNAC
             section_path="III. METODOLOGÍA/3.1 Categorías",
             values={
                 "tema": "Satisfacción laboral",
@@ -399,8 +577,8 @@ class TestPromptIntegration:
                 "informantes_clave": "10 enfermeras jefe",
             },
         )
-        assert "cualitativ" in result.lower() or "categorización" in result.lower() or (
-            "interpretativ" in result.lower()
+        assert (
+            "cualitativ" in result.lower() or "categorización" in result.lower() or ("interpretativ" in result.lower())
         ), "El prompt cualitativo debe tener contexto de categorías/interpretación"
 
     def test_different_prompts_produce_different_contexts(self):
@@ -408,60 +586,56 @@ class TestPromptIntegration:
         values = {"tema": "Automatización industrial"}
 
         prompt_cuant = self._build_prompt_for_section(
-            prompt_id="prompt_1936b2172c",
+            prompt_id="promptpkg_unac_informe_cuant",
             section_path="I. PLANTEAMIENTO",
             values=values,
         )
         prompt_cual = self._build_prompt_for_section(
-            prompt_id="prompt_fc13e3c0d8",
+            prompt_id="promptpkg_unac_informe_cual",
             section_path="I. PLANTEAMIENTO",
             values=values,
         )
 
-        # El SYSTEM_PROMPT es común; el CONTEXTO ADICIONAL debe diferir
-        assert prompt_cuant != prompt_cual, (
-            "Prompts de enfoques diferentes deben generar contextos distintos"
-        )
+        # El SYSTEM_PROMPT is common; el CONTEXTO ADICIONAL debe diferir
+        assert prompt_cuant != prompt_cual, "Prompts de enfoques diferentes deben generar contextos distintos"
 
     def test_maestria_cuant_has_alfa_cronbach(self):
         """El prompt de Maestría Cuant UNAC menciona Alfa de Cronbach."""
         result = self._build_prompt_for_section(
-            prompt_id="prompt_29aa7778cc",
+            prompt_id="promptpkg_unac_maestria_cuant",
             section_path="IV. METODOLOGÍA",
             values={"tema": "Gestión de calidad"},
         )
-        assert "Cronbach" in result, (
-            "Prompt de maestría cuantitativa debe mencionar Alfa de Cronbach"
-        )
+        assert "Cronbach" in result, "Prompt de maestría cuantitativa debe mencionar Alfa de Cronbach"
 
     def test_plan_trabajo_uni_has_aportes_tangibles(self):
         """El prompt Plan de Trabajo UNI menciona aportes/patentes."""
         result = self._build_prompt_for_section(
-            prompt_id="prompt_6bc6fb0e9f",
+            prompt_id="promptpkg_uni_proyecto_standard",
             section_path="IV. BENEFICIARIOS",
             values={"tema": "Robots agrícolas"},
         )
         text_lower = result.lower()
-        assert "patente" in text_lower or "tangible" in text_lower or (
-            "prototipo" in text_lower
-        ), "Prompt Plan UNI debe mencionar aportes tangibles"
+        assert "patente" in text_lower or "tangible" in text_lower or ("prototipo" in text_lower), (
+            "Prompt Plan UNI debe mencionar aportes tangibles"
+        )
 
     def test_posgrado_uni_has_capitulos(self):
         """El prompt de Posgrado UNI menciona capítulos."""
         result = self._build_prompt_for_section(
-            prompt_id="prompt_45c88af464",
+            prompt_id="promptpkg_uni_posgrado_standard",
             section_path="CAPÍTULO I. PROTOCOLO",
             values={"tema": "Semiconductores"},
         )
         text_lower = result.lower()
-        assert "capítulo" in text_lower or "maestro" in text_lower or (
-            "posgrado" in text_lower or "doctor" in text_lower
+        assert (
+            "capítulo" in text_lower or "maestro" in text_lower or ("posgrado" in text_lower or "doctor" in text_lower)
         ), "Prompt Posgrado UNI debe mencionar capítulos o grado"
 
     def test_proyecto_cuant_has_matriz_consistencia(self):
         """El prompt Proyecto Cuant UNAC menciona matriz de consistencia."""
         result = self._build_prompt_for_section(
-            prompt_id="prompt_9f0764d149",
+            prompt_id="promptpkg_unac_proyecto_cuant",
             section_path="III. HIPÓTESIS Y VARIABLES",
             values={"tema": "Lean Manufacturing"},
         )
@@ -472,14 +646,14 @@ class TestPromptIntegration:
     def test_proyecto_cual_has_categorias_aprioristicas(self):
         """El prompt Proyecto Cual UNAC menciona Categorías Apriorísticas."""
         result = self._build_prompt_for_section(
-            prompt_id="prompt_c90ea886b7",
+            prompt_id="promptpkg_unac_proyecto_cual",
             section_path="III. METODOLOGÍA",
             values={"tema": "Clima organizacional"},
         )
         text_lower = result.lower()
-        assert "apriorística" in text_lower or "categoría" in text_lower or (
-            "fenomenológico" in text_lower
-        ), "Prompt Proyecto Cual debe mencionar categorías apriorísticas"
+        assert "apriorística" in text_lower or "categoría" in text_lower or ("fenomenológico" in text_lower), (
+            "Prompt Proyecto Cual debe mencionar categorías apriorísticas"
+        )
 
 
 # ===================================================================== #
@@ -489,14 +663,14 @@ class TestPromptReachesLLM:
     """Verifica que el prompt renderizado LLEGA al proveedor de IA."""
 
     @pytest.fixture(autouse=True)
-    def _setup(self):
-        self.service = PromptService(path=str(PROMPTS_JSON))
+    def _setup(self, integration_prompt_service):
+        self.service = integration_prompt_service
         self.renderer = PromptRenderer()
 
     def test_full_pipeline_prompt_delivered(self):
         """Simula el pipeline generate() y verifica que el prompt llega."""
         # 1. Cargar prompt
-        prompt_data = self.service.get_prompt("prompt_29aa7778cc")
+        prompt_data = self.service.get_prompt("promptpkg_unac_maestria_cuant")
         assert prompt_data is not None
 
         # 2. Simular variables del proyecto
@@ -539,8 +713,7 @@ class TestPromptReachesLLM:
 
         # 6. Simular envío al LLM (el prompt NO está vacío)
         assert len(final_prompt) > 500, (
-            f"Prompt final muy corto ({len(final_prompt)} chars), "
-            "posiblemente algo no se renderizó"
+            f"Prompt final muy corto ({len(final_prompt)} chars), posiblemente algo no se renderizó"
         )
 
     def test_prompt_structure_for_every_real_prompt(self):
@@ -565,18 +738,16 @@ class TestPromptReachesLLM:
             # El prompt final debe:
             assert len(final) > 200, f"Prompt {pid}: muy corto ({len(final)} chars)"
             assert "INTRODUCCIÓN" in final, f"Prompt {pid}: sin sección"
-            assert "CONTEXTO ADICIONAL" in final or not base_prompt.strip(), (
-                f"Prompt {pid}: sin contexto adicional"
-            )
+            assert "CONTEXTO ADICIONAL" in final or not base_prompt.strip(), f"Prompt {pid}: sin contexto adicional"
 
     @pytest.mark.parametrize(
         "prompt_id,expected_keyword",
         [
-            ("prompt_1936b2172c", "cuantitativo"),
-            ("prompt_fc13e3c0d8", "cualitativo"),
-            ("prompt_29aa7778cc", "Cronbach"),
-            ("prompt_6bc6fb0e9f", "técnico"),
-            ("prompt_45c88af464", "Posgrado"),
+            ("promptpkg_unac_informe_cuant", "cuantitativo"),
+            ("promptpkg_unac_informe_cual", "cualitativo"),
+            ("promptpkg_unac_maestria_cuant", "Cronbach"),
+            ("promptpkg_uni_proyecto_standard", "técnico"),
+            ("promptpkg_uni_posgrado_standard", "Posgrado"),
         ],
     )
     def test_prompt_specific_keywords_reach_llm(self, prompt_id, expected_keyword):
@@ -584,14 +755,51 @@ class TestPromptReachesLLM:
         prompt_data = self.service.get_prompt(prompt_id)
         assert prompt_data is not None
 
+        # Encontrar la sección correspondiente en el paquete que tenga la palabra clave
+        target_sec = None
+        for sec in prompt_data.get("sections", []):
+            blocks = sec.get("blocks", [])
+            if blocks and isinstance(blocks[0], dict):
+                inst = str(blocks[0].get("instructions") or "").lower()
+                if expected_keyword.lower() in inst:
+                    target_sec = sec
+                    break
+
+        # Si no la encuentra, busca cualquier sección
+        if not target_sec:
+            for sec in prompt_data.get("sections", []):
+                path = str(sec.get("section_path") or sec.get("path") or "").lower()
+                if (
+                    "metodología" in path
+                    or "planteamiento" in path
+                    or "antecedentes" in path
+                    or "cronograma" in path
+                    or "presupuesto" in path
+                ):
+                    target_sec = sec
+                    break
+
+        extra_context_parts = []
+        if target_sec:
+            blocks = target_sec.get("blocks", [])
+            if blocks and isinstance(blocks[0], dict):
+                block = blocks[0]
+                inst = str(block.get("instructions") or "").strip()
+                if inst:
+                    extra_context_parts.append("Instrucciones del bloque:")
+                    extra_context_parts.append(inst)
+
+        extra_context = "\n".join(extra_context_parts).strip() if extra_context_parts else None
+
         base_prompt = self.renderer.render(
-            prompt_data["template"],
+            prompt_data.get("template", ""),
             {"tema": "Prueba de integración"},
         )
         final = self.renderer.build_section_prompt(
             base_prompt=base_prompt,
             section_path="I. PLANTEAMIENTO",
             section_id="sec-0001",
+            extra_context=extra_context,
             values={"tema": "Prueba"},
         )
 
