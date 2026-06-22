@@ -162,6 +162,12 @@ class OutputValidator:
         "1.5.3 Delimitacion espacial",
     )
     _WORD_RE = re.compile(r"\b[\wÁÉÍÓÚÜÑáéíóúüñ]+(?:[-'][\wÁÉÍÓÚÜÑáéíóúüñ]+)?\b", re.UNICODE)
+    # Detects bare mathematical equations written as plain text (e.g. "MTBF = X / Y").
+    # These are promoted to formula blocks so GicaTesis does not render them as
+    # Heading 3 paragraphs and include them in the table of contents.
+    _INLINE_FORMULA_RE = re.compile(
+        r"^[A-ZÁÉÍÓÚ][A-Za-záéíóúñÑ\s]+=\s*[\w\s/()+\-*.áéíóúñ]+$"
+    )
     _SCHEDULE_PHASE_ROWS = [1, 5, 9, 13, 17, 21, 26, 30]
     _SCHEDULE_ACTIVITY_COUNTS = (3, 3, 3, 3, 3, 4, 3, 4)
     _SCHEDULE_LEGACY_RECOVERABLE_ERRORS = {
@@ -572,7 +578,7 @@ class OutputValidator:
         text = re.sub(r"```[\s\S]*?```", " ", text)
         text = text.replace("```", " ")
         text = re.sub(r"^\s*#{1,6}\s*", "", text, flags=re.MULTILINE)
-        text = text.replace("**", "").replace("__", "")
+        text = text.replace("**", "").replace("__", "").replace("*", "")
         text = text.replace("|", " ")
 
         cleaned_lines: list[str] = []
@@ -860,7 +866,29 @@ class OutputValidator:
             if block_type == "parrafo":
                 text = cls._sanitize_text_content(item.get("texto"), path=path)
                 if text:
-                    normalized.append({"tipo": "parrafo", "texto": text})
+                    # Fallback guard: if this paragraph looks like a bare inline
+                    # formula (single line, "X = Y / Z" pattern) in a theoretical
+                    # bases section, promote it to a formula block so GicaTesis
+                    # does not render it as Heading 3 / include it in the TOC.
+                    single_line = "\n" not in text
+                    is_theoretical = cls._is_theoretical_bases_path(path)
+                    if (
+                        single_line
+                        and is_theoretical
+                        and cls._INLINE_FORMULA_RE.match(text.strip())
+                        and formula_count < max_formula_blocks
+                    ):
+                        promoted = {"tipo": "formula", "texto": text.strip(), "alineacion": "center"}
+                        if cls._can_keep_theoretical_formula(normalized, path=path):
+                            normalized.append(promoted)
+                            formula_count += 1
+                            logger.debug(
+                                "output_validator: promoted inline formula to formula block in '%s': %r",
+                                path,
+                                text[:80],
+                            )
+                    else:
+                        normalized.append({"tipo": "parrafo", "texto": text})
                 continue
 
             if block_type == "tabla":
@@ -1427,9 +1455,11 @@ class OutputValidator:
         if generic_hits:
             errors.append("2.1 conserva antecedentes vagos: " + ", ".join(generic_hits))
 
-        for required_heading in ("antecedentes internacionales", "antecedentes nacionales"):
-            if required_heading not in normalized_visible:
-                errors.append(f"2.1 no contiene el subtitulo '{required_heading}'")
+        # Enforce numbered Heading 3 headings for backgrounds: "2.1.1 Antecedentes internacionales" and "2.1.2 Antecedentes nacionales"
+        if not re.search(r"2\.1\.1\.?\s+antecedentes\s+internacionales", normalized_visible):
+            errors.append("2.1 no contiene el subtitulo numerado '2.1.1 Antecedentes internacionales'")
+        if not re.search(r"2\.1\.2\.?\s+antecedentes\s+nacionales", normalized_visible):
+            errors.append("2.1 no contiene el subtitulo numerado '2.1.2 Antecedentes nacionales'")
 
         narrative_words = cls._word_count(cls._narrative_text(content))
         if narrative_words and narrative_words < 1200:
@@ -1439,11 +1469,30 @@ class OutputValidator:
             raise ValidationError(f"Calidad insuficiente en seccion {section_id}: " + " | ".join(errors))
 
     @classmethod
+    def _theoretical_heading_lines(cls, content: Any) -> list[str]:
+        if not isinstance(content, list):
+            return []
+        headings = []
+        for block in content:
+            if isinstance(block, dict) and cls._normalize_token(block.get("tipo")) == "parrafo":
+                text = str(block.get("texto") or "").strip()
+                if text:
+                    first_line = text.splitlines()[0].strip()
+                    if re.match(r"^\s*2\.2\.\d+", first_line):
+                        headings.append(first_line)
+        return headings
+
+    @classmethod
     def _validate_theoretical_bases_quality(cls, content: Any, *, section_id: str) -> None:
         if not isinstance(content, list):
             return
 
         errors: list[str] = []
+        # Check for numbered headings (2.2.x)
+        headings = cls._theoretical_heading_lines(content)
+        if not headings:
+            errors.append("2.2 no contiene subtitulos numerados (2.2.x)")
+
         figure_positions = [
             index
             for index, block in enumerate(content)

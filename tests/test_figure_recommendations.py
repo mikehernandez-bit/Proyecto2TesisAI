@@ -1,4 +1,6 @@
+from app.core.services.ai.ai_service import AIService
 from app.core.services.ai.figure_recommendations import apply_figure_recommendations
+from app.core.services.ai.output_validator import OutputValidator
 
 
 def test_does_not_add_recommended_figure_to_chapter_four_design_section() -> None:
@@ -411,20 +413,22 @@ def test_chapter_two_text_only_sections_drop_existing_figures() -> None:
     assert [block["tipo"] for block in content] == ["parrafo"]
 
 
-def test_chapter_two_bases_gets_four_controlled_figures() -> None:
+def test_chapter_two_bases_gets_dynamic_figures_from_headings() -> None:
+    """Bases teóricas con subtítulos 2.2.x detectados dinámicamente reciben una
+    figura por cada subtítulo, con el título extraído del heading real.
+    No depende de marcadores hardcodeados de mantenimiento.
+    """
     sections = [
         {
             "sectionId": "sec-bases",
             "path": "II. MARCO TEORICO/2.2 Bases teoricas",
             "content": (
-                "Mantenimiento Centrado en Confiabilidad (RCM). Texto tecnico del RCM.\n\n"
-                "Proceso del RCM. Las siete preguntas ordenan funciones, fallas y tareas.\n\n"
-                "Taxonomia de equipos segun ISO 14224:2016. Los niveles taxonomicos ordenan activos.\n\n"
-                "Analisis de Modos y Efecto de Fallas (AMEF). El NPR prioriza los modos de falla.\n\n"
-                "Disponibilidad inherente. Se calcula sin demoras administrativas.\n\n"
-                "Confiabilidad. El MTBF resume la frecuencia de interrupciones.\n\n"
-                "Mantenibilidad. El MTTR resume el tiempo de reparacion.\n\n"
-                "Motoniveladora CAT 24M. El equipo mantiene caminos de acarreo en mineria."
+                "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM). Texto tecnico del RCM.\n\n"
+                "Las siete preguntas ordenan funciones, fallas y tareas.\n\n"
+                "2.2.2 Taxonomia de equipos segun ISO 14224. Los niveles taxonomicos ordenan activos.\n\n"
+                "El NPR prioriza los modos de falla.\n\n"
+                "2.2.3 Disponibilidad inherente. Se calcula sin demoras administrativas.\n\n"
+                "El MTBF resume la frecuencia de interrupciones."
             ),
         }
     ]
@@ -439,15 +443,108 @@ def test_chapter_two_bases_gets_four_controlled_figures() -> None:
     figures = [block for block in content if block.get("tipo") == "figura"]
     figure_positions = [index for index, block in enumerate(content) if block.get("tipo") == "figura"]
 
-    assert [figure["caption"] for figure in figures] == [
-        "Figura 2.1 Proceso del RCM",
-        "Figura 2.2 Niveles taxonomicos",
-        "Figura 2.3 Analisis de Modo y Efecto de Falla",
-        "Figura 2.4 Motoniveladora CAT 24M",
-    ]
+    # Debe haber exactamente 1 figura por cada subtítulo 2.2.x detectado
+    assert len(figures) == 3
+    # Los títulos dinámicos incluyen el texto del heading real y el tema del proyecto
+    assert all("Mantenimiento Centrado en Confiabilidad" in figures[0]["titulo"]
+               or "RCM" in figures[0]["titulo"] for f in [figures[0]])
+    assert all("Taxonomia" in figures[1]["titulo"] or "ISO 14224" in figures[1]["titulo"] for f in [figures[1]])
+    assert all("Disponibilidad" in figures[2]["titulo"] for f in [figures[2]])
+    # Todas las figuras tienen placeholder, nota en azul y nota instructiva
     assert all(figure["ruta_placeholder"] == "assets/placeholder_figura.png" for figure in figures)
-    assert "Placeholder tecnico" not in " ".join(str(figure) for figure in figures)
-    assert figure_positions[0] < figure_positions[1] < figure_positions[2] < figure_positions[3]
+    assert all(figure["nota_color"] == "0000FF" for figure in figures)
+    assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
+    # Las figuras están distribuidas (no consecutivas si hay párrafos entre ellas)
+    assert figure_positions[0] < figure_positions[1] < figure_positions[2]
+
+
+def test_chapter_two_bases_keeps_paragraphs_and_passes_validator() -> None:
+    service = AIService()
+    validator = OutputValidator()
+    section = {
+        "sectionId": "sec-0010",
+        "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+        "content": service._fallback_theoretical_bases_content(
+            {
+                "tema": (
+                    "Plan de mantenimiento centrado en confiabilidad para mejorar la disponibilidad "
+                    "inherente de la flota de motoniveladoras CAT 24M"
+                ),
+                "objeto_estudio": "motoniveladora CAT 24M",
+                "lugar_ejecucion": "unidad minera de la Sierra Central",
+                "variable_independiente": "Plan de mantenimiento centrado en confiabilidad",
+                "variable_dependiente": "Disponibilidad inherente",
+            }
+        ),
+    }
+
+    updated = apply_figure_recommendations(
+        [section],
+        values={
+            "tema": (
+                "Plan de mantenimiento centrado en confiabilidad para mejorar la disponibilidad "
+                "inherente de la flota de motoniveladoras CAT 24M"
+            )
+        },
+        format_id="unac-proyecto-cuant",
+    )
+
+    content = updated[0]["content"]
+    assert isinstance(content, list)
+    assert sum(1 for block in content if block.get("tipo") == "parrafo") >= 16
+    # Ahora se generan figuras dinámicamente según los subtítulos 2.2.x detectados.
+    # El fallback de mantenimiento genera 8 subtítulos (2.2.1 al 2.2.8).
+    figures = [block for block in content if block.get("tipo") == "figura"]
+    assert len(figures) >= 4, f"Esperaba al menos 4 figuras dinámicas, se obtuvieron: {len(figures)}"
+    assert all(f["nota_color"] == "0000FF" for f in figures)
+    assert all(f["nota"].startswith("Guía para elaborar la figura:") for f in figures)
+    assert all(f["ruta_placeholder"] == "assets/placeholder_figura.png" for f in figures)
+
+    validator._validate_theoretical_bases_quality(content, section_id="sec-0010")
+
+
+def test_chapter_two_bases_injects_dynamic_figures_for_any_domain() -> None:
+    """Bases teóricas con subtítulos 2.2.x reciben figuras dinámicas para CUALQUIER
+    dominio, no solo mantenimiento. Las figuras usan los títulos reales del heading.
+    """
+    sections = [
+        {
+            "sectionId": "sec-bases-soft",
+            "path": "II. REVISION DE LITERATURA/2.2 Bases teoricas",
+            "content": (
+                "2.2.1 Arquitectura de software. El sistema distribuye responsabilidades en capas.\n\n"
+                "2.2.2 Modelo cliente servidor. Se describen solicitudes, respuestas y persistencia.\n\n"
+                "2.2.3 Seguridad de la informacion. Se explican autenticacion, autorizacion y cifrado.\n\n"
+                "2.2.4 Algoritmos de clasificacion. Se comparan criterios de precision y complejidad.\n\n"
+                "2.2.5 Experiencia de usuario. Se describen usabilidad y navegacion."
+            ),
+        }
+    ]
+
+    updated = apply_figure_recommendations(
+        sections,
+        values={
+            "title": "Sistema web para gestion academica",
+            "variable_independiente": "Arquitectura de software",
+            "variable_dependiente": "Usabilidad del sistema",
+        },
+        format_id="unac-proyecto-cuant",
+    )
+
+    content = updated[0]["content"]
+    figures = [block for block in content if isinstance(block, dict) and block.get("tipo") == "figura"]
+
+    # Ahora sí genera figuras dinámicas para dominios no-mantenimiento
+    assert len(figures) == 5, f"Esperaba 5 figuras (una por 2.2.x), se obtuvieron: {len(figures)}"
+    # Los títulos incluyen el texto real del heading detectado
+    assert any("Arquitectura de software" in f["titulo"] for f in figures)
+    assert any("cliente servidor" in f["titulo"] or "cliente-servidor" in f["titulo"] for f in figures)
+    assert any("Seguridad" in f["titulo"] for f in figures)
+    assert any("clasificacion" in f["titulo"] or "Algoritmos" in f["titulo"] for f in figures)
+    assert any("Experiencia de usuario" in f["titulo"] or "usabilidad" in f["titulo"] for f in figures)
+    # Todas tienen nota azul instructiva
+    assert all(f["nota_color"] == "0000FF" for f in figures)
+    assert all(f["nota"].startswith("Guía para elaborar la figura:") for f in figures)
 
 
 def test_chapter_four_sections_drop_existing_figures_and_tables() -> None:

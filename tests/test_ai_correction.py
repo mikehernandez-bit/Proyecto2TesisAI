@@ -107,6 +107,77 @@ def test_parse_corrected_json_keeps_dense_theoretical_bases_when_correction_coll
     assert out == original
 
 
+def test_parse_corrected_json_keeps_theoretical_bases_when_correction_removes_numbered_subtopics():
+    original = [
+        {
+            "sectionId": "sec-0010",
+            "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+            "content": (
+                "2.2.1 Fundamento teorico\n\n"
+                + " ".join(["teoria"] * 120)
+                + "\n\n2.2.2 Modelo aplicado\n\n"
+                + " ".join(["modelo"] * 120)
+                + "\n\n2.2.3 Taxonomia tecnica\n\n"
+                + " ".join(["taxonomia"] * 120)
+                + "\n\n2.2.4 Herramienta especializada\n\n"
+                + " ".join(["herramienta"] * 120)
+                + "\n\n2.2.5 Indicadores del estudio\n\n"
+                + " ".join(["indicador"] * 120)
+            ),
+        }
+    ]
+    raw = json.dumps(
+        {
+            "sections": [
+                {
+                    "sectionId": "sec-0010",
+                    "content": " ".join(["resumen"] * 180),
+                }
+            ]
+        }
+    )
+
+    out = AIService._parse_corrected_json(raw, original, "proj-6")
+    assert out == original
+
+
+def test_parse_corrected_json_keeps_theoretical_bases_when_correction_injects_figures():
+    original = [
+        {
+            "sectionId": "sec-0010",
+            "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+            "content": (
+                "2.2.1 Fundamento teorico\n\n"
+                + " ".join(["teoria"] * 100)
+                + "\n\n2.2.2 Modelo aplicado\n\n"
+                + " ".join(["modelo"] * 100)
+                + "\n\n2.2.3 Taxonomia tecnica\n\n"
+                + " ".join(["taxonomia"] * 100)
+                + "\n\n2.2.4 Herramienta especializada\n\n"
+                + " ".join(["herramienta"] * 100)
+                + "\n\n2.2.5 Indicadores del estudio\n\n"
+                + " ".join(["indicador"] * 100)
+            ),
+        }
+    ]
+    raw = json.dumps(
+        {
+            "sections": [
+                {
+                    "sectionId": "sec-0010",
+                    "content": [
+                        {"tipo": "parrafo", "texto": "2.2.1 Fundamento teorico"},
+                        {"tipo": "figura", "caption": "Figura de ejemplo", "titulo": "Figura de ejemplo"},
+                    ],
+                }
+            ]
+        }
+    )
+
+    out = AIService._parse_corrected_json(raw, original, "proj-7")
+    assert out == original
+
+
 def test_build_correction_prompt_replaces_markers(tmp_path):
     prompt_template = (
         "FORMAT_JSON:\\n<<<FORMAT_JSON>>>\\n"

@@ -205,13 +205,13 @@ def test_generate_includes_app_memory_between_sections():
     with patch("app.core.services.ai.ai_service.settings", _settings()):
         result = service.generate(
             project,
-            {"definition": {}},
+            {"format_id": "unac-proyecto-cuant", "definition": {}},
             {"template": "Tema: {{tema}}"},
             planned_sections=planned_sections,
         )
 
     assert len(result["sections"]) == 2
-    assert len(provider.prompts) == 2
+    assert len(provider.prompts) == 3
     assert "Memoria de continuidad entre secciones:" not in provider.prompts[0]
     assert "Memoria de continuidad entre secciones:" in provider.prompts[1]
     assert "Secciones previas completadas: INTRODUCCION" in provider.prompts[1]

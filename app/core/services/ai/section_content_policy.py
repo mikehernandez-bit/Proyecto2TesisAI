@@ -107,7 +107,7 @@ def is_text_only_section(path: str) -> bool:
 def is_chapter_two_text_only_section(path: str) -> bool:
     segments = normalized_path_segments(path)
     joined = " / ".join(segments)
-    if "MARCO TEORICO" not in joined:
+    if "MARCO TEORICO" not in joined and "REVISION DE LITERATURA" not in joined:
         return False
     text_only_markers = (
         "ANTECEDENTES",
