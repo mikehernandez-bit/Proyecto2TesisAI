@@ -162,8 +162,11 @@ function isMaestriaFormat(store) {
     category.includes("maestria") ||
     category.includes("posgrado") ||
     category.includes("postgrado") ||
+    category.includes("informe") ||
     formatId.includes("unac-maestria") ||
     formatId.includes("unac-proyecto") ||
+    formatId.includes("unac-informe") ||
+    formatId.includes("uni-informe") ||
     (university === "unac" && category.includes("proyecto"))
   );
 }

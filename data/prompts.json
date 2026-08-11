@@ -1374,7 +1374,7 @@
     "is_active": true,
     "format_id": "unac-informe-cuant",
     "format_name": "Informe de Tesis UNAC - Enfoque Cuantitativo",
-    "format_version": "a661711790bec44f",
+    "format_version": "6e53f830a432753a",
     "system_instruction": "",
     "required_metadata": [],
     "template": "",
@@ -1595,7 +1595,7 @@
         "section_order": 6,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Estructura formalmente la idea de investigación mediante preguntas claras y precisas que relacionen las variables de estudio.\n\n- Problema General: Es la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en estudios descriptivos). Debe formularse de manera que invite a la medición o prueba estadística.\n  * Ejemplo: ¿De qué manera la implementación de X influye en Y?\n- Problemas Específicos: Son sub-preguntas que desglosan el análisis. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente o sus dimensiones. Deben ser medibles y concretas.\nEstructura formalmente la idea de investigación mediante preguntas claras y precisas que relacionen las variables de estudio.\n\n- Problema General: Es la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en estudios descriptivos). Debe formularse de manera que invite a la medición o prueba estadística.\n  * Ejemplo: ¿De qué manera la implementación de X influye en Y?\n- Problemas Específicos: Son sub-preguntas que desglosan el análisis. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente o sus dimensiones. Deben ser medibles y concretas.",
+        "source_hints": "Redacta un párrafo breve (2-3 líneas) que introduzca la formulación del problema de investigación, antes de presentar el problema general y los problemas específicos en los apartados siguientes.\nRedacta un párrafo breve (2-3 líneas) que introduzca la formulación del problema de investigación, antes de presentar el problema general y los problemas específicos en los apartados siguientes.",
         "source_content_type": "texto",
         "blocks": [
           {
@@ -1625,18 +1625,92 @@
       },
       {
         "section_id": "sec-0007",
-        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
-        "section_title": "1.3 Objetivos",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2.1 Problema General",
+        "section_title": "1.2.1 Problema General",
         "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
         "section_level": 2,
         "section_order": 7,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Expresan el fin medible y verificable que se pretende lograr con la investigación. Deben iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruentes con los problemas formulados.\n\n- Objetivo General: El logro final del estudio que responde directamente al problema general.\n- Objetivos Específicos: Los pasos intermedios, operativos o secuenciales necesarios para alcanzar el objetivo general (responden a los problemas específicos).\nExpresan el fin medible y verificable que se pretende lograr con la investigación. Deben iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruentes con los problemas formulados.\n\n- Objetivo General: El logro final del estudio que responde directamente al problema general.\n- Objetivos Específicos: Los pasos intermedios, operativos o secuenciales necesarios para alcanzar el objetivo general (responden a los problemas específicos).",
+        "source_hints": "Formula la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en estudios descriptivos). Debe formularse de manera que invite a la medición o prueba estadística.\n\nEjemplo: ¿De qué manera la implementación de X influye en Y?\nFormula la interrogante principal que engloba la relación entre la Variable Independiente y la Dependiente (o la variable única en estudios descriptivos). Debe formularse de manera que invite a la medición o prueba estadística.\n\nEjemplo: ¿De qué manera la implementación de X influye en Y?",
         "source_content_type": "texto",
         "blocks": [
           {
             "block_id": "managed:unac-informe-cuant:sec-0007",
+            "header": "Prompt 1.2.1 Problema General",
+            "cabecera": "Prompt 1.2.1 Problema General",
+            "label": "1.2.1 Problema General",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0008",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2.2 Problemas Específicos",
+        "section_title": "1.2.2 Problemas Específicos",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 8,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Formula las sub-preguntas que desglosan el análisis del problema general. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente o sus dimensiones. Deben ser medibles, concretas y guardar correspondencia directa con los objetivos específicos e hipótesis específicas del estudio.\nFormula las sub-preguntas que desglosan el análisis del problema general. Generalmente relacionan las Dimensiones de la Variable Independiente con la Variable Dependiente o sus dimensiones. Deben ser medibles, concretas y guardar correspondencia directa con los objetivos específicos e hipótesis específicas del estudio.",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0008",
+            "header": "Prompt 1.2.2 Problemas Específicos",
+            "cabecera": "Prompt 1.2.2 Problemas Específicos",
+            "label": "1.2.2 Problemas Específicos",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0009",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+        "section_title": "1.3 Objetivos",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 9,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Redacta un párrafo breve (2-3 líneas) que introduzca los objetivos de la investigación, antes de presentar el objetivo general y los objetivos específicos en los apartados siguientes.\nRedacta un párrafo breve (2-3 líneas) que introduzca los objetivos de la investigación, antes de presentar el objetivo general y los objetivos específicos en los apartados siguientes.",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0009",
             "header": "Prompt 1.3 Objetivos",
             "cabecera": "Prompt 1.3 Objetivos",
             "label": "1.3 Objetivos",
@@ -1661,19 +1735,93 @@
         ]
       },
       {
-        "section_id": "sec-0008",
+        "section_id": "sec-0010",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3.1 Objetivo General",
+        "section_title": "1.3.1 Objetivo General",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 10,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Formula el logro final del estudio que responde directamente al problema general. Debe iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruente con el problema general planteado.\nFormula el logro final del estudio que responde directamente al problema general. Debe iniciar con un verbo en infinitivo fuerte (Determinar, Evaluar, Diseñar, Establecer) y ser congruente con el problema general planteado.",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0010",
+            "header": "Prompt 1.3.1 Objetivo General",
+            "cabecera": "Prompt 1.3.1 Objetivo General",
+            "label": "1.3.1 Objetivo General",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0011",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3.2 Objetivos Específicos",
+        "section_title": "1.3.2 Objetivos Específicos",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 11,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Formula los pasos intermedios, operativos o secuenciales necesarios para alcanzar el objetivo general. Cada objetivo específico debe iniciar con un verbo en infinitivo fuerte y responder directamente a cada uno de los problemas específicos formulados.\nFormula los pasos intermedios, operativos o secuenciales necesarios para alcanzar el objetivo general. Cada objetivo específico debe iniciar con un verbo en infinitivo fuerte y responder directamente a cada uno de los problemas específicos formulados.",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0011",
+            "header": "Prompt 1.3.2 Objetivos Específicos",
+            "cabecera": "Prompt 1.3.2 Objetivos Específicos",
+            "label": "1.3.2 Objetivos Específicos",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0012",
         "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
         "section_title": "1.4 Justificación",
         "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
         "section_level": 2,
-        "section_order": 8,
+        "section_order": 12,
         "optional": false,
         "default_selected": true,
         "source_hints": "Explica las razones por las cuales es necesario y útil realizar el estudio. Debes redactar los siguientes enfoques:\n\n- Justificación Técnica/Práctica: ¿Qué problema real resuelve? ¿Cómo mejora la eficiencia, productividad, seguridad o costos en la entidad de estudio?\n- Justificación Teórica: ¿Cómo aplica, valida o contrasta conocimientos de ingeniería existentes? ¿Llena algún vacío de conocimiento?\n- Justificación Metodológica: ¿Utiliza algún instrumento, software, algoritmo o método de análisis novedoso o riguroso que sirva de modelo para futuras investigaciones?\n- Justificación Económica/Social: ¿Cuál es el beneficio costo-beneficio para la empresa? ¿Cuál es el impacto positivo en la sociedad, trabajadores o medio ambiente?\nExplica las razones por las cuales es necesario y útil realizar el estudio. Debes redactar los siguientes enfoques:\n\n- Justificación Técnica/Práctica: ¿Qué problema real resuelve? ¿Cómo mejora la eficiencia, productividad, seguridad o costos en la entidad de estudio?\n- Justificación Teórica: ¿Cómo aplica, valida o contrasta conocimientos de ingeniería existentes? ¿Llena algún vacío de conocimiento?\n- Justificación Metodológica: ¿Utiliza algún instrumento, software, algoritmo o método de análisis novedoso o riguroso que sirva de modelo para futuras investigaciones?\n- Justificación Económica/Social: ¿Cuál es el beneficio costo-beneficio para la empresa? ¿Cuál es el impacto positivo en la sociedad, trabajadores o medio ambiente?",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0008",
+            "block_id": "managed:unac-informe-cuant:sec-0012",
             "header": "Prompt 1.4 Justificación",
             "cabecera": "Prompt 1.4 Justificación",
             "label": "1.4 Justificación",
@@ -1698,22 +1846,22 @@
         ]
       },
       {
-        "section_id": "sec-0009",
-        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitantes de la investigación",
-        "section_title": "1.5 Delimitantes de la investigación",
+        "section_id": "sec-0013",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Limitantes de la investigación",
+        "section_title": "1.5 Limitantes de la investigación",
         "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
         "section_level": 2,
-        "section_order": 9,
+        "section_order": 13,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Define las fronteras y alcances del estudio para asegurar su viabilidad técnica y operativa:\n\n- Delimitación Temática: Línea de investigación de la escuela o área específica de la ingeniería (ej. Mantenimiento, Telecomunicaciones, Control, Software).\n- Delimitación Espacial: Lugar exacto donde se tomarán los datos o se realizará la implementación (Nombre de la Empresa, Área específica, Ciudad).\n- Delimitación Temporal: Periodo de tiempo que abarca la recolección y análisis de datos (ej. Datos históricos de 2023 o mediciones de campo de Enero a Junio 2024).\nDefine las fronteras y alcances del estudio para asegurar su viabilidad técnica y operativa:\n\n- Delimitación Temática: Línea de investigación de la escuela o área específica de la ingeniería (ej. Mantenimiento, Telecomunicaciones, Control, Software).\n- Delimitación Espacial: Lugar exacto donde se tomarán los datos o se realizará la implementación (Nombre de la Empresa, Área específica, Ciudad).\n- Delimitación Temporal: Periodo de tiempo que abarca la recolección y análisis de datos (ej. Datos históricos de 2023 o mediciones de campo de Enero a Junio 2024).",
+        "source_hints": "Describe las restricciones o dificultades externas al investigador que condicionaron el desarrollo del estudio y que deben declararse por transparencia metodológica (no confundir con las Delimitantes, que son fronteras definidas voluntariamente).\n\nDebes considerar, según aplique:\n- Limitantes de acceso a la información: Restricciones para obtener datos históricos, confidencialidad empresarial o falta de registros completos en el periodo de estudio.\n- Limitantes de tiempo y recursos: Plazos acotados para la recolección de datos, presupuesto limitado para instrumentación o pruebas adicionales.\n- Limitantes técnicas u operativas: Condiciones de operación de la entidad que impidieron pruebas controladas, paradas programadas o acceso irrestricto a los equipos/áreas de estudio.\n- Limitantes de generalización: Alcance de los resultados, explicando por qué las conclusiones aplican al caso de estudio y las condiciones bajo las cuales podrían replicarse.\nDescribe las restricciones o dificultades externas al investigador que condicionaron el desarrollo del estudio y que deben declararse por transparencia metodológica (no confundir con las Delimitantes, que son fronteras definidas voluntariamente).\n\nDebes considerar, según aplique:\n- Limitantes de acceso a la información: Restricciones para obtener datos históricos, confidencialidad empresarial o falta de registros completos en el periodo de estudio.\n- Limitantes de tiempo y recursos: Plazos acotados para la recolección de datos, presupuesto limitado para instrumentación o pruebas adicionales.\n- Limitantes técnicas u operativas: Condiciones de operación de la entidad que impidieron pruebas controladas, paradas programadas o acceso irrestricto a los equipos/áreas de estudio.\n- Limitantes de generalización: Alcance de los resultados, explicando por qué las conclusiones aplican al caso de estudio y las condiciones bajo las cuales podrían replicarse.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0009",
-            "header": "Prompt 1.5 Delimitantes de la investigación",
-            "cabecera": "Prompt 1.5 Delimitantes de la investigación",
-            "label": "1.5 Delimitantes de la investigación",
+            "block_id": "managed:unac-informe-cuant:sec-0013",
+            "header": "Prompt 1.5 Limitantes de la investigación",
+            "cabecera": "Prompt 1.5 Limitantes de la investigación",
+            "label": "1.5 Limitantes de la investigación",
             "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
             "required_variables": [
               "diseno",
@@ -1735,19 +1883,167 @@
         ]
       },
       {
-        "section_id": "sec-0010",
+        "section_id": "sec-0014",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.6 Delimitantes de la investigación",
+        "section_title": "1.6 Delimitantes de la investigación",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 14,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Redacta un párrafo breve (2-3 líneas) que introduzca las fronteras y alcances definidos para el estudio, antes de precisar la delimitación teórica, temporal y espacial en los apartados siguientes.\nRedacta un párrafo breve (2-3 líneas) que introduzca las fronteras y alcances definidos para el estudio, antes de precisar la delimitación teórica, temporal y espacial en los apartados siguientes.",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0014",
+            "header": "Prompt 1.6 Delimitantes de la investigación",
+            "cabecera": "Prompt 1.6 Delimitantes de la investigación",
+            "label": "1.6 Delimitantes de la investigación",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0015",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.6.1 Delimitante Teórica",
+        "section_title": "1.6.1 Delimitante Teórica",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 15,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Define la línea de investigación de la escuela o el área específica de la ingeniería en la que se enmarca el estudio (ej. Mantenimiento, Telecomunicaciones, Control, Software), precisando el cuerpo teórico y las variables sobre las que se delimita el análisis.\nDefine la línea de investigación de la escuela o el área específica de la ingeniería en la que se enmarca el estudio (ej. Mantenimiento, Telecomunicaciones, Control, Software), precisando el cuerpo teórico y las variables sobre las que se delimita el análisis.",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0015",
+            "header": "Prompt 1.6.1 Delimitante Teórica",
+            "cabecera": "Prompt 1.6.1 Delimitante Teórica",
+            "label": "1.6.1 Delimitante Teórica",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0016",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.6.2 Delimitante Temporal",
+        "section_title": "1.6.2 Delimitante Temporal",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 16,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Define el periodo de tiempo que abarca la recolección y el análisis de datos (ej. Datos históricos de 2023 o mediciones de campo de Enero a Junio 2024).\nDefine el periodo de tiempo que abarca la recolección y el análisis de datos (ej. Datos históricos de 2023 o mediciones de campo de Enero a Junio 2024).",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0016",
+            "header": "Prompt 1.6.2 Delimitante Temporal",
+            "cabecera": "Prompt 1.6.2 Delimitante Temporal",
+            "label": "1.6.2 Delimitante Temporal",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0017",
+        "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.6.3 Delimitante Espacial",
+        "section_title": "1.6.3 Delimitante Espacial",
+        "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+        "section_level": 2,
+        "section_order": 17,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Define el lugar exacto donde se tomarán los datos o se realizará la implementación (Nombre de la Empresa, área específica, Ciudad).\nDefine el lugar exacto donde se tomarán los datos o se realizará la implementación (Nombre de la Empresa, área específica, Ciudad).",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0017",
+            "header": "Prompt 1.6.3 Delimitante Espacial",
+            "cabecera": "Prompt 1.6.3 Delimitante Espacial",
+            "label": "1.6.3 Delimitante Espacial",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0018",
         "section_path": "II. MARCO TEÓRICO",
         "section_title": "II. MARCO TEÓRICO",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 10,
+        "section_order": 18,
         "optional": false,
         "default_selected": true,
         "source_hints": "",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0010",
+            "block_id": "managed:unac-informe-cuant:sec-0018",
             "header": "Prompt II. MARCO TEÓRICO",
             "cabecera": "Prompt II. MARCO TEÓRICO",
             "label": "II. MARCO TEÓRICO",
@@ -1772,22 +2068,22 @@
         ]
       },
       {
-        "section_id": "sec-0011",
-        "section_path": "II. MARCO TEÓRICO/2.1 Antecedentes (Internacional y nacional)",
-        "section_title": "2.1 Antecedentes (Internacional y nacional)",
+        "section_id": "sec-0019",
+        "section_path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+        "section_title": "2.1 Antecedentes",
         "parent_section_path": "II. MARCO TEÓRICO",
         "section_level": 2,
-        "section_order": 11,
+        "section_order": 19,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Presenta el 'estado del arte' revisando investigaciones previas. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas aisladas) incluyendo obligatoriamente:\n- Apellido del autor y Año.\n- Título de la investigación.\n- Objetivo principal del estudio.\n- Metodología empleada (Diseño, muestra, instrumentos).\n- Resultados numéricos más relevantes (datos estadísticos, mejoras porcentuales, correlaciones).\n- Conclusiones principales.\n\nCantidad: Se recomienda un promedio de 5 antecedentes internacionales y 5 nacionales para pregrado (o 20-30 referencias totales para posgrado).\nPresenta el 'estado del arte' revisando investigaciones previas. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas aisladas) incluyendo obligatoriamente:\n- Apellido del autor y Año.\n- Título de la investigación.\n- Objetivo principal del estudio.\n- Metodología empleada (Diseño, muestra, instrumentos).\n- Resultados numéricos más relevantes (datos estadísticos, mejoras porcentuales, correlaciones).\n- Conclusiones principales.\n\nCantidad: Se recomienda un promedio de 5 antecedentes internacionales y 5 nacionales para pregrado (o 20-30 referencias totales para posgrado).",
+        "source_hints": "Redacta un párrafo breve (2-3 líneas) que introduzca la revisión del estado del arte, antes de presentar los antecedentes internacionales y nacionales en los apartados siguientes.\nRedacta un párrafo breve (2-3 líneas) que introduzca la revisión del estado del arte, antes de presentar los antecedentes internacionales y nacionales en los apartados siguientes.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0011",
-            "header": "Prompt 2.1 Antecedentes (Internacional y nacional)",
-            "cabecera": "Prompt 2.1 Antecedentes (Internacional y nacional)",
-            "label": "2.1 Antecedentes (Internacional y nacional)",
+            "block_id": "managed:unac-informe-cuant:sec-0019",
+            "header": "Prompt 2.1 Antecedentes",
+            "cabecera": "Prompt 2.1 Antecedentes",
+            "label": "2.1 Antecedentes",
             "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
             "required_variables": [
               "diseno",
@@ -1809,19 +2105,93 @@
         ]
       },
       {
-        "section_id": "sec-0012",
+        "section_id": "sec-0020",
+        "section_path": "II. MARCO TEÓRICO/2.1.1 Antecedentes Internacionales",
+        "section_title": "2.1.1 Antecedentes Internacionales",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 20,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Presenta el 'estado del arte' revisando investigaciones previas realizadas fuera del Perú. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas aisladas) incluyendo obligatoriamente:\n- Apellido del autor y Año.\n- Título de la investigación.\n- Objetivo principal del estudio.\n- Metodología empleada (Diseño, muestra, instrumentos).\n- Resultados numéricos más relevantes (datos estadísticos, mejoras porcentuales, correlaciones).\n- Conclusiones principales.\n\nCantidad: Se recomienda un promedio de 5 antecedentes internacionales para pregrado (o hasta 15 para posgrado).\nPresenta el 'estado del arte' revisando investigaciones previas realizadas fuera del Perú. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas aisladas) incluyendo obligatoriamente:\n- Apellido del autor y Año.\n- Título de la investigación.\n- Objetivo principal del estudio.\n- Metodología empleada (Diseño, muestra, instrumentos).\n- Resultados numéricos más relevantes (datos estadísticos, mejoras porcentuales, correlaciones).\n- Conclusiones principales.\n\nCantidad: Se recomienda un promedio de 5 antecedentes internacionales para pregrado (o hasta 15 para posgrado).",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0020",
+            "header": "Prompt 2.1.1 Antecedentes Internacionales",
+            "cabecera": "Prompt 2.1.1 Antecedentes Internacionales",
+            "label": "2.1.1 Antecedentes Internacionales",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0021",
+        "section_path": "II. MARCO TEÓRICO/2.1.2 Antecedentes Nacionales",
+        "section_title": "2.1.2 Antecedentes Nacionales",
+        "parent_section_path": "II. MARCO TEÓRICO",
+        "section_level": 2,
+        "section_order": 21,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Presenta el 'estado del arte' revisando investigaciones previas realizadas en el Perú. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas aisladas) incluyendo obligatoriamente:\n- Apellido del autor y Año.\n- Título de la investigación.\n- Objetivo principal del estudio.\n- Metodología empleada (Diseño, muestra, instrumentos).\n- Resultados numéricos más relevantes (datos estadísticos, mejoras porcentuales, correlaciones).\n- Conclusiones principales.\n\nCantidad: Se recomienda un promedio de 5 antecedentes nacionales para pregrado (o hasta 15 para posgrado).\nPresenta el 'estado del arte' revisando investigaciones previas realizadas en el Perú. Debes buscar tesis o artículos científicos (papers) indexados, preferiblemente de los últimos 5 a 10 años.\n\nEstructura de cada antecedente: Debes redactar en forma de párrafo fluido (no viñetas aisladas) incluyendo obligatoriamente:\n- Apellido del autor y Año.\n- Título de la investigación.\n- Objetivo principal del estudio.\n- Metodología empleada (Diseño, muestra, instrumentos).\n- Resultados numéricos más relevantes (datos estadísticos, mejoras porcentuales, correlaciones).\n- Conclusiones principales.\n\nCantidad: Se recomienda un promedio de 5 antecedentes nacionales para pregrado (o hasta 15 para posgrado).",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0021",
+            "header": "Prompt 2.1.2 Antecedentes Nacionales",
+            "cabecera": "Prompt 2.1.2 Antecedentes Nacionales",
+            "label": "2.1.2 Antecedentes Nacionales",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0022",
         "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
         "section_title": "2.2 Bases teóricas",
         "parent_section_path": "II. MARCO TEÓRICO",
         "section_level": 2,
-        "section_order": 12,
+        "section_order": 22,
         "optional": false,
         "default_selected": true,
         "source_hints": "Es el sustento científico y técnico de la tesis.\n\n- Desarrollo: Analiza sistemáticamente las teorías, leyes, principios, modelos matemáticos o físicos que explican tus variables (Variable Independiente y Dependiente).\n- Rigor: No es un glosario ni un 'copiar y pegar'; debes interpretar la teoría, sintetizarla y citar fuentes confiables (Libros de especialidad, IEEE, normas técnicas, papers).\n- Fundamentación: Incluir brevemente el enfoque epistemológico (positivista/cuantitativo) que guía el estudio, validando el uso del método científico.\nEs el sustento científico y técnico de la tesis.\n\n- Desarrollo: Analiza sistemáticamente las teorías, leyes, principios, modelos matemáticos o físicos que explican tus variables (Variable Independiente y Dependiente).\n- Rigor: No es un glosario ni un 'copiar y pegar'; debes interpretar la teoría, sintetizarla y citar fuentes confiables (Libros de especialidad, IEEE, normas técnicas, papers).\n- Fundamentación: Incluir brevemente el enfoque epistemológico (positivista/cuantitativo) que guía el estudio, validando el uso del método científico.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0012",
+            "block_id": "managed:unac-informe-cuant:sec-0022",
             "header": "Prompt 2.2 Bases teóricas",
             "cabecera": "Prompt 2.2 Bases teóricas",
             "label": "2.2 Bases teóricas",
@@ -1846,19 +2216,19 @@
         ]
       },
       {
-        "section_id": "sec-0013",
+        "section_id": "sec-0023",
         "section_path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
         "section_title": "2.3 Marco conceptual",
         "parent_section_path": "II. MARCO TEÓRICO",
         "section_level": 2,
-        "section_order": 13,
+        "section_order": 23,
         "optional": false,
         "default_selected": true,
         "source_hints": "Elabora 'constructos' o definiciones teóricas específicas para tu investigación.\n\n- Diferencia: A diferencia de las bases teóricas (que explican el funcionamiento y leyes), aquí defines conceptualmente las variables y sus dimensiones basándote en la literatura revisada para este contexto específico.\n- Propósito: Establecer con claridad y sin ambigüedades qué se entiende por cada concepto clave dentro de *tu* investigación.\nElabora 'constructos' o definiciones teóricas específicas para tu investigación.\n\n- Diferencia: A diferencia de las bases teóricas (que explican el funcionamiento y leyes), aquí defines conceptualmente las variables y sus dimensiones basándote en la literatura revisada para este contexto específico.\n- Propósito: Establecer con claridad y sin ambigüedades qué se entiende por cada concepto clave dentro de *tu* investigación.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0013",
+            "block_id": "managed:unac-informe-cuant:sec-0023",
             "header": "Prompt 2.3 Marco conceptual",
             "cabecera": "Prompt 2.3 Marco conceptual",
             "label": "2.3 Marco conceptual",
@@ -1883,19 +2253,19 @@
         ]
       },
       {
-        "section_id": "sec-0014",
+        "section_id": "sec-0024",
         "section_path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
         "section_title": "2.4 Definición de términos básicos",
         "parent_section_path": "II. MARCO TEÓRICO",
         "section_level": 2,
-        "section_order": 14,
+        "section_order": 24,
         "optional": false,
         "default_selected": true,
         "source_hints": "Es un glosario técnico funcional a la investigación.\n\nInstrucción: Define términos técnicos especializados que se usan en la tesis y que podrían prestarse a confusión. Las definiciones deben ser precisas, citadas y funcionales para evitar ambigüedades en la interpretación de los resultados.\nEs un glosario técnico funcional a la investigación.\n\nInstrucción: Define términos técnicos especializados que se usan en la tesis y que podrían prestarse a confusión. Las definiciones deben ser precisas, citadas y funcionales para evitar ambigüedades en la interpretación de los resultados.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0014",
+            "block_id": "managed:unac-informe-cuant:sec-0024",
             "header": "Prompt 2.4 Definición de términos básicos",
             "cabecera": "Prompt 2.4 Definición de términos básicos",
             "label": "2.4 Definición de términos básicos",
@@ -1920,19 +2290,19 @@
         ]
       },
       {
-        "section_id": "sec-0015",
+        "section_id": "sec-0025",
         "section_path": "III. HIPÓTESIS Y VARIABLES",
         "section_title": "III. HIPÓTESIS Y VARIABLES",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 15,
+        "section_order": 25,
         "optional": false,
         "default_selected": true,
         "source_hints": "",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0015",
+            "block_id": "managed:unac-informe-cuant:sec-0025",
             "header": "Prompt III. HIPÓTESIS Y VARIABLES",
             "cabecera": "Prompt III. HIPÓTESIS Y VARIABLES",
             "label": "III. HIPÓTESIS Y VARIABLES",
@@ -1957,22 +2327,22 @@
         ]
       },
       {
-        "section_id": "sec-0016",
-        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis (General y específicas)",
-        "section_title": "3.1 Hipótesis (General y específicas)",
+        "section_id": "sec-0026",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis",
+        "section_title": "3.1 Hipótesis",
         "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
         "section_level": 2,
-        "section_order": 16,
+        "section_order": 26,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Son las respuestas tentativas y probables a los problemas formulados.\n\n- Requisito: Deben ser proposiciones afirmativas que establezcan una relación clara (causa-efecto, correlación, diferencia de grupos) entre las variables.\n- Comprobación: Deben estar formuladas de tal manera que puedan ser aceptadas o rechazadas mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).\n- Alineación: Debe existir una Hipótesis General para el Problema General y Hipótesis Específicas para cada Problema Específico.\nSon las respuestas tentativas y probables a los problemas formulados.\n\n- Requisito: Deben ser proposiciones afirmativas que establezcan una relación clara (causa-efecto, correlación, diferencia de grupos) entre las variables.\n- Comprobación: Deben estar formuladas de tal manera que puedan ser aceptadas o rechazadas mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).\n- Alineación: Debe existir una Hipótesis General para el Problema General y Hipótesis Específicas para cada Problema Específico.",
+        "source_hints": "Redacta un párrafo breve (2-3 líneas) que introduzca las hipótesis de la investigación, antes de presentar la hipótesis general y las hipótesis específicas en los apartados siguientes.\nRedacta un párrafo breve (2-3 líneas) que introduzca las hipótesis de la investigación, antes de presentar la hipótesis general y las hipótesis específicas en los apartados siguientes.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0016",
-            "header": "Prompt 3.1 Hipótesis (General y específicas)",
-            "cabecera": "Prompt 3.1 Hipótesis (General y específicas)",
-            "label": "3.1 Hipótesis (General y específicas)",
+            "block_id": "managed:unac-informe-cuant:sec-0026",
+            "header": "Prompt 3.1 Hipótesis",
+            "cabecera": "Prompt 3.1 Hipótesis",
+            "label": "3.1 Hipótesis",
             "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
             "required_variables": [
               "diseno",
@@ -1994,22 +2364,96 @@
         ]
       },
       {
-        "section_id": "sec-0017",
-        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1.1 Operacionalización de variables",
-        "section_title": "3.1.1 Operacionalización de variables",
+        "section_id": "sec-0027",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1.1 Hipótesis General",
+        "section_title": "3.1.1 Hipótesis General",
         "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
         "section_level": 2,
-        "section_order": 17,
+        "section_order": 27,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Formula la respuesta tentativa y probable al problema general. Debe ser una proposición afirmativa que establezca una relación clara (causa-efecto, correlación, diferencia de grupos) entre las variables, y estar formulada de tal manera que pueda ser aceptada o rechazada mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).\nFormula la respuesta tentativa y probable al problema general. Debe ser una proposición afirmativa que establezca una relación clara (causa-efecto, correlación, diferencia de grupos) entre las variables, y estar formulada de tal manera que pueda ser aceptada o rechazada mediante pruebas estadísticas (Hipótesis Nula vs. Alterna).",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0027",
+            "header": "Prompt 3.1.1 Hipótesis General",
+            "cabecera": "Prompt 3.1.1 Hipótesis General",
+            "label": "3.1.1 Hipótesis General",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0028",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.1.2 Hipótesis Específica",
+        "section_title": "3.1.2 Hipótesis Específica",
+        "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_level": 2,
+        "section_order": 28,
+        "optional": false,
+        "default_selected": true,
+        "source_hints": "Formula una hipótesis específica por cada problema específico planteado. Cada una debe ser una proposición afirmativa que establezca una relación clara entre las dimensiones o indicadores de las variables involucradas, y debe poder ser aceptada o rechazada mediante pruebas estadísticas.\nFormula una hipótesis específica por cada problema específico planteado. Cada una debe ser una proposición afirmativa que establezca una relación clara entre las dimensiones o indicadores de las variables involucradas, y debe poder ser aceptada o rechazada mediante pruebas estadísticas.",
+        "source_content_type": "texto",
+        "blocks": [
+          {
+            "block_id": "managed:unac-informe-cuant:sec-0028",
+            "header": "Prompt 3.1.2 Hipótesis Específica",
+            "cabecera": "Prompt 3.1.2 Hipótesis Específica",
+            "label": "3.1.2 Hipótesis Específica",
+            "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
+            "required_variables": [
+              "diseno",
+              "enfoque",
+              "lugar",
+              "muestra",
+              "objetivo_general",
+              "poblacion",
+              "problema_general",
+              "tema",
+              "temporal",
+              "title",
+              "variable_dependiente",
+              "variable_independiente"
+            ],
+            "required": true,
+            "legacy_prompt_id": ""
+          }
+        ]
+      },
+      {
+        "section_id": "sec-0029",
+        "section_path": "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variables",
+        "section_title": "3.2 Operacionalización de variables",
+        "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+        "section_level": 2,
+        "section_order": 29,
         "optional": false,
         "default_selected": true,
         "source_hints": "Es el proceso técnico fundamental de convertir conceptos abstractos en datos medibles. Se suele presentar en una matriz (tabla) que contiene:\n\n- Definición Conceptual: Qué es la variable teóricamente según un autor.\n- Definición Operacional: Cómo se medirá, calculará o manipulará en este estudio específico.\n- Dimensiones: Factores, componentes o grandes aspectos de la variable.\n- Indicadores: La unidad de medida exacta y observable (ej. %, kg, horas, grados, puntaje).\n- Escala de medición: Nominal, Ordinal, de Intervalo o de Razón.\nEs el proceso técnico fundamental de convertir conceptos abstractos en datos medibles. Se suele presentar en una matriz (tabla) que contiene:\n\n- Definición Conceptual: Qué es la variable teóricamente según un autor.\n- Definición Operacional: Cómo se medirá, calculará o manipulará en este estudio específico.\n- Dimensiones: Factores, componentes o grandes aspectos de la variable.\n- Indicadores: La unidad de medida exacta y observable (ej. %, kg, horas, grados, puntaje).\n- Escala de medición: Nominal, Ordinal, de Intervalo o de Razón.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0017",
-            "header": "Prompt 3.1.1 Operacionalización de variables",
-            "cabecera": "Prompt 3.1.1 Operacionalización de variables",
-            "label": "3.1.1 Operacionalización de variables",
+            "block_id": "managed:unac-informe-cuant:sec-0029",
+            "header": "Prompt 3.2 Operacionalización de variables",
+            "cabecera": "Prompt 3.2 Operacionalización de variables",
+            "label": "3.2 Operacionalización de variables",
             "instructions": "Redacta SOLO esta sección en texto académico plano. No agregues el título de la sección ni formato markdown.\n\nReglas de política de contenido:\n- NO sugieras tablas/figuras en Introduccion, Objetivos, Justificacion, Conclusiones ni Recomendaciones.\n- Considera tablas/figuras principalmente en Marco teorico/Bases teoricas, Metodologia, Resultados, Discusion, Cronograma, Presupuesto, Matriz/Matrices, Operacionalizacion, Anexos y la descripcion de la realidad problematica cuando el formato lo exige.\n- En Capitulo II Marco teorico: no uses tablas ni figuras en Antecedentes, Marco conceptual ni Definicion de terminos basicos; en Bases teoricas usa solo las figuras controladas por subtema y las formulas tecnicas autorizadas. No inicies Bases teoricas con figuras, no coloques figuras consecutivas sin texto teorico y no muestres placeholders tecnicos al lector.\n- En Capitulo III: 3.1 no lleva tablas ni figuras; 3.2 solo lleva texto puente (sin TABLE_JSON, FIGURE_JSON ni FORMULA_JSON) porque las tablas 3.1/3.2 se renderizan desde los datos estructurados del proyecto.\n- En Capitulo IV: no uses figuras ni tablas en 4.1 a 4.7; 4.1 solo puede incluir el esquema textual M O1 X O2 con su leyenda.\n- En Cronograma de actividades: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.\n- En Presupuesto: genera solo tabla estructurada del proyecto actual; sin parrafos narrativos, sin listas y sin texto posterior.",
             "required_variables": [
               "diseno",
@@ -2031,19 +2475,19 @@
         ]
       },
       {
-        "section_id": "sec-0018",
+        "section_id": "sec-0030",
         "section_path": "IV. METODOLOGÍA",
         "section_title": "IV. METODOLOGÍA",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 18,
+        "section_order": 30,
         "optional": false,
         "default_selected": true,
         "source_hints": "",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0018",
+            "block_id": "managed:unac-informe-cuant:sec-0030",
             "header": "Prompt IV. METODOLOGÍA",
             "cabecera": "Prompt IV. METODOLOGÍA",
             "label": "IV. METODOLOGÍA",
@@ -2068,19 +2512,19 @@
         ]
       },
       {
-        "section_id": "sec-0019",
+        "section_id": "sec-0031",
         "section_path": "IV. METODOLOGÍA/4.1 Diseño metodológico",
         "section_title": "4.1 Diseño metodológico",
         "parent_section_path": "IV. METODOLOGÍA",
         "section_level": 2,
-        "section_order": 19,
+        "section_order": 31,
         "optional": false,
         "default_selected": true,
         "source_hints": "Define la estrategia operativa para probar la hipótesis. Debes especificar y justificar técnicamente:\n\n- Tipo de investigación: Básica (teórica/pura) o Aplicada (solución práctica/tecnológica).\n- Nivel: Exploratorio, Descriptivo, Correlacional o Explicativo (Causal).\n- Diseño:\n  * Experimental: Pre-experimental, Cuasi-experimental o Experimental puro (si manipulas deliberadamente la variable independiente).\n  * No Experimental: Transversal (una sola medición en el tiempo) o Longitudinal (varias mediciones a lo largo del tiempo).\nDefine la estrategia operativa para probar la hipótesis. Debes especificar y justificar técnicamente:\n\n- Tipo de investigación: Básica (teórica/pura) o Aplicada (solución práctica/tecnológica).\n- Nivel: Exploratorio, Descriptivo, Correlacional o Explicativo (Causal).\n- Diseño:\n  * Experimental: Pre-experimental, Cuasi-experimental o Experimental puro (si manipulas deliberadamente la variable independiente).\n  * No Experimental: Transversal (una sola medición en el tiempo) o Longitudinal (varias mediciones a lo largo del tiempo).",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0019",
+            "block_id": "managed:unac-informe-cuant:sec-0031",
             "header": "Prompt 4.1 Diseño metodológico",
             "cabecera": "Prompt 4.1 Diseño metodológico",
             "label": "4.1 Diseño metodológico",
@@ -2105,19 +2549,19 @@
         ]
       },
       {
-        "section_id": "sec-0020",
+        "section_id": "sec-0032",
         "section_path": "IV. METODOLOGÍA/4.2 Método de investigación",
         "section_title": "4.2 Método de investigación",
         "parent_section_path": "IV. METODOLOGÍA",
         "section_level": 2,
-        "section_order": 20,
+        "section_order": 32,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Describe el razonamiento lógico utilizado para la obtención de conocimiento.\n\nInstrucción: Generalmente en ingeniería se usa el Método Hipotético-Deductivo (parte de una teoría general, plantea hipótesis y las deduce/prueba en la realidad particular) o el Método Cuantitativo (basado en la medición numérica y el análisis estadístico objetivo).\nDescribe el razonamiento lógico utilizado para la obtención de conocimiento.\n\nInstrucción: Generalmente en ingeniería se usa el Método Hipotético-Deductivo (parte de una teoría general, plantea hipótesis y las deduce/prueba en la realidad particular) o el Método Cuantitativo (basado en la medición numérica y el análisis estadístico objetivo).",
+        "source_hints": "Describe el razonamiento lógico y el paradigma que orientan la investigación.\n\n- Paradigma: Indica el paradigma de investigación en el que se ubica el estudio (p. ej. positivista, orientado a explicar, controlar y predecir variables de manera objetiva y medible).\n- Enfoque: Sustenta por qué el estudio es cuantitativo, es decir, porque recolecta y analiza datos numéricos para probar hipótesis mediante análisis estadístico.\n- Método: En ingeniería se usa habitualmente el método Hipotético-Deductivo (parte de una teoría general, plantea hipótesis y las deduce/prueba en la realidad particular).\n- Sustento: Respalda cada elección metodológica citando al menos un autor de referencia en metodología de la investigación.\nDescribe el razonamiento lógico y el paradigma que orientan la investigación.\n\n- Paradigma: Indica el paradigma de investigación en el que se ubica el estudio (p. ej. positivista, orientado a explicar, controlar y predecir variables de manera objetiva y medible).\n- Enfoque: Sustenta por qué el estudio es cuantitativo, es decir, porque recolecta y analiza datos numéricos para probar hipótesis mediante análisis estadístico.\n- Método: En ingeniería se usa habitualmente el método Hipotético-Deductivo (parte de una teoría general, plantea hipótesis y las deduce/prueba en la realidad particular).\n- Sustento: Respalda cada elección metodológica citando al menos un autor de referencia en metodología de la investigación.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0020",
+            "block_id": "managed:unac-informe-cuant:sec-0032",
             "header": "Prompt 4.2 Método de investigación",
             "cabecera": "Prompt 4.2 Método de investigación",
             "label": "4.2 Método de investigación",
@@ -2142,19 +2586,19 @@
         ]
       },
       {
-        "section_id": "sec-0021",
+        "section_id": "sec-0033",
         "section_path": "IV. METODOLOGÍA/4.3 Población y muestra",
         "section_title": "4.3 Población y muestra",
         "parent_section_path": "IV. METODOLOGÍA",
         "section_level": 2,
-        "section_order": 21,
+        "section_order": 33,
         "optional": false,
         "default_selected": true,
         "source_hints": "Define quiénes o qué cosas serán medidas y analizadas.\n\n- Población: El conjunto total de elementos (personas, máquinas, registros, lotes de producción, expedientes) con características comunes observables.\n- Muestra: El subconjunto representativo seleccionado para medir. Debes indicar:\n  * Tipo de muestreo: Probabilístico (aleatorio simple, estratificado) o No Probabilístico (por conveniencia, criterio de expertos).\n  * Cálculo: Presentar la fórmula estadística utilizada para hallar el tamaño de la muestra (n) con sus parámetros (error, confianza) o sustentar por qué se usó toda la población (censo).\nDefine quiénes o qué cosas serán medidas y analizadas.\n\n- Población: El conjunto total de elementos (personas, máquinas, registros, lotes de producción, expedientes) con características comunes observables.\n- Muestra: El subconjunto representativo seleccionado para medir. Debes indicar:\n  * Tipo de muestreo: Probabilístico (aleatorio simple, estratificado) o No Probabilístico (por conveniencia, criterio de expertos).\n  * Cálculo: Presentar la fórmula estadística utilizada para hallar el tamaño de la muestra (n) con sus parámetros (error, confianza) o sustentar por qué se usó toda la población (censo).",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0021",
+            "block_id": "managed:unac-informe-cuant:sec-0033",
             "header": "Prompt 4.3 Población y muestra",
             "cabecera": "Prompt 4.3 Población y muestra",
             "label": "4.3 Población y muestra",
@@ -2179,19 +2623,19 @@
         ]
       },
       {
-        "section_id": "sec-0022",
+        "section_id": "sec-0034",
         "section_path": "IV. METODOLOGÍA/4.4 Lugar de estudio",
         "section_title": "4.4 Lugar de estudio",
         "parent_section_path": "IV. METODOLOGÍA",
         "section_level": 2,
-        "section_order": 22,
+        "section_order": 34,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Describe el entorno físico.\n\nInstrucción: Ubicación geográfica e institucional exacta donde se recolectan los datos (Dirección, Ciudad, Departamento, País).\nDescribe el entorno físico.\n\nInstrucción: Ubicación geográfica e institucional exacta donde se recolectan los datos (Dirección, Ciudad, Departamento, País).",
+        "source_hints": "Describe el entorno físico e institucional donde se ejecutó la investigación, así como el periodo en que se desarrolló.\n\n- Ubicación: Dirección, ciudad, departamento y país donde se recolectaron los datos o se implementó la propuesta.\n- Periodo de desarrollo: Rango de fechas o año en que se llevó a cabo la recolección de datos y el desarrollo del estudio, alineado con el cronograma de la institución.\nDescribe el entorno físico e institucional donde se ejecutó la investigación, así como el periodo en que se desarrolló.\n\n- Ubicación: Dirección, ciudad, departamento y país donde se recolectaron los datos o se implementó la propuesta.\n- Periodo de desarrollo: Rango de fechas o año en que se llevó a cabo la recolección de datos y el desarrollo del estudio, alineado con el cronograma de la institución.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0022",
+            "block_id": "managed:unac-informe-cuant:sec-0034",
             "header": "Prompt 4.4 Lugar de estudio",
             "cabecera": "Prompt 4.4 Lugar de estudio",
             "label": "4.4 Lugar de estudio",
@@ -2216,19 +2660,19 @@
         ]
       },
       {
-        "section_id": "sec-0023",
+        "section_id": "sec-0035",
         "section_path": "IV. METODOLOGÍA/4.5 Técnicas e instrumentos de recolección",
         "section_title": "4.5 Técnicas e instrumentos de recolección",
         "parent_section_path": "IV. METODOLOGÍA",
         "section_level": 2,
-        "section_order": 23,
+        "section_order": 35,
         "optional": false,
         "default_selected": true,
         "source_hints": "Detalla cómo obtendrás los datos 'crudos' de la realidad.\n\n- Técnicas: El medio o procedimiento de captura (ej. Encuesta, Observación directa, Análisis documental, Medición experimental con equipos).\n- Instrumentos: La herramienta física o digital de registro (ej. Cuestionario, Ficha de registro de datos, Hoja de verificación, Equipos de medición calibrados).\n- Validación y Confiabilidad:\n  * Validez: Mencionar si fue validado por Juicio de Expertos (adjuntar constancias en anexos).\n  * Confiabilidad: Indicar la prueba estadística piloto realizada (Alfa de Cronbach para encuestas, KR-20, o análisis de repetibilidad para instrumentos mecánicos).\nDetalla cómo obtendrás los datos 'crudos' de la realidad.\n\n- Técnicas: El medio o procedimiento de captura (ej. Encuesta, Observación directa, Análisis documental, Medición experimental con equipos).\n- Instrumentos: La herramienta física o digital de registro (ej. Cuestionario, Ficha de registro de datos, Hoja de verificación, Equipos de medición calibrados).\n- Validación y Confiabilidad:\n  * Validez: Mencionar si fue validado por Juicio de Expertos (adjuntar constancias en anexos).\n  * Confiabilidad: Indicar la prueba estadística piloto realizada (Alfa de Cronbach para encuestas, KR-20, o análisis de repetibilidad para instrumentos mecánicos).",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0023",
+            "block_id": "managed:unac-informe-cuant:sec-0035",
             "header": "Prompt 4.5 Técnicas e instrumentos de recolección",
             "cabecera": "Prompt 4.5 Técnicas e instrumentos de recolección",
             "label": "4.5 Técnicas e instrumentos de recolección",
@@ -2253,19 +2697,19 @@
         ]
       },
       {
-        "section_id": "sec-0024",
+        "section_id": "sec-0036",
         "section_path": "IV. METODOLOGÍA/4.6 Análisis y procesamiento de datos",
         "section_title": "4.6 Análisis y procesamiento de datos",
         "parent_section_path": "IV. METODOLOGÍA",
         "section_level": 2,
-        "section_order": 24,
+        "section_order": 36,
         "optional": false,
         "default_selected": true,
         "source_hints": "Describe cómo transformarás los datos brutos en información útil y conclusiones.\n\n- Herramientas: Mencionar el software utilizado (SPSS, Excel, Minitab, Matlab, Python, etc.).\n- Estadística Descriptiva: Uso de tablas de frecuencia, medidas de tendencia central (media, mediana) y dispersión (desviación estándar).\n- Estadística Inferencial: Especificar las pruebas para la contrastación de hipótesis:\n  * Prueba de Normalidad (Shapiro-Wilk o Kolmogorov-Smirnov).\n  * Prueba de Hipótesis (T-Student, U de Mann-Whitney, Wilcoxon, Pearson, Spearman, ANOVA) seleccionada según la normalidad de los datos.\nDescribe cómo transformarás los datos brutos en información útil y conclusiones.\n\n- Herramientas: Mencionar el software utilizado (SPSS, Excel, Minitab, Matlab, Python, etc.).\n- Estadística Descriptiva: Uso de tablas de frecuencia, medidas de tendencia central (media, mediana) y dispersión (desviación estándar).\n- Estadística Inferencial: Especificar las pruebas para la contrastación de hipótesis:\n  * Prueba de Normalidad (Shapiro-Wilk o Kolmogorov-Smirnov).\n  * Prueba de Hipótesis (T-Student, U de Mann-Whitney, Wilcoxon, Pearson, Spearman, ANOVA) seleccionada según la normalidad de los datos.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0024",
+            "block_id": "managed:unac-informe-cuant:sec-0036",
             "header": "Prompt 4.6 Análisis y procesamiento de datos",
             "cabecera": "Prompt 4.6 Análisis y procesamiento de datos",
             "label": "4.6 Análisis y procesamiento de datos",
@@ -2290,19 +2734,19 @@
         ]
       },
       {
-        "section_id": "sec-0025",
+        "section_id": "sec-0037",
         "section_path": "IV. METODOLOGÍA/4.7 Aspectos Éticos",
         "section_title": "4.7 Aspectos Éticos",
         "parent_section_path": "IV. METODOLOGÍA",
         "section_level": 2,
-        "section_order": 25,
+        "section_order": 37,
         "optional": false,
         "default_selected": true,
         "source_hints": "Declaración de integridad científica.\n\nInstrucción: Declaración explícita del cumplimiento de principios éticos (beneficencia, justicia, autonomía) y la Conducta Responsable en Investigación (CRI). Mencionar el cuidado del anonimato, el uso de consentimiento informado y la originalidad del trabajo (anti-plagio).\nDeclaración de integridad científica.\n\nInstrucción: Declaración explícita del cumplimiento de principios éticos (beneficencia, justicia, autonomía) y la Conducta Responsable en Investigación (CRI). Mencionar el cuidado del anonimato, el uso de consentimiento informado y la originalidad del trabajo (anti-plagio).",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0025",
+            "block_id": "managed:unac-informe-cuant:sec-0037",
             "header": "Prompt 4.7 Aspectos Éticos",
             "cabecera": "Prompt 4.7 Aspectos Éticos",
             "label": "4.7 Aspectos Éticos",
@@ -2327,19 +2771,19 @@
         ]
       },
       {
-        "section_id": "sec-0026",
+        "section_id": "sec-0038",
         "section_path": "V. RESULTADOS",
         "section_title": "V. RESULTADOS",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 26,
+        "section_order": 38,
         "optional": false,
         "default_selected": true,
         "source_hints": "",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0026",
+            "block_id": "managed:unac-informe-cuant:sec-0038",
             "header": "Prompt V. RESULTADOS",
             "cabecera": "Prompt V. RESULTADOS",
             "label": "V. RESULTADOS",
@@ -2364,19 +2808,19 @@
         ]
       },
       {
-        "section_id": "sec-0027",
+        "section_id": "sec-0039",
         "section_path": "V. RESULTADOS/5.1 Resultados descriptivos",
         "section_title": "5.1 Resultados descriptivos",
         "parent_section_path": "V. RESULTADOS",
         "section_level": 2,
-        "section_order": 27,
+        "section_order": 39,
         "optional": false,
         "default_selected": true,
         "source_hints": "Presenta el análisis exploratorio de los datos recolectados.\n\nInstrucción: Utiliza tablas de distribución de frecuencias y gráficos estadísticos (barras, líneas, histogramas, sectores) debidamente numerados y titulados según norma (APA/ISO). Debajo de cada tabla/figura, redacta una interpretación objetiva de los datos (qué porcentaje es mayor, cuál es la tendencia, qué dato resalta). No emitas juicios de valor aquí, solo describe los datos.\nPresenta el análisis exploratorio de los datos recolectados.\n\nInstrucción: Utiliza tablas de distribución de frecuencias y gráficos estadísticos (barras, líneas, histogramas, sectores) debidamente numerados y titulados según norma (APA/ISO). Debajo de cada tabla/figura, redacta una interpretación objetiva de los datos (qué porcentaje es mayor, cuál es la tendencia, qué dato resalta). No emitas juicios de valor aquí, solo describe los datos.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0027",
+            "block_id": "managed:unac-informe-cuant:sec-0039",
             "header": "Prompt 5.1 Resultados descriptivos",
             "cabecera": "Prompt 5.1 Resultados descriptivos",
             "label": "5.1 Resultados descriptivos",
@@ -2401,19 +2845,19 @@
         ]
       },
       {
-        "section_id": "sec-0028",
+        "section_id": "sec-0040",
         "section_path": "V. RESULTADOS/5.2 Resultados inferenciales",
         "section_title": "5.2 Resultados inferenciales",
         "parent_section_path": "V. RESULTADOS",
         "section_level": 2,
-        "section_order": 28,
+        "section_order": 40,
         "optional": false,
         "default_selected": true,
         "source_hints": "Es la parte crítica de la tesis cuantitativa donde se prueban las hipótesis.\n\nInstrucción:\n1. Presenta primero la Prueba de Normalidad para justificar si usas pruebas paramétricas o no paramétricas.\n2. Desarrolla la Prueba de Hipótesis para la General y las Específicas:\n  * Plantea estadísticamente H0 (Nula) y H1 (Alterna).\n  * Muestra el estadístico de prueba calculado y el Valor-p (Sig.).\n  * Toma la decisión estadística: 'Como p < 0.05, se rechaza la hipótesis nula y se acepta la alterna'.\nEs la parte crítica de la tesis cuantitativa donde se prueban las hipótesis.\n\nInstrucción:\n1. Presenta primero la Prueba de Normalidad para justificar si usas pruebas paramétricas o no paramétricas.\n2. Desarrolla la Prueba de Hipótesis para la General y las Específicas:\n  * Plantea estadísticamente H0 (Nula) y H1 (Alterna).\n  * Muestra el estadístico de prueba calculado y el Valor-p (Sig.).\n  * Toma la decisión estadística: 'Como p < 0.05, se rechaza la hipótesis nula y se acepta la alterna'.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0028",
+            "block_id": "managed:unac-informe-cuant:sec-0040",
             "header": "Prompt 5.2 Resultados inferenciales",
             "cabecera": "Prompt 5.2 Resultados inferenciales",
             "label": "5.2 Resultados inferenciales",
@@ -2438,19 +2882,19 @@
         ]
       },
       {
-        "section_id": "sec-0029",
+        "section_id": "sec-0041",
         "section_path": "VI. DISCUSIÓN DE RESULTADOS",
         "section_title": "VI. DISCUSIÓN DE RESULTADOS",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 29,
+        "section_order": 41,
         "optional": false,
         "default_selected": true,
         "source_hints": "",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0029",
+            "block_id": "managed:unac-informe-cuant:sec-0041",
             "header": "Prompt VI. DISCUSIÓN DE RESULTADOS",
             "cabecera": "Prompt VI. DISCUSIÓN DE RESULTADOS",
             "label": "VI. DISCUSIÓN DE RESULTADOS",
@@ -2475,19 +2919,19 @@
         ]
       },
       {
-        "section_id": "sec-0030",
+        "section_id": "sec-0042",
         "section_path": "VI. DISCUSIÓN DE RESULTADOS/6.1 Contrastación y demostración de la hipótesis",
         "section_title": "6.1 Contrastación y demostración de la hipótesis",
         "parent_section_path": "VI. DISCUSIÓN DE RESULTADOS",
         "section_level": 2,
-        "section_order": 30,
+        "section_order": 42,
         "optional": false,
         "default_selected": true,
         "source_hints": "Realiza la discusión técnica de los hallazgos inferenciales.\n\nInstrucción: Analiza si la evidencia estadística obtenida (en el cap. 5.2) respalda o no lo que afirmaste teóricamente en tu Hipótesis (cap. 3.1). Explica qué significa este resultado en el contexto de tu problema de ingeniería (ej. 'Se demostró estadísticamente que el nuevo sistema redujo las fallas en un 20%, validando la hipótesis de mejora...').\nRealiza la discusión técnica de los hallazgos inferenciales.\n\nInstrucción: Analiza si la evidencia estadística obtenida (en el cap. 5.2) respalda o no lo que afirmaste teóricamente en tu Hipótesis (cap. 3.1). Explica qué significa este resultado en el contexto de tu problema de ingeniería (ej. 'Se demostró estadísticamente que el nuevo sistema redujo las fallas en un 20%, validando la hipótesis de mejora...').",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0030",
+            "block_id": "managed:unac-informe-cuant:sec-0042",
             "header": "Prompt 6.1 Contrastación y demostración de la hipótesis",
             "cabecera": "Prompt 6.1 Contrastación y demostración de la hipótesis",
             "label": "6.1 Contrastación y demostración de la hipótesis",
@@ -2512,19 +2956,19 @@
         ]
       },
       {
-        "section_id": "sec-0031",
+        "section_id": "sec-0043",
         "section_path": "VI. DISCUSIÓN DE RESULTADOS/6.2 Contrastación con otros estudios",
         "section_title": "6.2 Contrastación con otros estudios",
         "parent_section_path": "VI. DISCUSIÓN DE RESULTADOS",
         "section_level": 2,
-        "section_order": 31,
+        "section_order": 43,
         "optional": false,
         "default_selected": true,
         "source_hints": "Triangulación de resultados para dar validez externa.\n\nInstrucción: Compara tus hallazgos con los Antecedentes presentados en el capítulo 2.1.\n* Ejemplo: 'Este resultado coincide con lo hallado por Pérez (2020), quien también observó mejoras significativas...' o 'Difiere de Gómez (2019), posiblemente debido a las diferentes condiciones de...'.\nEsto valida la robustez y coherencia de tu investigación frente al conocimiento existente.\nTriangulación de resultados para dar validez externa.\n\nInstrucción: Compara tus hallazgos con los Antecedentes presentados en el capítulo 2.1.\n* Ejemplo: 'Este resultado coincide con lo hallado por Pérez (2020), quien también observó mejoras significativas...' o 'Difiere de Gómez (2019), posiblemente debido a las diferentes condiciones de...'.\nEsto valida la robustez y coherencia de tu investigación frente al conocimiento existente.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0031",
+            "block_id": "managed:unac-informe-cuant:sec-0043",
             "header": "Prompt 6.2 Contrastación con otros estudios",
             "cabecera": "Prompt 6.2 Contrastación con otros estudios",
             "label": "6.2 Contrastación con otros estudios",
@@ -2549,19 +2993,19 @@
         ]
       },
       {
-        "section_id": "sec-0032",
+        "section_id": "sec-0044",
         "section_path": "VI. DISCUSIÓN DE RESULTADOS/6.3 Responsabilidad ética",
         "section_title": "6.3 Responsabilidad ética",
         "parent_section_path": "VI. DISCUSIÓN DE RESULTADOS",
         "section_level": 2,
-        "section_order": 32,
+        "section_order": 44,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Declaración final de integridad sobre los resultados.\n\nInstrucción: El autor asume la responsabilidad por la veracidad, autenticidad y el rigor científico de los datos presentados, asegurando que no han sido manipulados ni fabricados.\nDeclaración final de integridad sobre los resultados.\n\nInstrucción: El autor asume la responsabilidad por la veracidad, autenticidad y el rigor científico de los datos presentados, asegurando que no han sido manipulados ni fabricados.",
+        "source_hints": "Declaración final de integridad sobre los resultados obtenidos.\n\n- Confidencialidad: Explica cómo se garantizó el anonimato y la confidencialidad de los datos y participantes involucrados.\n- Consentimiento informado: Menciona que los participantes conocieron los objetivos del estudio y el uso de sus datos, y aceptaron participar de manera voluntaria.\n- Veracidad: El autor asume la responsabilidad por la autenticidad y el rigor científico de los datos presentados, asegurando que no han sido manipulados ni fabricados, y que cumplen con la normativa vigente de ética en investigación.\nDeclaración final de integridad sobre los resultados obtenidos.\n\n- Confidencialidad: Explica cómo se garantizó el anonimato y la confidencialidad de los datos y participantes involucrados.\n- Consentimiento informado: Menciona que los participantes conocieron los objetivos del estudio y el uso de sus datos, y aceptaron participar de manera voluntaria.\n- Veracidad: El autor asume la responsabilidad por la autenticidad y el rigor científico de los datos presentados, asegurando que no han sido manipulados ni fabricados, y que cumplen con la normativa vigente de ética en investigación.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0032",
+            "block_id": "managed:unac-informe-cuant:sec-0044",
             "header": "Prompt 6.3 Responsabilidad ética",
             "cabecera": "Prompt 6.3 Responsabilidad ética",
             "label": "6.3 Responsabilidad ética",
@@ -2586,19 +3030,19 @@
         ]
       },
       {
-        "section_id": "sec-0033",
+        "section_id": "sec-0045",
         "section_path": "VII. CONCLUSIONES",
         "section_title": "VII. CONCLUSIONES",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 33,
+        "section_order": 45,
         "optional": false,
         "default_selected": true,
         "source_hints": "Son sentencias directas, precisas y numeradas que responden a los objetivos planteados.\n\nInstrucción:\n- Deben ser numeradas.\n- Debe haber al menos una conclusión por cada objetivo específico y una para el objetivo general.\n- Deben incluir datos cuantitativos clave hallados en la investigación (ej. 'Se determinó que la eficiencia aumentó en 15%...', 'Existe una correlación positiva alta de 0.85...').\n- No presentar citas de autores ni explicaciones teóricas aquí, solo hallazgos directos.\nSon sentencias directas, precisas y numeradas que responden a los objetivos planteados.\n\nInstrucción:\n- Deben ser numeradas.\n- Debe haber al menos una conclusión por cada objetivo específico y una para el objetivo general.\n- Deben incluir datos cuantitativos clave hallados en la investigación (ej. 'Se determinó que la eficiencia aumentó en 15%...', 'Existe una correlación positiva alta de 0.85...').\n- No presentar citas de autores ni explicaciones teóricas aquí, solo hallazgos directos.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0033",
+            "block_id": "managed:unac-informe-cuant:sec-0045",
             "header": "Prompt VII. CONCLUSIONES",
             "cabecera": "Prompt VII. CONCLUSIONES",
             "label": "VII. CONCLUSIONES",
@@ -2623,19 +3067,19 @@
         ]
       },
       {
-        "section_id": "sec-0034",
+        "section_id": "sec-0046",
         "section_path": "VIII. RECOMENDACIONES",
         "section_title": "VIII. RECOMENDACIONES",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 34,
+        "section_order": 46,
         "optional": false,
         "default_selected": true,
         "source_hints": "Sugerencias de acción prácticas y viables basadas en las conclusiones.\nSugerencias de acción prácticas y viables basadas en las conclusiones.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0034",
+            "block_id": "managed:unac-informe-cuant:sec-0046",
             "header": "Prompt VIII. RECOMENDACIONES",
             "cabecera": "Prompt VIII. RECOMENDACIONES",
             "label": "VIII. RECOMENDACIONES",
@@ -2660,19 +3104,19 @@
         ]
       },
       {
-        "section_id": "sec-0035",
+        "section_id": "sec-0047",
         "section_path": "VIII. RECOMENDACIONES/8.1 Recomendaciones metodológicas",
         "section_title": "8.1 Recomendaciones metodológicas",
         "parent_section_path": "VIII. RECOMENDACIONES",
         "section_level": 2,
-        "section_order": 35,
+        "section_order": 47,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Para futuros investigadores: ampliar muestra, incluir nuevas variables, usar otro diseño.\nPara futuros investigadores: ampliar muestra, incluir nuevas variables, usar otro diseño.",
+        "source_hints": "Sugiere mejoras aplicables al diseño metodológico de futuras investigaciones sobre el mismo objeto de estudio.\n\n- Ampliación de muestra: Recomienda incrementar el tamaño o alcance de la muestra para mejorar la representatividad y la potencia estadística.\n- Nuevas variables o dimensiones: Sugiere incorporar variables, dimensiones o indicadores adicionales no abordados en este estudio.\n- Otros diseños o instrumentos: Propone explorar diseños de investigación complementarios (longitudinal, cuasi-experimental) o instrumentos de medición alternativos.\nSugiere mejoras aplicables al diseño metodológico de futuras investigaciones sobre el mismo objeto de estudio.\n\n- Ampliación de muestra: Recomienda incrementar el tamaño o alcance de la muestra para mejorar la representatividad y la potencia estadística.\n- Nuevas variables o dimensiones: Sugiere incorporar variables, dimensiones o indicadores adicionales no abordados en este estudio.\n- Otros diseños o instrumentos: Propone explorar diseños de investigación complementarios (longitudinal, cuasi-experimental) o instrumentos de medición alternativos.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0035",
+            "block_id": "managed:unac-informe-cuant:sec-0047",
             "header": "Prompt 8.1 Recomendaciones metodológicas",
             "cabecera": "Prompt 8.1 Recomendaciones metodológicas",
             "label": "8.1 Recomendaciones metodológicas",
@@ -2697,19 +3141,19 @@
         ]
       },
       {
-        "section_id": "sec-0036",
+        "section_id": "sec-0048",
         "section_path": "VIII. RECOMENDACIONES/8.2 Recomendaciones académicas",
         "section_title": "8.2 Recomendaciones académicas",
         "parent_section_path": "VIII. RECOMENDACIONES",
         "section_level": 2,
-        "section_order": 36,
+        "section_order": 48,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Para la universidad o línea de investigación.\nPara la universidad o línea de investigación.",
+        "source_hints": "Dirige sugerencias a la universidad, facultad o línea de investigación relacionada con el estudio.\n\n- Fortalecimiento curricular: Recomienda ajustes en los planes de estudio, cursos o programas académicos a partir de los hallazgos obtenidos.\n- Nuevas líneas de investigación: Propone temas o problemas derivados de este estudio que ameriten futuras tesis o proyectos de investigación.\n- Difusión del conocimiento: Sugiere la publicación o socialización de los resultados en revistas, congresos o repositorios institucionales.\nDirige sugerencias a la universidad, facultad o línea de investigación relacionada con el estudio.\n\n- Fortalecimiento curricular: Recomienda ajustes en los planes de estudio, cursos o programas académicos a partir de los hallazgos obtenidos.\n- Nuevas líneas de investigación: Propone temas o problemas derivados de este estudio que ameriten futuras tesis o proyectos de investigación.\n- Difusión del conocimiento: Sugiere la publicación o socialización de los resultados en revistas, congresos o repositorios institucionales.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0036",
+            "block_id": "managed:unac-informe-cuant:sec-0048",
             "header": "Prompt 8.2 Recomendaciones académicas",
             "cabecera": "Prompt 8.2 Recomendaciones académicas",
             "label": "8.2 Recomendaciones académicas",
@@ -2734,19 +3178,19 @@
         ]
       },
       {
-        "section_id": "sec-0037",
+        "section_id": "sec-0049",
         "section_path": "VIII. RECOMENDACIONES/8.3 Recomendaciones prácticas",
         "section_title": "8.3 Recomendaciones prácticas",
         "parent_section_path": "VIII. RECOMENDACIONES",
         "section_level": 2,
-        "section_order": 37,
+        "section_order": 49,
         "optional": false,
         "default_selected": true,
-        "source_hints": "Dirigidas a la empresa o institución estudiada: implementar el plan diseñado, realizar mantenimientos periódicos, capacitar al personal. Deben ser acciones concretas y realizables.\nDirigidas a la empresa o institución estudiada: implementar el plan diseñado, realizar mantenimientos periódicos, capacitar al personal. Deben ser acciones concretas y realizables.",
+        "source_hints": "Dirige sugerencias de acción concretas y viables a la empresa, institución o entidad donde se realizó el estudio.\n\n- Implementación: Recomienda ejecutar o consolidar la propuesta, plan o solución validada por la investigación.\n- Seguimiento y control: Sugiere mecanismos de monitoreo periódico (indicadores, auditorías, mantenimientos) para sostener las mejoras logradas en el tiempo.\n- Capacitación: Propone programas de capacitación o sensibilización del personal involucrado para asegurar la correcta apropiación de la mejora implementada.\nDirige sugerencias de acción concretas y viables a la empresa, institución o entidad donde se realizó el estudio.\n\n- Implementación: Recomienda ejecutar o consolidar la propuesta, plan o solución validada por la investigación.\n- Seguimiento y control: Sugiere mecanismos de monitoreo periódico (indicadores, auditorías, mantenimientos) para sostener las mejoras logradas en el tiempo.\n- Capacitación: Propone programas de capacitación o sensibilización del personal involucrado para asegurar la correcta apropiación de la mejora implementada.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0037",
+            "block_id": "managed:unac-informe-cuant:sec-0049",
             "header": "Prompt 8.3 Recomendaciones prácticas",
             "cabecera": "Prompt 8.3 Recomendaciones prácticas",
             "label": "8.3 Recomendaciones prácticas",
@@ -2771,19 +3215,19 @@
         ]
       },
       {
-        "section_id": "sec-0038",
+        "section_id": "sec-0050",
         "section_path": "IX. REFERENCIAS BIBLIOGRÁFICAS",
         "section_title": "IX. REFERENCIAS BIBLIOGRÁFICAS",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 38,
+        "section_order": 50,
         "optional": false,
         "default_selected": true,
         "source_hints": "Listado riguroso según norma (ISO 690/IEEE para Ingeniería, APA otras). Usar gestores bibliográficos.\nListado riguroso según norma (ISO 690/IEEE para Ingeniería, APA otras). Usar gestores bibliográficos.",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0038",
+            "block_id": "managed:unac-informe-cuant:sec-0050",
             "header": "Prompt IX. REFERENCIAS BIBLIOGRÁFICAS",
             "cabecera": "Prompt IX. REFERENCIAS BIBLIOGRÁFICAS",
             "label": "IX. REFERENCIAS BIBLIOGRÁFICAS",
@@ -2808,19 +3252,19 @@
         ]
       },
       {
-        "section_id": "sec-0039",
+        "section_id": "sec-0051",
         "section_path": "ANEXOS",
         "section_title": "ANEXOS",
         "parent_section_path": "",
         "section_level": 1,
-        "section_order": 39,
+        "section_order": 51,
         "optional": true,
         "default_selected": false,
         "source_hints": "",
         "source_content_type": "texto",
         "blocks": [
           {
-            "block_id": "managed:unac-informe-cuant:sec-0039",
+            "block_id": "managed:unac-informe-cuant:sec-0051",
             "header": "Prompt ANEXOS",
             "cabecera": "Prompt ANEXOS",
             "label": "ANEXOS",

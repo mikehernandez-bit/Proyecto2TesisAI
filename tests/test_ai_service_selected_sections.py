@@ -211,7 +211,9 @@ def test_generate_includes_app_memory_between_sections():
         )
 
     assert len(result["sections"]) == 2
-    assert len(provider.prompts) == 3
+    # 2 prompts: la reparacion hardcodeada de "1.1 realidad problematica"
+    # (topico fijo RCM/CAT 24M) esta deshabilitada; ver _repair_reality_problem_sections.
+    assert len(provider.prompts) == 2
     assert "Memoria de continuidad entre secciones:" not in provider.prompts[0]
     assert "Memoria de continuidad entre secciones:" in provider.prompts[1]
     assert "Secciones previas completadas: INTRODUCCION" in provider.prompts[1]

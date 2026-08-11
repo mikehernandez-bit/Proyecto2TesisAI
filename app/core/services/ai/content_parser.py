@@ -44,6 +44,66 @@ def _strip_external_fences(raw: str) -> str:
     return _FENCE_LINE_RE.sub("", raw).strip()
 
 
+# Bare keyword marker, con o sin los delimitadores <<< >>> (parcial o
+# totalmente ausentes). El modelo a veces emite solo "FORMULA_JSON" (o
+# TABLE_JSON/FIGURE_JSON) pegado a un bloque "{...}" sin la envoltura
+# <<<...>>> esperada. _TABLE_BLOCK_RE/_FIGURE_BLOCK_RE/_FORMULA_BLOCK_RE no
+# matchean ese caso y el JSON crudo se queda como texto visible.
+_BARE_STRUCTURED_KEYWORD_RE = re.compile(
+    r"<{0,3}\s*(?:TABLE_JSON|FIGURE_JSON|FORMULA_JSON)\s*>{0,3}",
+    re.IGNORECASE,
+)
+
+
+def _strip_bare_structured_json_blocks(text: str) -> str:
+    """Remove TABLE_JSON/FIGURE_JSON/FORMULA_JSON leaks that arrive without
+    (or with malformed) ``<<<...>>>`` delimiters.
+
+    Scans for a bare keyword immediately followed by a balanced ``{...}``
+    object and drops that whole span -- regardless of whether the JSON is
+    well-formed or matches any expected schema -- so raw JSON never leaks
+    into the final document as visible prose.
+    """
+    result: list[str] = []
+    pos = 0
+    for match in _BARE_STRUCTURED_KEYWORD_RE.finditer(text):
+        if match.start() < pos:
+            continue
+        brace_start = text.find("{", match.end())
+        between = text[match.end():brace_start] if brace_start != -1 else ""
+        if brace_start == -1 or between.strip():
+            # No JSON object glued right after the keyword: this is not a
+            # leaked structured block, leave it untouched.
+            continue
+
+        depth = 0
+        end = None
+        for idx in range(brace_start, len(text)):
+            ch = text[idx]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = idx + 1
+                    break
+        if end is None:
+            # Unbalanced braces: drop from the keyword onward rather than
+            # leak a half-open JSON blob to the reader.
+            end = len(text)
+
+        trailing = text[end : end + 40]
+        trailing_match = _BARE_STRUCTURED_KEYWORD_RE.match(trailing.lstrip())
+        if trailing_match:
+            end += (len(trailing) - len(trailing.lstrip())) + trailing_match.end()
+
+        result.append(text[pos : match.start()])
+        pos = end
+
+    result.append(text[pos:])
+    return "".join(result)
+
+
 def _normalize_marker_value(value: Any) -> Any:
     if isinstance(value, str) and value.strip() in _MARKER_TOKENS:
         return "●"
@@ -107,13 +167,17 @@ def parse_ai_content(raw_content: str) -> Union[str, List[Dict[str, Any]]]:
 
     raw_content = _strip_external_fences(raw_content)
 
-    # Quick check: are there any delimited blocks at all?
+    # Quick check: are there any well-formed <<<...>>> delimited blocks at all?
     if (
         "<<<TABLE_JSON" not in raw_content
         and "<<<FIGURE_JSON" not in raw_content
         and "<<<FORMULA_JSON" not in raw_content
     ):
-        return raw_content  # plain text, return as-is
+        # No well-formed block, but the model may still have left a bare
+        # keyword (e.g. "FORMULA_JSON" with no <<<...>>> at all) glued to a
+        # raw "{...}" blob. Strip that before returning plain text, so it
+        # never leaks into the document as visible JSON.
+        return _strip_bare_structured_json_blocks(raw_content).strip()
 
     parts = _ANY_BLOCK_RE.split(raw_content)
     result: List[Dict[str, Any]] = []
@@ -152,7 +216,10 @@ def parse_ai_content(raw_content: str) -> Union[str, List[Dict[str, Any]]]:
                 result.append(obj)
             continue
 
-        # Plain text paragraph(s)
+        # Plain text paragraph(s). Strip any bare (non-delimited) keyword +
+        # JSON leak that may still be glued to otherwise-normal prose in
+        # this segment before splitting into paragraph blocks.
+        part_stripped = _strip_bare_structured_json_blocks(part_stripped).strip()
         for paragraph in part_stripped.split("\n\n"):
             text = paragraph.strip()
             if _FENCE_LINE_RE.fullmatch(text):

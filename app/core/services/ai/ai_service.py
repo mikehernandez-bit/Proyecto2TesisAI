@@ -1903,7 +1903,18 @@ class AIService:
         format_id: Optional[str],
         selection: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
-        """Run one strict rewrite when 1.1 fails the thesis-quality contract."""
+        """Run one strict rewrite when 1.1 fails the thesis-quality contract.
+
+        Deshabilitado: la validacion/reparacion/fallback de esta seccion estaba
+        hardcodeada a un proyecto de demo especifico (RCM, flota CAT 24M,
+        MTBF/MTTR, mineria). Bloqueaba la generacion de cualquier tesis con un
+        tema distinto y, en el peor caso, insertaba contenido inventado sobre
+        equipos mineros en proyectos sin relacion alguna con ese tema. Se
+        desactiva por completo hasta que exista una version generica (sin
+        temas ni cifras hardcodeadas).
+        """
+        return sections
+        # ruff: noqa - codigo original conservado por referencia, no se ejecuta.
         repaired_count = 0
         for section in sections:
             if not isinstance(section, dict):

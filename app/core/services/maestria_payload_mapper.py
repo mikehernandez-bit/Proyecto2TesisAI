@@ -14,8 +14,12 @@ from typing import Any
 
 DEFAULT_FACULTAD = "Facultad de Ingeniería Mecánica y de Energía"
 DEFAULT_UNIDAD_INVESTIGACION = "Unidad de Posgrado de la Facultad de Ingeniería Mecánica y de Energía"
-DEFAULT_TIPO_DOCUMENTO = "Tesis de Maestría"
-DEFAULT_FRASE_GRADO = "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO"
+# NOTA: tipo_documento/frase_grado ya NO se hardcodean aqui. Antes forzaban
+# "Tesis de Maestria" / "PARA OPTAR EL GRADO ACADEMICO DE MAESTRO EN GERENCIA
+# DE MANTENIMIENTO" en CUALQUIER proyecto que pasara por el formulario
+# estructurado (incluido Informe de Tesis), pisando el caratula correcto que
+# ya define cada formato en GicaTesis. Se retira para dejar que GicaTesis
+# resuelva estos campos segun el formato real seleccionado.
 
 
 def _clean_text(value: Any) -> str:
@@ -371,8 +375,6 @@ def map_maestria_values(raw_values: dict[str, Any]) -> dict[str, Any]:
         "facultad": details["facultad"],
         "unidad_investigacion": details["unidad_investigacion"],
         "escuela": "",
-        "tipo_documento": DEFAULT_TIPO_DOCUMENTO,
-        "frase_grado": DEFAULT_FRASE_GRADO,
         "abreviaturas": abreviaturas,
         "matriz_consistencia": matriz,
         "operacionalizacion_vd": operacionalizacion_vd,

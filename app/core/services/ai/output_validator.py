@@ -97,6 +97,13 @@ class OutputValidator:
         r"(?:TABLE_JSON|FIGURE_JSON|FORMULA_JSON)>>>",
         re.IGNORECASE,
     )
+    # Bare keyword marker, con o sin los delimitadores <<< >>> (parcial o
+    # totalmente ausentes). Usado como ancla para localizar y eliminar
+    # bloques JSON que el modelo dejo sin envolver correctamente.
+    _BARE_STRUCTURED_KEYWORD_RE = re.compile(
+        r"<{0,3}\s*(?:TABLE_JSON|FIGURE_JSON|FORMULA_JSON)\s*>{0,3}",
+        re.IGNORECASE,
+    )
     _SKIP_SECTION_TOKEN = "<<SKIP_SECTION>>"
     _REALITY_PROBLEM_REQUIRED_PATTERNS = (
         ("85 %", re.compile(r"\b85\s*%", re.IGNORECASE)),
@@ -410,9 +417,63 @@ class OutputValidator:
         return any(cls._normalize_token(phrase).upper() in normalized for phrase in cls._FORBIDDEN_PHRASES)
 
     @classmethod
+    def _strip_bare_structured_json_blocks(cls, text: str) -> str:
+        """Remove TABLE_JSON/FIGURE_JSON/FORMULA_JSON leaks that reach the
+        visible text without well-formed ``<<<...>>>`` delimiters.
+
+        ``_DELIMITED_BLOCK_RE`` only matches a complete ``<<<KEYWORD ...
+        KEYWORD>>>`` pair. When the model drops the delimiters (emits just
+        the bare keyword, e.g. "FORMULA_JSON" followed directly by "{...}")
+        that regex never fires and the raw JSON leaks straight into the
+        document as prose. This scans for a bare keyword immediately
+        followed by a balanced ``{...}`` object -- regardless of whether it
+        parses as valid JSON or contains a "tipo" key -- and drops that
+        whole span.
+        """
+        result: list[str] = []
+        pos = 0
+        for match in cls._BARE_STRUCTURED_KEYWORD_RE.finditer(text):
+            if match.start() < pos:
+                continue
+            brace_start = text.find("{", match.end())
+            between = text[match.end():brace_start] if brace_start != -1 else ""
+            if brace_start == -1 or between.strip():
+                # No JSON object glued right after the keyword: leave this
+                # occurrence untouched, it is not a leaked structured block.
+                continue
+
+            depth = 0
+            end = None
+            for idx in range(brace_start, len(text)):
+                ch = text[idx]
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = idx + 1
+                        break
+            if end is None:
+                # Unbalanced braces: still drop from the keyword onward
+                # rather than leak a half-open JSON blob to the reader.
+                end = len(text)
+
+            trailing = text[end : end + 40]
+            trailing_match = cls._BARE_STRUCTURED_KEYWORD_RE.match(trailing.lstrip())
+            if trailing_match:
+                end += (len(trailing) - len(trailing.lstrip())) + trailing_match.end()
+
+            result.append(text[pos : match.start()])
+            pos = end
+
+        result.append(text[pos:])
+        return "".join(result)
+
+    @classmethod
     def _strip_structured_artifacts_from_text(cls, text: str) -> str:
         """Drop leaked JSON/Python repr blocks from plain-text content."""
         cleaned = cls._DELIMITED_BLOCK_RE.sub(" ", text)
+        cleaned = cls._strip_bare_structured_json_blocks(cleaned)
         kept_lines: list[str] = []
         for line in cleaned.splitlines():
             stripped = line.strip()
