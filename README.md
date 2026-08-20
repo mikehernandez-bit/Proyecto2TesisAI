@@ -24,6 +24,42 @@ python -m uvicorn app.main:app --port 8001 --reload
 
 Abre `http://127.0.0.1:8001/`.
 
+## Ejecucion local con Docker
+
+Este flujo es solo para desarrollo local; no contiene configuracion de
+despliegue ni publica imagenes.
+
+Requisitos:
+
+- Docker Desktop iniciado y usando contenedores Linux.
+- Los repositorios `Gicagen` y `Gicatesis` deben permanecer como carpetas
+  hermanas.
+
+Desde la carpeta `Gicagen`:
+
+```powershell
+docker compose -f compose.local.yml up --build
+```
+
+Servicios:
+
+- GicaTesis: `http://127.0.0.1:8000`
+- GicaGen: `http://127.0.0.1:8001`
+
+Las claves IA pueden mantenerse en el `.env` local de GicaGen. Compose lee ese
+archivo automaticamente para interpolar `GEMINI_API_KEY`, `MISTRAL_API_KEY`,
+`OPENROUTER_API_KEY` y `AI_PRIMARY_PROVIDER`.
+
+Para detener los servicios:
+
+```powershell
+docker compose -f compose.local.yml down
+```
+
+Los directorios `app`, `data` y `outputs` se montan localmente. Uvicorn usa
+recarga automatica, por lo que los cambios de codigo no requieren reconstruir
+la imagen salvo que cambien las dependencias o el Dockerfile.
+
 ## Variables clave
 
 Fuente: `app/core/config.py` y `.env.example`.

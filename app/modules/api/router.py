@@ -1449,9 +1449,12 @@ async def proxy_asset(path: str):
         )
 
     url = f"{settings.GICATESIS_BASE_URL}/assets/{path}"
+    headers = {}
+    if settings.GICATESIS_API_KEY:
+        headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(url)
+            resp = await client.get(url, headers=headers)
     except httpx.RequestError:
         gicatesis_status.record_failure("asset proxy connection error")
         raise HTTPException(
@@ -2186,7 +2189,10 @@ async def sim_download_docx(projectId: str, runId: Optional[str] = None):
 
     async with httpx.AsyncClient(timeout=180.0) as client:
         try:
-            response = await client.post(url, json=payload)
+            headers = {}
+            if settings.GICATESIS_API_KEY:
+                headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+            response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             upstream_detail = _extract_upstream_detail(exc.response, "GicaTesis render/docx failed")
@@ -2290,7 +2296,10 @@ async def sim_download_pdf(projectId: str, runId: Optional[str] = None):
 
     async with httpx.AsyncClient(timeout=240.0) as client:
         try:
-            response = await client.post(url, json=payload)
+            headers = {}
+            if settings.GICATESIS_API_KEY:
+                headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+            response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             upstream_detail = _extract_upstream_detail(exc.response, "GicaTesis render/pdf failed")

@@ -1,0 +1,62 @@
+name: gica-local
+
+services:
+  gicatesis:
+    build:
+      context: ../Gicatesis
+      dockerfile: Dockerfile
+    environment:
+      GICA_DEFAULT_UNI: ${GICA_DEFAULT_UNI:-unac}
+      GICATESIS_API_KEY: ${GICATESIS_API_KEY:-}
+      GICATESIS_CORS_ORIGINS: http://localhost:8001,http://127.0.0.1:8001
+      GICATESIS_LIBREOFFICE_BIN: /usr/bin/libreoffice
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../Gicatesis/app:/workspace/app
+      - ../Gicatesis/outputs:/workspace/outputs
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+
+  gicagen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      gicatesis:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      GICAGEN_PORT: "8001"
+      GICAGEN_BASE_URL: http://localhost:8001
+      GICATESIS_BASE_URL: http://gicatesis:8000/api/v1
+      GICATESIS_API_KEY: ${GICATESIS_API_KEY:-}
+      GICAGEN_DEMO_MODE: "false"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      AI_PRIMARY_PROVIDER: ${AI_PRIMARY_PROVIDER:-mistral}
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./app:/workspace/app
+      - ./data:/workspace/data
+      - ./outputs:/workspace/outputs
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/healthz', timeout=3)"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s

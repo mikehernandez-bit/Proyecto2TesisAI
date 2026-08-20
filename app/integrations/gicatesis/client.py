@@ -39,6 +39,13 @@ class GicaTesisClient:
         self.base_url = settings.GICATESIS_BASE_URL.rstrip("/")
         self.timeout = settings.GICATESIS_TIMEOUT
 
+    @staticmethod
+    def _headers(extra: Optional[dict[str, str]] = None) -> dict[str, str]:
+        headers = dict(extra or {})
+        if settings.GICATESIS_API_KEY:
+            headers["X-GICATESIS-KEY"] = settings.GICATESIS_API_KEY
+        return headers
+
     async def get_catalog_version(self) -> CatalogVersionResponse:
         """
         GET /formats/version
@@ -48,7 +55,7 @@ class GicaTesisClient:
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                r = await client.get(f"{self.base_url}/formats/version")
+                r = await client.get(f"{self.base_url}/formats/version", headers=self._headers())
                 r.raise_for_status()
                 return CatalogVersionResponse(**r.json())
         except httpx.ConnectError as e:
@@ -79,7 +86,7 @@ class GicaTesisClient:
             - 200: (200, [FormatSummary, ...], "new-etag")
             - 304: (304, None, None) - Cache is still valid
         """
-        headers = {}
+        headers: dict[str, str] = {}
         if etag:
             # ETag must be sent exactly as received (with quotes if present)
             headers["If-None-Match"] = etag
@@ -94,7 +101,7 @@ class GicaTesisClient:
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                r = await client.get(f"{self.base_url}/formats", params=params, headers=headers)
+                r = await client.get(f"{self.base_url}/formats", params=params, headers=self._headers(headers))
 
                 # Handle 304 Not Modified
                 if r.status_code == 304:
@@ -125,7 +132,7 @@ class GicaTesisClient:
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                r = await client.get(f"{self.base_url}/formats/{format_id}")
+                r = await client.get(f"{self.base_url}/formats/{format_id}", headers=self._headers())
 
                 if r.status_code == 404:
                     return None
