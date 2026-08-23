@@ -63,3 +63,11 @@ class ProviderTransientError(AIServiceError):
 
 class GenerationCancelledError(AIServiceError):
     """Raised when a generation run is cancelled by the user."""
+
+
+class QualityProfileValidationError(AIServiceError):
+    """Raised when generated content cannot satisfy the active quality profile."""
+
+    def __init__(self, message: str, *, failed_quality_keys: list[str] | None = None) -> None:
+        super().__init__(message)
+        self.failed_quality_keys = tuple(str(key) for key in (failed_quality_keys or []) if str(key).strip())

@@ -14,7 +14,7 @@ from app.core.services.definition_compiler import (
 )
 from app.core.services.simulation_artifact_service import (
     _add_toc_field,
-    _enable_update_fields,
+    _disable_update_fields,
     _render_ir_to_docx,
     build_simulated_docx,
 )
@@ -84,24 +84,23 @@ class TestAddTocField:
 
 
 # ---------------------------------------------------------------------------
-# _enable_update_fields — settings.xml
+# _disable_update_fields — settings.xml
 # ---------------------------------------------------------------------------
 
 
-class TestEnableUpdateFields:
-    def test_update_fields_in_settings(self):
-        """w:updateFields must be present in settings.xml after saving."""
+class TestDisableUpdateFields:
+    def test_update_fields_is_absent_from_settings(self):
+        """w:updateFields must not force an automatic refresh after saving."""
         from docx import Document
 
         doc = Document()
-        _enable_update_fields(doc)
+        _disable_update_fields(doc)
 
         raw = _docx_xml(doc)
         root = _read_xml_part(raw, "word/settings.xml")
 
         update_els = root.findall(f".//{{{W_NS}}}updateFields")
-        assert len(update_els) >= 1
-        assert update_els[0].get(f"{{{W_NS}}}val") == "true"
+        assert not update_els
 
 
 # ---------------------------------------------------------------------------
@@ -178,8 +177,8 @@ class TestRenderIrToDocx:
 
 
 class TestBuildSimulatedDocx:
-    def test_full_docx_has_toc_and_update_fields(self, tmp_path):
-        """Full build must include the TOC field and updateFields."""
+    def test_full_docx_has_toc_without_update_on_open(self, tmp_path):
+        """Full build keeps the TOC field without Word's opening warning."""
         project = {
             "id": "test-proj",
             "format_detail": {
@@ -217,9 +216,7 @@ class TestBuildSimulatedDocx:
         # Check updateFields in settings.xml
         settings_root = _read_xml_part(raw, "word/settings.xml")
         update_els = settings_root.findall(f".//{{{W_NS}}}updateFields")
-        assert any(el.get(f"{{{W_NS}}}val") == "true" for el in update_els), (
-            "updateFields not set to true in settings.xml"
-        )
+        assert not update_els, "updateFields must be absent to avoid Word's warning dialog"
 
     def test_no_hardcoded_page_numbers_in_paragraphs(self, tmp_path):
         """No paragraph should contain hardcoded page number patterns like '....24'."""

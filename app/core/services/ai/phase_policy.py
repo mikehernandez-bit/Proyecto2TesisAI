@@ -59,4 +59,18 @@ def build_phase_policies() -> Dict[str, PhasePolicy]:
             max_output_tokens=max(100, int(getattr(settings, "LLM_MAX_OUTPUT_TOKENS_CLEANUP", 900))),
             allow_degraded=True,
         ),
+        "quality_profile_generate": PhasePolicy(
+            critical=True,
+            fallback_chain=generate_chain,
+            max_input_tokens=max(8000, int(getattr(settings, "LLM_MAX_INPUT_TOKENS_GENERATE", 6000))),
+            max_output_tokens=4096,
+            allow_degraded=False,
+        ),
+        "quality_profile_repair": PhasePolicy(
+            critical=True,
+            fallback_chain=generate_chain,
+            max_input_tokens=max(8000, int(getattr(settings, "LLM_MAX_INPUT_TOKENS_GENERATE", 6000))),
+            max_output_tokens=4096,
+            allow_degraded=False,
+        ),
     }

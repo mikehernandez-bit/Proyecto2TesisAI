@@ -66,7 +66,7 @@ def test_formulacion_context_enforces_dimension_order():
         values=_sample_values(),
     )
 
-    assert "Rango de palabras aceptable: 120 a 220 palabras." in context
+    assert "Rango de palabras aceptable: minimo obligatorio 89 palabras narrativas" in context
     assert "Orden obligatorio de dimensiones especificas: Confiabilidad; Mantenibilidad" in context
     assert "confiabilidad -> mantenibilidad" in context
     assert "No agregues ningun parrafo final despues de las preguntas." in context
@@ -144,7 +144,7 @@ def test_chapter_two_backgrounds_context_requires_five_dense_antecedents():
         values=_sample_values(),
     )
 
-    assert "2400 a 3000 palabras" in context
+    assert "minimo obligatorio 3245 palabras narrativas" in context
     assert "Antecedentes internacionales: cinco antecedentes" in context
     assert "titulo exacto, problema abordado, pregunta o proposito, objetivo" in context
     assert "No insertes figuras, tablas, mapas conceptuales ni formulas" in context

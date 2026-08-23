@@ -28,7 +28,7 @@ from app.core.services.ai.completeness_validator import (
     detect_placeholders,
 )
 from app.core.services.ai.content_parser import parse_ai_content
-from app.core.services.ai.errors import GenerationCancelledError
+from app.core.services.ai.errors import GenerationCancelledError, QualityProfileValidationError
 from app.core.services.ai.figure_recommendations import apply_figure_recommendations
 from app.core.services.ai.gemini_client import GeminiClient
 from app.core.services.ai.limiter import LLMLimiter
@@ -38,7 +38,7 @@ from app.core.services.ai.phase_policy import build_phase_policies
 from app.core.services.ai.prompt_renderer import PromptRenderer
 from app.core.services.ai.provider_metrics import ProviderMetricsService
 from app.core.services.ai.provider_selection import ProviderSelectionService
-from app.core.services.ai.reference_proposals import replace_references_section
+from app.core.services.ai.reference_proposals import consolidate_references
 from app.core.services.ai.resilience_router import LLMProviderRouter, LLMRequest, LLMResult
 from app.core.services.ai.schedule_table_builder import (
     build_schedule_table_from_plan,
@@ -58,6 +58,20 @@ from app.core.services.ai.token_usage import (
     normalize_token_usage_report,
     summarize_token_usage,
     token_usage_snapshot,
+)
+from app.core.services.ai.unac_quality_profile import (
+    SectionQualityAudit,
+    SectionQualityRequirement,
+    audit_unac_maintenance_sections,
+    ensure_canonical_formulas,
+    extract_semantic_unit_content,
+    content_quality_failures,
+    is_unac_maintenance_project,
+    load_unac_maintenance_profile,
+    quality_failures,
+    replace_semantic_unit_content,
+    requirements_for_section_path,
+    section_key_from_path,
 )
 from app.core.services.definition_compiler import compile_definition_to_section_index
 
@@ -934,19 +948,71 @@ class AIService:
             format_id=format_id,
             selection=active_selection,
         )
+        sections = ensure_canonical_formulas(sections)
+        sections, quality_audit = self._repair_unac_quality_profile_sections(
+            sections,
+            project_id=project_id,
+            values=project_values,
+            format_id=format_id,
+            selection=active_selection,
+        )
         self._emit_trace(
             step="ai.figures",
             status="done",
             title="Figuras recomendadas derivadas",
             detail="Se revisaron secciones elegibles para insertar placeholders tecnicos con caption especifico.",
         )
-        sections = replace_references_section(sections, values=project_values)
-        self._emit_trace(
-            step="ai.references",
-            status="done",
-            title="Referencias finales consolidadas",
-            detail="Se generaron referencias propuestas simuladas sin acceso a internet.",
+        has_references_section = any(
+            "referencias bibliogr" in str(section.get("path") or "").lower()
+            for section in sections
+            if isinstance(section, dict)
         )
+        consolidation = consolidate_references(sections, values=project_values) if has_references_section else None
+        if consolidation is not None:
+            sections = consolidation.sections
+            self._emit_trace(
+                step="ai.references",
+                status="done",
+                title="Referencias finales consolidadas",
+                detail=(
+                    "Se generaron referencias propuestas simuladas sin acceso a internet. "
+                    f"Menciones={sum(consolidation.mentions_by_section.values())}; "
+                    f"fuentes distintas={consolidation.distinct_sources}."
+                ),
+            )
+
+        if is_unac_maintenance_project(format_id, project_values):
+            if consolidation is not None and consolidation.failures:
+                detail = " | ".join(consolidation.failures)
+                self._emit_trace(
+                    step="ai.references",
+                    status="error",
+                    title="Politica de citas y referencias incumplida",
+                    detail=detail,
+                    meta={
+                        "profile": load_unac_maintenance_profile().id,
+                        "distinctSources": consolidation.distinct_sources,
+                    },
+                )
+                raise QualityProfileValidationError(
+                    "Perfil UNAC de referencias incumplido: " + detail,
+                    failed_quality_keys=list(consolidation.failures),
+                )
+            quality_audit = audit_unac_maintenance_sections(sections)
+            failures = quality_failures(quality_audit)
+            if failures:
+                detail = self._quality_failure_detail(failures)
+                self._emit_trace(
+                    step="ai.quality_profile",
+                    status="error",
+                    title="Perfil UNAC de calidad incumplido",
+                    detail=detail,
+                    meta={"profile": load_unac_maintenance_profile().id, "failures": len(failures)},
+                )
+                raise QualityProfileValidationError(
+                    f"AI output validation failed: {detail}",
+                    failed_quality_keys=[audit.key for audit in failures],
+                )
 
         try:
             ai_result = self.validator.build_ai_result(sections)
@@ -960,6 +1026,9 @@ class AIService:
             )
             raise RuntimeError(f"AI output validation failed: {exc}") from exc
         ai_result["tokenUsage"] = self.get_token_usage_report()
+        if quality_audit:
+            ai_result["qualityProfile"] = load_unac_maintenance_profile().id
+            ai_result["qualityAudit"] = [audit.to_dict() for audit in quality_audit]
         self._emit_trace(
             step="ai.validation",
             status="done",
@@ -1172,7 +1241,7 @@ class AIService:
         if not isinstance(raw_sections, list):
             return []
 
-        seeded_map: Dict[str, Any] = {}
+        seeded_map: Dict[str, Dict[str, Any]] = {}
         for section in raw_sections:
             if not isinstance(section, dict):
                 continue
@@ -1191,27 +1260,185 @@ class AIService:
                 continue
             key = self._section_lookup_key(section_id, path)
             if key not in seeded_map:
-                seeded_map[key] = content
+                seeded_map[key] = {
+                    "content": content,
+                    "semanticUnitsCompleted": list(section.get("semanticUnitsCompleted") or []),
+                    "semanticUnitsTotal": int(section.get("semanticUnitsTotal") or 0),
+                    "semanticComplete": bool(section.get("semanticComplete", True)),
+                }
 
         ordered: List[Dict[str, Any]] = []
         for idx, section in enumerate(section_index, 1):
             section_id = str(section.get("sectionId") or f"sec-{idx:04d}")
             path = str(section.get("path") or f"Section {idx}")
             key = self._section_lookup_key(section_id, path)
-            seeded_content = seeded_map.get(key)
-            if seeded_content is None:
+            seeded_entry = seeded_map.get(key)
+            if seeded_entry is None:
                 alt_key = self._section_lookup_key("", path)
-                seeded_content = seeded_map.get(alt_key)
-            if seeded_content is None:
+                seeded_entry = seeded_map.get(alt_key)
+            if seeded_entry is None:
                 break
             ordered.append(
                 {
                     "sectionId": section_id,
                     "path": path,
-                    "content": seeded_content,
+                    "content": seeded_entry["content"],
+                    "semanticUnitsCompleted": seeded_entry["semanticUnitsCompleted"],
+                    "semanticUnitsTotal": seeded_entry["semanticUnitsTotal"],
+                    "semanticComplete": seeded_entry["semanticComplete"],
                 }
             )
+            if not seeded_entry["semanticComplete"]:
+                break
         return ordered
+
+    @staticmethod
+    def _unac_requirement_contract(requirement: SectionQualityRequirement) -> str:
+        profile = load_unac_maintenance_profile()
+        target = (requirement.min_words * (100 + profile.generation_buffer_percent) + 99) // 100
+        lines = [
+            "CONTRATO OBLIGATORIO DE LA UNIDAD UNAC:",
+            f"- Encabezado exacto: {requirement.heading}",
+            f"- Minimo narrativo auditable: {requirement.min_words} palabras; redacta al menos {target} palabras.",
+            "- El conteo no incluye el encabezado, citas, formulas, tablas, figuras ni captions.",
+            f"- Temas que deben desarrollarse expresamente: {', '.join(requirement.topics) or 'los propios del encabezado'}.",
+            f"- Incluye al menos {requirement.min_citations} citas academicas autor-ano pertinentes; no uses paginas web.",
+            "- Devuelve el encabezado exacto y luego solo el desarrollo de esta unidad, sin Markdown ni comentarios.",
+            "- No repitas parrafos ni inventes resultados o mediciones del proyecto.",
+        ]
+        if requirement.key in {"2.1.1", "2.1.2"}:
+            lines.append(
+                "- Cada antecedente debe exponer problema, objetivo, metodo, muestra, resultados, conclusion y aporte."
+            )
+        if requirement.min_formulas:
+            lines.append(
+                "- Desarrolla definicion, variables e interpretacion; la ecuacion sera insertada por el sistema y no debes escribir FORMULA_JSON."
+            )
+        return "\n".join(lines)
+
+    def _generate_unac_semantic_units(
+        self,
+        *,
+        section_prompt: str,
+        requirements: tuple[SectionQualityRequirement, ...],
+        preferred_provider: Optional[str],
+        section_current: int,
+        section_total: int,
+        section_path: str,
+        section_id: str,
+        selection: Optional[Dict[str, Any]],
+        disabled_for_job: Set[str],
+        seed_content: Any = None,
+        completed_unit_keys: tuple[str, ...] = (),
+    ) -> LLMResult:
+        """Generate composite institutional sections one semantic unit at a time."""
+        outputs: list[str] = []
+        completed = set(completed_unit_keys)
+        if seed_content:
+            seed_blocks = normalize_seed = seed_content
+            if isinstance(normalize_seed, list):
+                outputs.append(
+                    "\n\n".join(
+                        str(block.get("texto") or "")
+                        for block in normalize_seed
+                        if isinstance(block, dict) and str(block.get("texto") or "").strip()
+                    )
+                )
+            else:
+                outputs.append(str(seed_blocks).strip())
+        attempts: list[Dict[str, Any]] = []
+        incidents: list[Dict[str, Any]] = []
+        effective_provider = preferred_provider
+        status = "ok"
+        for unit_index, requirement in enumerate(requirements, 1):
+            if requirement.key in completed:
+                continue
+            self._ensure_not_cancelled()
+            unit_path = f"{section_path}/{requirement.heading}"
+            prompt = "\n\n".join(
+                [
+                    section_prompt,
+                    "La instruccion siguiente limita la respuesta a una sola subseccion y prevalece sobre cualquier solicitud de redactar el bloque padre completo.",
+                    self._unac_requirement_contract(requirement),
+                ]
+            )
+            self._emit_trace(
+                step="ai.generate.semantic_unit",
+                status="running",
+                title=f"Generando unidad {unit_index}/{len(requirements)}: {requirement.heading}",
+                meta={
+                    "sectionId": section_id,
+                    "sectionPath": section_path,
+                    "unitKey": requirement.key,
+                    "unitMinimum": requirement.min_words,
+                },
+            )
+            result = self._generate_with_provider_fallback(
+                prompt,
+                preferred_provider=effective_provider,
+                section_current=section_current,
+                section_total=section_total,
+                section_path=unit_path,
+                section_id=f"{section_id}:{requirement.key}",
+                phase="quality_profile_generate",
+                selection=selection,
+                disabled_for_job=disabled_for_job,
+            )
+            effective_provider = result.provider or effective_provider
+            outputs.append(str(result.content or "").strip())
+            completed.add(requirement.key)
+            attempts.extend(result.attempts)
+            incidents.extend(result.incidents)
+            if result.status != "ok":
+                status = result.status
+            self._emit_trace(
+                step="ai.generate.semantic_unit",
+                status="done",
+                title=f"Unidad generada: {requirement.heading}",
+                meta={
+                    "sectionId": section_id,
+                    "sectionPath": section_path,
+                    "unitKey": requirement.key,
+                    "unitMinimum": requirement.min_words,
+                },
+            )
+            provisional = {
+                "sectionId": section_id,
+                "path": section_path,
+                "content": "\n\n".join(value for value in outputs if value),
+                "semanticUnitsCompleted": [item.key for item in requirements if item.key in completed],
+                "semanticUnitsTotal": len(requirements),
+                "semanticComplete": False,
+            }
+            self._partial_sections = [
+                item
+                for item in self._partial_sections
+                if self._section_lookup_key(str(item.get("sectionId") or ""), str(item.get("path") or ""))
+                != self._section_lookup_key(section_id, section_path)
+            ] + [provisional]
+            self._emit_progress(
+                section_current,
+                section_total,
+                f"{section_path}/{requirement.heading}",
+                effective_provider or "",
+                stage="semantic_unit_done",
+                payload={
+                    "section_id": f"{section_id}:{requirement.key}",
+                    "section_path": f"{section_path}/{requirement.heading}",
+                    "path": f"{section_path}/{requirement.heading}",
+                    "section_title": requirement.heading,
+                    "parent_section_path": section_path,
+                    "status": "ok",
+                    "unit_key": requirement.key,
+                },
+            )
+        return LLMResult(
+            content="\n\n".join(outputs),
+            provider=effective_provider or "",
+            status=status,
+            incidents=incidents,
+            attempts=attempts,
+        )
 
     def _generate_sections(
         self,
@@ -1235,6 +1462,7 @@ class AIService:
         provider_order = self._provider_order(selection)
         default_provider = provider_order[0] if provider_order else _PROVIDER_ORDER[0]
         seeded_count = 0
+        partial_semantic_seed: Dict[str, Any] | None = None
         memory_entries: List[Dict[str, str]] = []
         if seed_sections:
             for seeded in seed_sections:
@@ -1253,6 +1481,9 @@ class AIService:
                 seeded_path = str(seeded.get("path") or "").strip()
                 if not seeded_id and not seeded_path:
                     continue
+                if not bool(seeded.get("semanticComplete", True)):
+                    partial_semantic_seed = dict(seeded)
+                    break
                 sections.append(
                     {
                         "sectionId": seeded_id or f"sec-{len(sections) + 1:04d}",
@@ -1357,6 +1588,13 @@ class AIService:
                     ),
                     values=values,
                 )
+            unac_requirements: tuple[SectionQualityRequirement, ...] = ()
+            if is_unac_maintenance_project(format_id, values):
+                unac_requirements = requirements_for_section_path(path)
+                if len(unac_requirements) == 1:
+                    section_prompt = "\n\n".join(
+                        [section_prompt, self._unac_requirement_contract(unac_requirements[0])]
+                    )
             redacted_prompt = self._redact_secrets(section_prompt)
             self._emit_trace(
                 step="ai.generate.section",
@@ -1402,18 +1640,46 @@ class AIService:
 
             started_at = time.perf_counter()
             try:
-                llm_result = self._generate_with_provider_fallback(
-                    section_prompt,
-                    preferred_provider=preferred_provider,
-                    section_current=i,
-                    section_total=total,
-                    section_path=path,
-                    section_id=section_id,
-                    phase="generate_section",
-                    context=sec.get("hints", ""),
-                    selection=selection,
-                    disabled_for_job=disabled_providers,
-                )
+                if len(unac_requirements) > 1:
+                    llm_result = self._generate_unac_semantic_units(
+                        section_prompt=section_prompt,
+                        requirements=unac_requirements,
+                        preferred_provider=preferred_provider,
+                        section_current=i,
+                        section_total=total,
+                        section_path=path,
+                        section_id=section_id,
+                        selection=selection,
+                        disabled_for_job=disabled_providers,
+                        seed_content=(
+                            partial_semantic_seed.get("content")
+                            if partial_semantic_seed
+                            and self._section_lookup_key(
+                                str(partial_semantic_seed.get("sectionId") or ""),
+                                str(partial_semantic_seed.get("path") or ""),
+                            )
+                            == self._section_lookup_key(section_id, path)
+                            else None
+                        ),
+                        completed_unit_keys=tuple(
+                            partial_semantic_seed.get("semanticUnitsCompleted") or []
+                        )
+                        if partial_semantic_seed
+                        else (),
+                    )
+                else:
+                    llm_result = self._generate_with_provider_fallback(
+                        section_prompt,
+                        preferred_provider=preferred_provider,
+                        section_current=i,
+                        section_total=total,
+                        section_path=path,
+                        section_id=section_id,
+                        phase="generate_section",
+                        context=sec.get("hints", ""),
+                        selection=selection,
+                        disabled_for_job=disabled_providers,
+                    )
             except Exception as exc:
                 duration_ms = max(0, int(round((time.perf_counter() - started_at) * 1000)))
                 error_detail = str(exc)[:220]
@@ -1517,45 +1783,6 @@ class AIService:
                     "prompt": _prompt_preview,
                 },
             )
-            self._emit_progress(
-                i,
-                total,
-                path,
-                used_provider,
-                stage="section_done",
-                payload={
-                    "section_id": section_id,
-                    "section_path": path,
-                    "path": path,
-                    "section_title": self._section_title_from_path(path),
-                    "parent_section_path": section_parent_path,
-                    "section_level": section_level,
-                    "section_order": section_order,
-                    "prompt_sent": redacted_prompt,
-                    "prompt_source": prompt_source,
-                    "prompt_block_id": prompt_block_id,
-                    "ai_output": self._redact_secrets(content),
-                    "input_tokens": int(section_usage.get("input_tokens_total") or 0),
-                    "output_tokens": int(section_usage.get("output_tokens_total") or 0),
-                    "total_tokens": int(section_usage.get("total_tokens") or 0),
-                    "model": _model,
-                    "provider": used_provider,
-                    "status": "ok",
-                    "duration_ms": duration_ms,
-                    "estimated": bool(section_usage.get("has_estimated_usage")),
-                    "source": (
-                        "estimated"
-                        if int(section_usage.get("estimated_calls") or 0) > 0
-                        and int(section_usage.get("reported_calls") or 0) == 0
-                        else "mixed"
-                        if int(section_usage.get("estimated_calls") or 0) > 0
-                        else "reported_by_provider"
-                    ),
-                    "attempt_count": len(llm_result.attempts),
-                    "attempts": llm_result.attempts,
-                },
-            )
-
             # Parse structured blocks (tables/figures) from AI output
             parsed_content = parse_ai_content(content)
             canonical_values = values if isinstance(values, dict) else {}
@@ -1607,8 +1834,236 @@ class AIService:
             )
             memory_entries.append(self._build_section_memory_entry(sections[-1]))
             self._partial_sections = [dict(item) for item in sections]
+            self._emit_progress(
+                i,
+                total,
+                path,
+                used_provider,
+                stage="section_done",
+                payload={
+                    "section_id": section_id,
+                    "section_path": path,
+                    "path": path,
+                    "section_title": self._section_title_from_path(path),
+                    "parent_section_path": section_parent_path,
+                    "section_level": section_level,
+                    "section_order": section_order,
+                    "prompt_sent": redacted_prompt,
+                    "prompt_source": prompt_source,
+                    "prompt_block_id": prompt_block_id,
+                    "ai_output": self._redact_secrets(content),
+                    "canonical_content": parsed_content,
+                    "input_tokens": int(section_usage.get("input_tokens_total") or 0),
+                    "output_tokens": int(section_usage.get("output_tokens_total") or 0),
+                    "total_tokens": int(section_usage.get("total_tokens") or 0),
+                    "model": _model,
+                    "provider": used_provider,
+                    "status": "ok",
+                    "duration_ms": duration_ms,
+                    "estimated": bool(section_usage.get("has_estimated_usage")),
+                    "source": (
+                        "estimated"
+                        if int(section_usage.get("estimated_calls") or 0) > 0
+                        and int(section_usage.get("reported_calls") or 0) == 0
+                        else "mixed"
+                        if int(section_usage.get("estimated_calls") or 0) > 0
+                        else "reported_by_provider"
+                    ),
+                    "attempt_count": len(llm_result.attempts),
+                    "attempts": llm_result.attempts,
+                },
+            )
 
         return sections
+
+    @staticmethod
+    def _quality_failure_detail(
+        failures: List[SectionQualityAudit], *, include_citations: bool = True
+    ) -> str:
+        details: list[str] = []
+        for audit in failures:
+            parts = [f"{audit.heading}: {audit.words}/{audit.minimum} palabras"]
+            if include_citations and audit.citations < audit.citation_minimum:
+                parts.append(f"citas {audit.citations}/{audit.citation_minimum}")
+            if audit.formulas < audit.formula_minimum:
+                parts.append(f"formulas {audit.formulas}/{audit.formula_minimum}")
+            if audit.missing_topics:
+                parts.append("temas faltantes=" + ", ".join(audit.missing_topics))
+            if audit.duplicate_ratio > 0.22:
+                parts.append(f"repeticion={audit.duplicate_ratio:.1%}")
+            details.append("; ".join(parts))
+        return " | ".join(details)
+
+    @staticmethod
+    def _quality_owner_section(
+        sections: List[Dict[str, Any]], audit_key: str
+    ) -> Dict[str, Any] | None:
+        candidates: list[tuple[int, Dict[str, Any]]] = []
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            key = section_key_from_path(str(section.get("path") or ""))
+            if key is None:
+                continue
+            if key == audit_key or audit_key.startswith(key + "."):
+                candidates.append((len(key), section))
+        return max(candidates, key=lambda item: item[0])[1] if candidates else None
+
+    def _repair_unac_quality_profile_sections(
+        self,
+        sections: List[Dict[str, Any]],
+        *,
+        project_id: str,
+        values: Dict[str, Any],
+        format_id: Optional[str],
+        selection: Optional[Dict[str, Any]] = None,
+    ) -> tuple[List[Dict[str, Any]], List[SectionQualityAudit]]:
+        """Repair deficient semantic units without replacing compliant siblings."""
+        if not is_unac_maintenance_project(format_id, values):
+            return sections, []
+
+        profile = load_unac_maintenance_profile()
+        requirements = {item.key: item for item in profile.requirements}
+
+        def _score(audit: SectionQualityAudit) -> tuple[int, int, int, int]:
+            failed_dimensions = (
+                int(audit.words < audit.minimum)
+                + int(audit.formulas < audit.formula_minimum)
+                + len(audit.missing_topics)
+                + int(audit.duplicate_ratio > 0.22)
+            )
+            return (
+                failed_dimensions,
+                max(0, audit.minimum - audit.words),
+                len(audit.missing_topics),
+                int(round(audit.duplicate_ratio * 1000)),
+            )
+
+        for attempt in range(1, 3):
+            audits = audit_unac_maintenance_sections(sections)
+            failures = content_quality_failures(audits)
+            if not failures:
+                return sections, audits
+
+            repaired_any = False
+            for audit in failures:
+                section = self._quality_owner_section(sections, audit.key)
+                requirement = requirements.get(audit.key)
+                if section is None or requirement is None:
+                    continue
+                owner_id = str(section.get("sectionId") or section.get("path") or audit.key)
+                path = str(section.get("path") or "")
+                owner_key = section_key_from_path(path)
+                current_unit: Any = section.get("content")
+                if owner_key != audit.key:
+                    extracted = extract_semantic_unit_content(current_unit, audit.key)
+                    if extracted:
+                        current_unit = extracted
+                deficit_detail = self._quality_failure_detail([audit], include_citations=False)
+                prompt = "\n".join(
+                    [
+                        "Reescribe COMPLETA y unicamente la unidad semantica indicada de un proyecto de tesis UNAC.",
+                        f"Ruta institucional: {path}",
+                        f"Unidad: {requirement.heading}",
+                        f"Perfil: {profile.id}. Intento de reparacion {attempt}/2.",
+                        "Incumplimientos exactos: " + deficit_detail,
+                        self._unac_requirement_contract(requirement),
+                        "No copies frases del documento guia, no rellenes con repeticiones y no incluyas comentarios.",
+                        "Las formulas canonicas se conservan o insertan por el sistema; no emitas FORMULA_JSON.",
+                        "Contenido actual de esta unidad:",
+                        json.dumps(current_unit, ensure_ascii=False),
+                        "Devuelve solo esta unidad completa corregida.",
+                    ]
+                )
+                self._emit_trace(
+                    step="ai.quality_profile.repair",
+                    status="running",
+                    title=f"Reparando unidad: {requirement.heading}",
+                    detail=deficit_detail,
+                    meta={
+                        "attempt": attempt,
+                        "sectionId": owner_id,
+                        "unitKey": audit.key,
+                        "profile": profile.id,
+                    },
+                )
+                result = self._generate_with_provider_fallback(
+                    prompt,
+                    preferred_provider=self._last_used_provider,
+                    section_current=0,
+                    section_total=0,
+                    section_path=f"{path}/{requirement.heading}",
+                    section_id=f"{owner_id}:{audit.key}",
+                    phase="quality_profile_repair",
+                    selection=selection,
+                )
+                candidate = parse_ai_content(result.content)
+                candidate = self.validator.sanitize_content(candidate, path=path)
+                previous_content = section.get("content")
+                if owner_key == audit.key:
+                    section["content"] = candidate
+                else:
+                    section["content"] = replace_semantic_unit_content(
+                        previous_content,
+                        requirement=requirement,
+                        replacement=candidate,
+                    )
+                ensure_canonical_formulas([section])
+                updated_audit = next(
+                    (item for item in audit_unac_maintenance_sections(sections) if item.key == audit.key),
+                    audit,
+                )
+                accepted = _score(updated_audit) < _score(audit)
+                if accepted:
+                    repaired_any = True
+                    self._partial_sections = [dict(item) for item in sections]
+                    self._emit_progress(
+                        len(sections),
+                        len(sections),
+                        f"{path}/{requirement.heading}",
+                        result.provider or self._last_used_provider or "",
+                        stage="quality_unit_done",
+                        payload={
+                            "section_id": f"{owner_id}:{audit.key}",
+                            "section_path": f"{path}/{requirement.heading}",
+                            "path": f"{path}/{requirement.heading}",
+                            "section_title": requirement.heading,
+                            "parent_section_path": path,
+                            "status": "ok",
+                            "unit_key": audit.key,
+                        },
+                    )
+                else:
+                    section["content"] = previous_content
+                self._emit_trace(
+                    step="ai.quality_profile.repair",
+                    status="done" if accepted else "warn",
+                    title=(
+                        f"Unidad mejorada: {requirement.heading}"
+                        if accepted
+                        else f"Reparacion descartada sin mejora: {requirement.heading}"
+                    ),
+                    detail=self._quality_failure_detail([updated_audit], include_citations=False),
+                    meta={
+                        "attempt": attempt,
+                        "sectionId": owner_id,
+                        "unitKey": audit.key,
+                        "accepted": accepted,
+                    },
+                )
+
+            if not repaired_any and attempt == 2:
+                break
+
+        audits = audit_unac_maintenance_sections(sections)
+        failures = content_quality_failures(audits)
+        if failures:
+            raise QualityProfileValidationError(
+                "Perfil UNAC incumplido tras dos reparaciones dirigidas: "
+                + self._quality_failure_detail(failures, include_citations=False),
+                failed_quality_keys=[audit.key for audit in failures],
+            )
+        return sections, audits
 
     def _build_managed_section_context(
         self,
@@ -2746,6 +3201,15 @@ class AIService:
                     "criticos."
                 ),
             },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La seleccion de tareas dentro del RCM debe conservar trazabilidad entre la funcion perdida, "
+                    "el modo de falla que la origina y la consecuencia operacional que se busca controlar. Esta "
+                    "relacion evita incorporar actividades por costumbre y permite justificar tecnicamente la "
+                    "frecuencia, el recurso y el criterio de intervencion asignado a cada subsistema critico."
+                ),
+            },
             {"tipo": "parrafo", "texto": "2.2.2 Proceso del RCM"},
             {
                 "tipo": "parrafo",
@@ -2857,6 +3321,15 @@ class AIService:
                     "tareas de mantenimiento sobre la estabilidad operacional del activo. En equipos moviles, un MTBF "
                     "superior implica menos interrupciones, mejor continuidad del proceso y menor presion sobre el "
                     "mantenimiento correctivo."
+                ),
+            },
+            {
+                "tipo": "parrafo",
+                "texto": (
+                    "La interpretacion de la confiabilidad exige comparar periodos equivalentes y condiciones "
+                    "operacionales semejantes, porque una mejora aparente del MTBF puede deberse a cambios de carga, "
+                    "disponibilidad de equipo o calidad del registro. Por ello, la tendencia debe analizarse junto "
+                    "con la taxonomia de fallas y la exposicion real de la flota."
                 ),
             },
             {"tipo": "parrafo", "texto": "2.2.7 Mantenibilidad"},

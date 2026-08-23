@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
+import hashlib
 from typing import Any, cast
 
 from app.core.services.ai.budget_table_builder import (
@@ -853,11 +854,37 @@ class OutputValidator:
         return normalized
 
     @classmethod
+    def _canonical_formula_latex(cls, text: str, latex: str) -> str:
+        if latex:
+            return latex
+        normalized = cls._normalize_token(text)
+        if normalized.startswith("disponibilidad inherente =") or normalized.startswith("ai ="):
+            return r"A_i = \frac{MTBF}{MTBF + MTTR}"
+        if normalized.startswith("disponibilidad ="):
+            return r"Disponibilidad = \frac{TO}{TO + TIM}"
+        if normalized.startswith("mtbf ="):
+            return r"MTBF = \frac{T_o}{N_f}"
+        if normalized.startswith("mttr ="):
+            return r"MTTR = \frac{T_r}{N_i}"
+        if normalized.startswith("r(t) =") and ("lambda" in normalized or "λ" in text):
+            return r"R(t) = e^{-\lambda t}"
+        if normalized.startswith("lambda =") or normalized.startswith("λ ="):
+            return r"\lambda = \frac{1}{MTBF}"
+        if normalized.startswith("m(t) =") and ("mu" in normalized or "μ" in text):
+            return r"M(t) = 1 - e^{-\mu t}"
+        if normalized == "m o1 x o2":
+            return r"M O_1 X O_2"
+        return ""
+
+    @classmethod
     def _normalize_formula_block(cls, item: dict[str, Any], *, path: str = "") -> dict[str, Any] | None:
         text = cls._sanitize_text_content(item.get("texto") or item.get("text"), path=path)
         latex = cls._sanitize_text_content(item.get("latex"), path=path)
         if not text and not latex:
             return None
+        latex = cls._canonical_formula_latex(text, latex)
+        if not latex:
+            raise ValidationError(f"Formula ambigua o no convertible en '{path}': {text[:100]}")
 
         normalized: dict[str, Any] = {
             "tipo": "formula",
@@ -865,16 +892,14 @@ class OutputValidator:
         }
         if text:
             normalized["texto"] = text
-        if latex:
-            normalized["latex"] = latex
+        normalized["latex"] = latex
 
         number = cls._sanitize_text_content(item.get("numero") or item.get("number"), path=path)
         if number:
             normalized["numero"] = number
 
         identifier = str(item.get("id") or "").strip()
-        if identifier:
-            normalized["id"] = identifier
+        normalized["id"] = identifier or "formula-" + hashlib.sha1(latex.encode("utf-8")).hexdigest()[:12]
 
         if normalized["alineacion"] not in {"center", "left", "right"}:
             normalized["alineacion"] = "center"
@@ -1552,6 +1577,41 @@ class OutputValidator:
         headings = cls._theoretical_heading_lines(content)
         if not headings:
             errors.append("2.2 no contiene subtitulos numerados (2.2.x)")
+
+        visible = cls._normalize_token(cls._visible_content_text(content))
+        maintenance_markers = (
+            "mantenimiento centrado en confiabilidad",
+            "rcm",
+            "iso 14224",
+            "amef",
+            "disponibilidad inherente",
+            "mtbf",
+            "mttr",
+            "motoniveladora",
+        )
+        maintenance_case = sum(marker in visible for marker in maintenance_markers) >= 3
+        if maintenance_case:
+            required_headings = (
+                "2.2.1 mantenimiento centrado en confiabilidad",
+                "2.2.2 proceso del rcm",
+                "2.2.3 taxonomia de equipos",
+                "2.2.4 analisis de modos y efecto de fallas",
+                "2.2.5 disponibilidad inherente",
+                "2.2.6 confiabilidad",
+                "2.2.7 mantenibilidad",
+                "2.2.8 motoniveladora",
+            )
+            normalized_headings = [cls._normalize_token(heading) for heading in headings]
+            missing = [
+                heading
+                for heading in required_headings
+                if not any(candidate.startswith(heading) for candidate in normalized_headings)
+            ]
+            if missing:
+                errors.append(
+                    "2.2 de mantenimiento no respeta los ocho subtitulos canonicos: "
+                    + ", ".join(missing)
+                )
 
         figure_positions = [
             index

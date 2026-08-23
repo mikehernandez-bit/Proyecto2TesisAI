@@ -9,6 +9,8 @@ import pytest
 
 from app.core.services.ai.ai_service import AIService
 from app.core.services.ai.errors import ProviderAuthError, QuotaExceededError
+from app.core.services.ai.resilience_router import LLMResult
+from app.core.services.ai.unac_quality_profile import requirements_for_section_path
 
 
 def _settings(
@@ -113,6 +115,37 @@ def _figure_json_block(title: str) -> str:
         "fuente": "Elaboracion propia.",
     }
     return f"<<<FIGURE_JSON\n{json.dumps(payload, ensure_ascii=False)}\nFIGURE_JSON>>>"
+
+
+def test_unac_composite_section_is_generated_by_semantic_unit() -> None:
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        side_effect=[
+            LLMResult(content="2.1.1 Antecedentes internacionales\n\nDesarrollo internacional.", provider="mistral", status="ok"),
+            LLMResult(content="2.1.2 Antecedentes nacionales\n\nDesarrollo nacional.", provider="mistral", status="ok"),
+        ]
+    )
+    requirements = requirements_for_section_path("II. MARCO TEÓRICO/2.1 Antecedentes")
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta antecedentes.",
+        requirements=requirements,
+        preferred_provider="mistral",
+        section_current=9,
+        section_total=25,
+        section_path="II. MARCO TEÓRICO/2.1 Antecedentes",
+        section_id="sec-0009",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    assert svc._generate_with_provider_fallback.call_count == 2
+    first_prompt = svc._generate_with_provider_fallback.call_args_list[0].args[0]
+    second_prompt = svc._generate_with_provider_fallback.call_args_list[1].args[0]
+    assert "1611 palabras" in first_prompt
+    assert "1634 palabras" in second_prompt
+    assert "2.1.1 Antecedentes internacionales" in result.content
+    assert "2.1.2 Antecedentes nacionales" in result.content
 
 
 def _valid_reality_problem_raw_response() -> str:
@@ -711,7 +744,10 @@ class TestGenerate:
             }
         }
 
-        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+        with (
+            patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)),
+            patch("app.core.services.ai.ai_service.is_unac_maintenance_project", return_value=False),
+        ):
             result = svc.generate(project, format_detail, None)
 
         usage = result["tokenUsage"]
@@ -1146,9 +1182,11 @@ class TestGenerate:
         references = next(section for section in result["sections"] if "REFERENCIAS" in section["path"].upper())
         body = next(section for section in result["sections"] if "MARCO TEORICO" in section["path"].upper())
 
-        assert body["content"] == "Contenido academico generado para la seccion."
+        assert body["content"].startswith("Contenido academico generado para la seccion.")
+        assert "[[CITE:SIM_" in body["content"]
         assert "sin acceso a internet" in references["content"]
-        assert "Fundamentos teoricos de mantenimiento predictivo" in references["content"]
+        assert "[[SOURCE:SIM_" in references["content"]
+        assert "Fundamentos y evidencia sobre investigacion aplicada" in references["content"]
 
     def test_resume_does_not_replay_seeded_sections_in_progress(self, ai_svc):
         svc, gemini, mistral = ai_svc
@@ -1374,7 +1412,10 @@ class TestGenerate:
         ]
         trace_events = []
 
-        with patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)):
+        with (
+            patch("app.core.services.ai.ai_service.settings", _settings(primary="gemini", fallback=False)),
+            patch("app.core.services.ai.ai_service.is_unac_maintenance_project", return_value=False),
+        ):
             svc.generate(
                 project,
                 {"id": "unac-proyecto-cuant", "definition": {}},
@@ -1394,8 +1435,8 @@ class TestGenerate:
         intro_prompt = str(section_done_events[0].get("preview", {}).get("prompt"))
         problem_prompt = str(section_done_events[1].get("preview", {}).get("prompt"))
 
-        assert "Rango de palabras aceptable: 650 a 900 palabras." in intro_prompt
-        assert "Rango de palabras aceptable: 1300 a 1450 palabras narrativas" in problem_prompt
+        assert "minimo obligatorio 643 palabras narrativas" in intro_prompt
+        assert "minimo obligatorio 1276 palabras narrativas" in problem_prompt
         assert "Hechos estructurados relevantes del proyecto:" in problem_prompt
         assert "Problema general:" in problem_prompt
         assert "Variables o decisiones ya fijadas:" in problem_prompt

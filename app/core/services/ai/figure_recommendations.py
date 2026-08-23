@@ -26,6 +26,25 @@ _FIGURE_ID_RE = re.compile(r"[^a-z0-9]+")
 _BLANK_LINE_RE = re.compile(r"\n\s*\n")
 _THEORETICAL_HEADING_RE = re.compile(r"^\s*2\.2\.(\d+)\s+")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])")
+_FIGURE_CAPTION_MAX_CHARS = 120
+_REDUNDANT_PROJECT_SUFFIX_RE = re.compile(
+    r"\s+(?:aplicad[oa]s?|orientad[oa]s?)\s+(?:a|al)\s+.+$",
+    re.IGNORECASE,
+)
+_CAPTION_ACRONYMS = (
+    "AMEF",
+    "CAT",
+    "CBM",
+    "CMMS",
+    "FMEA",
+    "GMG",
+    "ISO",
+    "IoT",
+    "MTBF",
+    "MTTR",
+    "RCM",
+    "SAE",
+)
 _STALE_PROJECT_MARKDOWN_FIGURE_RE = re.compile(
     r"(?:^|\n)\s*Figura\s+1\.[1-4]\s*\n\s*[^\n\r]*\s*\n"
     r"\s*\*Fuente:\s*Elaboraci[oó]n propia\.?\*\s*\n"
@@ -333,6 +352,36 @@ def _normalize_token(value: Any) -> str:
         return ""
     ascii_only = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     return " ".join(ascii_only.split())
+
+
+def _restore_caption_acronyms(text: str) -> str:
+    restored = text
+    for acronym in _CAPTION_ACRONYMS:
+        restored = re.sub(
+            rf"(?<![A-Za-z0-9]){re.escape(acronym)}(?![A-Za-z0-9])",
+            acronym,
+            restored,
+            flags=re.IGNORECASE,
+        )
+    return restored
+
+
+def _short_figure_caption(value: Any, *, max_chars: int = _FIGURE_CAPTION_MAX_CHARS) -> str:
+    """Return a short academic caption without repeating the thesis title."""
+    text = re.sub(r"\s+", " ", str(value or "").strip()).strip(" .;:-")
+    if not text:
+        return ""
+
+    text = _REDUNDANT_PROJECT_SUFFIX_RE.sub("", text).strip(" .;:-")
+    if text.isupper():
+        text = text.lower()
+        text = text[:1].upper() + text[1:]
+    text = _restore_caption_acronyms(text)
+
+    if len(text) > max_chars:
+        shortened = text[: max_chars + 1].rsplit(" ", 1)[0].rstrip(" ,;:-")
+        text = shortened or text[:max_chars].rstrip(" ,;:-")
+    return text
 
 
 def _paragraph_blocks_from_text(text: str) -> list[dict[str, str]]:
@@ -986,7 +1035,6 @@ def _ensure_chapter_two_theoretical_figures(
         section["content"] = content_blocks
         return
 
-    subject = _subject(values)
     sorted_headings = sorted(heading_indices.items())  # [(1, idx), (2, idx), ...]
 
     # Recopilar inserciones (anchor_index, figura) en orden normal
@@ -994,15 +1042,12 @@ def _ensure_chapter_two_theoretical_figures(
     insertions: list[tuple[int, dict[str, Any]]] = []
 
     for i, (heading_num, heading_block_idx) in enumerate(sorted_headings):
-        raw_title = _extract_heading_title(content_blocks[heading_block_idx])
+        raw_title = _short_figure_caption(_extract_heading_title(content_blocks[heading_block_idx]))
         if not raw_title:
             continue
 
-        # Título de la figura: añade el tema del proyecto si no es genérico
-        if subject and subject != "el estudio desarrollado":
-            figure_title = f"{raw_title} aplicado a {subject}"
-        else:
-            figure_title = raw_title
+        # El caption identifica el concepto técnico; nunca repite el título del proyecto.
+        figure_title = raw_title
 
         # Punto de inserción: el último párrafo antes del siguiente encabezado
         next_heading_idxs = [idx for h, idx in sorted_headings if h > heading_num]
@@ -1053,6 +1098,7 @@ def _figure_title(path: str, content_text: str, values: dict[str, Any] | None) -
 
 
 def _build_recommended_figure(section_id: str, path: str, title: str) -> dict[str, Any]:
+    title = _short_figure_caption(title)
     return {
         "tipo": "figura",
         "id": _slugify_figure_id(section_id, path),

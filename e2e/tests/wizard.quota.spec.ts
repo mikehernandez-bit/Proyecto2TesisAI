@@ -219,7 +219,7 @@ test("wizard surfaces 429 quota error and keeps retry path", async ({ page }) =>
   await page.fill('[data-variable="objetivo_general"]', "Probar manejo de cuota.");
   await page.click("#btn-step3-next-provider");
 
-  await expect(page.locator("#provider-cards")).toContainText("Gemini");
+  await expect(page.locator("#provider-cards")).toContainText("Mistral");
   await page.click("#btn-step4-generate");
 
   await expect(page.locator("#gen-error")).toContainText("Quota exceeded");

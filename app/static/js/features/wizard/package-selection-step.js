@@ -245,6 +245,7 @@ export function createPackageSelectionStep({
   getGrid,
   getFormatLabel,
   getNextButton,
+  getSelectAllButton,
   onPromptPackageResolved,
   onSelectionChanged,
 }) {
@@ -253,8 +254,13 @@ export function createPackageSelectionStep({
   let expansionHydrated = false;
   let selectionHydrated = false;
   let customEventsBound = false;
+  let selectionRevision = 0;
+  let loadRevision = 0;
+  let loading = false;
+  let packageReady = false;
 
-  function commitSelection(promptPackage) {
+  function commitSelection(promptPackage, { userInitiated = false } = {}) {
+    if (userInitiated) selectionRevision += 1;
     const normalized = selectedSectionsFromKeys(promptPackage, selectedKeys);
     selectionHydrated = true;
     if (promptPackage && typeof promptPackage === "object") {
@@ -263,6 +269,19 @@ export function createPackageSelectionStep({
     store.setSelectedSections(normalized);
     onSelectionChanged?.(normalized, new Set(selectedKeys));
     return normalized;
+  }
+
+  function setLoading(nextLoading) {
+    loading = Boolean(nextLoading);
+    if (loading) packageReady = false;
+    const grid = getGrid?.();
+    const nextButton = getNextButton?.();
+    const selectAllButton = getSelectAllButton?.();
+    if (nextButton) nextButton.disabled = true;
+    if (selectAllButton) selectAllButton.disabled = loading || !packageReady;
+    if (loading && grid) {
+      grid.innerHTML = '<div class="col-span-full text-center p-5"><div class="loader mx-auto mb-3"></div><p class="text-slate-500 text-sm">Cargando paquete institucional y secciones del formato...</p></div>';
+    }
   }
 
   function concreteKeySet(promptPackage) {
@@ -292,7 +311,7 @@ export function createPackageSelectionStep({
 
     store.setPromptPackage(normalizedPackage);
     onPromptPackageResolved?.(normalizedPackage);
-    commitSelection(normalizedPackage);
+    commitSelection(normalizedPackage, { userInitiated: true });
     render(normalizedPackage);
     return normalizedPackage;
   }
@@ -812,7 +831,7 @@ export function createPackageSelectionStep({
       checkbox.addEventListener("click", (event) => event.stopPropagation());
       checkbox.addEventListener("change", () => {
         selectedKeys = applyNodeSelection(tree, selectedKeys, nodeKey, checkbox.checked);
-        commitSelection(promptPackage);
+        commitSelection(promptPackage, { userInitiated: true });
         render(promptPackage);
         if (nextButton) nextButton.disabled = selectedKeys.size === 0;
       });
@@ -843,7 +862,7 @@ export function createPackageSelectionStep({
         return;
       }
       selectedKeys = applyNodeSelection(tree, selectedKeys, nodeKey, !isChecked);
-      commitSelection(promptPackage);
+      commitSelection(promptPackage, { userInitiated: true });
       render(promptPackage);
       if (nextButton) nextButton.disabled = selectedKeys.size === 0;
     });
@@ -909,18 +928,19 @@ export function createPackageSelectionStep({
 
   return {
     async loadForFormat(format, project) {
-      const grid = getGrid?.();
+      const requestRevision = ++loadRevision;
+      const selectionRevisionAtStart = selectionRevision;
       const formatLabel = getFormatLabel?.();
-      if (grid) {
-        grid.innerHTML = '<div class="col-span-full text-center p-5"><div class="loader mx-auto mb-3"></div><p class="text-slate-500 text-sm">Cargando paquete institucional y secciones del formato...</p></div>';
-      }
+      setLoading(true);
       if (!format) {
+        if (requestRevision !== loadRevision) return null;
         store.setPromptPackage(null);
         store.setSelectedSections([]);
         selectedKeys = new Set();
         expandedKeys = new Set();
         expansionHydrated = false;
         selectionHydrated = false;
+        setLoading(false);
         render(null);
         return null;
       }
@@ -929,7 +949,14 @@ export function createPackageSelectionStep({
         formatLabel.textContent = format.title || format.name || format.id || "-";
       }
 
-      const promptPackage = mergeProjectSnapshot(await fetchPromptPackage(format.id), project);
+      let promptPackage;
+      try {
+        promptPackage = mergeProjectSnapshot(await fetchPromptPackage(format.id), project);
+      } catch (error) {
+        if (requestRevision === loadRevision) setLoading(false);
+        throw error;
+      }
+      if (requestRevision !== loadRevision) return null;
       store.setPromptPackage(promptPackage);
       onPromptPackageResolved?.(promptPackage);
 
@@ -951,7 +978,10 @@ export function createPackageSelectionStep({
           (metaUniversity === "unac" && metaCategory.includes("proyecto"))
         );
 
-      if (isMaestriaOrProyecto && !hasPreviousSelection) {
+      if (selectionRevision !== selectionRevisionAtStart) {
+         const concreteKeys = concreteKeySet(promptPackage);
+         selectedKeys = new Set([...selectedKeys].filter((key) => concreteKeys.has(key)));
+      } else if (isMaestriaOrProyecto && !hasPreviousSelection) {
          // Si es maestría/proyecto UNAC y REALMENTE no hay nada previo en el proyecto, ponemos el default
          selectedKeys = new Set(["titulo-info-basica"]);
       } else {
@@ -962,11 +992,14 @@ export function createPackageSelectionStep({
       expansionHydrated = false;
       selectionHydrated = true;
       commitSelection(promptPackage);
+      packageReady = true;
+      setLoading(false);
       render(promptPackage);
       return promptPackage;
     },
     render,
     selectAll() {
+      if (loading || !packageReady) return;
       const promptPackage = store.getState().promptPackage;
       const tree = buildSectionTree(promptPackage);
       const allConcreteKeys = new Set();
@@ -977,7 +1010,7 @@ export function createPackageSelectionStep({
         && Array.from(allConcreteKeys).every((key) => selectedKeys.has(key));
       selectedKeys = areAllSelected ? new Set() : allConcreteKeys;
       selectionHydrated = true;
-      commitSelection(promptPackage);
+      commitSelection(promptPackage, { userInitiated: true });
       render(promptPackage);
     },
     mount() {
@@ -985,6 +1018,11 @@ export function createPackageSelectionStep({
       render();
     },
     unmount() {},
+    cancelPendingLoad() {
+      loadRevision += 1;
+      packageReady = false;
+      setLoading(false);
+    },
     validate() {
       return store.getState().selectedSections.length > 0;
     },

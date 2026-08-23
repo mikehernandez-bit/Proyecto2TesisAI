@@ -1208,5 +1208,30 @@ class TestInlineFormulaPromotion:
             },
         ]
         result = self._normalize(content)
+        formula = next(block for block in result if block.get("tipo") == "formula")
+        assert formula["latex"] == r"MTBF = \frac{T_o}{N_f}"
+        assert formula["id"].startswith("formula-")
         formula_blocks = [b for b in result if b.get("tipo") == "formula"]
         assert len(formula_blocks) >= 1
+
+    def test_ambiguous_formula_is_rejected_instead_of_plain_text_fallback(self):
+        content = [
+            self._long_para(),
+            {"tipo": "formula", "texto": "Indicador raro = valor ajustado por criterio"},
+        ]
+        with pytest.raises(ValidationError, match="Formula ambigua"):
+            self._normalize(content)
+
+
+def test_maintenance_theoretical_bases_require_all_eight_canonical_headings() -> None:
+    content = [
+        {"tipo": "parrafo", "texto": "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM)"},
+        {"tipo": "parrafo", "texto": "El RCM analiza funciones, modos de falla y consecuencias operacionales."},
+        {"tipo": "parrafo", "texto": "2.2.2 Confiabilidad y disponibilidad inherente"},
+        {"tipo": "parrafo", "texto": "El MTBF y el MTTR permiten estudiar confiabilidad y mantenibilidad."},
+        {"tipo": "parrafo", "texto": "2.2.3 Análisis de Modos y Efecto de Fallas (AMEF)"},
+        {"tipo": "parrafo", "texto": "La ISO 14224 ordena los registros de la motoniveladora CAT 24M."},
+    ]
+
+    with pytest.raises(ValidationError, match="ocho subtitulos canonicos"):
+        OutputValidator._validate_theoretical_bases_quality(content, section_id="sec-theory")

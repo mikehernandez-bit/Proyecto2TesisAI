@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Sequence
 
 from app.core.services.maestria_payload_mapper import normalize_maestria_details
+from app.core.services.ai.unac_quality_profile import (
+    is_unac_maintenance_project,
+    load_unac_maintenance_profile,
+    minimum_for_section_path,
+)
 
 _TARGET_FORMATS = {
     "unac-proyecto-cual",
@@ -1665,7 +1670,11 @@ def _chapter_two_bases_contract(details: Dict[str, Any]) -> List[str]:
                     "plano aislado en un parrafo (por ejemplo 'MTBF = ...' o 'Disponibilidad = ...' como linea "
                     "suelta). Una formula en texto plano es un error critico que la hace aparecer en el indice "
                     "del documento como si fuera un titulo, arruinando la tabla de contenidos. Usa siempre el "
-                    "bloque FORMULA_JSON con los campos 'tipo', 'texto' y 'alineacion'."
+                    "bloque FORMULA_JSON con los campos obligatorios 'tipo', 'latex', 'texto', 'alineacion' e 'id'; "
+                    "'latex' es la expresion canonica editable, 'texto' es el respaldo legible e 'id' debe ser estable. "
+                    "Puedes incluir 'numero' cuando corresponda. Ejemplo: "
+                    "{\"tipo\":\"formula\",\"latex\":\"R(t)=e^{-\\\\lambda t}\","
+                    "\"texto\":\"R(t) = e^(-lambda t)\",\"alineacion\":\"center\",\"id\":\"confiabilidad-rt\"}."
                 ),
                 (
                     "- Patron del entregable 1: 2.2.1 desarrolla fundamento teorico del RCM sin figura; "
@@ -1719,9 +1728,22 @@ def build_section_editorial_context(
         return ""
 
     details = normalize_maestria_details(values or {})
+    maintenance_minimum = None
+    if is_unac_maintenance_project(format_id, values or {}):
+        maintenance_minimum = minimum_for_section_path(section_path)
+    if maintenance_minimum:
+        buffer_percent = load_unac_maintenance_profile().generation_buffer_percent
+        target_words = (maintenance_minimum * (100 + buffer_percent) + 99) // 100
+        word_contract = (
+            f"minimo obligatorio {maintenance_minimum} palabras narrativas; objetivo de generacion "
+            f"{target_words} o mas. No existe maximo academico para este perfil"
+        )
+    else:
+        word_contract = profile.word_range
+
     lines: List[str] = [
         "Contrato editorial especifico de esta seccion:",
-        f"- Rango de palabras aceptable: {profile.word_range}.",
+        f"- Rango de palabras aceptable: {word_contract}.",
         f"- Proposito: {profile.purpose}",
         "- Estructura interna esperada:",
     ]

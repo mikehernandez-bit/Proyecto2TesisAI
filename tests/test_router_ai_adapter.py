@@ -7,8 +7,21 @@ from app.modules.api.router import (
     _adapt_ai_result_for_gicatesis,
     _build_render_payload,
     _extract_resume_seed_sections,
+    _new_generation_ai_service,
     _values_with_title,
 )
+
+
+def test_background_generation_services_keep_run_state_isolated():
+    first = _new_generation_ai_service()
+    second = _new_generation_ai_service()
+
+    first._partial_sections = [{"sectionId": "first"}]
+    second._partial_sections = [{"sectionId": "second"}]
+
+    assert first is not second
+    assert first.get_partial_ai_result()["sections"] == [{"sectionId": "first"}]
+    assert second.get_partial_ai_result()["sections"] == [{"sectionId": "second"}]
 
 
 def _schedule_row(label: str, marked_months: list[int] | None = None) -> list[str]:
@@ -485,12 +498,24 @@ def test_build_render_payload_preserves_normalized_matriz_consistencia():
             "poblacion": "Equipos criticos",
             "muestra": "12 equipos",
             "matriz_consistencia": {
-                "problema_general": "PG",
-                "objetivo_general": "OG",
-                "hipotesis_general": "HG",
-                "problemas_especificos": ["PE1", "PE2", "PE3"],
-                "objetivos_especificos": ["OE1", "OE2", "OE3"],
-                "hipotesis_especificas": ["HE1", "HE2", "HE3"],
+                    "problema_general": "¿De qué manera el sistema de mantenimiento mejora la disponibilidad operativa?",
+                    "objetivo_general": "Determinar de qué manera el sistema de mantenimiento mejora la disponibilidad operativa",
+                    "hipotesis_general": "El sistema de mantenimiento mejora la disponibilidad operativa",
+                    "problemas_especificos": [
+                        "¿De qué manera la planificación mejora la confiabilidad?",
+                        "¿De qué manera la ejecución mejora la mantenibilidad?",
+                        "¿De qué manera el control mejora la disponibilidad operativa?",
+                    ],
+                    "objetivos_especificos": [
+                        "Determinar de qué manera la planificación mejora la confiabilidad",
+                        "Determinar de qué manera la ejecución mejora la mantenibilidad",
+                        "Determinar de qué manera el control mejora la disponibilidad operativa",
+                    ],
+                    "hipotesis_especificas": [
+                        "La planificación mejora la confiabilidad",
+                        "La ejecución mejora la mantenibilidad",
+                        "El control mejora la disponibilidad operativa",
+                    ],
                 "dimensiones_variable_independiente": ["Planificacion", "Ejecucion"],
                 "dimensiones_variable_dependiente": ["Confiabilidad", "Mantenibilidad"],
                 "tecnicas": "Observacion directa",
@@ -504,20 +529,20 @@ def test_build_render_payload_preserves_normalized_matriz_consistencia():
     values = payload["values"]
     matrix = values["matriz_consistencia"]
     assert values["titulo"] == "Titulo del proyecto de tesis"
-    assert matrix["problema_general"] == "PG"
-    assert matrix["problemas_especificos"] == ["PE1", "PE2", "PE3"]
-    assert matrix["objetivos_especificos"] == ["OE1", "OE2", "OE3"]
-    assert matrix["hipotesis_especificas"] == ["HE1", "HE2", "HE3"]
+    assert matrix["problema_general"].startswith("¿De qué manera")
+    assert len(matrix["problemas_especificos"]) == 3
+    assert len(matrix["objetivos_especificos"]) == 3
+    assert len(matrix["hipotesis_especificas"]) == 3
     assert matrix["variable_independiente"] == "Sistema de mantenimiento"
     assert matrix["variable_dependiente"] == "Disponibilidad operativa"
     assert matrix["tipo_investigacion"] == "Aplicada"
     assert matrix["nivel_investigacion"] == "Explicativo"
     assert matrix["enfoque_investigacion"] == "Cuantitativo"
     assert matrix["diseno"] == "Preexperimental"
-    assert matrix["problemas"]["general"] == "PG"
-    assert matrix["problemas"]["especificos"] == ["PE1", "PE2", "PE3"]
-    assert matrix["objetivos"]["especificos"] == ["OE1", "OE2", "OE3"]
-    assert matrix["hipotesis"]["especificos"] == ["HE1", "HE2", "HE3"]
+    assert matrix["problemas"]["general"] == matrix["problema_general"]
+    assert matrix["problemas"]["especificos"] == matrix["problemas_especificos"]
+    assert matrix["objetivos"]["especificos"] == matrix["objetivos_especificos"]
+    assert matrix["hipotesis"]["especificos"] == matrix["hipotesis_especificas"]
     assert matrix["variables"]["independiente"]["nombre"] == "Sistema de mantenimiento"
     assert matrix["variables"]["independiente"]["dimensiones"] == ["Planificacion", "Ejecucion"]
     assert matrix["variables"]["dependiente"]["nombre"] == "Disponibilidad operativa"

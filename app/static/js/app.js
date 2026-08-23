@@ -24,6 +24,7 @@ function buildActionHandlers(app, promptEditor) {
     "app.refreshProviderStatus": () => app.refreshProviderStatus(),
     "app.cancelGeneration": () => app.cancelGeneration(),
     "app.retryGeneration": () => app.retryGeneration(),
+    "app.restartGeneration": () => app.restartGeneration(),
     "app.goToDownloads": () => app.goToDownloads(),
     "app.closeBudgetModal": () => app.closeBudgetModal(),
     "app.refreshBudgetPricing": () => app.refreshBudgetPricing(),

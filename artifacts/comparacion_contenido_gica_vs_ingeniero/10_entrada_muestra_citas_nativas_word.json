@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "id": "unac-proyecto-cuant-native-citations",
+    "university": "unac"
+  },
+  "configuracion": {
+    "ruta_logo": "app/static/assets/LogoUNAC.png"
+  },
+  "caratula": {
+    "universidad": "UNIVERSIDAD NACIONAL DEL CALLAO",
+    "facultad": "FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA",
+    "escuela": "UNIDAD DE INVESTIGACIÓN",
+    "tipo_documento": "PROYECTO DE TESIS",
+    "titulo": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA EQUIPOS DE MINERÍA",
+    "autores": [
+      "Autor de prueba GICA"
+    ],
+    "asesor": "Ingeniero asesor de prueba",
+    "linea_investigacion": "Ingeniería y tecnología",
+    "lugar": "Callao",
+    "anio": "2026",
+    "pais": "PERÚ"
+  },
+  "pagina_respeto": {},
+  "preliminares": {
+    "introduccion": {
+      "titulo": "INTRODUCCIÓN",
+      "_ai_content": "La gestión del mantenimiento influye directamente en la disponibilidad y continuidad operativa de los equipos de minería. Para esta prueba se incorpora una cita simulada mediante el mecanismo bibliográfico nativo de Microsoft Word [[CITE:SIM_01_MORALES_QUISPE_2025]].\n\nLa fuente todavía no ha sido verificada en Internet y únicamente permite comprobar la trazabilidad técnica entre la cita, la lista actual del Administrador de fuentes y las referencias bibliográficas."
+    }
+  },
+  "cuerpo": [
+    {
+      "titulo": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "contenido": [
+        {
+          "texto": "1.1 Descripción de la realidad problemática",
+          "_ai_content": "La ausencia de una estrategia sistemática de mantenimiento genera intervenciones reactivas, tiempos improductivos y menor confiabilidad. El enfoque de mantenimiento centrado en confiabilidad permite organizar la toma de decisiones con criterios técnicos [[CITE:SIM_02_ROJAS_2024]]."
+        },
+        {
+          "texto": "1.2 Formulación del problema",
+          "_ai_content": "¿De qué manera un plan de mantenimiento centrado en confiabilidad mejora la disponibilidad de los equipos de minería?"
+        },
+        {
+          "texto": "1.3 Objetivos",
+          "_ai_content": "Determinar de qué manera un plan de mantenimiento centrado en confiabilidad mejora la disponibilidad de los equipos de minería."
+        }
+      ]
+    },
+    {
+      "titulo": "II. MARCO TEÓRICO",
+      "contenido": [
+        {
+          "texto": "2.1 Bases teóricas",
+          "_ai_content": "La confiabilidad se entiende como la probabilidad de que un activo cumpla la función requerida durante un intervalo y bajo condiciones establecidas. El mantenimiento centrado en confiabilidad relaciona funciones, fallas y consecuencias para seleccionar tareas aplicables y efectivas [[CITE:SIM_01_MORALES_QUISPE_2025;SIM_02_ROJAS_2024]]."
+        }
+      ]
+    }
+  ],
+  "finales": {
+    "referencias": {
+      "titulo": "REFERENCIAS BIBLIOGRÁFICAS",
+      "_ai_content": "Las siguientes referencias son propuestas académicas simuladas generadas sin acceso a Internet. Deben validarse, corregirse o reemplazarse por el autor antes de la versión final.\n\n[[SOURCE:SIM_01_MORALES_QUISPE_2025]] Morales, J., & Quispe, L. (2025). Confiabilidad y mantenimiento de activos en operaciones mineras. Revista Latinoamericana de Gestión del Mantenimiento, 14(2), 45-62. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_02_ROJAS_2024]] Rojas, M. (2024). Fundamentos del mantenimiento centrado en confiabilidad. Editorial Academia Técnica. Referencia propuesta simulada para validacion del autor."
+    }
+  }
+}

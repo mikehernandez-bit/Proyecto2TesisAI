@@ -93,6 +93,15 @@ class ProjectService:
             "base_run_id": "",
             "retry_count": 0,
             "reason": "",
+            "input_fingerprint": "",
+            "failed_section_id": "",
+            "failed_section_index": 0,
+            "completed_sections_count": 0,
+            "checkpoint_status": "idle",
+            "failed_stage": "",
+            "failed_quality_keys": [],
+            "validated_sections_count": 0,
+            "quality_attempts_by_key": {},
             "updated_at": "",
         }
 
@@ -136,6 +145,29 @@ class ProjectService:
                 "base_run_id": str(resume_raw.get("base_run_id") or ""),
                 "retry_count": max(0, int(resume_raw.get("retry_count") or 0)),
                 "reason": str(resume_raw.get("reason") or ""),
+                "input_fingerprint": str(resume_raw.get("input_fingerprint") or ""),
+                "failed_section_id": str(resume_raw.get("failed_section_id") or ""),
+                "failed_section_index": max(0, int(resume_raw.get("failed_section_index") or 0)),
+                "completed_sections_count": max(
+                    0,
+                    int(resume_raw.get("completed_sections_count") or resume_raw.get("saved_sections_count") or 0),
+                ),
+                "checkpoint_status": str(resume_raw.get("checkpoint_status") or "idle"),
+                "failed_stage": str(resume_raw.get("failed_stage") or ""),
+                "failed_quality_keys": [
+                    str(item) for item in resume_raw.get("failed_quality_keys", []) if str(item).strip()
+                ]
+                if isinstance(resume_raw.get("failed_quality_keys"), list)
+                else [],
+                "validated_sections_count": max(
+                    0, int(resume_raw.get("validated_sections_count") or 0)
+                ),
+                "quality_attempts_by_key": {
+                    str(key): max(0, int(value or 0))
+                    for key, value in resume_raw.get("quality_attempts_by_key", {}).items()
+                }
+                if isinstance(resume_raw.get("quality_attempts_by_key"), dict)
+                else {},
                 "updated_at": str(resume_raw.get("updated_at") or ""),
             }
         )
@@ -879,6 +911,13 @@ class ProjectService:
         last_failed_section_path: str,
         reason: str,
         base_run_id: str = "",
+        input_fingerprint: str = "",
+        failed_section_id: str = "",
+        failed_section_index: int = 0,
+        failed_stage: str = "",
+        failed_quality_keys: Optional[list[str]] = None,
+        validated_sections_count: int = 0,
+        quality_attempts_by_key: Optional[Dict[str, int]] = None,
     ) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
             current_resume = self._normalize_resume(
@@ -895,6 +934,55 @@ class ProjectService:
                 "base_run_id": str(base_run_id or current_resume.get("base_run_id") or ""),
                 "retry_count": current_retry_count + 1,
                 "reason": str(reason or ""),
+                "input_fingerprint": str(input_fingerprint or current_resume.get("input_fingerprint") or ""),
+                "failed_section_id": str(failed_section_id or ""),
+                "failed_section_index": max(0, int(failed_section_index or saved_sections_count)),
+                "completed_sections_count": max(0, int(saved_sections_count)),
+                "checkpoint_status": "resume_ready",
+                "failed_stage": str(failed_stage or ""),
+                "failed_quality_keys": [
+                    str(item) for item in (failed_quality_keys or []) if str(item).strip()
+                ],
+                "validated_sections_count": max(0, int(validated_sections_count or 0)),
+                "quality_attempts_by_key": {
+                    str(key): max(0, int(value or 0))
+                    for key, value in (quality_attempts_by_key or {}).items()
+                },
+                "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
+            }
+
+        return self._mutate_project(project_id, _mutate)
+
+    def save_generation_checkpoint(
+        self,
+        project_id: str,
+        *,
+        saved_sections_count: int,
+        current_path: str,
+        input_fingerprint: str,
+        base_run_id: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """Persist normal per-section progress without incrementing retry_count."""
+
+        def _mutate(p: Dict[str, Any]) -> None:
+            current = self._normalize_resume(p.get("resume"), format_version=str(p.get("format_version") or ""))
+            p["resume"] = {
+                **current,
+                "eligible": saved_sections_count > 0,
+                "saved_sections_count": max(0, int(saved_sections_count)),
+                "resume_from_index": max(0, int(saved_sections_count)),
+                "completed_sections_count": max(0, int(saved_sections_count)),
+                "last_failed_section_path": "",
+                "failed_section_id": "",
+                "failed_section_index": 0,
+                "input_fingerprint": str(input_fingerprint or ""),
+                "base_run_id": str(base_run_id or current.get("base_run_id") or ""),
+                "reason": "checkpoint por seccion completada",
+                "checkpoint_status": "checkpoint_ready",
+                "failed_stage": "",
+                "failed_quality_keys": [],
+                "validated_sections_count": max(0, int(saved_sections_count)),
+                "quality_attempts_by_key": {},
                 "updated_at": dt.datetime.now().isoformat(timespec="seconds"),
             }
 
@@ -1136,9 +1224,8 @@ class ProjectService:
         def _mutate(p: Dict[str, Any]) -> None:
             p["status"] = "render_failed"
             p["error"] = error
-            p["artifacts"] = []
-            p["output_file"] = None
-            p["pdf_file"] = None
+            # Preserve successful construction outputs. A PDF-stage or final
+            # validation failure must not discard a valid DOCX checkpoint.
             p["cancel_requested"] = False
             p["resume"] = {
                 **self._empty_resume(format_version=str(p.get("format_version") or "")),

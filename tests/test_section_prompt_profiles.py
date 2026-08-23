@@ -112,7 +112,7 @@ def test_build_section_editorial_context_for_problem_detail():
         section_path="I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
         values=_sample_values(),
     )
-    assert "Rango de palabras aceptable: 1300 a 1450 palabras narrativas" in context
+    assert "Rango de palabras aceptable: minimo obligatorio 1276 palabras narrativas" in context
     assert "contexto operativo macro de la mineria a cielo abierto" in context
     assert "Parrafos 5 y 6: diagnostico local" in context
     assert "No inventes porcentajes, costos, disponibilidad, MTBF, MTTR" in context

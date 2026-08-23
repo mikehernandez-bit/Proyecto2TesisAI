@@ -230,6 +230,84 @@ const providerStatus = {
   ],
 };
 
+test("wizard ignores stale package loads and keeps select-all stable", async ({ page }) => {
+  let releaseFirstPackage: (() => void) | null = null;
+  const firstPackageGate = new Promise<void>((resolve) => {
+    releaseFirstPackage = resolve;
+  });
+  const secondFormatId = "fmt-demo-004";
+  const secondPackage = {
+    ...promptPackage,
+    id: "promptpkg_fmt_demo_004",
+    format_id: secondFormatId,
+    format_name: "Formato Demo Secciones B",
+  };
+
+  await page.route(/\/api\/projects(?:\?.*)?$/, async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({ id: "proj-race", projectId: "proj-race", status: "draft" }),
+      });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+
+  await page.route(/\/api\/formats(?:\/[^/?]+\/prompt-package)?(?:\?.*)?$/, async (route) => {
+    const url = route.request().url();
+    if (url.includes(`${formatId}/prompt-package`)) {
+      await firstPackageGate;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(promptPackage) });
+      return;
+    }
+    if (url.includes(`${secondFormatId}/prompt-package`)) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(secondPackage) });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        formats: [
+          { id: formatId, title: "Formato Demo Secciones A", university: "demo", category: "general", version: "v1" },
+          { id: secondFormatId, title: "Formato Demo Secciones B", university: "demo", category: "general", version: "v1" },
+        ],
+        stale: false,
+        source: "demo",
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await page.click("#nav-wizard");
+  await page.locator("#formats-grid .format-card").nth(0).click();
+  await page.click("#btn-step1-next");
+
+  await expect(page.locator("#btn-step2-select-all")).toBeDisabled();
+  await expect(page.locator("#chapter-selection-grid")).toContainText("Cargando paquete institucional");
+
+  await page.click('#step-2-content [data-action="app.prevStep"]');
+  await page.locator("#formats-grid .format-card").nth(1).click();
+  await page.click("#btn-step1-next");
+  await expect(page.locator("#step2-format-name-display")).toHaveText("Formato Demo Secciones B");
+  await expect(page.locator("#btn-step2-select-all")).toBeEnabled();
+
+  await page.click("#btn-step2-select-all");
+  await expect(page.locator("#chapter-selection-grid .wizard-tree-checkbox:checked")).toHaveCount(4);
+
+  releaseFirstPackage?.();
+  await page.waitForTimeout(250);
+  await expect(page.locator("#step2-format-name-display")).toHaveText("Formato Demo Secciones B");
+  await expect(page.locator("#chapter-selection-grid .wizard-tree-checkbox:checked")).toHaveCount(4);
+  await expect(page.locator("#btn-step2-next")).toBeEnabled();
+
+  await page.click("#btn-step2-select-all");
+  await expect(page.locator("#chapter-selection-grid .wizard-tree-checkbox:checked")).toHaveCount(0);
+  await expect(page.locator("#btn-step2-next")).toBeDisabled();
+});
+
 test("wizard renders tree in institutional order, expands/collapses, and persists recursive concrete selection", async ({ page }) => {
   const draftPayloads: any[] = [];
   const pageErrors: string[] = [];
@@ -466,7 +544,18 @@ test("wizard renders tree in institutional order, expands/collapses, and persist
   ).toHaveCount(0);
 
   await chapterCard.click();
+  await page.locator("#step-2-content").evaluate((element) => {
+    (element as HTMLElement).style.minHeight = "2200px";
+  });
+  await page.locator("#app-main-scroll").evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect.poll(() => page.locator("#app-main-scroll").evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   await page.click("#btn-step2-next");
+
+  await expect(page.locator("#step-3-content > div > div h3").first()).toContainText("3. Detalles del Proyecto");
+  await expect.poll(() => page.locator("#app-main-scroll").evaluate((element) => element.scrollTop)).toBe(0);
+  await expect(page.locator("#var_title")).toBeInViewport();
 
   await expect(page.locator('[data-variable="variable_contextual"]')).toHaveCount(0);
   await expect(page.locator('[data-variable="variable_dependiente"]')).toHaveCount(1);

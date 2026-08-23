@@ -1,8 +1,8 @@
-# Plan de mejoras pendientes para los índices UNAC
+# Plan y estado de mejoras para los índices UNAC
 
 ## Estado
 
-**Pendiente de aplicar.** Este documento registra reglas y criterios de aceptación para una futura modificación del flujo de generación del Proyecto de Tesis UNAC. No implica cambios en el generador ni en los archivos DOCX o PDF actuales.
+**Aplicado y verificado el 20 de agosto de 2026.** Las reglas de tablas, figuras, abreviaturas, actualización de campos y validación estructural ya forman parte del flujo de generación del Proyecto de Tesis UNAC. La integración de citas y bibliografía nativas de Word permanece diferida mientras se utilicen referencias simuladas.
 
 ## 1. Índice de tablas
 
@@ -15,7 +15,7 @@ El documento generado contiene 5 tablas, pero el índice de tablas solo enumera 
 - Las primeras entradas del índice aparecen en negrita porque sus captions automáticos también están en negrita.
 - Falta el encabezado `Pág.` sobre la columna de números de página.
 
-### Reglas pendientes
+### Reglas aplicadas
 
 1. Conservar literalmente los títulos institucionales de las tablas 5.1 y 6.1.
 2. Incorporar el campo técnico `SEQ Tabla` en esos títulos sin alterar su apariencia visual.
@@ -24,7 +24,7 @@ El documento generado contiene 5 tablas, pero el índice de tablas solo enumera 
 5. Actualizar los campos del índice después de haber renderizado e insertado todas las tablas.
 6. No depender únicamente del texto visible para identificar una tabla: cada tabla que deba aparecer en el índice tendrá un caption técnico reconocible por Word.
 
-### Validación de aceptación
+### Validación aplicada
 
 - Contar las tablas y los captions técnicos de tabla en el documento final.
 - Confirmar que el número de entradas del índice sea igual al número de captions de tabla generados.
@@ -46,7 +46,7 @@ El criterio esperado es un título corto, descriptivo y en estilo oración, por 
 - `Figura 2.3 Análisis de Modo y Efecto de Falla`
 - `Figura 2.4 Motoniveladora CAT 24M`
 
-### Reglas pendientes
+### Reglas aplicadas
 
 1. Construir cada caption con el número de figura y un concepto técnico breve.
 2. No repetir el título completo de la tesis dentro del caption.
@@ -57,7 +57,7 @@ El criterio esperado es un título corto, descriptivo y en estilo oración, por 
 7. Insertar `Pág.` alineado a la derecha sobre la columna de páginas.
 8. Aplicar Arial normal y sin negrita a todas las entradas del índice de figuras.
 
-### Validación de aceptación
+### Validación aplicada
 
 - Confirmar que cada figura incluida en el documento tenga un caption técnico y una entrada en el índice.
 - Detectar captions que reproduzcan total o parcialmente el título del proyecto mediante una coletilla repetitiva.
@@ -73,7 +73,7 @@ El índice de abreviaturas actual es incompleto. En el documento aparecen siglas
 
 También existe una inconsistencia de idioma: el documento está en español, pero las definiciones recuperadas aparecen en inglés.
 
-### Reglas pendientes
+### Reglas aplicadas
 
 1. Analizar todo el documento final: párrafos, tablas, captions, capítulos, anexos y notas técnicas.
 2. Mantener un catálogo técnico UNAC para apoyar el reconocimiento de siglas de mantenimiento y confiabilidad, incluidas `AMEF`, `CAT`, `CBM`, `CMMS`, `GMG`, `ISO`, `MTBF`, `MTTR`, `RCM` y `SAE`.
@@ -85,7 +85,7 @@ También existe una inconsistencia de idioma: el documento está en español, pe
 8. Ordenar alfabéticamente las entradas finales.
 9. No inventar definiciones: una expansión no confirmada debe quedar marcada para revisión.
 
-### Validación de aceptación
+### Validación aplicada
 
 - Crear un inventario de siglas detectadas y su ubicación en el documento final.
 - Compararlo con las entradas del índice de abreviaturas.
@@ -94,7 +94,7 @@ También existe una inconsistencia de idioma: el documento está en español, pe
 - Comprobar el orden alfabético, la ausencia de duplicados y la coherencia del idioma.
 - Tratar `AMEF`/`FMEA` y otras equivalencias como variantes relacionadas, conservando la forma realmente utilizada en el texto.
 
-## 4. Orden futuro de aplicación
+## 4. Orden aplicado en la generación
 
 1. Generar todo el contenido, incluidas tablas, figuras, anexos y captions.
 2. Ejecutar la normalización de títulos de tablas y figuras.
@@ -109,9 +109,12 @@ También existe una inconsistencia de idioma: el documento está en español, pe
 
 | Componente | Situación actual | Resultado esperado | Estado |
 | --- | --- | --- | --- |
-| Índice de tablas | 5 tablas y 2 entradas visibles | Una entrada por cada caption técnico de tabla | Pendiente |
-| Índice de figuras | Captions extensos que repiten el título del proyecto | Captions breves, técnicos y normalizados | Pendiente |
-| Índice de abreviaturas | Detección parcial y definiciones en inglés | Cobertura integral, definiciones validadas y preferentemente en español | Pendiente |
-| Encabezado de páginas | Falta `Pág.` | `Pág.` alineado sobre la columna numérica | Pendiente |
-| Tipografía de índices | Algunas entradas en negrita | Arial normal, sin negrita | Pendiente |
+| Índice de tablas | 5 tablas y 2 entradas visibles | Una entrada por cada caption técnico de tabla | Aplicado; prueba de 5/5 superada |
+| Índice de figuras | Captions extensos que repiten el título del proyecto | Captions breves, técnicos y normalizados | Aplicado |
+| Índice de abreviaturas | Detección parcial y definiciones en inglés | Cobertura integral, definiciones validadas y preferentemente en español | Aplicado |
+| Encabezado de páginas | Falta `Pág.` | `Pág.` alineado sobre la columna numérica | Aplicado y verificado en Word |
+| Tipografía de índices | Algunas entradas en negrita | Arial normal, sin negrita | Aplicado y verificado en Word |
 
+## 6. Alcance y pendiente separado
+
+La aplicación de este plan no valida la autenticidad de las referencias bibliográficas. El conteo de citas por sección y la posterior integración con el administrador de fuentes de Word se conservan como trabajos separados. Mientras se usen referencias simuladas, el DOCX será una muestra funcional del generador y no una versión académica final.
