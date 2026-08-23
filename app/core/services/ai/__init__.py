@@ -10,6 +10,7 @@ from app.core.services.ai.errors import (
     GenerationCancelledError,
     ProviderAuthError,
     ProviderTransientError,
+    QualityProfileValidationError,
     QuotaExceededError,
 )
 from app.core.services.ai.gemini_client import GeminiClient
@@ -30,4 +31,5 @@ __all__ = [
     "QuotaExceededError",
     "ProviderAuthError",
     "ProviderTransientError",
+    "QualityProfileValidationError",
 ]

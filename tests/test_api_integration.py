@@ -1220,6 +1220,39 @@ class TestGenerationEndpoint:
         assert render_mock.call_count == 0
         assert ai_mock.call_count == 1
 
+    def test_generate_rejects_incompatible_checkpoint_without_silent_restart(self, client):
+        from app.modules.api import router as router_module
+        from app.modules.api.payload_helpers import project_input_fingerprint
+
+        response = client.post(
+            "/api/projects/draft",
+            json={
+                "title": "Checkpoint compatibility",
+                "formatId": "demo",
+                "promptId": "prompt_tesis_estandar",
+                "values": {"tema": "Original"},
+            },
+        )
+        project_id = response.json()["id"]
+        project = router_module.projects.get_project(project_id)
+        fingerprint = project_input_fingerprint(project)
+        router_module.projects.update_project(
+            project_id,
+            {
+                "status": "failed",
+                "ai_result": {
+                    "inputFingerprint": fingerprint,
+                    "sections": [{"sectionId": "sec-1", "path": "Introduccion", "content": "Guardado"}],
+                },
+                "values": {"tema": "Modificado"},
+            },
+        )
+
+        retry = client.post(f"/api/projects/{project_id}/generate", json={"resumeMode": "auto"})
+
+        assert retry.status_code == 409
+        assert retry.json()["detail"] == "checkpoint_incompatible"
+
     def test_generate_returns_accepted_quickly(self, client):
         payload = {
             "title": "Gen Async Test",
@@ -1265,6 +1298,7 @@ class TestGenerationEndpoint:
             raise RuntimeError("forced failure")
 
         with (
+            patch("app.modules.api.router._new_generation_ai_service", return_value=router_module.ai_service),
             patch(
                 "app.modules.api.router.formats.get_format_detail",
                 new=AsyncMock(return_value={"definition": {"cuerpo": {"capitulos": [{"titulo": "Uno"}]}}}),
@@ -1369,6 +1403,7 @@ class TestGenerationEndpoint:
             raise RuntimeError("forced failure")
 
         with (
+            patch("app.modules.api.router._new_generation_ai_service", return_value=router_module.ai_service),
             patch(
                 "app.modules.api.router.formats.get_format_detail",
                 new=AsyncMock(return_value={"definition": {"cuerpo": {"capitulos": [{"titulo": "Uno"}]}}}),
@@ -1441,6 +1476,7 @@ class TestGenerationEndpoint:
             raise RuntimeError("forced failure")
 
         with (
+            patch("app.modules.api.router._new_generation_ai_service", return_value=router_module.ai_service),
             patch(
                 "app.modules.api.router.formats.get_format_detail",
                 new=AsyncMock(
@@ -1500,6 +1536,7 @@ class TestGenerationEndpoint:
             )
 
         with (
+            patch("app.modules.api.router._new_generation_ai_service", return_value=router_module.ai_service),
             patch(
                 "app.modules.api.router.formats.get_format_detail",
                 new=AsyncMock(return_value={"definition": {"cuerpo": {"capitulos": [{"titulo": "Uno"}]}}}),
@@ -1730,6 +1767,7 @@ class TestGenerationEndpoint:
             return docx_path, pdf_path
 
         with (
+            patch("app.modules.api.router._new_generation_ai_service", return_value=router_module.ai_service),
             patch(
                 "app.modules.api.router.formats.get_format_detail",
                 new=AsyncMock(return_value={"definition": {"cuerpo": {"capitulos": [{"titulo": "Introduccion"}]}}}),

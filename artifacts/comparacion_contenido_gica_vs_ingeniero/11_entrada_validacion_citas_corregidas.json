@@ -1,0 +1,1873 @@
+{
+  "formatId": "unac-proyecto-cuant",
+  "values": {
+    "titulo": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD INHERENTE DE LA FLOTA DE MOTONIVELADORAS CAT 24M EN UNA UNIDAD MINERA CUPRÍFERA, SIERRA CENTRAL, 2025",
+    "title": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD INHERENTE DE LA FLOTA DE MOTONIVELADORAS CAT 24M EN UNA UNIDAD MINERA CUPRÍFERA, SIERRA CENTRAL, 2025",
+    "tema": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD INHERENTE DE LA FLOTA DE MOTONIVELADORAS CAT 24M EN UNA UNIDAD MINERA CUPRÍFERA, SIERRA CENTRAL, 2025",
+    "linea_investigacion": "Ingeniería y Tecnología",
+    "anio": "2026",
+    "lugar_caratula": "Callao",
+    "autor1_nombres": "Bach. Lenin Walter Cruz Julca",
+    "autor1_dni": "71716262",
+    "autor1_orcid": "0009-0006-1664-5032",
+    "autor2_nombres": "Bach. Eliseo Antonio Torres Roque",
+    "autor2_dni": "09841017",
+    "autor2_orcid": "0009-0008-7823-6976",
+    "asesor_nombres": "Dr. Robert William Castillo Alva",
+    "asesor_dni": "18140556",
+    "asesor_orcid": "0009-0002-5258-3319",
+    "coasesor_nombres": "",
+    "coasesor_dni": "",
+    "coasesor_orcid": "",
+    "facultad": "ESCUELA DE POSGRADO",
+    "unidad_investigacion": "Unidad de Posgrado de la Facultad de Ingeniería Mecánica y de Energía",
+    "objeto_estudio": "Flota de Motoniveladoras CAT 24M (5 unidades)",
+    "variable_independiente": "Mantenimiento Centrado en la Confiabilidad (RCM)",
+    "variable_dependiente": "Disponibilidad inherente",
+    "vi": "Mantenimiento Centrado en la Confiabilidad (RCM)",
+    "vd": "Disponibilidad inherente",
+    "lugar_ejecucion": "Mina a cielo abierto.",
+    "unidad_analisis": "Flota de Motoniveladoras CAT 24M (5 unidades)",
+    "tipo": "Aplicada",
+    "enfoque": "Cuantitativo",
+    "diseno_investigacion": "Pre experimental (Pre test y Post Test)",
+    "nivel_investigacion": "Explicativa",
+    "poblacion": "05 motoniveladoras Caterpillar (CAT) modelo 24M",
+    "muestra": "Muestreo no probabilístico de tipo censal, la muestra es coincidente con la población (n = 5 unidades)",
+    "lugar": "Sierra Central",
+    "temporal": "2025",
+    "tema_ocde_1": "2.00.00 -- Ingeniería, Tecnología",
+    "tema_ocde_2": "2.03.00 -- Ingeniería Mecánica",
+    "tema_ocde_3": "2.03.06 -- Análisis de confiabilidad",
+    "tema_ocde": [
+      "2.00.00 -- Ingeniería, Tecnología",
+      "2.03.00 -- Ingeniería Mecánica",
+      "2.03.06 -- Análisis de confiabilidad"
+    ],
+    "abreviaturas": [],
+    "matriz_consistencia": {
+      "problema_general": "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?",
+      "objetivo_general": "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+      "hipotesis_general": "El plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+      "variable_independiente": "Mantenimiento Centrado en la Confiabilidad (RCM)",
+      "dimensiones_variable_independiente": [
+        "Taxonomía de equipos (ISO 14224),Análisis de criticidad,AMEF,Plan de mantenimiento"
+      ],
+      "problemas_especificos": [
+        "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?",
+        "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?"
+      ],
+      "objetivos_especificos": [
+        "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+        "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025."
+      ],
+      "hipotesis_especificas": [
+        "El plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+        "El plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025."
+      ],
+      "variable_dependiente": "Disponibilidad inherente",
+      "dimensiones_variable_dependiente": [
+        "Confiabilidad,Mantenibilidad"
+      ],
+      "tipo_investigacion": "Aplicada",
+      "nivel_investigacion": "Explicativa",
+      "enfoque_investigacion": "Cuantitativo",
+      "diseno": "Pre experimental (Pre test y Post Test)",
+      "poblacion": "05 motoniveladoras Caterpillar (CAT) modelo 24M",
+      "muestra": "Muestreo no probabilístico de tipo censal, la muestra es coincidente con la población (n = 5 unidades)",
+      "tecnicas": "Análisis documental, observación directa, análisis de datos, encuesta y juicio de expertos.",
+      "instrumentos": "Fichas de recolección de datos (ISO 14224), Matriz de Criticidad, Hojas de trabajo AMEF (SAE JA 1011) y Hojas de decisión RCM, cuestionario de encuesta y matriz/ficha de validación de expertos.",
+      "procesamiento_datos": "Análisis estadístico de KPIs (MTBF, MTTR), modelamiento de fallas mediante distribución de Weibull y uso de software especializado (Excel/Minitab).",
+      "problemas": {
+        "general": "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?",
+        "especificos": [
+          "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?",
+          "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?"
+        ]
+      },
+      "objetivos": {
+        "general": "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+        "especificos": [
+          "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+          "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025."
+        ]
+      },
+      "hipotesis": {
+        "general": "El plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+        "especificos": [
+          "El plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+          "El plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025."
+        ]
+      },
+      "variables": {
+        "independiente": {
+          "nombre": "Mantenimiento Centrado en la Confiabilidad (RCM)",
+          "dimensiones": [
+            "Taxonomía de equipos (ISO 14224),Análisis de criticidad,AMEF,Plan de mantenimiento"
+          ]
+        },
+        "dependiente": {
+          "nombre": "Disponibilidad inherente",
+          "dimensiones": [
+            "Confiabilidad,Mantenibilidad"
+          ]
+        }
+      },
+      "metodologia": {
+        "tipo": "Aplicada",
+        "nivel": "Explicativa",
+        "enfoque": "Cuantitativo",
+        "diseno": "Pre experimental (Pre test y Post Test)",
+        "diseño": "Pre experimental (Pre test y Post Test)",
+        "poblacion": "05 motoniveladoras Caterpillar (CAT) modelo 24M",
+        "muestra": "Muestreo no probabilístico de tipo censal, la muestra es coincidente con la población (n = 5 unidades)",
+        "tecnicas": "Análisis documental, observación directa, análisis de datos, encuesta y juicio de expertos.",
+        "instrumentos": "Fichas de recolección de datos (ISO 14224), Matriz de Criticidad, Hojas de trabajo AMEF (SAE JA 1011) y Hojas de decisión RCM, cuestionario de encuesta y matriz/ficha de validación de expertos.",
+        "procesamiento_datos": "Análisis estadístico de KPIs (MTBF, MTTR), modelamiento de fallas mediante distribución de Weibull y uso de software especializado (Excel/Minitab)."
+      }
+    },
+    "operacionalizacion_vd": {
+      "variable": "Disponibilidad inherente",
+      "definicion_conceptual": "Según Global Mining Guidelines Group [GMG] (2020), la disponibilidad inherente representa el tiempo durante el cual el equipo está disponible como un porcentaje del tiempo en que es requerido por la operación, y puede usarse para identificar el impacto del mantenimiento en la operación.",
+      "definicion_operacional": "Se operacionaliza como la métrica de desempeño técnico que determina la proporción de tiempo operativo del equipo. Su cálculo matemático se deriva de la relación entre la dimensión de Confiabilidad, medida por el Tiempo Medio Entre Fallas (MTBF), y la dimensión de Mantenibilidad, cuantificada mediante el Tiempo Medio Para Reparar (MTTR), y considera únicamente paradas imprevistas por falla y tiempos de reparación correctiva (MTTR), excluyendo intervenciones programadas.",
+      "filas": [
+        {
+          "dimension": "Confiabilidad",
+          "indicador": "MTBF",
+          "indice": "MTBF=(Tiempo total de operación)/(número de fallas)",
+          "metodo_tecnica": "Análisis de Datos",
+          "tecnica_instrumentos": "Fichas de recolección de datos (ISO 14224)"
+        },
+        {
+          "dimension": "Mantenibilidad",
+          "indicador": "MTTR",
+          "indice": "MTTR=(Tiempo total de reparación)/(número de fallas)",
+          "metodo_tecnica": "Observación Directa, Análisis de Datos",
+          "tecnica_instrumentos": "Fichas de recolección de datos (ISO 14224)"
+        }
+      ]
+    },
+    "operacionalizacion_vi": {
+      "variable": "Mantenimiento Centrado en la Confiabilidad (RCM)",
+      "definicion_conceptual": "Según FLOREA et al. (2022), el RCM es un enfoque/metodología de mantenimiento orientado a integrar el sistema de mantenimiento y mejorar la confiabilidad del equipo, cuyo objetivo principal es reducir los costos de mantenimiento concentrándose en las funciones más importantes del sistema y eliminando o reubicando aquellas acciones de mantenimiento que no son estrictamente necesarias.",
+      "definicion_operacional": "Se operacionaliza como la metodología técnica que integra el análisis de criticidad para jerarquizar los sistemas del equipo, seguida del desarrollo del AMEF para evaluar los modos de falla y su riesgo, y culmina en la estructuración de un plan de mantenimiento que establece las tareas preventivas y frecuencias óptimas para preservar la función del activo.",
+      "filas": [
+        {
+          "dimension": "Taxonomía de equipos (ISO 14224)",
+          "indicador": "Nivel de jerarquía taxonómica",
+          "indice": "Ordinal",
+          "metodo_tecnica": "Análisis documental",
+          "tecnica_instrumentos": "Fichas de análisis de datos (ISO 14224)"
+        },
+        {
+          "dimension": "Análisis de criticidad",
+          "indicador": "Nivel de criticidad",
+          "indice": "Ordinal",
+          "metodo_tecnica": "Análisis de datos y Juicio de expertos",
+          "tecnica_instrumentos": "Matriz de criticidad"
+        },
+        {
+          "dimension": "AMEF",
+          "indicador": "NPR",
+          "indice": "Razón",
+          "metodo_tecnica": "Juicio de expertos",
+          "tecnica_instrumentos": "Hojas de trabajo AMEF (SAE JA1011)"
+        },
+        {
+          "dimension": "Plan de mantenimiento",
+          "indicador": "Tareas de mantenimiento definidas",
+          "indice": "Ordinal",
+          "metodo_tecnica": "Análisis Datos, encuesta y Juicio de expertos",
+          "tecnica_instrumentos": "Hojas de decisión RCM, Cuestionario de encuesta y Matriz/ficha de validación de expertos"
+        }
+      ]
+    },
+    "problema_general": "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?",
+    "objetivo_general": "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+    "hipotesis_general": "El plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+    "problemas_especificos": [
+      "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?",
+      "¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?"
+    ],
+    "objetivos_especificos": [
+      "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+      "Determinar cómo el plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025."
+    ],
+    "hipotesis_especificas": [
+      "El plan de mantenimiento centrado en confiabilidad mejora la mantenibilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.",
+      "El plan de mantenimiento centrado en confiabilidad mejora la confiabilidad de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025."
+    ],
+    "dimensiones_variable_independiente": [
+      "Taxonomía de equipos (ISO 14224),Análisis de criticidad,AMEF,Plan de mantenimiento"
+    ],
+    "dimensiones_variable_dependiente": [
+      "Confiabilidad,Mantenibilidad"
+    ],
+    "matriz_tipo_investigacion": "Aplicada",
+    "matriz_nivel_investigacion": "Explicativa",
+    "matriz_enfoque_investigacion": "Cuantitativo",
+    "matriz_diseno": "Pre experimental (Pre test y Post Test)",
+    "matriz_poblacion": "05 motoniveladoras Caterpillar (CAT) modelo 24M",
+    "matriz_muestra": "Muestreo no probabilístico de tipo censal, la muestra es coincidente con la población (n = 5 unidades)",
+    "matriz_tecnicas": "Análisis documental, observación directa, análisis de datos, encuesta y juicio de expertos.",
+    "matriz_instrumentos": "Fichas de recolección de datos (ISO 14224), Matriz de Criticidad, Hojas de trabajo AMEF (SAE JA 1011) y Hojas de decisión RCM, cuestionario de encuesta y matriz/ficha de validación de expertos.",
+    "matriz_procesamiento_datos": "Análisis estadístico de KPIs (MTBF, MTTR), modelamiento de fallas mediante distribución de Weibull y uso de software especializado (Excel/Minitab).",
+    "tipo_documento": "PROYECTO DE INVESTIGACIÓN",
+    "frase_grado": "PARA OPTAR EL GRADO ACADÉMICO DE MAESTRO EN GERENCIA DE MANTENIMIENTO",
+    "escuela": "UNIDAD DE POSGRADO DE LA FACULTAD DE INGENIERÍA MECÁNICA Y DE ENERGÍA"
+  },
+  "mode": "simulation",
+  "aiResult": {
+    "sections": [
+      {
+        "sectionId": "titulo-info-basica",
+        "path": "Título + Información Básica",
+        "content": "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD INHERENTE DE LA FLOTA DE MOTONIVELADORAS CAT 24M EN LA SIERRA CENTRAL, 2025"
+      },
+      {
+        "sectionId": "sec-0001",
+        "path": "INTRODUCCIÓN",
+        "content": "La industria minera peruana enfrenta desafíos significativos en la gestión de activos críticos, donde la disponibilidad de equipos se ha convertido en un factor determinante para la productividad operacional. En este contexto, las motoniveladoras CAT 24M desempeñan un papel fundamental en el mantenimiento de vías de acceso y plataformas de trabajo en minas a cielo abierto, siendo su correcto funcionamiento esencial para la continuidad de las operaciones. Sin embargo, la falta de estrategias de mantenimiento proactivas ha generado brechas en la disponibilidad inherente de estos equipos, afectando directamente los indicadores de producción y aumentando los costos operativos por fallas no programadas. \n\nEn la unidad minera cuprífera de la Sierra Central, la flota de cinco motoniveladoras CAT 24M presenta una disponibilidad inherente por debajo de los estándares esperados, con registros históricos que evidencian tiempos de inactividad recurrentes debido a fallas en sistemas críticos como el tren de fuerza y los componentes hidráulicos. Esta situación se agrava por la ausencia de un plan de mantenimiento estructurado bajo enfoques de confiabilidad, lo que limita la capacidad de anticipar y mitigar riesgos operativos. La criticidad del problema radica en que, según datos internos de la unidad, el 30% de las paradas no programadas están asociadas a fallas en estos equipos, generando pérdidas económicas cuantificables y afectando la cadena logística de la operación minera.\n\nEstudios recientes en el ámbito de la confiabilidad operacional han demostrado que la implementación de estrategias de Mantenimiento Centrado en Confiabilidad (RCM) puede incrementar la disponibilidad de equipos móviles en un rango del 15% al 25%. Investigaciones como las desarrolladas por [[CITE:SIM_01_MOUBRAY_2020]] en aplicaciones mineras, así como los trabajos de [[CITE:SIM_02_NOWLAN_HEAP_2018]] sobre análisis de modos de falla, respaldan la efectividad de este enfoque para optimizar los intervalos de mantenimiento y reducir las fallas catastróficas. En el contexto local, experiencias en unidades mineras de la región han reportado mejoras significativas en la gestión de activos mediante la aplicación de metodologías RCM, aunque con enfoques adaptados a las condiciones específicas de cada operación. [[CITE:SIM_43_MORALES_QUISPE_2025]]\n\nAnte este escenario, el presente proyecto propone el desarrollo de un plan de mantenimiento centrado en confiabilidad para la flota de motoniveladoras CAT 24M, con el objetivo de mejorar su disponibilidad inherente mediante la identificación sistemática de modos de falla, la priorización de tareas de mantenimiento y la optimización de recursos. La metodología empleada se basará en un enfoque cuantitativo, con un muestreo censal que abarcará la totalidad de las cinco unidades operativas, permitiendo un análisis exhaustivo de los patrones de falla y la evaluación de los indicadores de confiabilidad y mantenibilidad. El diseño de investigación aplicada garantizará que los resultados sean directamente transferibles a la operación minera, contribuyendo a la reducción de tiempos de inactividad y al aumento de la eficiencia operacional.\n\nLa estructura del proyecto se desarrolla en cuatro capítulos fundamentales. El primero aborda el marco teórico, donde se analizan los fundamentos del RCM, la disponibilidad inherente y los indicadores de gestión de activos. El segundo capítulo detalla la metodología empleada, incluyendo el diseño de investigación, las técnicas de recolección de datos y los instrumentos de evaluación. El tercer capítulo presenta el desarrollo del plan de mantenimiento, con énfasis en el análisis de criticidad y la elaboración de estrategias de intervención. Finalmente, el cuarto capítulo expone los resultados esperados, las conclusiones y las recomendaciones para la implementación del plan en la unidad minera. Este enfoque integral busca no solo resolver el problema identificado, sino también establecer un precedente metodológico para la gestión de activos en operaciones mineras similares."
+      },
+      {
+        "sectionId": "sec-0003",
+        "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+        "content": [
+          {
+            "tipo": "parrafo",
+            "texto": "La minería a cielo abierto en la Sierra Central del Perú enfrenta desafíos operativos críticos en la continuidad de sus procesos, donde las vías de acarreo representan un eslabón estratégico para la productividad. En este contexto, las motoniveladoras CAT 24M cumplen un rol fundamental en el mantenimiento de caminos, la nivelación de superficies y la preparación de áreas de trabajo. Sin embargo, la flota actual presenta fallas funcionales recurrentes que impactan directamente en la disponibilidad inherente del equipo, generando interrupciones no programadas y costos operativos adicionales. La ausencia de un plan de mantenimiento estructurado, basado en la confiabilidad de los sistemas críticos, ha limitado la capacidad de anticipar fallas y optimizar los intervalos de intervención. Esta situación exige una estrategia técnica que permita alinear los recursos de mantenimiento con los objetivos de producción, reduciendo la brecha entre la disponibilidad actual y los estándares corporativos."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "Estudios internacionales han documentado problemas similares en equipos mineros, destacando la relación entre la confiabilidad operativa y la disponibilidad de activos. [[CITE:SIM_03_JAKKULA_COLABORADOR_ESPECIALISTA_2021]] en India analizaron una flota de equipos de construcción con disponibilidad inicial del 78%, implementando un enfoque de mantenimiento predictivo que incrementó este indicador al 92% mediante la reducción del MTTR en un 30%. Por su parte, [[CITE:SIM_04_NOURI_COLABORADOR_ESPECIALISTA_2023]] en Irán evaluaron el impacto de la mantenibilidad en excavadoras hidráulicas, identificando que el 60% de las fallas recurrentes se concentraban en el sistema hidráulico, con un MTBF promedio de 1,200 horas antes de la intervención. Estos antecedentes evidencian que la aplicación de metodologías estructuradas, como el Mantenimiento Centrado en Confiabilidad (RCM), permite priorizar acciones correctivas y preventivas en función de la criticidad de los componentes, optimizando así los recursos y mejorando la eficiencia operativa."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "En Latinoamérica, la adopción de estrategias basadas en confiabilidad ha demostrado resultados significativos en la gestión de activos mineros. En Chile, un estudio realizado por [[CITE:SIM_05_GONZALEZ_2022]] en una mina de cobre logró incrementar la disponibilidad de cargadores frontales del 82% al 88% mediante la implementación de un plan RCM, enfocado en los sistemas de transmisión y frenos. Asimismo, en Brasil, [[CITE:SIM_06_SILVA_2023]] aplicó una taxonomía de criticidad en una flota de camiones mineros, reduciendo las paradas no programadas en un 25% al identificar los componentes con mayor frecuencia de fallas. Estos casos reflejan la necesidad de superar el enfoque tradicional de mantenimiento basado en horas de operación, adoptando metodologías que consideren las condiciones reales de trabajo y los modos de falla específicos de cada equipo."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "En el contexto peruano, la gestión de mantenimiento en maquinaria pesada ha evolucionado hacia modelos más predictivos, aunque persisten desafíos en la implementación de estrategias centradas en la confiabilidad. [[CITE:SIM_07_FLORES_2024]] analizó el desempeño de camiones Caterpillar 785 en una mina cuprífera, donde la disponibilidad inicial del 84% se incrementó al 89% tras la optimización de los intervalos de mantenimiento y la introducción de monitoreo en línea. De manera similar, [[CITE:SIM_08_CHAVEZ_2024]] evaluó el impacto de un plan RCM en perforadoras Everdigm T450, logrando una reducción del 40% en las fallas recurrentes del sistema hidráulico. Estos antecedentes nacionales subrayan la importancia de adoptar metodologías estructuradas para cerrar las brechas operativas, especialmente en equipos críticos como las motoniveladoras CAT 24M, donde la falta de un enfoque sistemático limita la capacidad de alcanzar los estándares de disponibilidad requeridos."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "El diagnóstico local de la flota de motoniveladoras CAT 24M en la unidad minera cuprífera de la Sierra Central revela una disponibilidad inherente promedio del 85%, por debajo del target corporativo del 90%, lo que representa una brecha negativa del 5%. El análisis de los registros de mantenimiento identifica que el 75% de los eventos de parada se concentran en tres sistemas críticos: el Sistema de Implementos o Mando de Círculo, el Tren de Potencia y el Sistema Hidráulico. Estas fallas recurrentes generan interrupciones en las vías de acarreo, incrementando los tiempos de mantenimiento correctivo (MTTR) y reduciendo el tiempo medio entre fallas (MTBF). La ausencia de un plan estructurado basado en la confiabilidad ha perpetuado un ciclo de intervenciones reactivas, limitando la capacidad de anticipar fallas y optimizar los recursos de mantenimiento. Esta situación exige una reevaluación de las estrategias actuales para alinear los esfuerzos técnicos con los objetivos operativos de la unidad minera."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "Para jerarquizar las fallas y evitar la dispersión de recursos, se aplica el principio de Pareto, que permite identificar los pocos vitales que generan el mayor impacto en la disponibilidad. Este análisis revela que el 20% de los modos de falla son responsables del 80% de las paradas no programadas, concentrándose en los sistemas críticos mencionados. Esta distribución asimétrica subraya la necesidad de priorizar acciones correctivas y preventivas en estos componentes, tal como se aprecia en la Figura 1.1."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Diagrama de Pareto de modos de falla en flota CAT 24M",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_sec_0003_1",
+            "titulo": "Diagrama de Pareto de modos de falla en flota CAT 24M",
+            "fuente": "Elaboración propia.",
+            "nota": "Guía para elaborar la figura: Construye un diagrama de Pareto titulado \"Diagrama de Pareto de modos de falla en flota CAT 24M\". Usa los registros reales de fallas del periodo de línea base disponible en el CMMS o historial de mantenimiento. Coloca una tabla base con estas columnas obligatorias: sistema o modo de falla, frecuencia de fallas, porcentaje individual, porcentaje acumulado y costo de reparación si el dato existe. Agrupa nombres equivalentes antes de graficar; por ejemplo, no separes una falla hidráulica repetida solo porque fue registrada con otra descripción. Ordena las filas de mayor a menor frecuencia. Calcula el porcentaje individual como frecuencia del modo de falla entre total de fallas por 100. Calcula el porcentaje acumulado sumando progresivamente los porcentajes individuales. En el gráfico, coloca en el eje X los sistemas o modos de falla; en el eje Y izquierdo, la frecuencia absoluta de fallas; en el eje Y derecho, el porcentaje acumulado de 0 % a 100 %. Usa barras verticales para la frecuencia, una línea curva para el porcentaje acumulado y una línea horizontal de referencia en 80 %. Marca con color distinto los modos ubicados antes del cruce con el 80 % y agrega una lectura breve: esos son los pocos vitales que deben priorizarse en el plan RCM. Verifica que la tabla base salga del historial de fallas depurado y que cada fila represente un sistema o modo de falla homogéneo. Revisa que no existan categorías duplicadas, calcula el porcentaje individual sobre el total de eventos y luego el porcentaje acumulado. Muestra con claridad el eje X, el eje Y izquierdo y el eje Y derecho con porcentaje acumulado. Cierra con una lectura que explique por qué los sistemas ubicados antes del cruce con el 80 % se consideran prioritarios para el proyecto.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "Tras identificar los sistemas críticos, se procede a analizar las causas raíz mediante un Diagrama de Causa-Efecto, que permite ordenar los factores contribuyentes en categorías como métodos, maquinaria, mano de obra, materiales, medición y medio ambiente. Este enfoque sistemático facilita la identificación de los elementos que generan las fallas recurrentes, tal como se muestra en la Figura 1.2."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Análisis de Causa-Efecto de Baja Disponibilidad (Ishikawa)",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_sec_0003_2",
+            "titulo": "Análisis de Causa-Efecto de Baja Disponibilidad (Ishikawa)",
+            "fuente": "Elaboración propia.",
+            "nota": "Guía para elaborar la figura: Construye un diagrama de Ishikawa titulado \"Análisis de Causa-Efecto de Baja Disponibilidad (Ishikawa)\". Coloca en la cabeza del diagrama el efecto exacto: \"Baja disponibilidad inherente de la flota CAT 24M\". Dibuja una espina central horizontal y seis ramas principales con el enfoque 6M: Método, Medición, Mano de obra, Medio ambiente, Maquinaria y Materiales. En Método, coloca mantenimiento reactivo, rutinas preventivas insuficientes, ausencia de tareas RCM y procedimientos de lubricación no estandarizados. En Medición, coloca registros incompletos, MTBF/MTTR no depurados, ausencia de trazabilidad ISO 14224 y falta de control de tiempos de parada. En Mano de obra, coloca brechas de capacitación, inspecciones variables, diagnóstico lento y dependencia de experiencia individual. En Medio ambiente, coloca polvo, abrasividad, pendientes dinámicas, altitud operativa y variación climática. En Maquinaria, coloca desgaste del tren de fuerza, sistema hidráulico, sistema eléctrico y componentes de desgaste rápido. En Materiales, coloca calidad de repuestos, compatibilidad de fluidos, stock crítico insuficiente y repuestos no homologados. Cierra la figura con una lectura causal que indique qué ramas explican la mayor parte de la baja disponibilidad y cómo el RCM atacará esas causas. Escribe cada subcausa como un factor observable y técnico, no como una frase vaga. Mantén el problema central en la cabeza del diagrama y conecta cada subcausa con una rama 6M. Cierra la interpretación señalando qué rama concentra la causa raíz dominante y por qué eso obliga a pasar de un mantenimiento reactivo o rígido a un enfoque RCM.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "Para abordar el problema de baja disponibilidad, se evalúan alternativas mediante una matriz de relevancia, considerando criterios como viabilidad técnica, económica y estratégica. Las opciones analizadas incluyen la renovación de la flota, la sustitución de componentes críticos, el monitoreo en línea, la optimización del stock de repuestos y la implementación de un plan RCM. La Figura 1.3 presenta esta comparación."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Matriz de Relevancia para el filtrado de alternativas de solución",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_sec_0003_3",
+            "titulo": "Matriz de Relevancia para el filtrado de alternativas de solución",
+            "fuente": "Elaboración propia.",
+            "nota": "Guía para elaborar la figura: Construye una matriz titulada \"Matriz de Relevancia para el filtrado de alternativas de solución\". Coloca las alternativas en filas: mantenimiento correctivo mejorado, mantenimiento preventivo por horas, mantenimiento predictivo parcial, capacitación técnica focalizada y plan de mantenimiento centrado en confiabilidad (RCM). Coloca estos criterios en columnas: reducción esperada de fallas, viabilidad técnica, costo de implementación, tiempo de adaptación, disponibilidad de datos y alineación con la causa raíz. Asigna a cada criterio un peso; por ejemplo, reducción esperada de fallas 0.30, viabilidad técnica 0.20, costo 0.15, tiempo 0.10, disponibilidad de datos 0.10 y alineación con causa raíz 0.15. Califica cada alternativa de 1 a 5, donde 1 significa baja relevancia y 5 alta relevancia. Multiplica cada calificación por su peso y suma el total por alternativa. Agrega una columna final llamada \"Decisión\" con tres opciones: descartada, condicionada o preseleccionada. Resalta el RCM como alternativa preseleccionada porque interviene modos de falla, criticidad y tareas de mantenimiento, no solo la reparación posterior a la falla. Usa la matriz para filtrar qué opciones merecen pasar a la evaluación final. Incluye una alternativa descartada, una alternativa de contención y la alternativa estructural. Explica visualmente la decisión en la columna final para que se entienda por qué el RCM continúa a la priorización.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "Para seleccionar la solución óptima, se aplica una matriz de priorización ponderada, donde el impacto en la disponibilidad tiene un peso del 50%, seguido del costo de implementación con un 30%. La Figura 1.4 presenta este análisis cuantitativo."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Matriz de Priorización de soluciones factibles",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_sec_0003_4",
+            "titulo": "Matriz de Priorización de soluciones factibles",
+            "fuente": "Elaboración propia.",
+            "nota": "Guía para elaborar la figura: Construye una matriz titulada \"Matriz de Priorización de soluciones factibles\". Coloca en las filas solo las alternativas que pasaron la matriz de relevancia. Coloca en las columnas estos criterios cuantitativos: impacto en disponibilidad inherente, reducción de fallas recurrentes, factibilidad técnica, costo-beneficio, tiempo de implementación y sostenibilidad operativa. Asigna un peso porcentual a cada criterio y verifica que la suma sea exactamente 100 %. Califica cada alternativa de 1 a 10, donde 1 es desfavorable y 10 favorable. En cada celda coloca el puntaje asignado; debajo o en una columna auxiliar calcula el puntaje ponderado multiplicando peso por puntaje. Agrega una columna \"Total ponderado\" y suma los puntajes ponderados de cada alternativa. Ordena las alternativas de mayor a menor total. Resalta en azul o sombreado la alternativa ganadora: implementación de un plan de mantenimiento centrado en confiabilidad (RCM). Debajo de la matriz coloca la escala: 1 (Desfavorable) a 10 (Favorable). Muestra el peso porcentual de cada criterio, el puntaje asignado a cada alternativa, el producto peso por puntaje y el total ponderado. Redacta la conclusión de la figura como una validación cuantitativa de la alternativa elegida.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "La variable independiente, el Plan de Mantenimiento Centrado en Confiabilidad (RCM), se enfoca en estructurar intervenciones basadas en la criticidad de los sistemas, alineándose con estándares como la SAE JA1011:2024 y la ISO 14224. La variable dependiente, la Disponibilidad Inherente, se mide mediante indicadores como el MTBF y el MTTR, que reflejan la eficiencia operativa de la flota CAT 24M. La implementación del RCM permitirá reducir las fallas recurrentes en los sistemas críticos, optimizando los recursos de mantenimiento y cerrando la brecha de disponibilidad identificada. Este enfoque no solo alinea los esfuerzos técnicos con los objetivos corporativos, sino que también sienta las bases para una gestión de activos más eficiente y sostenible en la unidad minera."
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-0004",
+        "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+        "content": "Problema general\n¿De qué manera el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025?\n\nProblemas específicos\n¿En qué medida el mantenimiento centrado en confiabilidad incrementa la confiabilidad de las motoniveladoras CAT 24M en la unidad minera cuprífera de Sierra Central durante el año 2025?\n\n¿Cómo influye la implementación del mantenimiento centrado en confiabilidad en la mantenibilidad de las motoniveladoras CAT 24M para optimizar su disponibilidad inherente en la unidad minera cuprífera de Sierra Central en el año 2025?"
+      },
+      {
+        "sectionId": "sec-0005",
+        "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+        "content": "Objetivo general\n\nDeterminar cómo el plan de mantenimiento centrado en confiabilidad mejora la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera, Sierra Central, 2025.\n\nObjetivos específicos\n\nAnalizar los fundamentos teóricos del mantenimiento centrado en confiabilidad aplicable a equipos mineros móviles.\n\nEvaluar el estado actual de la disponibilidad inherente de la flota de motoniveladoras CAT 24M en la unidad minera cuprífera.\n\nDiseñar un plan de mantenimiento centrado en confiabilidad para la flota de motoniveladoras CAT 24M que optimice su disponibilidad inherente.\n\nImplementar estrategias de monitoreo y control para garantizar la sostenibilidad del plan de mantenimiento propuesto.\n\nValidar la efectividad del plan de mantenimiento centrado en confiabilidad mediante indicadores de disponibilidad inherente en la flota de motoniveladoras CAT 24M."
+      },
+      {
+        "sectionId": "sec-0006",
+        "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+        "content": "1.4.1 Justificación normativa\nLa implementación del Mantenimiento Centrado en Confiabilidad (RCM) en la flota de motoniveladoras CAT 24M se sustenta en el marco normativo vigente para operaciones mineras. La norma SAE JA1011 establece los lineamientos técnicos para el desarrollo de programas RCM, garantizando un enfoque sistemático en la identificación de funciones críticas y modos de falla. Complementariamente, la ISO 14224:2016 proporciona un estándar para la recopilación y análisis de datos de fallas, esencial para la trazabilidad de incidentes y la mejora continua. En el contexto peruano, el Decreto Supremo N° 024-2016-EM regula las condiciones de seguridad en mantenimiento mecánico, enfatizando la prevención de accidentes y el cumplimiento de protocolos de inspección. La aplicación de estas normas no solo asegura la operatividad de las motoniveladoras, sino que también mitiga riesgos legales y operativos, alineando las prácticas de mantenimiento con los estándares internacionales y las exigencias regulatorias locales.\n\n1.4.2 Justificación teórica\nEl RCM se fundamenta en principios teóricos de confiabilidad operacional, donde autores como Moubray destacan la importancia de analizar los seis patrones de falla para optimizar la disponibilidad de equipos. La metodología integra herramientas como el Análisis de Modos y Efectos de Falla (AMEF), que permite priorizar modos críticos, y métricas como el Tiempo Medio Entre Fallas (MTBF) y el Tiempo Medio de Reparación (MTTR). Estos conceptos son clave para evaluar la disponibilidad inherente de la flota CAT 24M, ya que proporcionan un marco analítico para identificar las causas raíz de las fallas recurrentes. La aplicación de estos fundamentos teóricos permitirá diseñar un plan de mantenimiento predictivo, reduciendo la incertidumbre operativa y mejorando la eficiencia en la gestión de activos mineros.\n\n1.4.3 Justificación práctica\nDesde una perspectiva operativa, el RCM ofrece una solución técnica frente a los mantenimientos correctivos tradicionales, que suelen ser reactivos e ineficientes. La implementación de estrategias basadas en Condición (CBM) e inspecciones técnicas programadas permitirá anticipar fallas en componentes críticos de las motoniveladoras, como los sistemas hidráulicos y de transmisión. Esto es crucial en un entorno minero, donde la calidad de las vías de acarreo impacta directamente en el desgaste de los camiones y la productividad global. Al optimizar la disponibilidad de las motoniveladoras, se reducirán los tiempos de inactividad no planificada, mejorando la continuidad operativa y la eficiencia en el transporte de mineral.\n\n1.4.4 Justificación metodológica\nEl diseño metodológico del proyecto se basa en la norma SAE JA1011 para estructurar el análisis funcional y de fallas, asegurando una identificación sistemática de los modos críticos. La aplicación del AMEF permitirá priorizar las intervenciones según su impacto en la disponibilidad inherente, mientras que el enfoque longitudinal con preprueba y posprueba facilitará la comparación de métricas como el MTBF y MTTR. Este enfoque cuantitativo garantiza que las decisiones de mantenimiento se basen en datos objetivos, optimizando la asignación de recursos y mejorando la confiabilidad de los equipos. La metodología propuesta es replicable y escalable, lo que permitirá su aplicación en otros activos de la unidad minera.\n\n1.4.5 Justificación económica\nLa implementación del RCM generará ahorros significativos en costos operativos (OPEX), al reducir los mantenimientos correctivos no programados y la adquisición de repuestos de emergencia. La optimización del ciclo de vida de componentes críticos, como neumáticos y sistemas de frenado, disminuirá los gastos asociados a su reemplazo prematuro. Además, al mejorar la disponibilidad de las motoniveladoras, se reducirá el consumo de combustible y se incrementará la velocidad de ciclo en las operaciones de acarreo, minimizando el lucro cesante por inactividad. La inversión en un plan de mantenimiento proactivo se traducirá en una mayor rentabilidad operativa, justificando económicamente la intervención.\n\n1.4.6 Justificación social\nLa aplicación del RCM tendrá un impacto directo en la seguridad y bienestar del personal técnico. Al reducir las fallas mecánicas, se minimizarán los riesgos laborales asociados a vibraciones de cuerpo entero (ISO 2631), que pueden causar dolores lumbares y cervicales en los operadores. La mejora en la calidad de las vías de acarreo disminuirá la fatiga y el estrés del personal, reduciendo los días de descanso médico y mejorando su calidad de vida. Además, un mantenimiento preventivo adecuado garantizará condiciones de trabajo más seguras, alineadas con los protocolos de seguridad minera, beneficiando tanto a los trabajadores como a la sostenibilidad operativa de la unidad."
+      },
+      {
+        "sectionId": "sec-0007",
+        "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitaciones de la investigación",
+        "content": "1.5.1 Delimitación teórica\nEl estudio se enmarca en el ámbito de la ingeniería de mantenimiento y confiabilidad operacional, con enfoque específico en el Mantenimiento Centrado en Confiabilidad (RCM) según la norma SAE JA1011 y los principios establecidos por Moubray. La investigación se fundamenta en la norma ISO 14224:2016 para la recolección y análisis de datos de confiabilidad, así como en metodologías de análisis de criticidad y modos de falla aplicables a equipos mineros. Se prioriza el análisis de la disponibilidad inherente, confiabilidad y mantenibilidad de las motoniveladoras CAT 24M, excluyendo deliberadamente enfoques como el Mantenimiento Productivo Total (TPM) o Lean Maintenance, por no alinearse con los objetivos de confiabilidad operacional planteados. La selección de estos marcos teóricos responde a la necesidad de evaluar sistemáticamente los fallos funcionales y sus consecuencias en la operación minera, garantizando así una base técnica sólida para la implementación del plan de mantenimiento propuesto.\n\n1.5.2 Delimitación temporal\nEl horizonte temporal de la investigación se establece en el año 2025, dividido en dos fases: una primera etapa de diagnóstico y una segunda de ejecución y monitoreo. Esta distribución temporal considera las condiciones operativas estacionales de la unidad minera, incluyendo la temporada seca y la temporada húmeda, así como las horas de operación estadísticamente significativas para la flota de motoniveladoras. La fase de diagnóstico se enfocará en la recolección de datos durante los primeros seis meses, mientras que la fase de ejecución y monitoreo abarcará los seis meses restantes, permitiendo evaluar el impacto del plan de mantenimiento en condiciones reales de operación.\n\n1.5.3 Delimitación espacial\nLa investigación se desarrolla en una unidad minera cuprífera a cielo abierto ubicada en la Sierra Central, específicamente en la región de Junín. El ámbito espacial comprende tanto las áreas operativas como las de soporte técnico, incluyendo vías de acarreo, frentes de trabajo, pendientes con suelos abrasivos y alta exposición a polución por material particulado. Además, se consideran los talleres de mantenimiento y las oficinas de planeamiento, donde se gestionan los programas de mantenimiento y se analizan los datos de confiabilidad. Esta delimitación permite evaluar el desempeño de las motoniveladoras CAT 24M en condiciones reales de operación, así como la efectividad de las intervenciones de mantenimiento en un entorno con desafíos geográficos y ambientales específicos."
+      },
+      {
+        "sectionId": "sec-0009",
+        "path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+        "content": "2.1.1 Antecedentes internacionales\n\n[[CITE:SIM_09_SMITH_JOHNSON_2020]] en su investigación titulada \"Implementación de RCM en equipos mineros: caso de estudio en Australia\" abordaron el problema de la baja disponibilidad de maquinaria pesada en operaciones mineras. El objetivo principal fue evaluar cómo la aplicación del Mantenimiento Centrado en Confiabilidad (RCM) impactaba en la disponibilidad de excavadoras en una mina de carbón. Utilizaron un enfoque cuantitativo con diseño experimental, aplicando el RCM a una muestra de 10 equipos durante 12 meses. Las técnicas empleadas incluyeron análisis de fallas, árboles de decisión y monitoreo de condiciones. Los resultados mostraron un incremento del 22% en la disponibilidad de los equipos, reduciendo las horas de parada no programadas en un 35%. La investigación concluyó que el RCM es efectivo para mejorar la confiabilidad de equipos mineros, proporcionando un marco metodológico aplicable a otros tipos de maquinaria pesada, como las motoniveladoras CAT 24M, lo que aporta al presente estudio al validar la efectividad del RCM en contextos mineros similares. \n\n[[CITE:SIM_10_RODRIGUEZ_COLABORADOR_ESPECIALISTA_2019]] desarrollaron el estudio \"Optimización de la disponibilidad de equipos mediante RCM en la industria minera chilena\", donde analizaron la implementación de estrategias de mantenimiento en una flota de camiones mineros. El problema central fue la alta tasa de fallas mecánicas que afectaban la productividad. Con un enfoque mixto, combinaron análisis cuantitativo de datos operativos con entrevistas a personal técnico. La muestra incluyó 15 camiones durante un período de 18 meses, utilizando herramientas como el análisis de modos y efectos de fallas (FMEA) y sistemas de monitoreo en tiempo real. Los hallazgos indicaron una mejora del 18% en la disponibilidad inherente de los equipos, con una reducción del 25% en costos de mantenimiento correctivo. Este antecedente es relevante para el presente trabajo, ya que demuestra la aplicabilidad del RCM en equipos mineros, reforzando la necesidad de su implementación en motoniveladoras para mejorar su disponibilidad.\n\n[[CITE:SIM_11_LEE_WANG_2021]] en su artículo \"Aplicación de RCM en maquinaria de construcción: un enfoque basado en datos\" investigaron cómo el RCM podía optimizar el rendimiento de equipos de construcción en proyectos de infraestructura. El problema identificado fue la falta de un plan de mantenimiento estructurado que generaba altos tiempos de inactividad. Utilizaron un diseño cuasi-experimental con una muestra de 8 equipos, aplicando técnicas de análisis predictivo y modelado de confiabilidad. Los resultados revelaron un aumento del 20% en la disponibilidad de los equipos y una disminución del 30% en las fallas críticas. La investigación concluyó que el RCM es una herramienta clave para la gestión de activos en entornos de alta demanda operativa, lo que respalda la hipótesis de que su implementación en motoniveladoras CAT 24M puede generar mejoras significativas en su disponibilidad inherente.\n\n[[CITE:SIM_12_GARCIA_LOPEZ_2018]] en su trabajo \"Evaluación del impacto del RCM en la confiabilidad de equipos mineros en Perú\" analizaron la efectividad del RCM en una flota de cargadores frontales en una mina de cobre. El estudio, de enfoque cuantitativo, se centró en reducir las paradas no programadas mediante la implementación de un plan de mantenimiento basado en RCM. La muestra consistió en 12 equipos, y las técnicas empleadas incluyeron análisis de vibraciones y termografía. Los resultados mostraron una mejora del 24% en la disponibilidad de los equipos y una reducción del 40% en las fallas recurrentes. Este antecedente aporta al presente estudio al demostrar que el RCM es una estrategia válida para mejorar la disponibilidad en equipos mineros, similar a lo que se busca lograr con las motoniveladoras CAT 24M.\n\n[[CITE:SIM_13_BROWN_TAYLOR_2022]] en su investigación \"Integración de RCM y mantenimiento predictivo en equipos pesados\" exploraron cómo la combinación de RCM y técnicas predictivas podía mejorar la gestión de activos en la industria minera. El problema abordado fue la baja eficiencia en los planes de mantenimiento tradicionales. Con un enfoque cuantitativo, aplicaron el RCM a una muestra de 20 equipos, utilizando sensores IoT y análisis de big data. Los resultados indicaron un incremento del 28% en la disponibilidad de los equipos y una reducción del 33% en los costos de mantenimiento. Este estudio es relevante para la presente investigación, ya que valida la efectividad del RCM en la optimización de la disponibilidad de equipos mineros, proporcionando un marco de referencia para su aplicación en motoniveladoras.\n\n2.1.2 Antecedentes nacionales\n\n[[CITE:SIM_14_QUISPE_MENDOZA_2020]] en su estudio \"Implementación de RCM en equipos de construcción en Lima\" abordaron el problema de la baja disponibilidad de maquinaria en proyectos de infraestructura. El objetivo fue evaluar el impacto del RCM en la reducción de fallas en equipos de construcción. Utilizaron un enfoque cuantitativo con una muestra de 5 equipos, aplicando técnicas de análisis de fallas y mantenimiento predictivo. Los resultados mostraron un aumento del 15% en la disponibilidad de los equipos y una reducción del 20% en las paradas no programadas. La investigación concluyó que el RCM es una estrategia efectiva para mejorar la gestión de activos en entornos de alta demanda, lo que aporta al presente estudio al validar su aplicabilidad en equipos similares a las motoniveladoras CAT 24M.\n\n[[CITE:SIM_15_VARGAS_ROJAS_2019]] en su trabajo \"Optimización de la disponibilidad de equipos mineros mediante RCM en Arequipa\" analizaron cómo el RCM podía mejorar la confiabilidad de equipos en una mina de cobre. El problema central fue la alta tasa de fallas que afectaban la productividad. Con un enfoque mixto, combinaron análisis cuantitativo de datos operativos con entrevistas a técnicos. La muestra incluyó 10 equipos, y las técnicas empleadas incluyeron FMEA y monitoreo de condiciones. Los resultados indicaron una mejora del 17% en la disponibilidad inherente y una reducción del 25% en costos de mantenimiento. Este antecedente es relevante para el presente estudio, ya que demuestra la efectividad del RCM en equipos mineros, similar a lo que se busca lograr con las motoniveladoras CAT 24M.\n\n[[CITE:SIM_16_DIAZ_FLORES_2021]] en su investigación \"Aplicación de RCM en maquinaria pesada: caso de estudio en Cusco\" evaluaron el impacto del RCM en la disponibilidad de equipos de construcción. El problema identificado fue la falta de un plan de mantenimiento estructurado que generaba altos tiempos de inactividad. Utilizaron un diseño cuasi-experimental con una muestra de 7 equipos, aplicando técnicas de análisis predictivo. Los resultados revelaron un aumento del 18% en la disponibilidad de los equipos y una disminución del 30% en las fallas críticas. La investigación concluyó que el RCM es una herramienta clave para la gestión de activos en entornos de alta demanda operativa, lo que respalda la hipótesis de que su implementación en motoniveladoras CAT 24M puede generar mejoras significativas en su disponibilidad inherente.\n\n[[CITE:SIM_17_RAMIREZ_CASTRO_2018]] en su estudio \"Evaluación del RCM en equipos mineros de la sierra central\" analizaron la efectividad del RCM en una flota de cargadores frontales en una mina de cobre. El enfoque cuantitativo se centró en reducir las paradas no programadas mediante la implementación de un plan de mantenimiento basado en RCM. La muestra consistió en 8 equipos, y las técnicas empleadas incluyeron análisis de vibraciones y termografía. Los resultados mostraron una mejora del 22% en la disponibilidad de los equipos y una reducción del 35% en las fallas recurrentes. Este antecedente aporta al presente estudio al demostrar que el RCM es una estrategia válida para mejorar la disponibilidad en equipos mineros, similar a lo que se busca lograr con las motoniveladoras CAT 24M.\n\n[[CITE:SIM_18_PEREZ_SANCHEZ_2022]] en su investigación \"Integración de RCM y mantenimiento predictivo en equipos pesados de la selva peruana\" exploraron cómo la combinación de RCM y técnicas predictivas podía mejorar la gestión de activos en la industria minera. El problema abordado fue la baja eficiencia en los planes de mantenimiento tradicionales. Con un enfoque cuantitativo, aplicaron el RCM a una muestra de 12 equipos, utilizando sensores IoT y análisis de big data. Los resultados indicaron un incremento del 25% en la disponibilidad de los equipos y una reducción del 30% en los costos de mantenimiento. Este estudio es relevante para la presente investigación, ya que valida la efectividad del RCM en la optimización de la disponibilidad de equipos mineros, proporcionando un marco de referencia para su aplicación en motoniveladoras CAT 24M."
+      },
+      {
+        "sectionId": "sec-0010",
+        "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+        "content": [
+          {
+            "tipo": "parrafo",
+            "texto": "2.2 Bases teóricas"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM)\nEl Mantenimiento Centrado en Confiabilidad (RCM) surge como una metodología sistemática para optimizar el rendimiento de activos físicos mediante la identificación de funciones críticas y la priorización de tareas de mantenimiento. Según [[CITE:SIM_19_MOUBRAY_2001]], el RCM se fundamenta en siete preguntas clave que permiten estructurar un plan de mantenimiento basado en la confiabilidad inherente del equipo. Este enfoque no solo reduce costos operativos, sino que también mejora la seguridad y la disponibilidad de los activos. La aplicación del RCM en la industria minera ha demostrado ser efectiva para equipos móviles como las motoniveladoras, donde la criticidad operativa es alta. [[CITE:SIM_19_MOUBRAY_2001]]"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "La implementación del RCM requiere un análisis detallado de los modos de falla y sus efectos, lo que permite diseñar estrategias de mantenimiento proactivo. Según [[CITE:SIM_20_NOWLAN_HEAP_1978]], el RCM se diferencia de otros enfoques de mantenimiento al integrar aspectos técnicos, económicos y operativos en un solo marco de trabajo. En el contexto minero, este método es particularmente relevante debido a las condiciones extremas de operación y la necesidad de maximizar el tiempo productivo de los equipos."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Mantenimiento Centrado en Confiabilidad (RCM)",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_2_1_mantenimiento_centrado_en_conf",
+            "titulo": "Mantenimiento Centrado en Confiabilidad (RCM)",
+            "fuente": "Nota. Figura sugerida para validacion del autor.",
+            "nota": "Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado \"Mantenimiento Centrado en Confiabilidad (RCM)\" que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos involucrados o la arquitectura del sistema. Conecta los elementos conceptuales con líneas y flechas direccionales que muestren la secuencia lógica y el sentido de las relaciones. Utiliza formas geométricas consistentes (rectángulos, óvalos o círculos) y un esquema de colores sobrio y contrastante para mejorar la legibilidad. Asegura que todos los textos, variables y rótulos de la figura utilicen una fuente Arial de 10 puntos sin negritas ni marcadores adicionales. En la parte inferior de la figura, incluye siempre la fuente correspondiente en formato APA estándar (por ejemplo, 'Fuente: Elaboración propia' o la cita del autor correspondiente) y una nota técnica descriptiva que explique brevemente el contenido de la figura y su vinculación directa con el sustento analítico del proyecto.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.2 Proceso del RCM\nEl proceso del RCM se estructura en etapas bien definidas que incluyen la identificación de funciones, análisis de fallas, evaluación de criticidad y selección de tareas de mantenimiento. Según [[CITE:SIM_21_SMITH_HINCHCLIFFE_2004]], este proceso comienza con la definición del contexto operacional del equipo, seguido de un análisis funcional que determina las expectativas de rendimiento. Posteriormente, se realiza un análisis de modos de falla y sus efectos (AMEF) para identificar las posibles causas de degradación del equipo."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "Una vez identificados los modos de falla, se procede a evaluar su criticidad mediante matrices que consideran la probabilidad de ocurrencia y el impacto en la operación. Según la norma SAE JA1011, este proceso culmina con la selección de tareas de mantenimiento que pueden ser preventivas, predictivas o correctivas, dependiendo de la naturaleza del fallo. La aplicación de este proceso en motoniveladoras CAT 24M permite alinear las estrategias de mantenimiento con los objetivos de producción de la mina."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Proceso del RCM",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_2_2_proceso_del_rcm",
+            "titulo": "Proceso del RCM",
+            "fuente": "Nota. Figura sugerida para validacion del autor.",
+            "nota": "Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado \"Proceso del RCM\" que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos involucrados o la arquitectura del sistema. Conecta los elementos conceptuales con líneas y flechas direccionales que muestren la secuencia lógica y el sentido de las relaciones. Utiliza formas geométricas consistentes (rectángulos, óvalos o círculos) y un esquema de colores sobrio y contrastante para mejorar la legibilidad. Asegura que todos los textos, variables y rótulos de la figura utilicen una fuente Arial de 10 puntos sin negritas ni marcadores adicionales. En la parte inferior de la figura, incluye siempre la fuente correspondiente en formato APA estándar (por ejemplo, 'Fuente: Elaboración propia' o la cita del autor correspondiente) y una nota técnica descriptiva que explique brevemente el contenido de la figura y su vinculación directa con el sustento analítico del proyecto.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.3 Taxonomía de equipos según ISO 14224:2016\nLa norma ISO 14224:2016 establece una taxonomía para la recolección y intercambio de datos de confiabilidad y mantenimiento de equipos industriales. Según esta norma, los activos se clasifican en sistemas, subsistemas y componentes, lo que facilita la estandarización de la información y el análisis comparativo. En el caso de las motoniveladoras CAT 24M, esta taxonomía permite estructurar los datos de fallas de manera sistemática, lo que es esencial para la aplicación del RCM."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "La taxonomía también define códigos para los modos de falla, causas y efectos, lo que mejora la precisión en la identificación de problemas. Según la ISO 14224, esta clasificación es fundamental para el desarrollo de bases de datos de mantenimiento que puedan ser utilizadas en análisis de confiabilidad. La implementación de esta norma en el contexto minero permite una gestión más eficiente de los activos y una mejor toma de decisiones basada en datos."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Taxonomía de equipos según ISO 14224:2016",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_2_3_taxonomia_de_equipos_segun_iso",
+            "titulo": "Taxonomía de equipos según ISO 14224:2016",
+            "fuente": "Nota. Figura sugerida para validacion del autor.",
+            "nota": "Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado \"Taxonomía de equipos según ISO 14224:2016\" que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos involucrados o la arquitectura del sistema. Conecta los elementos conceptuales con líneas y flechas direccionales que muestren la secuencia lógica y el sentido de las relaciones. Utiliza formas geométricas consistentes (rectángulos, óvalos o círculos) y un esquema de colores sobrio y contrastante para mejorar la legibilidad. Asegura que todos los textos, variables y rótulos de la figura utilicen una fuente Arial de 10 puntos sin negritas ni marcadores adicionales. En la parte inferior de la figura, incluye siempre la fuente correspondiente en formato APA estándar (por ejemplo, 'Fuente: Elaboración propia' o la cita del autor correspondiente) y una nota técnica descriptiva que explique brevemente el contenido de la figura y su vinculación directa con el sustento analítico del proyecto.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.4 Análisis de Modos y Efecto de Fallas (AMEF)\nEl Análisis de Modos y Efecto de Fallas (AMEF) es una herramienta clave dentro del RCM que permite identificar y evaluar los posibles modos de falla de un equipo. Según [[CITE:SIM_22_STAMATIS_2003]], el AMEF se estructura en etapas que incluyen la identificación de funciones, modos de falla, causas y efectos, así como la evaluación de la criticidad. En el caso de las motoniveladoras CAT 24M, este análisis es crucial para priorizar las acciones de mantenimiento."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "La aplicación del AMEF en equipos mineros permite no solo identificar las fallas potenciales, sino también cuantificar su impacto en la operación. Según la norma SAE J1739, este análisis debe ser realizado por un equipo multidisciplinario que incluya operadores, técnicos y especialistas en mantenimiento. La integración del AMEF con el RCM asegura que las estrategias de mantenimiento estén alineadas con los riesgos operativos y los objetivos de producción."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Análisis de Modos y Efecto de Fallas (AMEF)",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_2_4_analisis_de_modos_y_efecto_de",
+            "titulo": "Análisis de Modos y Efecto de Fallas (AMEF)",
+            "fuente": "Nota. Figura sugerida para validacion del autor.",
+            "nota": "Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado \"Análisis de Modos y Efecto de Fallas (AMEF)\" que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos involucrados o la arquitectura del sistema. Conecta los elementos conceptuales con líneas y flechas direccionales que muestren la secuencia lógica y el sentido de las relaciones. Utiliza formas geométricas consistentes (rectángulos, óvalos o círculos) y un esquema de colores sobrio y contrastante para mejorar la legibilidad. Asegura que todos los textos, variables y rótulos de la figura utilicen una fuente Arial de 10 puntos sin negritas ni marcadores adicionales. En la parte inferior de la figura, incluye siempre la fuente correspondiente en formato APA estándar (por ejemplo, 'Fuente: Elaboración propia' o la cita del autor correspondiente) y una nota técnica descriptiva que explique brevemente el contenido de la figura y su vinculación directa con el sustento analítico del proyecto.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.5 Disponibilidad inherente\nLa disponibilidad inherente es un indicador clave en la gestión de activos que mide la proporción de tiempo en que un equipo está operativo en relación con el tiempo total requerido. Según el Global Mining Guidelines [[CITE:SIM_23_GROUP_2020]], este indicador se calcula como la relación entre el tiempo medio entre fallas (MTBF) y la suma del MTBF y el tiempo medio de reparación (MTTR). La disponibilidad inherente es esencial para evaluar la efectividad de las estrategias de mantenimiento en equipos críticos como las motoniveladoras. [[CITE:SIM_20_NOWLAN_HEAP_1978]]"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "La mejora de la disponibilidad inherente depende directamente de la confiabilidad y la mantenibilidad del equipo. Según [[CITE:SIM_24_KUMAR_COLABORADOR_ESPECIALISTA_2019]], un aumento en el MTBF o una reducción en el MTTR conduce a una mayor disponibilidad. En el contexto minero, donde los equipos operan en condiciones extremas, la disponibilidad inherente es un factor determinante para la productividad."
+          },
+          {
+            "tipo": "figura",
+            "caption": "Disponibilidad inherente",
+            "ruta_placeholder": "assets/placeholder_figura.png",
+            "id": "fig_2_5_disponibilidad_inherente",
+            "titulo": "Disponibilidad inherente",
+            "fuente": "Nota. Figura sugerida para validacion del autor.",
+            "nota": "Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado \"Disponibilidad inherente\" que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos involucrados o la arquitectura del sistema. Conecta los elementos conceptuales con líneas y flechas direccionales que muestren la secuencia lógica y el sentido de las relaciones. Utiliza formas geométricas consistentes (rectángulos, óvalos o círculos) y un esquema de colores sobrio y contrastante para mejorar la legibilidad. Asegura que todos los textos, variables y rótulos de la figura utilicen una fuente Arial de 10 puntos sin negritas ni marcadores adicionales. En la parte inferior de la figura, incluye siempre la fuente correspondiente en formato APA estándar (por ejemplo, 'Fuente: Elaboración propia' o la cita del autor correspondiente) y una nota técnica descriptiva que explique brevemente el contenido de la figura y su vinculación directa con el sustento analítico del proyecto.",
+            "nota_color": "0000FF"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "A_i = \\frac{MTBF}{MTBF + MTTR}"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.6 Confiabilidad\nLa confiabilidad se define como la probabilidad de que un equipo funcione sin fallas durante un período determinado bajo condiciones específicas. Según [[CITE:SIM_25_O_CONNOR_KLEYNER_2012]], este concepto es fundamental en la gestión de activos, ya que permite predecir el comportamiento de los equipos a lo largo de su ciclo de vida. En el caso de las motoniveladoras CAT 24M, la confiabilidad está directamente relacionada con la frecuencia de fallas y la efectividad de las tareas de mantenimiento."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "El análisis de confiabilidad se basa en modelos estadísticos como la distribución de Weibull, que permite estimar la vida útil de los componentes. Según [[CITE:SIM_26_ABERNETHY_2006]], este modelo es ampliamente utilizado en la industria minera debido a su capacidad para adaptarse a diferentes patrones de falla. La mejora de la confiabilidad en equipos móviles como las motoniveladoras es esencial para reducir los tiempos de inactividad y aumentar la productividad."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "R(t) = e^{-\\left(\\frac{t}{\\eta}\\right)^\\beta}"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.7 Mantenibilidad\nLa mantenibilidad se refiere a la capacidad de un equipo para ser restaurado a su condición operativa después de una falla. Según [[CITE:SIM_27_BLANCHARD_2004]], este concepto incluye aspectos como el tiempo de reparación, la disponibilidad de repuestos y la complejidad de las tareas de mantenimiento. En el contexto de las motoniveladoras CAT 24M, la mantenibilidad es un factor crítico para garantizar la continuidad operativa en entornos mineros."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "La evaluación de la mantenibilidad se realiza mediante indicadores como el tiempo medio de reparación (MTTR), que permite cuantificar la eficiencia de las intervenciones de mantenimiento. Según [[CITE:SIM_28_DHILLON_2002]], la reducción del MTTR puede lograrse mediante la estandarización de procedimientos, la capacitación del personal y la optimización de la gestión de repuestos. La mejora de la mantenibilidad contribuye directamente a la disponibilidad inherente del equipo."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "MTTR = \\frac{\\sum T_i}{N}"
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "2.2.8 Motoniveladora CAT 24M\nLa motoniveladora CAT 24M es un equipo diseñado para operaciones de nivelación y mantenimiento de caminos en entornos mineros. Según [[CITE:SIM_29_CATERPILLAR_2021]], este modelo se caracteriza por su robustez y capacidad para operar en condiciones adversas, lo que lo hace ideal para aplicaciones en minería a cielo abierto. La flota de motoniveladoras CAT 24M en la unidad minera cuprífera de Sierra Central está compuesta por cinco unidades que operan en turnos continuos."
+          },
+          {
+            "tipo": "parrafo",
+            "texto": "El mantenimiento de este equipo requiere un enfoque sistemático que considere tanto los componentes mecánicos como los sistemas hidráulicos y eléctricos. Según la documentación técnica de Caterpillar, la implementación de un plan de mantenimiento basado en RCM puede mejorar significativamente la confiabilidad y la disponibilidad de la flota. La aplicación de este enfoque en la unidad minera permitirá reducir los tiempos de inactividad y optimizar los costos de operación. [[CITE:SIM_21_SMITH_HINCHCLIFFE_2004]]"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-0011",
+        "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+        "content": "Variable independiente: Mantenimiento Centrado en la Confiabilidad (RCM) [[CITE:SIM_09_SMITH_JOHNSON_2020]]\n\nEl Mantenimiento Centrado en la Confiabilidad (RCM) es una metodología sistemática que busca optimizar los procesos de mantenimiento mediante la identificación de las funciones críticas de los equipos, sus modos de falla y las consecuencias asociadas. Este enfoque prioriza acciones preventivas y predictivas basadas en análisis de riesgo, con el fin de maximizar la confiabilidad operacional y minimizar los costos de mantenimiento. En el contexto de la flota de motoniveladoras CAT 24M, el RCM se enfoca en garantizar la disponibilidad inherente mediante la implementación de estrategias de mantenimiento proactivo que reduzcan las paradas no programadas.\n\nDimensiones de la variable independiente:\n\nDimension: Análisis de modos y efectos de falla (FMEA)\nEsta dimensión implica la identificación sistemática de los posibles modos de falla de los componentes críticos de las motoniveladoras, evaluando sus efectos y priorizando acciones correctivas. El FMEA permite establecer protocolos de mantenimiento basados en la criticidad de cada falla potencial, optimizando así los recursos asignados.\n\nDimension: Estrategias de mantenimiento proactivo\nIncluye la planificación de intervenciones preventivas y predictivas, como lubricación programada, inspecciones técnicas y monitoreo de condiciones operativas. Estas estrategias buscan anticiparse a las fallas antes de que ocurran, reduciendo el tiempo de inactividad y extendiendo la vida útil de los equipos.\n\nDimension: Gestión de repuestos críticos\nSe refiere a la identificación y disponibilidad de componentes esenciales para el mantenimiento, asegurando que los repuestos necesarios estén disponibles cuando se requieran. Esto minimiza los tiempos de espera y contribuye a la continuidad operativa de la flota.\n\nVariable dependiente: Disponibilidad inherente\n\nLa disponibilidad inherente es la capacidad intrínseca de un equipo para operar en condiciones óptimas durante un período determinado, sin considerar factores externos como la logística o la gestión de personal. En el caso de las motoniveladoras CAT 24M, esta variable se mide en función de su capacidad para realizar operaciones de nivelación y mantenimiento de vías sin interrupciones no programadas, lo que impacta directamente en la productividad de la unidad minera.\n\nDimensiones de la variable dependiente:\n\nDimension: Tiempo medio entre fallas (MTBF)\nEl MTBF es un indicador clave que mide el tiempo promedio que transcurre entre fallas consecutivas en un equipo. Un mayor MTBF refleja una mayor confiabilidad y, por ende, una mejor disponibilidad inherente. En este estudio, se evaluará cómo el RCM influye en la extensión de este intervalo en las motoniveladoras.\n\nDimension: Tiempo medio de reparación (MTTR)\nEl MTTR representa el tiempo promedio requerido para restaurar un equipo a su estado operacional después de una falla. La reducción del MTTR es fundamental para mejorar la disponibilidad inherente, ya que disminuye los períodos de inactividad no planificada.\n\nDimension: Eficiencia operacional\nEsta dimensión evalúa el rendimiento de las motoniveladoras en términos de horas efectivas de operación versus horas totales disponibles. Una mayor eficiencia operacional indica que los equipos están funcionando cerca de su capacidad máxima, lo que es un reflejo directo de una alta disponibilidad inherente.\n\nEl marco conceptual presentado establece las bases para analizar cómo el RCM, a través de sus dimensiones, puede influir en la mejora de la disponibilidad inherente de la flota de motoniveladoras CAT 24M. La relación entre estas variables se centra en la capacidad del RCM para optimizar los procesos de mantenimiento, reduciendo así las fallas y los tiempos de inactividad, lo que se traduce en una mayor disponibilidad operativa de los equipos. [[CITE:SIM_10_RODRIGUEZ_COLABORADOR_ESPECIALISTA_2019]]"
+      },
+      {
+        "sectionId": "sec-0012",
+        "path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+        "content": "Confabilidad. Capacidad de un equipo o sistema para desempeñar sus funciones requeridas bajo condiciones operativas específicas durante un período de tiempo determinado, sin presentar fallas [[CITE:SIM_30_FUENTE_2014]].\n\nMantenibilidad. Atributo de un equipo que determina la facilidad y rapidez con la que puede ser restaurado a su condición operativa después de una falla, considerando los recursos necesarios para su reparación [[CITE:SIM_31_FUENTE_2018]].\n\nMotoniveladora CAT 24M. Equipo de maquinaria pesada diseñado para operaciones de nivelación y perfilado de terrenos, caracterizado por su hoja frontal ajustable y su sistema de tracción en las seis ruedas, utilizado principalmente en construcción y minería [[CITE:SIM_29_CATERPILLAR_2021]].\n\nMantenimiento Centrado en Confiabilidad (RCM). Metodología sistemática de mantenimiento que prioriza la identificación de funciones críticas de los equipos, los modos de falla asociados y las estrategias de mantenimiento más efectivas para garantizar la confiabilidad operacional [[CITE:SIM_20_NOWLAN_HEAP_1978]].\n\nDisponibilidad inherente. Métrica que expresa la proporción de tiempo en que un equipo está operativamente disponible en relación con el tiempo total requerido por la operación, excluyendo factores externos como la logística o la gestión [[CITE:SIM_32_FUENTE_2020]].\n\nTiempo Medio Entre Fallas (MTBF). Indicador de confiabilidad que mide el promedio de tiempo operativo entre fallas consecutivas de un equipo, expresado en horas de funcionamiento [[CITE:SIM_33_MOUBRAY_1997]].\n\nAnálisis de Modos y Efectos de Fallas (AMEF). Técnica estructurada para identificar y evaluar los modos de falla potenciales de un sistema, sus causas y efectos, con el fin de priorizar acciones correctivas o preventivas [[CITE:SIM_34_FUENTE_2009]].\n\nPlan de mantenimiento. Documento técnico que establece las actividades, frecuencias, recursos y responsabilidades necesarias para preservar la funcionalidad de un equipo, basado en análisis de criticidad y estrategias de mantenimiento [[CITE:SIM_35_FUENTE_2018]].\n\nUnidad minera cuprífera. Instalación industrial dedicada a la extracción y procesamiento de minerales de cobre, que incluye operaciones de perforación, voladura, carga, acarreo y mantenimiento de equipos [[CITE:SIM_36_PERU_2023]].\n\nFlota de equipos. Conjunto de maquinarias de características similares que operan de manera coordinada en un proceso productivo, compartiendo recursos de mantenimiento y gestión [[CITE:SIM_37_HANDBOOK_2011]].\n\nSierra Central. Región geográfica del Perú caracterizada por su actividad minera, ubicada en la zona andina y que comprende departamentos como Junín, Pasco y Huancavelica [[CITE:SIM_38_INEI_2022]].\n\nAnálisis de criticidad. Proceso sistemático para evaluar y clasificar los componentes de un equipo según su impacto en la seguridad, producción y costos, con el fin de priorizar intervenciones de mantenimiento [[CITE:SIM_39_NASA_2008]].\n\nTiempo Medio de Reparación (MTTR). Indicador de mantenibilidad que cuantifica el tiempo promedio requerido para restaurar un equipo a su condición operativa después de una falla, incluyendo diagnóstico y reparación [[CITE:SIM_40_BLANCHETTE_BOUDREAU_2016]].\n\nConfabilidad inherente. Nivel de confiabilidad intrínseco de un equipo, determinado por su diseño, materiales y procesos de fabricación, sin considerar factores externos como el mantenimiento o el ambiente operativo [[CITE:SIM_25_O_CONNOR_KLEYNER_2012]].\n\nTaxonomía de equipos. Sistema de clasificación estandarizado que organiza los componentes de un equipo según su función, criticidad y relación jerárquica, facilitando el análisis de mantenimiento [[CITE:SIM_41_FUENTE_2016]]."
+      },
+      {
+        "sectionId": "sec-0014",
+        "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis",
+        "content": "Hipótesis general\n\nLa implementación de un plan de mantenimiento centrado en confiabilidad (RCM) mejora significativamente la disponibilidad inherente de la flota de motoniveladoras CAT 24M en una unidad minera cuprífera de la Sierra Central durante el año 2025. \n\nHipótesis específicas\n\nLa aplicación del RCM incrementa la confiabilidad operativa de las motoniveladoras CAT 24M, reduciendo las fallas críticas y optimizando los intervalos de mantenimiento preventivo.\n\nEl mantenimiento centrado en confiabilidad mejora la mantenibilidad de los equipos, disminuyendo los tiempos de reparación y aumentando la eficiencia en la gestión de repuestos y recursos técnicos."
+      },
+      {
+        "sectionId": "sec-0015",
+        "path": "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variable",
+        "content": "La operacionalización de variables permite estructurar los componentes esenciales del estudio mediante la definición de dimensiones, indicadores e instrumentos de medición. En este caso, la variable independiente —Mantenimiento Centrado en la Confiabilidad (RCM)— se desglosa en dimensiones clave como la taxonomía de equipos según ISO 14224, el análisis de criticidad, el AMEF y el plan de mantenimiento, cuyos indicadores específicos (nivel de jerarquía taxonómica, nivel de criticidad, NPR y tareas de mantenimiento definidas) facilitan su evaluación cuantitativa. [[CITE:SIM_09_SMITH_JOHNSON_2020]]\n\nPor otro lado, la variable dependiente —disponibilidad inherente— se aborda a través de las dimensiones de confiabilidad y mantenibilidad, con indicadores como el MTBF y el MTTR, que permiten cuantificar su impacto en la flota de motoniveladoras CAT 24M. Este enfoque metodológico garantiza que ambas variables sean medidas de manera objetiva, alineándose con el diseño cuantitativo del estudio y su objetivo de mejorar la disponibilidad inherente en el contexto minero de Sierra Central. [[CITE:SIM_10_RODRIGUEZ_COLABORADOR_ESPECIALISTA_2019]]"
+      },
+      {
+        "sectionId": "sec-0016",
+        "path": "III. HIPÓTESIS Y VARIABLES/Operacionalización de Variables",
+        "content": "La operacionalización de variables en esta investigación se estructura a partir de la definición clara de las dimensiones, indicadores y técnicas de medición que permiten evaluar tanto la variable independiente como la dependiente. La variable independiente, Mantenimiento Centrado en la Confiabilidad (RCM), se operacionaliza mediante cuatro dimensiones fundamentales: taxonomía de equipos según la norma ISO 14224, análisis de criticidad, Análisis de Modos y Efectos de Fallas (AMEF) y el plan de mantenimiento propiamente dicho. Cada una de estas dimensiones se mide a través de indicadores específicos, como la clasificación de equipos por criticidad, la identificación de modos de falla prioritarios y la frecuencia de intervenciones programadas, utilizando instrumentos como matrices de criticidad, diagramas de árbol de fallas y registros de mantenimiento preventivo.\n\nPor otro lado, la variable dependiente, disponibilidad inherente, se desglosa en dos dimensiones clave: confiabilidad y mantenibilidad. La confiabilidad se evalúa mediante indicadores como el tiempo medio entre fallas (MTBF) y la tasa de fallas por componente, mientras que la mantenibilidad se mide a través del tiempo medio de reparación (MTTR) y la eficiencia de las intervenciones correctivas. Los instrumentos para estas mediciones incluyen registros históricos de fallas, reportes de tiempos de parada y análisis estadísticos de datos operativos. Esta operacionalización asegura que ambas variables puedan ser cuantificadas de manera objetiva, alineándose con el enfoque cuantitativo del estudio y facilitando la contrastación de la hipótesis planteada.\n\nLa relación entre estas variables se establece mediante un diseño de investigación aplicada, donde el RCM actúa como factor de intervención sobre la disponibilidad inherente de las motoniveladoras CAT 24M. La muestra, conformada por las cinco unidades de la flota, permite un análisis exhaustivo de los efectos del RCM en condiciones reales de operación minera. La medición de los indicadores se realizará en un marco temporal definido para el año 2025, garantizando la validez y confiabilidad de los resultados obtenidos en el contexto específico de la unidad minera cuprífera ubicada en la Sierra Central."
+      },
+      {
+        "sectionId": "sec-0018",
+        "path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico",
+        "content": "El presente estudio se clasifica como una investigación aplicada, ya que busca generar un plan de mantenimiento centrado en confiabilidad (RCM) con impacto directo en la disponibilidad inherente de la flota de motoniveladoras CAT 24M. Este tipo de investigación se justifica por su orientación práctica, alineada con el objetivo de proponer soluciones concretas a problemas operativos en el contexto minero. La naturaleza aplicada permite vincular los hallazgos teóricos con acciones técnicas medibles, respondiendo así al problema planteado sobre cómo el RCM mejora la disponibilidad inherente en equipos críticos. [[CITE:SIM_44_ROJAS_SALAZAR_2024]]\n\nEl nivel de investigación es descriptivo-correlacional, ya que no solo caracteriza las variables de estudio —mantenimiento centrado en confiabilidad (variable independiente) y disponibilidad inherente (variable dependiente)—, sino que también analiza su relación en un contexto específico. Este alcance metodológico resulta pertinente para evaluar la influencia del RCM en la disponibilidad, tal como lo exige el objetivo general del proyecto. La correlación entre variables se establece mediante la medición de indicadores operativos antes y después de la implementación del plan propuesto.\n\nEl diseño metodológico corresponde a un estudio no experimental de corte transversal, donde la unidad de análisis está conformada por la totalidad de la población (n=5 motoniveladoras CAT 24M) mediante un muestreo censal. La ausencia de manipulación deliberada de la variable independiente se justifica por el enfoque técnico del RCM, que prioriza la evaluación de condiciones reales de operación. El contraste entre las mediciones iniciales y posteriores a la implementación del plan permitirá validar su efectividad, siguiendo el esquema:\n\nM O₁ X O₂\n\nDonde:\nM: Muestra censal de 5 motoniveladoras CAT 24M en la unidad minera cuprífera de Sierra Central.\nO₁: Medición inicial de la disponibilidad inherente (pre-implementación del RCM).\nX: Implementación del plan de mantenimiento centrado en confiabilidad.\nO₂: Medición posterior de la disponibilidad inherente (post-implementación del RCM).\n\nEste diseño garantiza la evaluación sistemática del impacto del RCM en la variable dependiente, alineándose con los requerimientos técnicos del sector minero y las limitaciones operativas del estudio. [[CITE:SIM_45_PAREDES_VILCA_2023]]"
+      },
+      {
+        "sectionId": "sec-0019",
+        "path": "IV. METODOLOGÍA DEL PROYECTO/4.2 Método de investigación",
+        "content": "La investigación adopta un enfoque cuantitativo, dado que se orienta a medir el impacto del Mantenimiento Centrado en Confiabilidad (RCM) sobre la disponibilidad inherente de la flota de motoniveladoras CAT 24M. Este enfoque permitirá recoger datos numéricos mediante técnicas como el análisis documental de registros de mantenimiento, observación directa de las operaciones y la aplicación de instrumentos estandarizados como las fichas de recolección de datos basadas en la norma ISO 14224. La información obtenida será procesada mediante análisis estadísticos de indicadores clave como el MTBF (Tiempo Medio Entre Fallas) y el MTTR (Tiempo Medio de Reparación), lo que facilitará la cuantificación objetiva de los resultados.\n\nEl método seleccionado es el hipotético-deductivo, ya que parte de una hipótesis central: la implementación de un plan RCM mejorará significativamente la disponibilidad inherente de las motoniveladoras. Según Hernández [[CITE:SIM_42_SAMPIERI_2018]], este método es adecuado para investigaciones aplicadas, pues permite contrastar una teoría con la realidad mediante la observación sistemática. Las etapas del proceso incluyen: (1) diagnóstico inicial de la situación actual de mantenimiento, (2) diseño del plan RCM basado en análisis de criticidad y modos de falla, (3) implementación piloto del plan en la flota seleccionada y (4) evaluación comparativa de los resultados pre y post intervención."
+      },
+      {
+        "sectionId": "sec-0020",
+        "path": "IV. METODOLOGÍA DEL PROYECTO/4.3 Población y muestra",
+        "content": "La población de estudio está conformada por las cinco motoniveladoras Caterpillar (CAT) modelo 24M que operan en una unidad minera cuprífera de la Sierra Central. Dado el reducido tamaño de la flota y la necesidad de evaluar el impacto del mantenimiento centrado en confiabilidad (RCM) en su totalidad, se empleó un muestreo no probabilístico de tipo censal, donde la muestra coincide con la población (n = 5 unidades). Este enfoque garantiza la representatividad total del estudio, alineado con los objetivos de mejorar la disponibilidad inherente de los equipos mediante una intervención técnica integral. La accesibilidad a los datos operativos y de mantenimiento justifica la selección de esta muestra, que permite un análisis exhaustivo sin exclusiones."
+      },
+      {
+        "sectionId": "sec-0021",
+        "path": "IV. METODOLOGÍA DEL PROYECTO/4.4 Lugar de estudio",
+        "content": "El estudio se desarrolló en una unidad minera cuprífera ubicada en la región de Sierra Central, donde opera una flota de cinco motoniveladoras Caterpillar modelo 24M. El área de investigación comprende las zonas de mantenimiento y operación de maquinaria pesada, incluyendo talleres de reparación, áreas de almacenamiento de repuestos y rutas de trabajo asignadas a las motoniveladoras. Las condiciones operativas se caracterizan por un entorno de alta demanda productiva, con ciclos de trabajo intensivos y exposición a condiciones ambientales adversas, como polvo y variaciones térmicas, que inciden directamente en el desgaste de los equipos. Este contexto resulta relevante para el problema de investigación, ya que la disponibilidad inherente de la flota se ve afectada por fallas recurrentes en componentes críticos, lo que justifica la implementación de un plan de mantenimiento centrado en confiabilidad (RCM) para optimizar su rendimiento. La selección de este lugar de estudio responde a la necesidad de evaluar estrategias de mantenimiento en un entorno minero real, donde la confiabilidad operativa es determinante para la continuidad de las actividades extractivas."
+      },
+      {
+        "sectionId": "sec-0022",
+        "path": "IV. METODOLOGÍA DEL PROYECTO/4.5 Técnicas e instrumentos para la recolección de la información",
+        "content": "La investigación empleará tres técnicas principales de recolección de datos, alineadas con el enfoque cuantitativo y el diseño pre experimental del estudio. En primer lugar, se utilizará el análisis documental mediante fichas de recolección de datos basadas en la norma ISO 14224, que permitirá obtener información histórica sobre fallas, tiempos de reparación y mantenimiento de las motoniveladoras CAT 24M, datos esenciales para calcular indicadores como el MTBF (Tiempo Medio Entre Fallas) y el MTTR (Tiempo Medio de Reparación). Como segunda técnica, se aplicará la observación directa mediante la Matriz de Criticidad y las Hojas de Trabajo AMEF (Análisis de Modos y Efectos de Fallas) según la norma SAE JA 1011, lo que facilitará la identificación de modos de falla críticos y su impacto en la disponibilidad inherente de los equipos. Finalmente, se implementará un cuestionario de encuesta estructurado dirigido a operadores y técnicos de mantenimiento, complementado con una matriz de validación de expertos, para recoger percepciones cualitativas sobre la efectividad del plan RCM y su influencia en la reducción de tiempos de inactividad. Estas técnicas, en conjunto, permitirán obtener datos cuantitativos sobre el desempeño de los equipos antes y después de la implementación del plan de mantenimiento, así como información cualitativa para evaluar la viabilidad operativa del mismo. La selección de instrumentos responde a la necesidad de medir tanto variables técnicas (como tiempos de falla y reparación) como variables operativas (como la percepción del personal sobre la confiabilidad del equipo), garantizando así una evaluación integral del impacto del RCM en la disponibilidad inherente de la flota."
+      },
+      {
+        "sectionId": "sec-0023",
+        "path": "IV. METODOLOGÍA DEL PROYECTO/4.6 Análisis y procesamiento de datos",
+        "content": "El procesamiento de datos se inicia con la estructuración y codificación de la información recolectada mediante las técnicas de análisis documental, observación directa y encuestas aplicadas a la flota de motoniveladoras CAT 24M. Los datos obtenidos se organizan en matrices de criticidad y hojas de trabajo AMEF, siguiendo los estándares SAE JA 1011, para garantizar su consistencia. Posteriormente, se realiza una depuración mediante la verificación de registros de mantenimiento, eliminando valores atípicos y completando información faltante con datos históricos de la unidad minera. Este proceso asegura la confiabilidad de los datos para el análisis cuantitativo posterior.\n\nEl diagnóstico inicial se establece mediante la evaluación de indicadores clave como el MTBF (Tiempo Medio Entre Fallas) y el MTTR (Tiempo Medio de Reparación), los cuales permiten determinar la línea base de disponibilidad inherente de los equipos. Estos indicadores se complementan con la matriz de criticidad, que clasifica las fallas según su frecuencia, impacto operativo y costo de reparación. La información se categoriza en fallas críticas, mayores y menores, lo que facilita la identificación de patrones recurrentes en la flota y establece el punto de partida para la implementación del plan de mantenimiento centrado en confiabilidad (RCM).\n\nPara el análisis de datos, se emplean herramientas estadísticas como la distribución de Weibull para modelar la confiabilidad de los componentes, utilizando software especializado como Minitab. Además, se procesan los datos mediante Excel para calcular los KPIs de mantenimiento y generar gráficos de tendencia que visualicen el comportamiento de las variables. La aplicación del RCM se basa en las hojas de decisión estandarizadas, que permiten priorizar las acciones de mantenimiento según su impacto en la disponibilidad inherente de los equipos.\n\nFinalmente, se realiza un análisis comparativo entre los datos obtenidos en la fase pre test (antes de la implementación del RCM) y los resultados proyectados en la fase post test. Este contraste permite validar la efectividad del plan de mantenimiento en la mejora de la disponibilidad inherente, alineándose con el objetivo general de la investigación. La interpretación de los resultados se enfoca en demostrar cómo el RCM reduce las fallas críticas y optimiza los tiempos de reparación, proporcionando evidencia cuantitativa para sustentar la hipótesis planteada."
+      },
+      {
+        "sectionId": "sec-0024",
+        "path": "IV. METODOLOGÍA DEL PROYECTO/4.7 Aspectos éticos en Investigación",
+        "content": "El presente proyecto de investigación se desarrolla bajo los principios éticos establecidos en el marco normativo institucional aplicable a proyectos de investigación científica. Se garantiza el cumplimiento de los estándares de integridad académica, respetando los protocolos de investigación cuantitativa y los lineamientos específicos para estudios aplicados en el ámbito minero. La investigación se ajusta a los criterios de rigor metodológico, asegurando que los procedimientos empleados sean válidos y confiables, en concordancia con las exigencias técnicas del sector minero y los principios de responsabilidad profesional.\n\nEn cuanto a la probidad y transparencia, se asegura la autenticidad de los datos recolectados mediante técnicas como el análisis documental, la observación directa y el uso de instrumentos estandarizados como las fichas de recolección de datos basadas en la norma ISO 14224. No se manipularán ni fabricarán resultados, garantizando que toda la información presentada sea veraz y obtenida mediante procedimientos técnicos rigurosos. Además, se respetará la propiedad intelectual, citando adecuadamente las fuentes consultadas y utilizando software especializado (Excel/Minitab) para el procesamiento de datos, evitando cualquier forma de plagio o uso indebido de información ajena.\n\nLa investigación se conducirá con objetividad, asegurando que los hallazgos respondan exclusivamente a los datos obtenidos y al análisis estadístico de los indicadores clave de desempeño (KPIs) como el MTBF y MTTR. Se garantiza la confidencialidad de la información recopilada, especialmente en lo referente a los datos operativos de la flota de motoniveladoras CAT 24M. Aunque el estudio no involucra directamente a personas, se aplicarán principios de consentimiento informado en la interacción con expertos, asegurando su participación voluntaria y el uso académico responsable de sus aportes. La información obtenida se utilizará exclusivamente para los fines de la investigación, sin revelar datos sensibles que puedan afectar la operación de la unidad minera."
+      },
+      {
+        "sectionId": "sec-0025",
+        "path": "V. CRONOGRAMA DE ACTIVIDADES",
+        "content": [
+          {
+            "tipo": "tabla",
+            "encabezados": [
+              "FASES Y ACTIVIDADES",
+              "2025",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            "filas": [
+              [
+                "",
+                "Ene",
+                "Feb",
+                "Mar",
+                "Abr",
+                "May",
+                "Jun",
+                "Jul",
+                "Ago",
+                "Set",
+                "Oct",
+                "Nov",
+                "Dic"
+              ],
+              [
+                "1. Planificación inicial y revisión documental",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "1.1. Revisión de documentación técnica de las motoniveladoras CAT 24M",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "1.2. Identificación de estándares de mantenimiento en minería cuprífera",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "1.3. Elaboración del marco teórico sobre RCM y disponibilidad inherente",
+                "",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "2. Diagnóstico de la situación actual",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "2.1. Recopilación de datos históricos de mantenimiento de la flota",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "2.2. Evaluación de la disponibilidad actual de las motoniveladoras",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "2.3. Análisis de fallas críticas en los equipos",
+                "",
+                "",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "3. Diseño del plan de mantenimiento centrado en confiabilidad",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "3.1. Definición de estrategias de RCM para la flota",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "3.2. Elaboración de procedimientos de mantenimiento preventivo",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "3.3. Establecimiento de indicadores de desempeño",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "4. Implementación del plan piloto",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "4.1. Capacitación del personal en técnicas de RCM",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "4.2. Aplicación del plan en una motoniveladora piloto",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "4.3. Monitoreo de resultados iniciales",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "5. Evaluación de resultados preliminares",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "5.1. Análisis de datos de disponibilidad post-implementación",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "5.2. Comparación con estándares de la industria minera",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "5.3. Identificación de áreas de mejora",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "6. Ajuste y escalamiento del plan",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "6.1. Revisión de procedimientos basados en resultados",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "6.2. Implementación en la flota completa",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                ""
+              ],
+              [
+                "6.3. Seguimiento de indicadores de confiabilidad",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                ""
+              ],
+              [
+                "6.4. Documentación de lecciones aprendidas",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "",
+                ""
+              ],
+              [
+                "7. Análisis de impacto y validación",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "7.1. Evaluación de la mejora en disponibilidad inherente",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                "",
+                ""
+              ],
+              [
+                "7.2. Validación estadística de resultados",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                "",
+                ""
+              ],
+              [
+                "7.3. Elaboración del informe técnico final",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                ""
+              ],
+              [
+                "8. Presentación y cierre del proyecto",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "8.1. Redacción del documento final de tesis",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●",
+                ""
+              ],
+              [
+                "8.2. Revisión y ajustes finales",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                ""
+              ],
+              [
+                "8.3. Presentación ante el comité evaluador",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●",
+                "●"
+              ],
+              [
+                "8.4. Publicación de resultados en repositorios institucionales",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "●"
+              ]
+            ],
+            "id": "tabla_5_1_cronograma_actividades",
+            "titulo": "Tabla 5.1 Cronograma de actividades",
+            "orientacion": "landscape",
+            "subtipo": "cronograma_actividades",
+            "anio": "2025",
+            "meses": [
+              "Ene",
+              "Feb",
+              "Mar",
+              "Abr",
+              "May",
+              "Jun",
+              "Jul",
+              "Ago",
+              "Set",
+              "Oct",
+              "Nov",
+              "Dic"
+            ],
+            "simbolo_marca": "●",
+            "filas_fase": [
+              1,
+              5,
+              9,
+              13,
+              17,
+              21,
+              26,
+              30
+            ],
+            "celdas_combinadas": [
+              {
+                "fila": -1,
+                "fila_fin": 0,
+                "col_inicio": 0,
+                "col_fin": 0,
+                "texto": "FASES Y ACTIVIDADES"
+              },
+              {
+                "fila": -1,
+                "col_inicio": 1,
+                "col_fin": 12,
+                "texto": "2025"
+              },
+              {
+                "fila": 1,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "1. Planificación inicial y revisión documental"
+              },
+              {
+                "fila": 5,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "2. Diagnóstico de la situación actual"
+              },
+              {
+                "fila": 9,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "3. Diseño del plan de mantenimiento centrado en confiabilidad"
+              },
+              {
+                "fila": 13,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "4. Implementación del plan piloto"
+              },
+              {
+                "fila": 17,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "5. Evaluación de resultados preliminares"
+              },
+              {
+                "fila": 21,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "6. Ajuste y escalamiento del plan"
+              },
+              {
+                "fila": 26,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "7. Análisis de impacto y validación"
+              },
+              {
+                "fila": 30,
+                "col_inicio": 0,
+                "col_fin": 12,
+                "texto": "8. Presentación y cierre del proyecto"
+              }
+            ],
+            "celdas_fusionadas": [
+              {
+                "fila": -1,
+                "col": 0,
+                "filas_span": 2,
+                "cols_span": 1,
+                "texto": "FASES Y ACTIVIDADES",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": -1,
+                "col": 1,
+                "filas_span": 1,
+                "cols_span": 12,
+                "texto": "2025",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 1,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "1. Planificación inicial y revisión documental",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 5,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "2. Diagnóstico de la situación actual",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 9,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "3. Diseño del plan de mantenimiento centrado en confiabilidad",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 13,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "4. Implementación del plan piloto",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 17,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "5. Evaluación de resultados preliminares",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 21,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "6. Ajuste y escalamiento del plan",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 26,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "7. Análisis de impacto y validación",
+                "bold": true,
+                "alignment": "center"
+              },
+              {
+                "fila": 30,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 13,
+                "texto": "8. Presentación y cierre del proyecto",
+                "bold": true,
+                "alignment": "center"
+              }
+            ],
+            "estilo": {
+              "modelo_referencia": "cronograma_actividades.docx",
+              "titulo_capitulo": "V. CRONOGRAMA DE ACTIVIDADES",
+              "titulo_exacto": true,
+              "titulo_tamano_pt": 9.5,
+              "titulo_space_after_pt": 6,
+              "ancho_tabla": "100%",
+              "ancho_columnas": [
+                8.91,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59,
+                1.59
+              ],
+              "alineacion_actividades": "left",
+              "alineacion_meses": "center",
+              "encabezados_negrita": true,
+              "fases_negrita": true,
+              "fases_centradas": true,
+              "bordes": "grid",
+              "fuente_tamano_pt": 8,
+              "fuente_meses_pt": 8,
+              "fuente_actividades_pt": 8,
+              "fuente_fases_pt": 8,
+              "fuente_marcas_pt": 10,
+              "compactar_cronograma": false,
+              "orientacion_pagina": "landscape",
+              "margenes_reducidos": true
+            }
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-0026",
+        "path": "VI. PRESUPUESTO",
+        "content": [
+          {
+            "tipo": "tabla",
+            "encabezados": [
+              "N°",
+              "DESCRIPCIÓN DEL GASTO",
+              "CANTIDAD",
+              "COSTO UNIT. (S/.)",
+              "COSTO TOTAL (S/.)"
+            ],
+            "filas": [
+              [
+                "1. Materiales y equipos",
+                "",
+                "",
+                "",
+                "2,500.00"
+              ],
+              [
+                "1.1",
+                "Software de análisis de confiabilidad (RCM)",
+                "1",
+                "2,500.00",
+                "2,500.00"
+              ],
+              [
+                "2. Servicios técnicos",
+                "",
+                "",
+                "",
+                "5,200.00"
+              ],
+              [
+                "2.1",
+                "Asesoría especializada en mantenimiento minero",
+                "1",
+                "3,000.00",
+                "3,000.00"
+              ],
+              [
+                "2.2",
+                "Capacitación en RCM para personal técnico",
+                "15",
+                "100.00",
+                "1,500.00"
+              ],
+              [
+                "2.3",
+                "Análisis de vibraciones para motoniveladoras",
+                "5",
+                "200.00",
+                "1,000.00"
+              ],
+              [
+                "2.4",
+                "Inspección termográfica de componentes",
+                "1",
+                "700.00",
+                "700.00"
+              ],
+              [
+                "3. Gastos operativos",
+                "",
+                "",
+                "",
+                "1,200.00"
+              ],
+              [
+                "3.1",
+                "Movilidad a zona minera Sierra Central",
+                "12",
+                "50.00",
+                "600.00"
+              ],
+              [
+                "3.2",
+                "Material de oficina para documentación",
+                "1",
+                "300.00",
+                "300.00"
+              ],
+              [
+                "3.3",
+                "Impresión de informes técnicos",
+                "1",
+                "300.00",
+                "300.00"
+              ],
+              [
+                "4. Imprevistos",
+                "",
+                "",
+                "",
+                "500.00"
+              ],
+              [
+                "4.1",
+                "Fondo de contingencia (5% del total)",
+                "1",
+                "500.00",
+                "500.00"
+              ],
+              [
+                "TOTAL GENERAL",
+                "",
+                "",
+                "",
+                "S/. 9,400.00"
+              ]
+            ],
+            "id": "tabla_6_1_presupuesto_investigacion",
+            "titulo": "Tabla 6.1 Presupuesto de investigación",
+            "orientacion": "portrait",
+            "subtipo": "presupuesto_investigacion",
+            "filas_categoria": [
+              0,
+              2,
+              7,
+              11
+            ],
+            "fila_total": 13,
+            "celdas_combinadas": [
+              {
+                "fila": 0,
+                "col_inicio": 0,
+                "col_fin": 3,
+                "texto": "1. Materiales y equipos"
+              },
+              {
+                "fila": 2,
+                "col_inicio": 0,
+                "col_fin": 3,
+                "texto": "2. Servicios técnicos"
+              },
+              {
+                "fila": 7,
+                "col_inicio": 0,
+                "col_fin": 3,
+                "texto": "3. Gastos operativos"
+              },
+              {
+                "fila": 11,
+                "col_inicio": 0,
+                "col_fin": 3,
+                "texto": "4. Imprevistos"
+              },
+              {
+                "fila": 13,
+                "col_inicio": 0,
+                "col_fin": 3,
+                "texto": "TOTAL GENERAL"
+              }
+            ],
+            "celdas_fusionadas": [
+              {
+                "fila": 0,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 4,
+                "texto": "1. Materiales y equipos",
+                "bold": true,
+                "alignment": "left"
+              },
+              {
+                "fila": 2,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 4,
+                "texto": "2. Servicios técnicos",
+                "bold": true,
+                "alignment": "left"
+              },
+              {
+                "fila": 7,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 4,
+                "texto": "3. Gastos operativos",
+                "bold": true,
+                "alignment": "left"
+              },
+              {
+                "fila": 11,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 4,
+                "texto": "4. Imprevistos",
+                "bold": true,
+                "alignment": "left"
+              },
+              {
+                "fila": 13,
+                "col": 0,
+                "filas_span": 1,
+                "cols_span": 4,
+                "texto": "TOTAL GENERAL",
+                "bold": true,
+                "alignment": "center"
+              }
+            ],
+            "estilo": {
+              "modelo_referencia": "presupuesto_investigacion_vertical.docx",
+              "titulo_capitulo": "VI. PRESUPUESTO",
+              "titulo_exacto": true,
+              "titulo_tamano_pt": 10,
+              "titulo_space_after_pt": 10,
+              "ancho_tabla": "100%",
+              "ancho_columnas": [
+                1.4,
+                8,
+                2,
+                3.2,
+                3.2
+              ],
+              "orientacion_pagina": "portrait",
+              "encabezados_negrita": true,
+              "categorias_negrita": true,
+              "total_negrita": true,
+              "alineacion_descripcion": "left",
+              "alineacion_numeros": "center",
+              "alineacion_costos": "right",
+              "bordes": "grid",
+              "fuente_tamano_pt": 9,
+              "fuente_encabezado_pt": 8.5,
+              "fuente_categoria_pt": 9,
+              "fuente_total_pt": 9
+            }
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-0027",
+        "path": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+        "content": "Las siguientes referencias son propuestas academicas simuladas generadas sin acceso a internet. Deben ser validadas, corregidas o reemplazadas por el autor antes de la version final.\n\n[[SOURCE:SIM_01_MOUBRAY_2020]] Moubray, M. (2020). Contexto tecnico sobre investigacion aplicada. Revista de Ingenieria Aplicada, 9(2), 24-36. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_02_NOWLAN_HEAP_2018]] Nowlan, N., & Heap, H. (2018). Contexto tecnico sobre investigacion aplicada. Revista de Ingenieria Aplicada, 10(3), 27-39. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_03_JAKKULA_COLABORADOR_ESPECIALISTA_2021]] Jakkula, J., Colaborador, C., & Especialista, E. (2021). Contexto tecnico sobre descripcion realidad problematica. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_04_NOURI_COLABORADOR_ESPECIALISTA_2023]] Nouri, N., Colaborador, C., & Especialista, E. (2023). Contexto tecnico sobre descripcion realidad problematica. Revista de Ingenieria Aplicada, 12(2), 33-45. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_05_GONZALEZ_2022]] González, G. (2022). Contexto tecnico sobre descripcion realidad problematica. Revista de Ingenieria Aplicada, 13(3), 36-48. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_06_SILVA_2023]] Silva, S. (2023). Contexto tecnico sobre descripcion realidad problematica. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_07_FLORES_2024]] Flores, F. (2024). Contexto tecnico sobre descripcion realidad problematica. Revista de Ingenieria Aplicada, 15(2), 42-54. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_08_CHAVEZ_2024]] Chávez, C. (2024). Contexto tecnico sobre descripcion realidad problematica. Revista de Ingenieria Aplicada, 16(3), 45-57. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_09_SMITH_JOHNSON_2020]] Smith, S., & Johnson, J. (2020). Fundamentos y evidencia sobre antecedentes. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_10_RODRIGUEZ_COLABORADOR_ESPECIALISTA_2019]] Rodríguez, R., Colaborador, C., & Especialista, E. (2019). Fundamentos y evidencia sobre antecedentes. Revista de Ingenieria Aplicada, 9(2), 51-63. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_11_LEE_WANG_2021]] Lee, L., & Wang, W. (2021). Fundamentos y evidencia sobre antecedentes. Revista de Ingenieria Aplicada, 10(3), 54-66. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_12_GARCIA_LOPEZ_2018]] Garcia, G., & López, L. (2018). Fundamentos y evidencia sobre antecedentes. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_13_BROWN_TAYLOR_2022]] Brown, B., & Taylor, T. (2022). Fundamentos y evidencia sobre antecedentes. Revista de Ingenieria Aplicada, 12(2), 60-72. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_14_QUISPE_MENDOZA_2020]] Quispe, Q., & Mendoza, M. (2020). Fundamentos y evidencia sobre antecedentes. Revista de Ingenieria Aplicada, 13(3), 63-75. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_15_VARGAS_ROJAS_2019]] Vargas, V., & Rojas, R. (2019). Fundamentos y evidencia sobre antecedentes. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_16_DIAZ_FLORES_2021]] Díaz, D., & Flores, F. (2021). Fundamentos y evidencia sobre antecedentes. Revista de Ingenieria Aplicada, 15(2), 69-81. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_17_RAMIREZ_CASTRO_2018]] Ramírez, R., & Castro, C. (2018). Fundamentos y evidencia sobre antecedentes. Revista de Ingenieria Aplicada, 16(3), 72-84. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_18_PEREZ_SANCHEZ_2022]] Pérez, P., & Sánchez, S. (2022). Fundamentos y evidencia sobre antecedentes. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_19_MOUBRAY_2001]] Moubray, M. (2001). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 9(2), 78-90. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_20_NOWLAN_HEAP_1978]] Nowlan, N., & Heap, H. (1978). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 10(3), 81-93. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_21_SMITH_HINCHCLIFFE_2004]] Smith, S., & Hinchcliffe, H. (2004). Fundamentos y evidencia sobre bases teoricas. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_22_STAMATIS_2003]] Stamatis, S. (2003). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 12(2), 87-99. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_23_GROUP_2020]] Group, G. (2020). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 13(3), 90-102. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_24_KUMAR_COLABORADOR_ESPECIALISTA_2019]] Kumar, K., Colaborador, C., & Especialista, E. (2019). Fundamentos y evidencia sobre bases teoricas. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_25_O_CONNOR_KLEYNER_2012]] O'Connor, O., & Kleyner, K. (2012). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 15(2), 96-108. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_26_ABERNETHY_2006]] Abernethy, A. (2006). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 16(3), 99-111. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_27_BLANCHARD_2004]] Blanchard, B. (2004). Fundamentos y evidencia sobre bases teoricas. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_28_DHILLON_2002]] Dhillon, D. (2002). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 9(2), 105-117. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_29_CATERPILLAR_2021]] Caterpillar, C. (2021). Fundamentos y evidencia sobre bases teoricas. Revista de Ingenieria Aplicada, 10(3), 108-120. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_30_FUENTE_2014]] ISO 55000 (2014). Fundamentos y evidencia sobre definicion terminos basicos. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_31_FUENTE_2018]] EN 13306 (2018). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 12(2), 114-126. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_32_FUENTE_2020]] GMG (2020). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 13(3), 117-129. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_33_MOUBRAY_1997]] Moubray, M. (1997). Fundamentos y evidencia sobre definicion terminos basicos. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_34_FUENTE_2009]] SAE JA1011 (2009). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 15(2), 123-135. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_35_FUENTE_2018]] ISO 55002 (2018). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 16(3), 126-138. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_36_PERU_2023]] Perú, P. (2023). Fundamentos y evidencia sobre definicion terminos basicos. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_37_HANDBOOK_2011]] Handbook, H. (2011). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 9(2), 132-144. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_38_INEI_2022]] INEI, I. (2022). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 10(3), 135-147. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_39_NASA_2008]] NASA, N. (2008). Fundamentos y evidencia sobre definicion terminos basicos. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_40_BLANCHETTE_BOUDREAU_2016]] Blanchette, B., & Boudreau, B. (2016). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 12(2), 141-153. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_41_FUENTE_2016]] ISO 14224 (2016). Fundamentos y evidencia sobre definicion terminos basicos. Revista de Ingenieria Aplicada, 13(3), 144-156. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_42_SAMPIERI_2018]] Sampieri, S. (2018). Metodos aplicados sobre metodo. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_43_MORALES_QUISPE_2025]] Morales, M., & Quispe, Q. (2025). Contexto tecnico sobre investigacion aplicada. Revista de Ingenieria Aplicada, 15(2), 150-162. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_44_ROJAS_SALAZAR_2024]] Rojas, R., & Salazar, S. (2024). Metodos aplicados sobre diseno metodologico. Revista de Ingenieria Aplicada, 16(3), 153-165. Referencia propuesta simulada para validacion del autor.\n\n[[SOURCE:SIM_45_PAREDES_VILCA_2023]] Paredes, P., & Vilca, V. (2023). Metodos aplicados sobre diseno metodologico. Fondo Editorial Tecnico. Referencia propuesta simulada para validacion del autor."
+      }
+    ]
+  },
+  "selectedSections": [
+    {
+      "section_id": "titulo-info-basica",
+      "section_path": "Título + Información Básica",
+      "path": "Título + Información Básica",
+      "section_title": "Título + Información Básica",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": -100,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0001",
+      "section_path": "INTRODUCCIÓN",
+      "path": "INTRODUCCIÓN",
+      "section_title": "INTRODUCCIÓN",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 1,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0002",
+      "section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "path": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "section_title": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 2,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0003",
+      "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+      "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+      "section_title": "1.1 Descripción de la realidad problemática",
+      "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "section_level": 2,
+      "section_order": 3,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0004",
+      "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+      "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.2 Formulación del problema",
+      "section_title": "1.2 Formulación del problema",
+      "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "section_level": 2,
+      "section_order": 4,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0005",
+      "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+      "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.3 Objetivos",
+      "section_title": "1.3 Objetivos",
+      "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "section_level": 2,
+      "section_order": 5,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0006",
+      "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+      "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+      "section_title": "1.4 Justificación",
+      "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "section_level": 2,
+      "section_order": 6,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0007",
+      "section_path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitaciones de la investigación",
+      "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.5 Delimitaciones de la investigación",
+      "section_title": "1.5 Delimitaciones de la investigación",
+      "parent_section_path": "I. PLANTEAMIENTO DEL PROBLEMA",
+      "section_level": 2,
+      "section_order": 7,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0008",
+      "section_path": "II. MARCO TEÓRICO",
+      "path": "II. MARCO TEÓRICO",
+      "section_title": "II. MARCO TEÓRICO",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 8,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0009",
+      "section_path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+      "path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+      "section_title": "2.1 Antecedentes",
+      "parent_section_path": "II. MARCO TEÓRICO",
+      "section_level": 2,
+      "section_order": 9,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0010",
+      "section_path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+      "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+      "section_title": "2.2 Bases teóricas",
+      "parent_section_path": "II. MARCO TEÓRICO",
+      "section_level": 2,
+      "section_order": 10,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0011",
+      "section_path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+      "path": "II. MARCO TEÓRICO/2.3 Marco conceptual",
+      "section_title": "2.3 Marco conceptual",
+      "parent_section_path": "II. MARCO TEÓRICO",
+      "section_level": 2,
+      "section_order": 11,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0012",
+      "section_path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+      "path": "II. MARCO TEÓRICO/2.4 Definición de términos básicos",
+      "section_title": "2.4 Definición de términos básicos",
+      "parent_section_path": "II. MARCO TEÓRICO",
+      "section_level": 2,
+      "section_order": 12,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0013",
+      "section_path": "III. HIPÓTESIS Y VARIABLES",
+      "path": "III. HIPÓTESIS Y VARIABLES",
+      "section_title": "III. HIPÓTESIS Y VARIABLES",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 13,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0014",
+      "section_path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis",
+      "path": "III. HIPÓTESIS Y VARIABLES/3.1 Hipótesis",
+      "section_title": "3.1 Hipótesis",
+      "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+      "section_level": 2,
+      "section_order": 14,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0015",
+      "section_path": "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variable",
+      "path": "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variable",
+      "section_title": "3.2 Operacionalización de variable",
+      "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+      "section_level": 2,
+      "section_order": 15,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0016",
+      "section_path": "III. HIPÓTESIS Y VARIABLES/Operacionalización de Variables",
+      "path": "III. HIPÓTESIS Y VARIABLES/Operacionalización de Variables",
+      "section_title": "Operacionalización de Variables",
+      "parent_section_path": "III. HIPÓTESIS Y VARIABLES",
+      "section_level": 2,
+      "section_order": 16,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0017",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_title": "IV. METODOLOGÍA DEL PROYECTO",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 17,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0018",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico",
+      "path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico",
+      "section_title": "4.1 Diseño metodológico",
+      "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_level": 2,
+      "section_order": 18,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0019",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.2 Método de investigación",
+      "path": "IV. METODOLOGÍA DEL PROYECTO/4.2 Método de investigación",
+      "section_title": "4.2 Método de investigación",
+      "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_level": 2,
+      "section_order": 19,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0020",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.3 Población y muestra",
+      "path": "IV. METODOLOGÍA DEL PROYECTO/4.3 Población y muestra",
+      "section_title": "4.3 Población y muestra",
+      "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_level": 2,
+      "section_order": 20,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0021",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.4 Lugar de estudio",
+      "path": "IV. METODOLOGÍA DEL PROYECTO/4.4 Lugar de estudio",
+      "section_title": "4.4 Lugar de estudio",
+      "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_level": 2,
+      "section_order": 21,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0022",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.5 Técnicas e instrumentos para la recolección de la información",
+      "path": "IV. METODOLOGÍA DEL PROYECTO/4.5 Técnicas e instrumentos para la recolección de la información",
+      "section_title": "4.5 Técnicas e instrumentos para la recolección de la información",
+      "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_level": 2,
+      "section_order": 22,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0023",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.6 Análisis y procesamiento de datos",
+      "path": "IV. METODOLOGÍA DEL PROYECTO/4.6 Análisis y procesamiento de datos",
+      "section_title": "4.6 Análisis y procesamiento de datos",
+      "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_level": 2,
+      "section_order": 23,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0024",
+      "section_path": "IV. METODOLOGÍA DEL PROYECTO/4.7 Aspectos éticos en Investigación",
+      "path": "IV. METODOLOGÍA DEL PROYECTO/4.7 Aspectos éticos en Investigación",
+      "section_title": "4.7 Aspectos éticos en Investigación",
+      "parent_section_path": "IV. METODOLOGÍA DEL PROYECTO",
+      "section_level": 2,
+      "section_order": 24,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0025",
+      "section_path": "V. CRONOGRAMA DE ACTIVIDADES",
+      "path": "V. CRONOGRAMA DE ACTIVIDADES",
+      "section_title": "V. CRONOGRAMA DE ACTIVIDADES",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 25,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0026",
+      "section_path": "VI. PRESUPUESTO",
+      "path": "VI. PRESUPUESTO",
+      "section_title": "VI. PRESUPUESTO",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 26,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0027",
+      "section_path": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+      "path": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+      "section_title": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 27,
+      "optional": false,
+      "default_selected": true
+    },
+    {
+      "section_id": "sec-0028",
+      "section_path": "ANEXOS",
+      "path": "ANEXOS",
+      "section_title": "ANEXOS",
+      "parent_section_path": "",
+      "section_level": 1,
+      "section_order": 28,
+      "optional": true,
+      "default_selected": false
+    }
+  ]
+}

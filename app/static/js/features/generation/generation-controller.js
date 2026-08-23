@@ -27,6 +27,8 @@ export function createGenerationController({
   nextStep,
   setStep4Error,
   upsertProjectDraftFromWizard,
+  collectWizardPayload,
+  hasProjectCoreChanges,
   getProviderStatus,
   saveProviderSelection,
   refreshDashboard,
@@ -266,8 +268,11 @@ export function createGenerationController({
     }
   }
 
-  async function triggerGeneration() {
+  async function triggerGeneration(options = {}) {
     if (!getSelectedFormat() || !getSelectedPrompt() || runtimeState.isPreparing()) return;
+
+    const reuseProject = Boolean(options?.reuseProject);
+    const resumeMode = String(options?.resumeMode || "auto").toLowerCase();
 
     runtimeState.setPreparing(true);
     runtimeState.setCancelled(false);
@@ -275,7 +280,21 @@ export function createGenerationController({
     showStep4Loading();
 
     try {
-      const projectId = await upsertProjectDraftFromWizard();
+      const currentProject = getCurrentProject();
+      if (reuseProject && !currentProject?.id) {
+        throw new Error("No existe un proyecto guardado que pueda reanudarse.");
+      }
+      if (
+        reuseProject
+        && hasProjectCoreChanges?.(currentProject, collectWizardPayload?.())
+      ) {
+        throw new Error(
+          "Los datos principales del proyecto cambiaron. Usa “Regenerar todo” para aplicar esos cambios.",
+        );
+      }
+      const projectId = reuseProject
+        ? currentProject.id
+        : await upsertProjectDraftFromWizard();
       const providerStatus = getProviderStatus?.() || null;
       if (providerStatus) {
         await saveProviderSelection?.({
@@ -294,7 +313,11 @@ export function createGenerationController({
 
       let generationResult;
       try {
-        generationResult = await apiSend(`/api/projects/${encodeURIComponent(projectId)}/generate`, "POST", {});
+        generationResult = await apiSend(
+          `/api/projects/${encodeURIComponent(projectId)}/generate`,
+          "POST",
+          { resumeMode },
+        );
       } catch (error) {
         const detail = error?.message || "Error al enviar solicitud";
         traceView.showError(detail);
@@ -367,7 +390,15 @@ export function createGenerationController({
   }
 
   function retryGeneration() {
-    return triggerGeneration();
+    return triggerGeneration({ reuseProject: true, resumeMode: "auto" });
+  }
+
+  function restartGeneration() {
+    const accepted = window.confirm(
+      "Se descartará el progreso generado y se volverá a llamar a la IA desde la primera sección. ¿Deseas continuar?",
+    );
+    if (!accepted) return Promise.resolve();
+    return triggerGeneration({ reuseProject: false, resumeMode: "restart" });
   }
 
   function continueToDownloads() {
@@ -408,6 +439,7 @@ export function createGenerationController({
     triggerGeneration,
     cancelGeneration,
     retryGeneration,
+    restartGeneration,
     goToDownloads,
     continueToDownloads,
     resetState,

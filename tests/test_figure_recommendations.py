@@ -445,7 +445,7 @@ def test_chapter_two_bases_gets_dynamic_figures_from_headings() -> None:
 
     # Debe haber exactamente 1 figura por cada subtítulo 2.2.x detectado
     assert len(figures) == 3
-    # Los títulos dinámicos incluyen el texto del heading real y el tema del proyecto
+    # Los títulos dinámicos conservan el concepto del heading sin repetir el tema completo.
     assert all("Mantenimiento Centrado en Confiabilidad" in figures[0]["titulo"]
                or "RCM" in figures[0]["titulo"] for f in [figures[0]])
     assert all("Taxonomia" in figures[1]["titulo"] or "ISO 14224" in figures[1]["titulo"] for f in [figures[1]])
@@ -456,6 +456,32 @@ def test_chapter_two_bases_gets_dynamic_figures_from_headings() -> None:
     assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
     # Las figuras están distribuidas (no consecutivas si hay párrafos entre ellas)
     assert figure_positions[0] < figure_positions[1] < figure_positions[2]
+
+
+def test_chapter_two_captions_are_brief_and_do_not_repeat_project_title() -> None:
+    project_title = (
+        "PLAN DE MANTENIMIENTO CENTRADO EN CONFIABILIDAD PARA MEJORAR LA DISPONIBILIDAD "
+        "INHERENTE DE LA FLOTA DE MOTONIVELADORAS CAT 24M"
+    )
+    sections = [
+        {
+            "sectionId": "sec-bases-short-caption",
+            "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+            "content": "2.2.1 PROCESO DEL RCM\n\nTexto técnico del proceso.",
+        }
+    ]
+
+    updated = apply_figure_recommendations(
+        sections,
+        values={"title": project_title},
+        format_id="unac-proyecto-cuant",
+    )
+
+    figure = next(block for block in updated[0]["content"] if block.get("tipo") == "figura")
+    assert figure["titulo"] == "Proceso del RCM"
+    assert project_title not in figure["titulo"]
+    assert "aplicado a" not in figure["titulo"].lower()
+    assert len(figure["titulo"]) <= 120
 
 
 def test_chapter_two_bases_keeps_paragraphs_and_passes_validator() -> None:

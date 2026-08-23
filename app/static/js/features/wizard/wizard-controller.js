@@ -1,9 +1,28 @@
 import { byId } from "../../shared/dom.js";
 
-export function createWizardController({ totalSteps = 7, onStepChange } = {}) {
+export function createWizardController({ totalSteps = 7, onStepChange, getScrollContainer } = {}) {
   const stepRegistry = new Map();
   let currentStep = 1;
   let mountedStep = null;
+
+  function resetScrollPosition() {
+    const container = getScrollContainer?.();
+    if (!container) return;
+    if (typeof container.scrollTo === "function") {
+      container.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      return;
+    }
+    container.scrollTop = 0;
+    container.scrollLeft = 0;
+  }
+
+  function scheduleScrollReset() {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(resetScrollPosition);
+      return;
+    }
+    resetScrollPosition();
+  }
 
   function updateStepperUI(step) {
     const label = byId("current-step-label");
@@ -60,11 +79,13 @@ export function createWizardController({ totalSteps = 7, onStepChange } = {}) {
       currentStep = nextStep;
       updateStepperUI(nextStep);
       showStep(nextStep);
+      resetScrollPosition();
       mountedStep = stepRegistry.get(nextStep) || null;
       if (mountedStep?.mount) {
         await mountedStep.mount(context);
       }
       await onStepChange?.(nextStep, context);
+      scheduleScrollReset();
     },
     getCurrentStep() {
       return currentStep;

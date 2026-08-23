@@ -114,13 +114,12 @@ def _add_toc_field(doc: Document, title: str = "TABLA DE CONTENIDO") -> None:
     run_end._r.append(fld_end)
 
 
-def _enable_update_fields(doc: Document) -> None:
-    """Set ``w:updateFields`` in the document settings so Word recalculates
-    all fields (including the TOC) every time the file is opened."""
+def _disable_update_fields(doc: Document) -> None:
+    """Keep native fields without triggering Word's update-on-open warning."""
     settings_element = doc.settings.element
-    update = OxmlElement("w:updateFields")
-    update.set(qn("w:val"), "true")
-    settings_element.append(update)
+    update = settings_element.find(qn("w:updateFields"))
+    if update is not None:
+        settings_element.remove(update)
 
 
 def _render_abbreviations_list(
@@ -289,8 +288,8 @@ def build_simulated_docx(project: Dict[str, Any], run_id: Optional[str] = None) 
         for key, value in values.items():
             doc.add_paragraph(f"{key}: {value}", style="List Bullet")
 
-    # Activate automatic field update so the TOC is recalculated on open.
-    _enable_update_fields(doc)
+    # Preserve fields for manual F9 updates without forcing a prompt on open.
+    _disable_update_fields(doc)
 
     doc.save(str(output))
     return output

@@ -116,7 +116,7 @@ def test_mark_failed_can_keep_partial_ai_result(tmp_path):
     assert failed["run_id"] == "run-001"
 
 
-def test_mark_render_failed_preserves_ai_result_and_clears_artifacts(tmp_path):
+def test_mark_render_failed_preserves_ai_result_and_successful_artifacts(tmp_path):
     service = ProjectService(str(tmp_path / "projects.json"))
     project = service.create_project({"title": "Render retry"})
     project_id = project["id"]
@@ -151,9 +151,9 @@ def test_mark_render_failed_preserves_ai_result_and_clears_artifacts(tmp_path):
     assert failed["status"] == "render_failed"
     assert failed["ai_result"] is not None
     assert failed["run_id"] == "render-run-001"
-    assert failed["artifacts"] == []
-    assert failed["output_file"] is None
-    assert failed["pdf_file"] is None
+    assert failed["artifacts"] == [{"type": "docx", "downloadUrl": "/api/download/x"}]
+    assert failed["output_file"] == "outputs/test.docx"
+    assert failed["pdf_file"] == "outputs/test.pdf"
     assert failed["progress"]["current"] == 4
     assert failed["progress"]["total"] == 4
 
@@ -169,6 +169,10 @@ def test_resume_checkpoint_is_saved_and_cleared_on_complete(tmp_path):
         last_failed_section_path="Capitulo 3",
         reason="Error transitorio",
         base_run_id="run-xyz",
+        failed_stage="quality_validation",
+        failed_quality_keys=["2.1.1", "2.2.6"],
+        validated_sections_count=25,
+        quality_attempts_by_key={"2.1.1": 2, "2.2.6": 1},
     )
     assert updated is not None
     assert updated["resume"]["eligible"] is True
@@ -176,11 +180,34 @@ def test_resume_checkpoint_is_saved_and_cleared_on_complete(tmp_path):
     assert updated["resume"]["resume_from_index"] == 3
     assert updated["resume"]["last_failed_section_path"] == "Capitulo 3"
     assert updated["resume"]["base_run_id"] == "run-xyz"
+    assert updated["resume"]["failed_stage"] == "quality_validation"
+    assert updated["resume"]["failed_quality_keys"] == ["2.1.1", "2.2.6"]
+    assert updated["resume"]["validated_sections_count"] == 25
+    assert updated["resume"]["quality_attempts_by_key"]["2.1.1"] == 2
 
     completed = service.mark_completed(project_id, output_file="outputs/final.docx")
     assert completed is not None
     assert completed["resume"]["eligible"] is False
     assert completed["resume"]["saved_sections_count"] == 0
+
+
+def test_normal_section_checkpoint_is_durable_without_counting_as_retry(tmp_path):
+    service = ProjectService(str(tmp_path / "projects.json"))
+    project = service.create_project({"title": "Durable checkpoint"})
+
+    updated = service.save_generation_checkpoint(
+        project["id"],
+        saved_sections_count=2,
+        current_path="2.1 Antecedentes",
+        input_fingerprint="abc123",
+        base_run_id="run-1",
+    )
+
+    assert updated is not None
+    assert updated["resume"]["checkpoint_status"] == "checkpoint_ready"
+    assert updated["resume"]["saved_sections_count"] == 2
+    assert updated["resume"]["input_fingerprint"] == "abc123"
+    assert updated["resume"]["retry_count"] == 0
 
 
 def test_list_projects_orders_by_recent_activity_and_status(tmp_path):

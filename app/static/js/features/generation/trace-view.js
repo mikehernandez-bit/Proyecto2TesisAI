@@ -175,17 +175,22 @@ export function createTraceView({
   function showRetry() {
     toggleHidden("btn-gen-retry", false);
     toggleHidden("btn-construct-retry", false);
+    toggleHidden("btn-gen-restart", false);
+    toggleHidden("btn-construct-restart", false);
     toggleHidden("btn-gen-cancel", true);
   }
 
   function hideRetry() {
     toggleHidden("btn-gen-retry", true);
     toggleHidden("btn-construct-retry", true);
+    toggleHidden("btn-gen-restart", true);
+    toggleHidden("btn-construct-restart", true);
     toggleHidden("btn-gen-cancel", false);
   }
 
   function hideConstructionRetry() {
     toggleHidden("btn-construct-retry", true);
+    toggleHidden("btn-construct-restart", true);
   }
 
   function showConstructionReady() {

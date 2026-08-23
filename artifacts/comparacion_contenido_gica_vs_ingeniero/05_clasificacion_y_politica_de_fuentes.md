@@ -4,6 +4,16 @@
 
 Las tesis generadas por GICA no deben usar páginas web genéricas como respaldo académico. Toda cita debe remitir a un documento real, identificable y verificable que pertenezca a uno de los tipos autorizados.
 
+### Excepción temporal para desarrollo
+
+Por decisión de trabajo vigente, GICA puede continuar generando referencias simuladas únicamente para desarrollar y probar la estructura, el conteo de citas, la maquetación y el flujo DOCX. Esta excepción no convierte una fuente inventada en válida y se somete a estas condiciones:
+
+1. El documento o ejecución debe identificarse como muestra o contenido de prueba.
+2. Las referencias simuladas no deben presentarse como verificadas.
+3. Las fuentes simuladas pueden convertirse temporalmente en fuentes nativas de Word para probar `CITATION`, `BIBLIOGRAPHY` y el Administrador de fuentes, siempre que queden marcadas como simuladas en el campo `Comentarios`.
+4. Antes de una entrega académica, cada fuente deberá reemplazarse o validarse conforme a esta política.
+5. Las páginas web genéricas siguen excluidas incluso durante esta fase; la simulación deberá representar uno de los tipos documentales autorizados.
+
 ### Tipos autorizados
 
 1. **Artículos de revistas científicas**, preferentemente arbitrados e indexados, con DOI o datos bibliográficos completos.
@@ -79,7 +89,7 @@ Los artículos, tesis y trabajos académicos representan 22 de las 29 referencia
 - `Wang y Zhang (2022)` parece corresponder al artículo cuyo primer autor registrado es Shi.
 - `Herrera (2024)` y `Flores (2024)` parecen remitir a la misma tesis de Flores Herrera.
 
-Estas inconsistencias deberán resolverse antes de convertir las citas en campos nativos de Microsoft Word.
+Estas inconsistencias deberán resolverse antes de convertir las citas del documento real del ingeniero en fuentes académicas definitivas. La prueba técnica con fuentes simuladas no valida esas referencias.
 
 ## 6. Criterio de aceptación para GICA
 
@@ -91,4 +101,3 @@ Una fuente estará lista para utilizarse cuando:
 - La cita autor-año coincida con la referencia.
 - No exista otra referencia duplicada.
 - La fuente no esté marcada como simulada o pendiente de validación.
-

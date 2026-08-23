@@ -87,6 +87,7 @@ export function createTesisAI() {
   let promptsCache = [];
   let wizardNavigationVersion = 0;
   let wizardSessionVersion = 0;
+  let promptLoadRevision = 0;
 
   const $ = (id) => document.getElementById(id);
   const wizardStore = createWizardStore();
@@ -490,6 +491,8 @@ export function createTesisAI() {
 
   function resetStepper() {
     wizardSessionVersion += 1;
+    promptLoadRevision += 1;
+    packageSelectionStep?.cancelPendingLoad?.();
     currentStep = 1;
     currentWizardMode = "new";
     selectedFormat = null;
@@ -729,10 +732,12 @@ export function createTesisAI() {
   }
 
   async function loadPromptsForWizard() {
+    const requestRevision = ++promptLoadRevision;
     try {
       if (!packageSelectionStep) return;
       wizardStore.setFormat(selectedFormat);
       const promptPackage = await packageSelectionStep.loadForFormat(selectedFormat, currentProject);
+      if (requestRevision !== promptLoadRevision || !promptPackage) return;
       selectedPrompt = promptPackage;
       if (selectedPrompt?.id) {
         promptsCache = [
@@ -742,6 +747,7 @@ export function createTesisAI() {
       }
       _syncWizardStore();
     } catch (error) {
+      if (requestRevision !== promptLoadRevision) return;
       console.error("Error en loadPromptsForWizard:", error);
       const grid = $("chapter-selection-grid");
       if (grid) {
@@ -950,6 +956,7 @@ export function createTesisAI() {
       getGrid: () => $("chapter-selection-grid"),
       getFormatLabel: () => $("step2-format-name-display"),
       getNextButton: () => $("btn-step2-next"),
+      getSelectAllButton: () => $("btn-step2-select-all"),
       onPromptPackageResolved: (promptPackage) => {
         selectedPrompt = promptPackage;
         wizardStore.setPromptPackage(promptPackage);
@@ -1000,6 +1007,8 @@ export function createTesisAI() {
       nextStep,
       setStep4Error,
       upsertProjectDraftFromWizard: _upsertProjectDraftFromWizard,
+      collectWizardPayload,
+      hasProjectCoreChanges: _hasProjectCoreChanges,
       getProviderStatus: () => providerController?.getStatusCache?.() || null,
       saveProviderSelection: (payload, projectId) => _saveProviderSelection(payload, projectId),
       refreshDashboard,
@@ -1033,6 +1042,7 @@ export function createTesisAI() {
 
     wizardController = createWizardController({
       totalSteps: TOTAL_STEPS,
+      getScrollContainer: () => $("app-main-scroll"),
       onStepChange: async (step, context = {}) => {
         currentStep = step;
         wizardStore.setCurrentStep(step);
@@ -1068,6 +1078,7 @@ export function createTesisAI() {
     refreshProviderStatus,
     cancelGeneration: () => generationController?.cancelGeneration?.(),
     retryGeneration: () => generationController?.retryGeneration?.(),
+    restartGeneration: () => generationController?.restartGeneration?.(),
     goToDownloads: () => generationController?.goToDownloads?.(),
     runN8nSimulation: () => n8nGuideController?.runSimulation?.(),
     continueToSimDownloads: () => generationController?.continueToDownloads?.(),

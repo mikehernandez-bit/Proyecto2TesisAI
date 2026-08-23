@@ -24,7 +24,7 @@ from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query, Re
 from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from app.core.config import settings
-from app.core.services.ai import AIService, QuotaExceededError
+from app.core.services.ai import AIService, QualityProfileValidationError, QuotaExceededError
 from app.core.services.ai.errors import GenerationCancelledError
 from app.core.services.ai.token_usage import (
     empty_token_usage_report,
@@ -90,6 +90,7 @@ from app.modules.api.payload_helpers import (
 from app.modules.api.payload_helpers import (
     gicatesis_unavailable_detail as _gicatesis_unavailable_detail,
 )
+from app.modules.api.payload_helpers import project_input_fingerprint as _project_input_fingerprint
 from app.modules.api.payload_helpers import (
     values_with_title as _values_with_title,
 )
@@ -117,6 +118,17 @@ ai_service = AIService()
 pricing_service = PricingService()
 generation_planner = ProjectGenerationPlanner()
 _exchange_rate_cache: Dict[str, Any] = {"rate": 3.72, "fetched_at": "", "source": "default"}
+
+
+def _new_generation_ai_service() -> AIService:
+    """Return an isolated orchestrator for one background generation run.
+
+    AIService keeps run-local callbacks, partial sections and token accounting.
+    Sharing the API/status instance between concurrent projects can therefore
+    mix checkpoints and validation state across projects.
+    """
+
+    return AIService()
 STARTED_AT = dt.datetime.now(dt.timezone.utc).isoformat()
 TRACE_MAX_PREVIEW_CHARS = 520
 TRACE_TERMINAL_STATUSES = {
@@ -770,6 +782,14 @@ def _normalize_construction_phase_state(raw: Any) -> Dict[str, Any]:
     return base
 
 
+def _construction_resume_stage(raw: Any) -> str:
+    phase = _normalize_construction_phase_state(raw)
+    for task in phase.get("tasks", []):
+        if str(task.get("status") or "").lower() != "done":
+            return str(task.get("id") or "payload")
+    return "final_validation"
+
+
 def _section_title_from_path(path: str) -> str:
     parts = [part.strip() for part in str(path or "").split("/") if part.strip()]
     return parts[-1] if parts else ""
@@ -1128,6 +1148,13 @@ def _render_project_outputs_sync(
     generation_phase: dict[str, Any] | None = None,
     selected_sections: list[dict[str, Any]] | list[str] | None = None,
 ) -> tuple[Path, Path]:
+    project_before_render = projects.get_project(project_id) or {}
+    previous_construction = _normalize_construction_phase_state(project_before_render.get("construction_phase"))
+    previous_tasks = {
+        str(task.get("id") or ""): str(task.get("status") or "").lower()
+        for task in previous_construction.get("tasks", [])
+        if isinstance(task, dict)
+    }
     _set_construction_task(
         project_id,
         "payload",
@@ -1190,6 +1217,8 @@ def _render_project_outputs_sync(
     out_dir.mkdir(parents=True, exist_ok=True)
     docx_path = out_dir / f"{project_id}.docx"
     pdf_path = out_dir / f"{project_id}.pdf"
+    reuse_docx = previous_tasks.get("render_docx") == "done" and docx_path.exists() and docx_path.stat().st_size > 0
+    reuse_pdf = previous_tasks.get("render_pdf") == "done" and pdf_path.exists() and pdf_path.stat().st_size > 0
 
     with httpx.Client(timeout=240.0) as client:
         _set_construction_task(
@@ -1199,40 +1228,56 @@ def _render_project_outputs_sync(
             detail="Payload validado y enviado a GicaTesis.",
             global_status="running",
         )
-        _set_construction_task(
-            project_id,
-            "render_docx",
-            status="running",
-            detail="Construyendo DOCX final.",
-            global_status="running",
-        )
-        _emit_project_trace(
-            project_id,
-            step="gicatesis.render.docx",
-            status="running",
-            title="Render DOCX en proceso",
-        )
-        try:
-            docx_response = client.post(f"{base_url}/render/docx", json=payload, headers=headers)
-            docx_response.raise_for_status()
-            docx_path.write_bytes(docx_response.content)
-        except httpx.HTTPStatusError as exc:
-            detail = _extract_upstream_detail(exc.response, "GicaTesis render/docx failed")
+        if reuse_docx:
             _set_construction_task(
                 project_id,
                 "render_docx",
-                status="error",
-                detail=detail,
-                global_status="error",
+                status="done",
+                detail=f"Se reutiliza {docx_path.name}; no se vuelve a construir.",
+                global_status="running",
             )
             _emit_project_trace(
                 project_id,
                 step="gicatesis.render.docx",
-                status="error",
-                title="Render DOCX fallido",
-                detail=detail,
+                status="done",
+                title="DOCX conservado del intento anterior",
+                detail="El reintento continua desde PDF/validacion y no invoca IA.",
             )
-            raise RenderStageError(detail, status_code=exc.response.status_code) from exc
+        else:
+            _set_construction_task(
+                project_id,
+                "render_docx",
+                status="running",
+                detail="Construyendo DOCX final.",
+                global_status="running",
+            )
+            _emit_project_trace(
+                project_id,
+                step="gicatesis.render.docx",
+                status="running",
+                title="Render DOCX en proceso",
+            )
+            try:
+                docx_response = client.post(f"{base_url}/render/docx", json=payload, headers=headers)
+                docx_response.raise_for_status()
+                docx_path.write_bytes(docx_response.content)
+            except httpx.HTTPStatusError as exc:
+                detail = _extract_upstream_detail(exc.response, "GicaTesis render/docx failed")
+                _set_construction_task(
+                    project_id,
+                    "render_docx",
+                    status="error",
+                    detail=detail,
+                    global_status="error",
+                )
+                _emit_project_trace(
+                    project_id,
+                    step="gicatesis.render.docx",
+                    status="error",
+                    title="Render DOCX fallido",
+                    detail=detail,
+                )
+                raise RenderStageError(detail, status_code=exc.response.status_code) from exc
 
         _set_construction_task(
             project_id,
@@ -1240,6 +1285,20 @@ def _render_project_outputs_sync(
             status="done",
             detail=f"Archivo {docx_path.name} generado.",
             global_status="running",
+        )
+        projects.update_project(
+            project_id,
+            {
+                "output_file": str(docx_path),
+                "artifacts": [
+                    {"type": "docx", "downloadUrl": f"/api/download/{project_id}"},
+                    *(
+                        [{"type": "pdf", "downloadUrl": f"/api/download/{project_id}/pdf"}]
+                        if reuse_pdf
+                        else []
+                    ),
+                ],
+            },
         )
         _set_construction_task(
             project_id,
@@ -1263,9 +1322,18 @@ def _render_project_outputs_sync(
             title="Render PDF en proceso",
         )
         try:
-            pdf_response = client.post(f"{base_url}/render/pdf", json=payload, headers=headers)
-            pdf_response.raise_for_status()
-            pdf_path.write_bytes(pdf_response.content)
+            if not reuse_pdf:
+                pdf_response = client.post(f"{base_url}/render/pdf", json=payload, headers=headers)
+                pdf_response.raise_for_status()
+                pdf_path.write_bytes(pdf_response.content)
+            else:
+                _emit_project_trace(
+                    project_id,
+                    step="gicatesis.render.pdf",
+                    status="done",
+                    title="PDF conservado del intento anterior",
+                    detail="Se reutiliza el PDF existente para repetir solo la validacion final.",
+                )
         except httpx.HTTPStatusError as exc:
             detail = _extract_upstream_detail(exc.response, "GicaTesis render/pdf failed")
             _set_construction_task(
@@ -1290,6 +1358,17 @@ def _render_project_outputs_sync(
         status="done",
         detail=f"Archivo {pdf_path.name} generado.",
         global_status="running",
+    )
+    projects.update_project(
+        project_id,
+        {
+            "output_file": str(docx_path),
+            "pdf_file": str(pdf_path),
+            "artifacts": [
+                {"type": "docx", "downloadUrl": f"/api/download/{project_id}"},
+                {"type": "pdf", "downloadUrl": f"/api/download/{project_id}/pdf"},
+            ],
+        },
     )
     _emit_project_trace(
         project_id,
@@ -2358,12 +2437,14 @@ async def _ai_generation_job(
     if not project:
         return
 
+    run_ai_service = _new_generation_ai_service()
+
     provider_selection_raw = (
         project.get("ai_selection")
         if isinstance(project.get("ai_selection"), dict)
-        else ai_service.get_provider_selection()
+        else run_ai_service.get_provider_selection()
     )
-    provider_selection = ai_service.normalize_provider_selection(provider_selection_raw)
+    provider_selection = run_ai_service.normalize_provider_selection(provider_selection_raw)
     safe_seed_sections = _extract_resume_seed_sections({"sections": resume_seed_sections or []})
     if not safe_seed_sections and resume_from_partial:
         safe_seed_sections = _extract_resume_seed_sections(project.get("ai_result"))
@@ -2570,7 +2651,7 @@ async def _ai_generation_job(
                             token_usage_snapshot_data=(
                                 snapshot_token_usage
                                 if isinstance(snapshot_token_usage, dict)
-                                else token_usage_snapshot(ai_service.get_token_usage_report())
+                                else token_usage_snapshot(run_ai_service.get_token_usage_report())
                             ),
                             run_id=run_id,
                             status="running" if resume_from_partial and safe_seed_sections else "idle",
@@ -2660,8 +2741,8 @@ async def _ai_generation_job(
     ) -> None:
         safe_total = total if total >= 0 else 0
         safe_current = current if current >= 0 else 0
-        usage_report = ai_service.get_token_usage_report()
-        usage_snapshot = ai_service.get_token_usage_snapshot()
+        usage_report = run_ai_service.get_token_usage_report()
+        usage_snapshot = run_ai_service.get_token_usage_snapshot()
         cost_report = build_generation_cost_report(usage_report, pricing_service=pricing_service)
         cost_snapshot = generation_cost_snapshot(cost_report)
         projects.update_progress(
@@ -2684,9 +2765,56 @@ async def _ai_generation_job(
             )
             generation_phase["status"] = "running"
             generation_phase["updated_at"] = _utc_now_z()
-            generation_phase = _upsert_generation_section(generation_phase, payload)
+            if stage in {"semantic_unit_done", "quality_unit_done"}:
+                # Internal units are visible in the timeline but must not inflate
+                # the institutional 25-section progress counter.
+                generation_phase["current_section_id"] = str(payload.get("section_id") or "")
+                generation_phase["current_section_path"] = str(payload.get("section_path") or path or "")
+            else:
+                generation_phase = _upsert_generation_section(generation_phase, payload)
             generation_phase = _apply_generation_costs_to_phase(generation_phase, cost_report)
             projects.update_project(project_id, {"generation_phase": generation_phase})
+
+        if stage in {"section_done", "semantic_unit_done", "quality_unit_done"}:
+            partial_ai = run_ai_service.get_partial_ai_result()
+            partial_sections = partial_ai.get("sections") if isinstance(partial_ai, dict) else None
+            if isinstance(partial_sections, list) and partial_sections:
+                completed_outer_sections = sum(
+                    1
+                    for item in partial_sections
+                    if not isinstance(item, dict) or bool(item.get("semanticComplete", True))
+                )
+                partial_ai["tokenUsage"] = usage_report
+                partial_ai["generationCost"] = cost_report
+                partial_ai["inputFingerprint"] = checkpoint_input_fingerprint
+                projects.update_project(
+                    project_id,
+                    {
+                        "ai_result": partial_ai,
+                        "token_usage": usage_report,
+                        "generation_cost": cost_report,
+                        "generation_snapshot": _build_generation_snapshot(
+                            sections=partial_sections,
+                            total_sections=safe_total,
+                            current_path=path,
+                            token_usage_snapshot_data=usage_snapshot,
+                            cost_usage_snapshot_data=cost_snapshot,
+                            run_id=run_id,
+                            status=(
+                                "semantic_checkpoint_ready"
+                                if stage in {"semantic_unit_done", "quality_unit_done"}
+                                else "checkpoint_ready"
+                            ),
+                        ),
+                    },
+                )
+                projects.save_generation_checkpoint(
+                    project_id,
+                    saved_sections_count=completed_outer_sections,
+                    current_path=path,
+                    input_fingerprint=checkpoint_input_fingerprint,
+                    base_run_id=run_id,
+                )
 
         if stage == "provider_fallback":
             _emit_project_trace(
@@ -2756,18 +2884,34 @@ async def _ai_generation_job(
     project_for_ai = dict(project)
     project_for_ai["values"] = enriched_values
     project_for_ai["variables"] = enriched_values
+    checkpoint_input_fingerprint = _project_input_fingerprint(project_for_ai)
 
-    def _persist_partial_resume_snapshot(reason: str) -> int:
-        partial_ai = ai_service.get_partial_ai_result()
+    def _persist_partial_resume_snapshot(
+        reason: str,
+        *,
+        failed_stage: str = "generation",
+        failed_quality_keys: Optional[list[str]] = None,
+    ) -> int:
+        partial_ai = run_ai_service.get_partial_ai_result()
         partial_sections = partial_ai.get("sections") if isinstance(partial_ai, dict) else None
         if not isinstance(partial_sections, list) or not partial_sections:
             return 0
+        completed_outer_sections = sum(
+            1
+            for item in partial_sections
+            if not isinstance(item, dict) or bool(item.get("semanticComplete", True))
+        )
 
-        usage_report = ai_service.get_token_usage_report()
-        usage_snapshot = ai_service.get_token_usage_snapshot()
+        usage_report = run_ai_service.get_token_usage_report()
+        usage_snapshot = run_ai_service.get_token_usage_snapshot()
         cost_report = build_generation_cost_report(usage_report, pricing_service=pricing_service)
         cost_snapshot = generation_cost_snapshot(cost_report)
-        last_path = str(partial_sections[-1].get("path") or "")
+        quality_keys = [str(item) for item in (failed_quality_keys or []) if str(item).strip()]
+        last_path = (
+            f"Perfil UNAC/{quality_keys[0]}"
+            if failed_stage == "quality_validation" and quality_keys
+            else str(partial_sections[-1].get("path") or "")
+        )
         partial_ai["tokenUsage"] = usage_report
         partial_ai["generationCost"] = cost_report
         latest_project = projects.get_project(project_id) or {}
@@ -2795,10 +2939,32 @@ async def _ai_generation_job(
         )
         projects.mark_resume_checkpoint(
             project_id,
-            saved_sections_count=len(partial_sections),
+            saved_sections_count=completed_outer_sections,
             last_failed_section_path=last_path,
             reason=reason,
             base_run_id=run_id,
+            input_fingerprint=checkpoint_input_fingerprint,
+            failed_section_id=(
+                quality_keys[0]
+                if failed_stage == "quality_validation" and quality_keys
+                else str(
+                    (
+                        _normalize_generation_phase_state(
+                            (projects.get_project(project_id) or {}).get("generation_phase")
+                        )
+                    ).get("current_section_id")
+                    or ""
+                )
+            ),
+            failed_section_index=(
+                completed_outer_sections
+                if failed_stage == "quality_validation"
+                else completed_outer_sections + 1
+            ),
+            failed_stage=failed_stage,
+            failed_quality_keys=quality_keys,
+            validated_sections_count=completed_outer_sections,
+            quality_attempts_by_key={key: 2 for key in quality_keys},
         )
         projects.update_progress(
             project_id,
@@ -2819,11 +2985,11 @@ async def _ai_generation_job(
             detail=f"{reason}. Se conservaron {len(partial_sections)} secciones.",
             meta={"stage": "failed", "sections": len(partial_sections)},
         )
-        return len(partial_sections)
+        return completed_outer_sections
 
     try:
         ai_result = await asyncio.to_thread(
-            ai_service.generate,
+            run_ai_service.generate,
             project=project_for_ai,
             format_detail=format_detail_payload,
             prompt=prompt_snapshot,
@@ -2835,16 +3001,16 @@ async def _ai_generation_job(
             seed_sections_override=safe_seed_sections,
             planned_sections=planned_sections,
         )
-        provider = ai_service.get_last_used_provider() or provider_hint
+        provider = run_ai_service.get_last_used_provider() or provider_hint
         model = (
-            ai_service.get_model_for_provider(
+            run_ai_service.get_model_for_provider(
                 provider,
                 selection_override=provider_selection,
             )
             or "-"
         )
-        usage_report = ai_service.get_token_usage_report()
-        usage_snapshot = ai_service.get_token_usage_snapshot()
+        usage_report = run_ai_service.get_token_usage_report()
+        usage_snapshot = run_ai_service.get_token_usage_snapshot()
         cost_report = build_generation_cost_report(usage_report, pricing_service=pricing_service)
         cost_snapshot = generation_cost_snapshot(cost_report)
         ai_result["generationCost"] = cost_report
@@ -2857,7 +3023,7 @@ async def _ai_generation_job(
             generation_cost_report_data=cost_report,
         )
 
-        run_incidents = ai_service.get_run_incidents()
+        run_incidents = run_ai_service.get_run_incidents()
         if run_incidents:
             for incident in run_incidents:
                 projects.append_incident(project_id, incident)
@@ -2905,6 +3071,10 @@ async def _ai_generation_job(
             project["variables"] = current_vars
             project["values"] = current_vars
             project["title"] = clean_title
+
+        # Bind the completed AI payload to the exact post-normalization inputs.
+        latest_for_fingerprint = projects.get_project(project_id) or project
+        ai_result["inputFingerprint"] = _project_input_fingerprint(latest_for_fingerprint)
 
         projects.mark_ai_received(
             project_id,
@@ -3065,6 +3235,37 @@ async def _ai_generation_job(
             meta={"runId": run_id, "stage": "failed"},
         )
         _logger.info("AI generation cancelled for project %s", project_id)
+    except QualityProfileValidationError as exc:
+        quality_keys = list(exc.failed_quality_keys)
+        partial_count = _persist_partial_resume_snapshot(
+            "Validacion del perfil UNAC pendiente",
+            failed_stage="quality_validation",
+            failed_quality_keys=quality_keys,
+        )
+        projects.mark_failed(project_id, str(exc), keep_ai_result=partial_count > 0)
+        current_project = projects.get_project(project_id) or {}
+        generation_phase = _normalize_generation_phase_state(current_project.get("generation_phase"))
+        generation_phase["status"] = "failed"
+        generation_phase["current_section_id"] = quality_keys[0] if quality_keys else "quality_validation"
+        generation_phase["current_section_path"] = (
+            f"Perfil UNAC/{quality_keys[0]}" if quality_keys else "Perfil UNAC"
+        )
+        generation_phase["updated_at"] = _utc_now_z()
+        projects.update_project(project_id, {"generation_phase": generation_phase})
+        _emit_project_trace(
+            project_id,
+            step="generation.quality_validation",
+            status="error",
+            title="Validacion UNAC detenida en unidades especificas",
+            detail=str(exc),
+            meta={
+                "runId": run_id,
+                "stage": "quality_validation",
+                "failedQualityKeys": quality_keys,
+                "preservedSections": partial_count,
+            },
+        )
+        _logger.error("UNAC quality validation failed for project %s: %s", project_id, exc)
     except QuotaExceededError as exc:
         partial_count = _persist_partial_resume_snapshot("Error de cuota del proveedor IA")
         projects.mark_failed(project_id, str(exc), keep_ai_result=partial_count > 0)
@@ -3289,6 +3490,42 @@ async def trigger_generation(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    generation_phase_raw = project.get("generation_phase") if isinstance(project.get("generation_phase"), dict) else {}
+    construction_phase_raw = (
+        project.get("construction_phase") if isinstance(project.get("construction_phase"), dict) else {}
+    )
+    active_phase = (
+        str(generation_phase_raw.get("status") or "").lower() == "running"
+        or str(construction_phase_raw.get("status") or "").lower() == "running"
+    )
+    if active_phase and str(project.get("status") or "").lower() in {"generating", "rendering"}:
+        updated_raw = str(
+            construction_phase_raw.get("updated_at")
+            or generation_phase_raw.get("updated_at")
+            or ""
+        )
+        try:
+            updated_at = dt.datetime.fromisoformat(updated_raw.replace("Z", "+00:00"))
+            age = dt.datetime.now(dt.timezone.utc) - updated_at.astimezone(dt.timezone.utc)
+        except (TypeError, ValueError):
+            age = dt.timedelta(0)
+        if age < dt.timedelta(minutes=15):
+            raise HTTPException(status_code=409, detail="generation_in_progress")
+        projects.update_project(
+            projectId,
+            {
+                "status": "failed",
+                "generation_phase": {**generation_phase_raw, "status": "interrupted", "updated_at": _utc_now_z()},
+                "construction_phase": {
+                    **construction_phase_raw,
+                    "status": "interrupted",
+                    "updated_at": _utc_now_z(),
+                },
+                "error": "Ejecucion anterior interrumpida; el checkpoint disponible puede reanudarse.",
+            },
+        )
+        project = projects.get_project(projectId) or project
+
     # ------------------------------------------------------------------
     # Path A: AI provider configured => generate via AI
     # ------------------------------------------------------------------
@@ -3300,6 +3537,7 @@ async def trigger_generation(
         projects.update_project(projectId, {"ai_selection": project_selection})
 
     requested_resume_mode = payload.resume_mode if payload else "auto"
+    current_input_fingerprint = _project_input_fingerprint(project)
     stored_ai_result_raw = project.get("ai_result")
     stored_ai_result: Dict[str, Any] = stored_ai_result_raw if isinstance(stored_ai_result_raw, dict) else {}
     stored_sections_raw = stored_ai_result.get("sections")
@@ -3308,10 +3546,29 @@ async def trigger_generation(
         if isinstance(stored_sections_raw, list)
         else []
     )
+    resume_state = project.get("resume") if isinstance(project.get("resume"), dict) else {}
+    stored_fingerprint = str(
+        stored_ai_result.get("inputFingerprint") or resume_state.get("input_fingerprint") or ""
+    )
+    if (
+        requested_resume_mode != "restart"
+        and stored_ai_sections
+        and stored_fingerprint
+        and stored_fingerprint != current_input_fingerprint
+    ):
+        raise HTTPException(status_code=409, detail="checkpoint_incompatible")
+
+    generation_status = str((project.get("generation_phase") or {}).get("status") or "").strip().lower()
+    construction_status = str((project.get("construction_phase") or {}).get("status") or "").strip().lower()
+    project_status = str(project.get("status") or "").strip().lower()
     can_retry_render_only = (
-        str(project.get("status") or "").strip().lower() == "render_failed"
-        and requested_resume_mode != "restart"
+        requested_resume_mode != "restart"
         and bool(stored_ai_sections)
+        and (
+            project_status == "render_failed"
+            or (generation_status in {"completed", "done", "ok"} and construction_status in {"error", "failed", "interrupted"})
+            or (project_status == "draft" and generation_status in {"completed", "done", "ok"} and bool(project.get("error")))
+        )
     )
 
     if can_retry_render_only:
@@ -3359,9 +3616,12 @@ async def trigger_generation(
                     status="rendering",
                 ),
                 "construction_phase": {
-                    **_empty_construction_phase(),
+                    **_normalize_construction_phase_state(project.get("construction_phase")),
                     "status": "running",
-                    "started_at": _utc_now_z(),
+                    "started_at": str(
+                        (_normalize_construction_phase_state(project.get("construction_phase"))).get("started_at")
+                        or _utc_now_z()
+                    ),
                     "updated_at": _utc_now_z(),
                 },
             },
@@ -3409,6 +3669,8 @@ async def trigger_generation(
             "resumeMode": requested_resume_mode,
             "savedSections": len(stored_ai_sections),
             "resumeFromSection": len(stored_ai_sections),
+            "retryMode": "render_only",
+            "constructionResumedFrom": _construction_resume_stage(project.get("construction_phase")),
         }
 
     if ai_service.is_configured(selection_override=project_selection):
@@ -3667,6 +3929,7 @@ async def trigger_generation(
             "resumeMode": resolved_resume_mode,
             "savedSections": saved_sections,
             "resumeFromSection": resume_from_section,
+            "constructionResumedFrom": "payload",
         }
 
     # ------------------------------------------------------------------

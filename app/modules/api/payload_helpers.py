@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import logging
 import unicodedata
+import hashlib
+import json
+import re
 from typing import Any
 
 import httpx
@@ -15,6 +18,7 @@ import httpx
 from app.core.config import settings
 from app.core.services.ai.content_parser import parse_ai_content
 from app.core.services.ai.output_validator import OutputValidator
+from app.core.services.ai.reference_proposals import consolidate_references
 from app.core.services.ai.budget_table_builder import (
     build_budget_table_from_plan,
     build_synthetic_budget_plan,
@@ -802,8 +806,49 @@ def build_render_payload(
         for key, value in maestria_values.items():
             if value not in ("", None, [], {}):
                 render_values[key] = value
+    _validate_unac_matrix_alignment(format_id, render_values)
     ai_with_fallback = _build_generation_phase_fallback(ai_result_raw, generation_phase)
     adapted_ai_result = adapt_ai_result_for_gicatesis(ai_with_fallback, values=values)
+    sections = adapted_ai_result.get("sections")
+    has_reference_section = isinstance(sections, list) and any(
+        isinstance(section, dict)
+        and ("referencias" in _normalize_token(section.get("path")) or "bibliograf" in _normalize_token(section.get("path")))
+        for section in sections
+    )
+    if isinstance(sections, list) and has_reference_section:
+        consolidation = consolidate_references(sections, values=render_values)
+        adapted_ai_result = {**adapted_ai_result, "sections": consolidation.sections}
+        render_values = consolidation.structured_values
+
+        format_token = _normalize_token(format_id)
+        domain_text = _normalize_token(
+            " ".join(
+                str(render_values.get(key) or "")
+                for key in (
+                    "title",
+                    "titulo",
+                    "tema",
+                    "variable_independiente",
+                    "variable_dependiente",
+                    "objeto_estudio",
+                    "poblacion",
+                )
+            )
+        )
+        strict_unac_references = format_token.startswith("unac-proyecto") and any(
+            marker in domain_text
+            for marker in ("mantenimiento", "confiabilidad", "disponibilidad", "rcm", "motoniveladora")
+        )
+        if strict_unac_references and consolidation.failures:
+            raise RenderPayloadValidationError(
+                [
+                    {
+                        "loc": ["body", "aiResult", "references"],
+                        "msg": "Incumplimiento de citas UNAC: " + " | ".join(consolidation.failures),
+                        "type": "value_error.unac_reference_policy",
+                    }
+                ]
+            )
     normalized_selected_sections = _normalize_selected_sections_for_render(selected_sections)
     _validate_required_schedule_budget_tables(
         adapted_ai_result,
@@ -817,6 +862,79 @@ def build_render_payload(
         "selectedSections": normalized_selected_sections,
     }
     return validate_render_payload(payload)
+
+
+def _matrix_scalar(values: dict[str, Any], key: str, group: str, nested_key: str) -> str:
+    direct = values.get(key)
+    if str(direct or "").strip():
+        return str(direct).strip()
+    matrix = values.get("matriz_consistencia")
+    if isinstance(matrix, dict):
+        direct = matrix.get(key)
+        if str(direct or "").strip():
+            return str(direct).strip()
+        nested = matrix.get(group)
+        if isinstance(nested, dict):
+            return str(nested.get(nested_key) or "").strip()
+    return ""
+
+
+def _matrix_items(values: dict[str, Any], key: str, group: str) -> list[str]:
+    raw: Any = values.get(key)
+    matrix = values.get("matriz_consistencia")
+    if not isinstance(raw, list) and isinstance(matrix, dict):
+        raw = matrix.get(key)
+        if not isinstance(raw, list) and isinstance(matrix.get(group), dict):
+            raw = matrix[group].get("especificos")
+    return [str(item).strip() for item in (raw if isinstance(raw, list) else []) if str(item).strip()]
+
+
+def _validate_unac_matrix_alignment(format_id: str, values: dict[str, Any]) -> None:
+    """Reject a render whose problem/objective/hypothesis matrix is misaligned."""
+    token = _normalize_token(format_id)
+    domain = _normalize_token(
+        " ".join(
+            str(values.get(key) or "")
+            for key in ("title", "titulo", "tema", "variable_independiente", "variable_dependiente")
+        )
+    )
+    if not token.startswith("unac-proyecto") or not any(
+        marker in domain for marker in ("mantenimiento", "confiabilidad", "disponibilidad", "rcm")
+    ):
+        return
+
+    problem_general = _matrix_scalar(values, "problema_general", "problemas", "general")
+    objective_general = _matrix_scalar(values, "objetivo_general", "objetivos", "general")
+    problems = _matrix_items(values, "problemas_especificos", "problemas")
+    objectives = _matrix_items(values, "objetivos_especificos", "objetivos")
+    hypotheses = _matrix_items(values, "hipotesis_especificas", "hipotesis")
+    errors: list[str] = []
+    if problem_general and not (problem_general.startswith("¿") and problem_general.endswith("?")):
+        errors.append("el problema general debe conservar signos de interrogacion")
+    for index, problem in enumerate(problems, start=1):
+        if not (problem.startswith("¿") and problem.endswith("?")):
+            errors.append(f"el problema especifico {index} debe conservar signos de interrogacion")
+    for label, objective in [("general", objective_general), *[(str(i), item) for i, item in enumerate(objectives, 1)]]:
+        first_word = re.sub(r"[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]", "", objective.split(maxsplit=1)[0]) if objective else ""
+        if objective and not _normalize_token(first_word).endswith(("ar", "er", "ir")):
+            errors.append(f"el objetivo {label} debe iniciar con verbo en infinitivo")
+    if (problem_general or objective_general) and (len(problems) < 2 or len(objectives) < 2):
+        errors.append("se requieren al menos dos problemas y objetivos especificos")
+    if problems or objectives:
+        if len(problems) != len(objectives):
+            errors.append("problemas y objetivos especificos no tienen correspondencia uno a uno")
+        if hypotheses and len(hypotheses) != len(problems):
+            errors.append("hipotesis y problemas especificos no tienen correspondencia uno a uno")
+    if errors:
+        raise RenderPayloadValidationError(
+            [
+                {
+                    "loc": ["body", "values", "matriz_consistencia"],
+                    "msg": "Matriz UNAC invalida: " + " | ".join(errors),
+                    "type": "value_error.unac_matrix_alignment",
+                }
+            ]
+        )
 
 
 def extract_resume_seed_sections(ai_result_raw: Any) -> list[dict[str, Any]]:
@@ -841,8 +959,38 @@ def extract_resume_seed_sections(ai_result_raw: Any) -> list[dict[str, Any]]:
 
         # We only take sections that have some content
         if path and content:
-            seed_sections.append({"path": path, "content": content})
+            seed_sections.append(
+                {
+                    "sectionId": str(item.get("sectionId") or ""),
+                    "path": path,
+                    "content": content,
+                    "semanticUnitsCompleted": list(item.get("semanticUnitsCompleted") or []),
+                    "semanticUnitsTotal": int(item.get("semanticUnitsTotal") or 0),
+                    "semanticComplete": bool(item.get("semanticComplete", True)),
+                }
+            )
     return seed_sections
+
+
+def project_input_fingerprint(project: dict[str, Any]) -> str:
+    """Stable identity of inputs that affect generated content.
+
+    Provider/model selection is intentionally excluded so a retry can switch
+    provider while preserving already approved sections.
+    """
+    payload = {
+        "format_id": project.get("format_id") or project.get("formatId") or "",
+        "format_version": project.get("format_version") or project.get("formatVersion") or "",
+        "prompt_id": project.get("prompt_id") or project.get("promptId") or "",
+        "prompt_snapshot": project.get("prompt_snapshot") or project.get("promptSnapshot") or {},
+        "title": project.get("title") or "",
+        "values": project.get("values") or {},
+        "variables": project.get("variables") or {},
+        "maestria_details": project.get("maestria_details") or project.get("maestriaDetails") or {},
+        "selected_sections": project.get("selected_sections") or project.get("selectedSections") or [],
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def decide_resume_mode(project: dict[str, Any], requested_mode: str = "auto") -> tuple[bool, list[dict[str, Any]], str]:
@@ -867,10 +1015,23 @@ def decide_resume_mode(project: dict[str, Any], requested_mode: str = "auto") ->
     if requested_mode == "resume":
         return has_partial, existing_sections, "resume"
 
-    # Auto mode: resume if we have partial sections and status warrants it
+    # Auto mode: inspect durable phase/checkpoint state. This also recovers
+    # legacy projects accidentally reset to ``draft`` by the old frontend.
     status = str(project.get("status") or "").strip().lower()
     suspicious_statuses = {"failed", "blocked", "cancel_requested", "render_failed"}
-    if has_partial and status in suspicious_statuses:
+    generation_phase = project.get("generation_phase") if isinstance(project.get("generation_phase"), dict) else {}
+    generation_status = str(generation_phase.get("status") or "").strip().lower()
+    resume = project.get("resume") if isinstance(project.get("resume"), dict) else {}
+    resume_ready = bool(resume.get("eligible")) or str(resume.get("checkpoint_status") or "") in {
+        "checkpoint_ready",
+        "resume_ready",
+    }
+    if has_partial and (
+        status in suspicious_statuses
+        or generation_status in {"failed", "blocked", "resume_ready", "interrupted"}
+        or resume_ready
+        or (status == "draft" and generation_status not in {"idle", "completed", "done"})
+    ):
         return True, existing_sections, "auto"
 
     return False, [], "auto"
