@@ -675,7 +675,7 @@ class ProjectGenerationPlanner:
 
     def _build_additional_context(self, section: Dict[str, Any]) -> str:
         parts: List[str] = []
-        base_hints = str(section.get("source_hints") or "").strip()
+        base_hints = self._deduplicate_hint_lines(str(section.get("source_hints") or ""))
         parent_path = str(section.get("parent_section_path") or "").strip()
         section_path = self._section_path(section)
         section_title = self._section_title(section)
@@ -720,3 +720,19 @@ class ProjectGenerationPlanner:
                 block_lines.append(f"  Salida textual requerida: {diagram_guidance}")
         parts.append("Bloques de prompt activos:\n" + "\n".join(block_lines))
         return "\n\n".join(part for part in parts if part)
+
+    @staticmethod
+    def _deduplicate_hint_lines(value: str) -> str:
+        """Remove repeated institutional hint lines before they reach the LLM."""
+        unique: List[str] = []
+        seen: Set[str] = set()
+        for raw_line in str(value or "").replace("\r", "\n").split("\n"):
+            line = " ".join(raw_line.split())
+            if not line:
+                continue
+            key = unicodedata.normalize("NFKD", line).encode("ascii", "ignore").decode("ascii").lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(line)
+        return "\n".join(unique)

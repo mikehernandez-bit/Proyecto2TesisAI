@@ -819,9 +819,15 @@ class OutputValidator:
         normalized: dict[str, Any] = {
             "tipo": "figura",
             "caption": caption,
-            "ruta_placeholder": str(item.get("ruta_placeholder") or "assets/placeholder_figura.png").strip()
-            or "assets/placeholder_figura.png",
         }
+        image_path = str(item.get("ruta_placeholder") or item.get("image_path") or "").strip()
+        if image_path:
+            normalized["ruta_placeholder"] = image_path
+        diagram_type = str(item.get("diagram_type") or "").strip()
+        if diagram_type:
+            normalized["diagram_type"] = diagram_type
+            normalized["diagram_data"] = item.get("diagram_data") if isinstance(item.get("diagram_data"), dict) else {}
+            normalized["numbered"] = bool(item.get("numbered", True))
 
         identifier = str(item.get("id") or "").strip()
         if identifier:

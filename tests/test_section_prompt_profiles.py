@@ -112,21 +112,19 @@ def test_build_section_editorial_context_for_problem_detail():
         section_path="I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
         values=_sample_values(),
     )
-    assert "Rango de palabras aceptable: minimo obligatorio 1276 palabras narrativas" in context
-    assert "contexto operativo macro de la mineria a cielo abierto" in context
-    assert "Parrafos 5 y 6: diagnostico local" in context
-    assert "No inventes porcentajes, costos, disponibilidad, MTBF, MTTR" in context
-    assert "No cites autores, estudios, normas o porcentajes inventados." in context
+    assert "mínimo obligatorio 1276, objetivo 1378 y máximo estricto 1468 palabras narrativas" in context
+    assert "Párrafo 1: contexto operativo internacional" in context
+    assert "Párrafo 4: contexto local" in context
+    assert "No inventes porcentajes de mejora, resultados, Monte Carlo, sensores IoT" in context
+    assert "No escribas FIGURE_JSON" in context
     assert "Hechos estructurados relevantes del proyecto:" in context
     assert "Problema general:" in context
     assert "Dimensiones VI:" in context
     assert "Horizonte temporal:" in context
     assert "Problemas especificos:" in context
-    assert "Figura 1.1 Diagrama de Pareto" in context
-    assert "Patron obligatorio: parrafo largo de analisis -> Figura 1.1" in context
-    assert "Debe parecerse al parrafo guia: disponibilidad inherente" in context
-    assert "Figura 1.4 Matriz de Priorizacion" in context
-    assert "Escala: 1 (Desfavorable) a 10 (Favorable)." in context
+    assert "cuatro apoyos visuales no numerados" in context
+    assert "Pareto cualitativo, Ishikawa, matriz de relevancia y matriz de priorización" in context
+    assert "No redactes títulos, fuentes, instrucciones de dibujo ni valores" in context
 
 
 def test_build_section_editorial_context_for_problem_detail_in_maestria_quant():
@@ -137,7 +135,7 @@ def test_build_section_editorial_context_for_problem_detail_in_maestria_quant():
         values=_sample_values(),
     )
     assert "Contrato editorial especifico de esta seccion:" in context
-    assert "Figura 1.2 Analisis de Causa-Efecto de Baja Disponibilidad (Ishikawa)" in context
+    assert "cuatro apoyos visuales no numerados" in context
 
 
 def test_build_stable_project_memory_snapshot_for_project_quant():

@@ -918,6 +918,7 @@ class ProjectService:
         failed_quality_keys: Optional[list[str]] = None,
         validated_sections_count: int = 0,
         quality_attempts_by_key: Optional[Dict[str, int]] = None,
+        profile_version: str = "",
     ) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
             current_resume = self._normalize_resume(
@@ -935,6 +936,7 @@ class ProjectService:
                 "retry_count": current_retry_count + 1,
                 "reason": str(reason or ""),
                 "input_fingerprint": str(input_fingerprint or current_resume.get("input_fingerprint") or ""),
+                "profile_version": str(profile_version or current_resume.get("profile_version") or ""),
                 "failed_section_id": str(failed_section_id or ""),
                 "failed_section_index": max(0, int(failed_section_index or saved_sections_count)),
                 "completed_sections_count": max(0, int(saved_sections_count)),
@@ -961,6 +963,7 @@ class ProjectService:
         current_path: str,
         input_fingerprint: str,
         base_run_id: str = "",
+        profile_version: str = "",
     ) -> Optional[Dict[str, Any]]:
         """Persist normal per-section progress without incrementing retry_count."""
 
@@ -976,6 +979,7 @@ class ProjectService:
                 "failed_section_id": "",
                 "failed_section_index": 0,
                 "input_fingerprint": str(input_fingerprint or ""),
+                "profile_version": str(profile_version or current.get("profile_version") or ""),
                 "base_run_id": str(base_run_id or current.get("base_run_id") or ""),
                 "reason": "checkpoint por seccion completada",
                 "checkpoint_status": "checkpoint_ready",

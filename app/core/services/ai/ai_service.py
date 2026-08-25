@@ -1329,22 +1329,36 @@ class AIService:
 
     @staticmethod
     def _unac_requirement_contract(requirement: SectionQualityRequirement) -> str:
-        profile = load_unac_maintenance_profile()
-        target = (requirement.min_words * (100 + profile.generation_buffer_percent) + 99) // 100
         lines = [
             "CONTRATO OBLIGATORIO DE LA UNIDAD UNAC:",
             f"- Encabezado exacto: {requirement.heading}",
-            f"- Minimo narrativo auditable: {requirement.min_words} palabras; redacta al menos {target} palabras.",
-            "- Este minimo reemplaza cualquier rango previo del bloque padre; para esta unidad no existe un maximo academico.",
+            f"- Intervalo narrativo obligatorio: {requirement.min_words}-{requirement.max_words} palabras; "
+            f"apunta a {requirement.target_words} palabras.",
+            "- El mínimo y el máximo reemplazan cualquier rango previo del bloque padre; no excedas el máximo.",
             "- El conteo no incluye el encabezado, citas, formulas, tablas, figuras ni captions.",
             f"- Temas que deben desarrollarse expresamente: {', '.join(requirement.topics) or 'los propios del encabezado'}.",
-            f"- Incluye al menos {requirement.min_citations} citas academicas autor-ano pertinentes; no uses paginas web.",
+            f"- Densidad bibliográfica final: entre {requirement.min_citations} y {requirement.max_citations} citas.",
             "- Devuelve el encabezado exacto y luego solo el desarrollo de esta unidad, sin Markdown ni comentarios.",
-            "- No repitas parrafos ni inventes resultados o mediciones del proyecto.",
+            "- No inventes porcentajes, resultados, instrumentos, métodos, tecnologías, equipos ni mediciones.",
+            "- Solo son hechos del proyecto los incluidos expresamente en el contexto estructurado.",
+            "- No repitas párrafos ni copies redacción del documento guía.",
         ]
+        if requirement.min_paragraphs or requirement.max_paragraphs:
+            minimum = requirement.min_paragraphs or requirement.max_paragraphs
+            maximum = requirement.max_paragraphs or requirement.min_paragraphs
+            lines.append(f"- Estructura obligatoria: entre {minimum} y {maximum} párrafos sustantivos.")
+        if requirement.expected_items:
+            lines.append(f"- Cantidad exacta de elementos sustantivos: {requirement.expected_items}.")
         if requirement.key in {"2.1.1", "2.1.2"}:
             lines.append(
-                "- Cada antecedente debe exponer problema, objetivo, metodo, muestra, resultados, conclusion y aporte."
+                "- Redacta exactamente cinco antecedentes, uno por párrafo. Cada uno debe exponer autor, título, "
+                "problema, objetivo, método, muestra, resultado, conclusión y aporte al proyecto."
+            )
+            lines.append("- Usa únicamente los cinco autores-año de los estudios asignados; nunca páginas web.")
+        else:
+            lines.append(
+                "- No escribas citas autor-año ni marcadores manuales: el plan de referencias las inserta "
+                "después de aprobar la prosa y dentro del intervalo indicado."
             )
         if requirement.min_formulas:
             lines.append(
@@ -1386,6 +1400,25 @@ class AIService:
         incidents: list[Dict[str, Any]] = []
         effective_provider = preferred_provider
         status = "ok"
+        if outputs and completed:
+            # Persist an inherited partial semantic section immediately. If
+            # the next pending unit fails before any new unit is completed,
+            # the previous implementation dropped this seed and regenerated
+            # already-approved siblings on the following retry.
+            inherited_provisional = {
+                "sectionId": section_id,
+                "path": section_path,
+                "content": "\n\n".join(value for value in outputs if value),
+                "semanticUnitsCompleted": [item.key for item in requirements if item.key in completed],
+                "semanticUnitsTotal": len(requirements),
+                "semanticComplete": False,
+            }
+            self._partial_sections = [
+                item
+                for item in self._partial_sections
+                if self._section_lookup_key(str(item.get("sectionId") or ""), str(item.get("path") or ""))
+                != self._section_lookup_key(section_id, section_path)
+            ] + [inherited_provisional]
         for unit_index, requirement in enumerate(requirements, 1):
             if requirement.key in completed:
                 continue
@@ -1446,16 +1479,77 @@ class AIService:
                 return next(item for item in audits if item.key == requirement.key)
 
             unit_audit = _unit_audit(unit_blocks)
-            for repair_attempt in range(1, 3):
+            # Three directed phases are allowed because a repetitive long
+            # answer often needs one complete rewrite followed by a short
+            # deficit-only completion. Treating both as a single repair made
+            # us discard a much cleaner rewrite merely because it was 20-25%
+            # short, leaving the original repetitive text as the "best" one.
+            for repair_attempt in range(1, 4):
+                duplicate_limit = load_unac_maintenance_profile().duplicate_ratio_max
                 prose_failed = (
                     unit_audit.words < unit_audit.minimum
+                    or unit_audit.words > unit_audit.maximum
                     or bool(unit_audit.missing_topics)
-                    or unit_audit.duplicate_ratio > 0.22
+                    or unit_audit.duplicate_ratio > duplicate_limit
+                    or (unit_audit.paragraph_minimum and unit_audit.paragraphs < unit_audit.paragraph_minimum)
+                    or (unit_audit.paragraph_maximum and unit_audit.paragraphs > unit_audit.paragraph_maximum)
+                    or (unit_audit.expected_items and unit_audit.items != unit_audit.expected_items)
                 )
                 if not prose_failed:
                     break
+                overage_only = (
+                    unit_audit.words > unit_audit.maximum
+                    and not unit_audit.missing_topics
+                    and unit_audit.duplicate_ratio <= duplicate_limit
+                    and (not unit_audit.paragraph_minimum or unit_audit.paragraphs >= unit_audit.paragraph_minimum)
+                    and (not unit_audit.paragraph_maximum or unit_audit.paragraphs <= unit_audit.paragraph_maximum)
+                    and (not unit_audit.expected_items or unit_audit.items == unit_audit.expected_items)
+                )
+                if overage_only:
+                    valid_compressions: list[tuple[int, list[Dict[str, Any]], SectionQualityAudit]] = []
+                    for compressed in self._deterministic_compression_candidates(unit_blocks):
+                        compressed_audit = _unit_audit(compressed)
+                        if (
+                            compressed_audit.minimum <= compressed_audit.words <= compressed_audit.maximum
+                            and not compressed_audit.missing_topics
+                            and compressed_audit.duplicate_ratio <= duplicate_limit
+                            and compressed_audit.formulas >= requirement.min_formulas
+                            and (
+                                not compressed_audit.paragraph_minimum
+                                or compressed_audit.paragraph_minimum
+                                <= compressed_audit.paragraphs
+                                <= compressed_audit.paragraph_maximum
+                            )
+                            and (
+                                not compressed_audit.expected_items
+                                or compressed_audit.items == compressed_audit.expected_items
+                            )
+                        ):
+                            valid_compressions.append(
+                                (
+                                    abs(compressed_audit.words - requirement.target_words),
+                                    compressed,
+                                    compressed_audit,
+                                )
+                            )
+                    if valid_compressions:
+                        _, unit_blocks, unit_audit = min(valid_compressions, key=lambda item: item[0])
+                        self._emit_trace(
+                            step="ai.generate.semantic_unit.compress",
+                            status="done",
+                            title=f"Exceso corregido sin regenerar: {requirement.heading}",
+                            detail=(
+                                f"La unidad se comprimió de forma conservadora hasta {unit_audit.words} "
+                                f"palabras (rango {unit_audit.minimum}-{unit_audit.maximum})."
+                            ),
+                            meta={"unitKey": requirement.key, "repairAttempt": repair_attempt},
+                        )
+                        break
                 completion_mode = (
-                    unit_audit.duplicate_ratio <= 0.22
+                    unit_audit.duplicate_ratio <= duplicate_limit
+                    and unit_audit.words <= unit_audit.maximum
+                    and (not unit_audit.paragraph_minimum or unit_audit.paragraphs >= unit_audit.paragraph_minimum)
+                    and (not unit_audit.paragraph_maximum or unit_audit.paragraphs <= unit_audit.paragraph_maximum)
                     and (
                         unit_audit.words < unit_audit.minimum
                         or bool(unit_audit.missing_topics)
@@ -1467,21 +1561,29 @@ class AIService:
                     (word_deficit * 115 + 99) // 100,
                     120 if unit_audit.missing_topics else 0,
                 )
+                compression_mode = overage_only
                 repair_instruction = (
                     "Devuelve SOLO parrafos complementarios nuevos, sin encabezado y sin repetir ni resumir "
                     f"el contenido valido. Escribe al menos {supplemental_target} palabras narrativas nuevas."
                     if completion_mode
                     else (
+                        "Edita minimamente la unidad existente: elimina redundancias, no agregues información "
+                        f"y devuelve entre {requirement.min_words} y {requirement.max_words} palabras, "
+                        f"preferentemente {requirement.target_words}. Conserva todos los temas y la cantidad "
+                        "de párrafos; devuelve la unidad completa corregida."
+                        if compression_mode
+                    else (
                         "Reescribe la unidad completa con variedad real entre parrafos. Conserva los hechos, "
                         "pero no reutilices una plantilla fija: cambia aperturas, orden argumental y cierres; "
-                        "la repeticion de secuencias debe quedar por debajo de 20%."
-                    )
+                            f"la repetición de secuencias debe quedar por debajo de {duplicate_limit:.0%}. "
+                            f"Entrega {requirement.target_words} palabras sin superar {requirement.max_words}."
+                    ))
                 )
                 repair_prompt = "\n".join(
                     [
                         repair_instruction,
                         f"Unidad: {requirement.heading}",
-                        f"Reparacion inmediata {repair_attempt}/2.",
+                        f"Reparacion inmediata {repair_attempt}/3.",
                         "Incumplimientos exactos: "
                         + self._quality_failure_detail([unit_audit], include_citations=False),
                         (
@@ -1501,33 +1603,56 @@ class AIService:
                         ),
                     ]
                 )
-                repair_result = self._generate_with_provider_fallback(
-                    repair_prompt,
-                    preferred_provider=effective_provider,
-                    section_current=section_current,
-                    section_total=section_total,
-                    section_path=unit_path,
-                    section_id=f"{section_id}:{requirement.key}",
-                    phase="quality_profile_repair",
-                    selection=selection,
-                    disabled_for_job=disabled_for_job,
-                )
-                effective_provider = repair_result.provider or effective_provider
-                attempts.extend(repair_result.attempts)
-                incidents.extend(repair_result.incidents)
-                repaired_blocks = normalize_semantic_blocks(
-                    self.validator.sanitize_content(
-                        parse_ai_content(str(repair_result.content or "")),
-                        path=unit_path,
+                repaired_blocks: list[Dict[str, Any]] | None = None
+                repair_raw = ""
+                batch_rewrite = False
+                if (
+                    not completion_mode
+                    and requirement.key in {"2.1.1", "2.1.2"}
+                    and unit_audit.duplicate_ratio > duplicate_limit
+                ):
+                    repaired_blocks = self._rewrite_repetitive_antecedent_batches(
+                        current_unit=unit_blocks,
+                        requirement=requirement,
+                        path=section_path,
+                        selection=selection,
                     )
-                )
+                    if repaired_blocks is not None:
+                        batch_rewrite = True
+                        repair_raw = self._semantic_blocks_as_generation_text(repaired_blocks)
+                        effective_provider = self._last_used_provider or effective_provider
+
+                if repaired_blocks is None:
+                    repair_result = self._generate_with_provider_fallback(
+                        repair_prompt,
+                        preferred_provider=effective_provider,
+                        section_current=section_current,
+                        section_total=section_total,
+                        section_path=unit_path,
+                        section_id=f"{section_id}:{requirement.key}",
+                        phase="quality_profile_repair",
+                        selection=selection,
+                        disabled_for_job=disabled_for_job,
+                    )
+                    effective_provider = repair_result.provider or effective_provider
+                    attempts.extend(repair_result.attempts)
+                    incidents.extend(repair_result.incidents)
+                    repair_raw = str(repair_result.content or "")
+                    repaired_blocks = normalize_semantic_blocks(
+                        self.validator.sanitize_content(
+                            parse_ai_content(repair_raw),
+                            path=unit_path,
+                        )
+                    )
                 usable_supplement = (
                     self._supplement_blocks_for_requirement(repaired_blocks, requirement)
                     if completion_mode
                     else []
                 )
                 proposed_blocks = (
-                    normalize_semantic_blocks(unit_blocks) + usable_supplement
+                    self._merge_supplement_within_structure(
+                        unit_blocks, usable_supplement, requirement
+                    )
                     if completion_mode
                     else repaired_blocks
                 )
@@ -1540,7 +1665,7 @@ class AIService:
                         < self._quality_content_score(unit_audit)
                         else "warn"
                     ),
-                    title=f"Reparacion {repair_attempt}/2 evaluada: {requirement.heading}",
+                    title=f"Reparacion {repair_attempt}/3 evaluada: {requirement.heading}",
                     detail=(
                         f"Unidad {unit_audit.words}->{proposed_audit.words} palabras; "
                         f"bloques recibidos={len(repaired_blocks)}, "
@@ -1552,23 +1677,39 @@ class AIService:
                         "unitKey": requirement.key,
                         "repairAttempt": repair_attempt,
                         "completionMode": completion_mode,
-                        "rawCharacters": len(str(repair_result.content or "")),
+                        "rawCharacters": len(repair_raw),
                         "parsedBlocks": len(repaired_blocks),
                         "usableBlocks": len(usable_supplement) if completion_mode else len(repaired_blocks),
+                        "batchRewrite": batch_rewrite,
                         "wordsBefore": unit_audit.words,
                         "wordsProposed": proposed_audit.words,
                         "missingTopicsProposed": list(proposed_audit.missing_topics),
                         "duplicateRatioProposed": proposed_audit.duplicate_ratio,
                     },
                 )
-                if self._quality_content_score(proposed_audit) < self._quality_content_score(unit_audit):
+                progressive_duplicate_rewrite = (
+                    unit_audit.duplicate_ratio > duplicate_limit
+                    and proposed_audit.duplicate_ratio <= duplicate_limit
+                    and proposed_audit.words >= int(requirement.min_words * 0.60)
+                    and proposed_audit.words <= requirement.max_words
+                    and proposed_audit.formulas >= requirement.min_formulas
+                )
+                if (
+                    self._quality_content_score(proposed_audit)
+                    < self._quality_content_score(unit_audit)
+                    or progressive_duplicate_rewrite
+                ):
                     unit_blocks = proposed_blocks
                     unit_audit = proposed_audit
 
             if (
                 unit_audit.words < unit_audit.minimum
+                or unit_audit.words > unit_audit.maximum
                 or unit_audit.missing_topics
-                or unit_audit.duplicate_ratio > 0.22
+                or unit_audit.duplicate_ratio > duplicate_limit
+                or (unit_audit.paragraph_minimum and unit_audit.paragraphs < unit_audit.paragraph_minimum)
+                or (unit_audit.paragraph_maximum and unit_audit.paragraphs > unit_audit.paragraph_maximum)
+                or (unit_audit.expected_items and unit_audit.items != unit_audit.expected_items)
             ):
                 raise QualityProfileValidationError(
                     "Perfil UNAC detenido en la unidad generada: "
@@ -2073,16 +2214,27 @@ class AIService:
         return sections
 
     @staticmethod
-    def _quality_content_score(audit: SectionQualityAudit) -> tuple[int, int, int, int]:
+    def _quality_content_score(audit: SectionQualityAudit) -> tuple[int, int, int, int, int, int]:
+        duplicate_limit = load_unac_maintenance_profile().duplicate_ratio_max
+        paragraph_failure = int(
+            (audit.paragraph_minimum and audit.paragraphs < audit.paragraph_minimum)
+            or (audit.paragraph_maximum and audit.paragraphs > audit.paragraph_maximum)
+        )
+        item_failure = int(audit.expected_items > 0 and audit.items != audit.expected_items)
         failed_dimensions = (
             int(audit.words < audit.minimum)
+            + int(audit.words > audit.maximum)
             + int(audit.formulas < audit.formula_minimum)
             + len(audit.missing_topics)
-            + int(audit.duplicate_ratio > 0.22)
+            + int(audit.duplicate_ratio > duplicate_limit)
+            + paragraph_failure
+            + item_failure
         )
         return (
             failed_dimensions,
             max(0, audit.minimum - audit.words),
+            max(0, audit.words - audit.maximum),
+            abs(audit.items - audit.expected_items) if audit.expected_items else paragraph_failure,
             len(audit.missing_topics),
             int(round(audit.duplicate_ratio * 1000)),
         )
@@ -2178,6 +2330,94 @@ class AIService:
         ]
 
     @staticmethod
+    def _merge_supplement_within_structure(
+        current: Any,
+        supplement: Any,
+        requirement: SectionQualityRequirement,
+    ) -> list[Dict[str, Any]]:
+        """Complete prose without creating a sixth antecedent or second one-paragraph unit."""
+        base = normalize_semantic_blocks(current)
+        additions = AIService._supplement_blocks_for_requirement(supplement, requirement)
+        prose_indexes = [
+            index
+            for index, block in enumerate(base)
+            if str(block.get("tipo") or "").lower() == "parrafo"
+            and AIService._strict_semantic_heading_key(block) is None
+        ]
+        if (
+            requirement.max_paragraphs
+            and len(prose_indexes) >= requirement.max_paragraphs
+            and prose_indexes
+        ):
+            addition_texts = [
+                str(block.get("texto") or "").strip()
+                for block in additions
+                if str(block.get("tipo") or "").lower() == "parrafo"
+                and str(block.get("texto") or "").strip()
+            ]
+            for offset, text in enumerate(addition_texts):
+                target_index = prose_indexes[offset % len(prose_indexes)]
+                revised = dict(base[target_index])
+                revised["texto"] = f"{str(revised.get('texto') or '').rstrip()} {text}".strip()
+                base[target_index] = revised
+            return base
+        return base + additions
+
+    @staticmethod
+    def _deterministic_compression_candidates(content: Any) -> list[list[Dict[str, Any]]]:
+        """Build conservative candidates for a small word excess.
+
+        This pass never paraphrases technical content. It removes complete
+        dispensable sentences, comma-delimited asides, or common discourse
+        fillers. The caller's quality audit accepts only candidates that keep
+        every required topic and structural constraint.
+        """
+        blocks = normalize_semantic_blocks(content)
+        candidates: list[list[Dict[str, Any]]] = []
+        fillers = (
+            r"\b(?:en este sentido|en ese sentido|por otra parte|de esta manera|"
+            r"de este modo|cabe señalar que|es importante señalar que|"
+            r"resulta importante destacar que|asimismo|además|actualmente|"
+            r"principalmente|particularmente|efectivamente)\b[,]?\s*"
+        )
+
+        def add_variant(block_index: int, text: str) -> None:
+            cleaned = re.sub(r"\s+", " ", text).strip()
+            cleaned = re.sub(r"\s+([,.;:])", r"\1", cleaned)
+            cleaned = re.sub(r",\s*([.;])", r"\1", cleaned)
+            if not cleaned or cleaned == str(blocks[block_index].get("texto") or "").strip():
+                return
+            variant = [dict(block) for block in blocks]
+            variant[block_index] = {**variant[block_index], "texto": cleaned}
+            candidates.append(variant)
+
+        for index, block in enumerate(blocks):
+            if str(block.get("tipo") or "").lower() != "parrafo":
+                continue
+            text = str(block.get("texto") or "").strip()
+            if not text or AIService._strict_semantic_heading_key(block):
+                continue
+
+            add_variant(index, re.sub(fillers, "", text, flags=re.IGNORECASE))
+
+            sentences = re.split(r"(?<=[.!?])\s+", text)
+            if len(sentences) > 1:
+                for sentence_index in range(len(sentences)):
+                    add_variant(
+                        index,
+                        " ".join(
+                            sentence
+                            for current, sentence in enumerate(sentences)
+                            if current != sentence_index
+                        ),
+                    )
+
+            for match in re.finditer(r",\s*([^,.;:]{8,100})(?=,|[.;])", text):
+                add_variant(index, text[: match.start()] + text[match.end() :])
+
+        return candidates
+
+    @staticmethod
     def _without_repeated_unit_heading(
         content: Any,
         requirement: SectionQualityRequirement,
@@ -2195,15 +2435,27 @@ class AIService:
         failures: List[SectionQualityAudit], *, include_citations: bool = True
     ) -> str:
         details: list[str] = []
+        duplicate_limit = load_unac_maintenance_profile().duplicate_ratio_max
         for audit in failures:
-            parts = [f"{audit.heading}: {audit.words}/{audit.minimum} palabras"]
-            if include_citations and audit.citations < audit.citation_minimum:
-                parts.append(f"citas {audit.citations}/{audit.citation_minimum}")
+            parts = [
+                f"{audit.heading}: {audit.words} palabras "
+                f"(rango {audit.minimum}-{audit.maximum}; objetivo {audit.target})"
+            ]
+            if include_citations and not (audit.citation_minimum <= audit.citations <= audit.citation_maximum):
+                parts.append(f"citas {audit.citations} (rango {audit.citation_minimum}-{audit.citation_maximum})")
+            if audit.paragraph_minimum and not (
+                audit.paragraph_minimum <= audit.paragraphs <= audit.paragraph_maximum
+            ):
+                parts.append(
+                    f"párrafos {audit.paragraphs} (rango {audit.paragraph_minimum}-{audit.paragraph_maximum})"
+                )
+            if audit.expected_items and audit.items != audit.expected_items:
+                parts.append(f"elementos {audit.items}/{audit.expected_items}")
             if audit.formulas < audit.formula_minimum:
                 parts.append(f"formulas {audit.formulas}/{audit.formula_minimum}")
             if audit.missing_topics:
                 parts.append("temas faltantes=" + ", ".join(audit.missing_topics))
-            if audit.duplicate_ratio > 0.22:
+            if audit.duplicate_ratio > duplicate_limit:
                 parts.append(f"repeticion={audit.duplicate_ratio:.1%}")
             details.append("; ".join(parts))
         return " | ".join(details)
@@ -2305,9 +2557,10 @@ class AIService:
         rewritten: list[Dict[str, Any]] = [
             {"tipo": "parrafo", "texto": requirement.heading}
         ]
-        for batch_index in range(0, len(paragraphs), 2):
-            batch = paragraphs[batch_index : batch_index + 2]
-            route = style_routes[(batch_index // 2) % len(style_routes)]
+        target_words = max(220, (requirement.min_words * 108 + len(paragraphs) * 100 - 1) // (len(paragraphs) * 100))
+        for paragraph_index, paragraph in enumerate(paragraphs):
+            batch = [paragraph]
+            route = style_routes[paragraph_index % len(style_routes)]
             output_contract = "\n".join(
                 f"<<<ANTECEDENTE_{index + 1}>>>\n[texto reescrito]\n<<<FIN_ANTECEDENTE_{index + 1}>>>"
                 for index in range(len(batch))
@@ -2316,7 +2569,8 @@ class AIService:
                 [
                     "Reescribe SOLO los antecedentes incluidos en este lote, uno por parrafo y en el mismo orden.",
                     "Conserva sin inventar autor, ano, pais, titulo, problema, objetivo, metodo, muestra, resultados, conclusion y aporte.",
-                    "No resumas ni elimines estudios. Mantiene una extension equivalente, con tolerancia de +/- 10% por parrafo.",
+                    f"Desarrolla este antecedente entre {target_words} y {target_words + 60} palabras narrativas; "
+                    "si el original es corto, amplialo mediante explicacion metodologica y aporte tecnico sin inventar cifras.",
                     f"Ruta de estilo obligatoria para este lote: {route}.",
                     "Prohibido repetir inicios o plantillas como 'el objetivo fue', 'la metodologia utilizada', "
                     "'los resultados mostraron', 'la conclusion principal' y 'el aporte de este estudio'.",
@@ -2333,8 +2587,8 @@ class AIService:
                 preferred_provider=self._last_used_provider,
                 section_current=0,
                 section_total=0,
-                section_path=f"{path}/{requirement.heading}/lote-{batch_index // 2 + 1}",
-                section_id=f"antecedent-batch:{requirement.key}:{batch_index // 2 + 1}",
+                section_path=f"{path}/{requirement.heading}/estudio-{paragraph_index + 1}",
+                section_id=f"antecedent-study:{requirement.key}:{paragraph_index + 1}",
                 phase="quality_profile_repair",
                 selection=selection,
             )
@@ -2361,7 +2615,8 @@ class AIService:
                 return None
             original_words = sum(len(str(block.get("texto") or "").split()) for block in batch)
             candidate_words = sum(len(str(block.get("texto") or "").split()) for block in candidate_paragraphs)
-            if candidate_words < int(original_words * 0.50):
+            minimum_useful_words = max(int(original_words * 0.80), int(target_words * 0.65))
+            if candidate_words < minimum_useful_words:
                 return None
             rewritten.extend(candidate_paragraphs)
         return rewritten
@@ -2403,8 +2658,12 @@ class AIService:
                     if extracted:
                         current_unit = extracted
                 deficit_detail = self._quality_failure_detail([audit], include_citations=False)
+                duplicate_limit = profile.duplicate_ratio_max
                 completion_mode = (
-                    audit.duplicate_ratio <= 0.22
+                    audit.duplicate_ratio <= duplicate_limit
+                    and audit.words <= audit.maximum
+                    and (not audit.paragraph_minimum or audit.paragraphs >= audit.paragraph_minimum)
+                    and (not audit.paragraph_maximum or audit.paragraphs <= audit.paragraph_maximum)
                     and (audit.words < audit.minimum or bool(audit.missing_topics))
                 )
                 word_deficit = max(0, audit.minimum - audit.words)
@@ -2423,7 +2682,9 @@ class AIService:
                         "la arquitectura verbal para eliminar repeticion. Cada estudio debe usar una apertura, "
                         "orden de ideas y cierre diferentes; no repitas plantillas como 'el objetivo fue', "
                         "'la metodologia utilizada', 'los resultados mostraron' o 'la conclusion principal'. "
-                        "La proporcion de secuencias repetidas debe quedar por debajo de 20%."
+                        f"La proporción de secuencias repetidas debe quedar por debajo de {duplicate_limit:.0%}. "
+                        f"La versión corregida debe acercarse a {requirement.target_words} palabras y nunca "
+                        f"superar {requirement.max_words}."
                     )
                 )
                 prompt = "\n".join(
@@ -2459,7 +2720,7 @@ class AIService:
                 )
                 provider_used = self._last_used_provider or ""
                 proposed_unit: Any = None
-                if audit.duplicate_ratio > 0.22 and audit.key in {"2.1.1", "2.1.2"}:
+                if audit.duplicate_ratio > duplicate_limit and audit.key in {"2.1.1", "2.1.2"}:
                     proposed_unit = self._rewrite_repetitive_antecedent_batches(
                         current_unit=current_unit,
                         requirement=requirement,
@@ -2483,8 +2744,9 @@ class AIService:
                     candidate = parse_ai_content(result.content)
                     candidate = self.validator.sanitize_content(candidate, path=path)
                     proposed_unit = (
-                        normalize_semantic_blocks(current_unit)
-                        + self._supplement_blocks_for_requirement(candidate, requirement)
+                        self._merge_supplement_within_structure(
+                            current_unit, candidate, requirement
+                        )
                         if completion_mode
                         else candidate
                     )
@@ -2504,9 +2766,10 @@ class AIService:
                 )
                 accepted = self._quality_content_score(updated_audit) < self._quality_content_score(audit)
                 progressive_duplicate_repair = (
-                    audit.duplicate_ratio > 0.22
-                    and updated_audit.duplicate_ratio <= 0.22
+                    audit.duplicate_ratio > duplicate_limit
+                    and updated_audit.duplicate_ratio <= duplicate_limit
                     and updated_audit.words >= int(requirement.min_words * 0.75)
+                    and updated_audit.words <= requirement.max_words
                     and updated_audit.formulas >= requirement.min_formulas
                 )
                 accepted = accepted or progressive_duplicate_repair

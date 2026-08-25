@@ -12,10 +12,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-_PROFILE_PATH = Path(__file__).with_name("profiles") / "unac_maintenance_v1.json"
+_PROFILE_PATH = Path(__file__).with_name("profiles") / "unac_maintenance_v2.json"
 _WORD_RE = re.compile(r"\b[\wÁÉÍÓÚÜÑáéíóúüñ]+(?:[-'][\wÁÉÍÓÚÜÑáéíóúüñ]+)?\b", re.UNICODE)
 _HEADING_RE = re.compile(r"^\s*(\d+(?:\.\d+){0,2})\.?\s+(.+?)\s*$")
-_CITATION_RE = re.compile(r"\[\[CITE:([A-Z0-9_-]+(?:;[A-Z0-9_-]+)*)\]\]")
+_CITATION_RE = re.compile(r"\[\[CITE(?:_NARRATIVE)?:([A-Z0-9_-]+(?:;[A-Z0-9_-]+)*)\]\]")
 _SOURCE_RE = re.compile(r"\[\[SOURCE:[\s\S]*?\]\]")
 _LABELS = {
     "problema general",
@@ -120,8 +120,14 @@ class SectionQualityRequirement:
     key: str
     heading: str
     min_words: int
+    target_words: int
+    max_words: int
     min_citations: int = 0
+    max_citations: int = 0
     min_formulas: int = 0
+    min_paragraphs: int = 0
+    max_paragraphs: int = 0
+    expected_items: int = 0
     topics: tuple[str, ...] = ()
 
 
@@ -129,9 +135,13 @@ class SectionQualityRequirement:
 class UnacQualityProfile:
     id: str
     source_sha256: str
-    generation_buffer_percent: int
+    target_percent: int
+    maximum_percent: int
     global_citation_mentions_min: int
+    global_citation_mentions_max: int
     distinct_sources_min: int
+    distinct_sources_max: int
+    duplicate_ratio_max: float
     requirements: tuple[SectionQualityRequirement, ...]
 
 
@@ -141,9 +151,18 @@ class SectionQualityAudit:
     heading: str
     words: int
     minimum: int
+    target: int
+    maximum: int
     difference: int
+    excess: int
+    paragraphs: int
+    paragraph_minimum: int
+    paragraph_maximum: int
+    items: int
+    expected_items: int
     citations: int
     citation_minimum: int
+    citation_maximum: int
     formulas: int
     formula_minimum: int
     missing_topics: tuple[str, ...]
@@ -163,13 +182,21 @@ def _norm(value: Any) -> str:
 @lru_cache(maxsize=1)
 def load_unac_maintenance_profile() -> UnacQualityProfile:
     raw = json.loads(_PROFILE_PATH.read_text(encoding="utf-8"))
+    target_percent = int(raw.get("target_percent") or 108)
+    maximum_percent = int(raw.get("maximum_percent") or 115)
     requirements = tuple(
         SectionQualityRequirement(
             key=str(item["key"]),
             heading=str(item["heading"]),
             min_words=int(item["min_words"]),
+            target_words=int(item.get("target_words") or round(int(item["min_words"]) * target_percent / 100)),
+            max_words=int(item.get("max_words") or -(-int(item["min_words"]) * maximum_percent // 100)),
             min_citations=int(item.get("min_citations") or 0),
+            max_citations=int(item.get("max_citations", item.get("min_citations") or 0)),
             min_formulas=int(item.get("min_formulas") or 0),
+            min_paragraphs=int(item.get("min_paragraphs") or 0),
+            max_paragraphs=int(item.get("max_paragraphs") or 0),
+            expected_items=int(item.get("expected_items") or 0),
             topics=tuple(str(topic) for topic in item.get("topics", [])),
         )
         for item in raw["requirements"]
@@ -177,9 +204,13 @@ def load_unac_maintenance_profile() -> UnacQualityProfile:
     return UnacQualityProfile(
         id=str(raw["id"]),
         source_sha256=str(raw["source_sha256"]),
-        generation_buffer_percent=int(raw["generation_buffer_percent"]),
+        target_percent=target_percent,
+        maximum_percent=maximum_percent,
         global_citation_mentions_min=int(raw["global_citation_mentions_min"]),
+        global_citation_mentions_max=int(raw["global_citation_mentions_max"]),
         distinct_sources_min=int(raw["distinct_sources_min"]),
+        distinct_sources_max=int(raw["distinct_sources_max"]),
+        duplicate_ratio_max=float(raw.get("duplicate_ratio_max") or 0.15),
         requirements=requirements,
     )
 
@@ -366,7 +397,8 @@ def canonicalize_duplicate_semantic_units(
                     len(audit.missing_topics) * 10000
                     + max(0, requirement.min_formulas - audit.formulas) * 10000
                     + max(0, requirement.min_words - audit.words)
-                    + max(0.0, audit.duplicate_ratio - 0.22) * 10000
+                    + max(0.0, audit.duplicate_ratio - profile.duplicate_ratio_max) * 10000
+                    + max(0, audit.words - requirement.max_words) * 2
                 )
                 return (
                     hard_penalty,
@@ -592,6 +624,8 @@ def audit_unac_maintenance_sections(sections: list[dict[str, Any]]) -> list[Sect
 
     for requirement in active_requirements:
         paragraphs = units.get(requirement.key, [])
+        paragraph_count = len(paragraphs)
+        item_count = paragraph_count if requirement.expected_items else 0
         narrative = " ".join(paragraphs)
         words = len(_WORD_RE.findall(narrative))
         normalized = _norm(narrative)
@@ -618,12 +652,21 @@ def audit_unac_maintenance_sections(sections: list[dict[str, Any]]) -> list[Sect
         else:
             missing_topics = tuple(topic for topic in requirement.topics if not _topic_is_covered(topic, normalized))
         duplicate_ratio = _duplicate_ratio(paragraphs)
+        paragraphs_ok = (
+            (not requirement.min_paragraphs or paragraph_count >= requirement.min_paragraphs)
+            and (not requirement.max_paragraphs or paragraph_count <= requirement.max_paragraphs)
+        )
+        items_ok = not requirement.expected_items or item_count == requirement.expected_items
         ok = (
             words >= requirement.min_words
+            and words <= requirement.max_words
             and citations[requirement.key] >= requirement.min_citations
+            and citations[requirement.key] <= requirement.max_citations
             and formulas[requirement.key] >= requirement.min_formulas
             and not missing_topics
-            and duplicate_ratio <= 0.22
+            and duplicate_ratio <= profile.duplicate_ratio_max
+            and paragraphs_ok
+            and items_ok
         )
         audits.append(
             SectionQualityAudit(
@@ -631,9 +674,18 @@ def audit_unac_maintenance_sections(sections: list[dict[str, Any]]) -> list[Sect
                 heading=requirement.heading,
                 words=words,
                 minimum=requirement.min_words,
+                target=requirement.target_words,
+                maximum=requirement.max_words,
                 difference=words - requirement.min_words,
+                excess=max(0, words - requirement.max_words),
+                paragraphs=paragraph_count,
+                paragraph_minimum=requirement.min_paragraphs,
+                paragraph_maximum=requirement.max_paragraphs,
+                items=item_count,
+                expected_items=requirement.expected_items,
                 citations=citations[requirement.key],
                 citation_minimum=requirement.min_citations,
+                citation_maximum=requirement.max_citations,
                 formulas=formulas[requirement.key],
                 formula_minimum=requirement.min_formulas,
                 missing_topics=missing_topics,
@@ -654,9 +706,19 @@ def content_quality_failures(audits: Iterable[SectionQualityAudit]) -> list[Sect
         audit
         for audit in audits
         if audit.words < audit.minimum
+        or audit.words > audit.maximum
         or audit.formulas < audit.formula_minimum
         or audit.missing_topics
-        or audit.duplicate_ratio > 0.22
+        or audit.duplicate_ratio > load_unac_maintenance_profile().duplicate_ratio_max
+        or (
+            audit.paragraph_minimum
+            and audit.paragraphs < audit.paragraph_minimum
+        )
+        or (
+            audit.paragraph_maximum
+            and audit.paragraphs > audit.paragraph_maximum
+        )
+        or (audit.expected_items and audit.items != audit.expected_items)
     ]
 
 

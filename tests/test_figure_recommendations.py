@@ -94,22 +94,12 @@ def test_project_reality_problem_gets_four_required_figures() -> None:
     assert figures[1]["titulo"] == "Análisis de Causa-Efecto de Baja Disponibilidad (Ishikawa)"
     assert figures[2]["titulo"] == "Matriz de Relevancia para el filtrado de alternativas de solución"
     assert figures[3]["titulo"] == "Matriz de Priorización de soluciones factibles"
-    assert all(figure["ruta_placeholder"] == "assets/placeholder_figura.png" for figure in figures)
+    assert all("ruta_placeholder" not in figure for figure in figures)
+    assert all(figure["numbered"] is False and figure["diagram_type"] for figure in figures)
     assert all("placeholder_text" not in figure for figure in figures)
     assert all(figure["fuente"] == "Elaboración propia." for figure in figures)
-    assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
-    assert all(not figure["nota"].startswith("*") and not figure["nota"].endswith("*") for figure in figures)
-    assert all(figure["nota_color"] == "0000FF" for figure in figures)
-    assert "eje X los sistemas o modos de falla" in figures[0]["nota"]
-    assert "línea horizontal de referencia en 80 %" in figures[0]["nota"]
-    assert "el eje Y derecho con porcentaje acumulado" in figures[0]["nota"]
-    assert "Baja disponibilidad inherente de la flota CAT 24M" in figures[1]["nota"]
-    assert "seis ramas principales" in figures[1]["nota"]
-    assert "cabeza del diagrama" in figures[1]["nota"]
-    assert "Califica cada alternativa de 1 a 5" in figures[2]["nota"]
-    assert "decisión en la columna final" in figures[2]["nota"]
-    assert "la suma sea exactamente 100 %" in figures[3]["nota"]
-    assert "peso por puntaje" in figures[3]["nota"]
+    assert all("nota" not in figure and "nota_color" not in figure for figure in figures)
+    assert all(figure["diagram_data"]["qualitative"] is True for figure in figures)
 
 
 def test_project_reality_problem_short_text_does_not_group_figures_at_end() -> None:
@@ -135,7 +125,7 @@ def test_project_reality_problem_short_text_does_not_group_figures_at_end() -> N
         content[index].get("tipo") == "figura" and content[index + 1].get("tipo") == "figura"
         for index in range(len(content) - 1)
     )
-    assert all("nota" in content[position] and "fuente" in content[position] for position in figure_positions)
+    assert all("diagram_type" in content[position] and "fuente" in content[position] for position in figure_positions)
     assert all("placeholder_text" not in content[position] for position in figure_positions)
 
 
@@ -170,8 +160,8 @@ def test_project_reality_problem_removes_stale_placeholder_paragraphs() -> None:
     assert "Figura 1.1 Diagrama de Pareto" not in visible_text
     assert "La Figura 1.1 debe construirse" not in visible_text
     assert figures[0]["fuente"] == "Elaboración propia."
-    assert figures[0]["nota"].startswith("Guía para elaborar la figura:")
-    assert figures[0]["nota_color"] == "0000FF"
+    assert figures[0]["numbered"] is False
+    assert figures[0]["diagram_type"] == "pareto_qualitative"
 
 
 def test_project_reality_problem_removes_old_markdown_figure_blocks_inside_text() -> None:
@@ -210,7 +200,7 @@ def test_project_reality_problem_removes_old_markdown_figure_blocks_inside_text(
     assert "*Guía técnica:" not in paragraphs
     assert "Diagrama de Ishikawa para fallas en sistema hidráulico" not in paragraphs
     assert "Matriz de Relevancia para alternativas de mejora de disponibilidad" not in paragraphs
-    assert all(not figure["nota"].startswith("*") for figure in figures)
+    assert all("nota" not in figure for figure in figures)
 
 
 def test_project_reality_problem_removes_loose_guide_blocks_without_asterisks() -> None:
@@ -413,7 +403,7 @@ def test_chapter_two_text_only_sections_drop_existing_figures() -> None:
     assert [block["tipo"] for block in content] == ["parrafo"]
 
 
-def test_chapter_two_bases_gets_dynamic_figures_from_headings() -> None:
+def test_chapter_two_bases_gets_four_formal_figures_from_canonical_headings() -> None:
     """Bases teóricas con subtítulos 2.2.x detectados dinámicamente reciben una
     figura por cada subtítulo, con el título extraído del heading real.
     No depende de marcadores hardcodeados de mantenimiento.
@@ -423,12 +413,14 @@ def test_chapter_two_bases_gets_dynamic_figures_from_headings() -> None:
             "sectionId": "sec-bases",
             "path": "II. MARCO TEORICO/2.2 Bases teoricas",
             "content": (
-                "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM). Texto tecnico del RCM.\n\n"
-                "Las siete preguntas ordenan funciones, fallas y tareas.\n\n"
-                "2.2.2 Taxonomia de equipos segun ISO 14224. Los niveles taxonomicos ordenan activos.\n\n"
-                "El NPR prioriza los modos de falla.\n\n"
-                "2.2.3 Disponibilidad inherente. Se calcula sin demoras administrativas.\n\n"
-                "El MTBF resume la frecuencia de interrupciones."
+                "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM)\n\nTexto tecnico del RCM.\n\n"
+                "2.2.2 Proceso del RCM\n\nLas siete preguntas ordenan funciones, fallas y tareas.\n\n"
+                "2.2.3 Taxonomia de equipos segun ISO 14224\n\nLos niveles taxonomicos ordenan activos.\n\n"
+                "2.2.4 Analisis de Modos y Efecto de Fallas (AMEF)\n\nEl NPR prioriza modos de falla.\n\n"
+                "2.2.5 Disponibilidad inherente\n\nRelaciona MTBF y MTTR.\n\n"
+                "2.2.6 Confiabilidad\n\nDescribe la tasa de falla.\n\n"
+                "2.2.7 Mantenibilidad\n\nDescribe el tiempo de reparacion.\n\n"
+                "2.2.8 Equipo u objeto de estudio\n\nLa motoniveladora integra sistemas mantenibles."
             ),
         }
     ]
@@ -443,19 +435,14 @@ def test_chapter_two_bases_gets_dynamic_figures_from_headings() -> None:
     figures = [block for block in content if block.get("tipo") == "figura"]
     figure_positions = [index for index, block in enumerate(content) if block.get("tipo") == "figura"]
 
-    # Debe haber exactamente 1 figura por cada subtítulo 2.2.x detectado
-    assert len(figures) == 3
-    # Los títulos dinámicos conservan el concepto del heading sin repetir el tema completo.
-    assert all("Mantenimiento Centrado en Confiabilidad" in figures[0]["titulo"]
-               or "RCM" in figures[0]["titulo"] for f in [figures[0]])
-    assert all("Taxonomia" in figures[1]["titulo"] or "ISO 14224" in figures[1]["titulo"] for f in [figures[1]])
-    assert all("Disponibilidad" in figures[2]["titulo"] for f in [figures[2]])
-    # Todas las figuras tienen placeholder, nota en azul y nota instructiva
-    assert all(figure["ruta_placeholder"] == "assets/placeholder_figura.png" for figure in figures)
-    assert all(figure["nota_color"] == "0000FF" for figure in figures)
-    assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
-    # Las figuras están distribuidas (no consecutivas si hay párrafos entre ellas)
-    assert figure_positions[0] < figure_positions[1] < figure_positions[2]
+    assert len(figures) == 4
+    assert [figure["titulo"] for figure in figures] == [
+        "Proceso del RCM", "Niveles taxonomicos",
+        "Analisis de Modo y Efecto de Falla", "Motoniveladora CAT 24M",
+    ]
+    assert all(figure["numbered"] is True and figure["diagram_type"] for figure in figures)
+    assert all("ruta_placeholder" not in figure and "nota" not in figure for figure in figures)
+    assert figure_positions == sorted(figure_positions)
 
 
 def test_chapter_two_captions_are_brief_and_do_not_repeat_project_title() -> None:
@@ -467,7 +454,7 @@ def test_chapter_two_captions_are_brief_and_do_not_repeat_project_title() -> Non
         {
             "sectionId": "sec-bases-short-caption",
             "path": "II. MARCO TEORICO/2.2 Bases teoricas",
-            "content": "2.2.1 PROCESO DEL RCM\n\nTexto técnico del proceso.",
+            "content": "2.2.2 PROCESO DEL RCM\n\nTexto técnico de mantenimiento, confiabilidad y disponibilidad del proceso RCM.",
         }
     ]
 
@@ -522,9 +509,8 @@ def test_chapter_two_bases_keeps_paragraphs_and_passes_validator() -> None:
     # El fallback de mantenimiento genera 8 subtítulos (2.2.1 al 2.2.8).
     figures = [block for block in content if block.get("tipo") == "figura"]
     assert len(figures) >= 4, f"Esperaba al menos 4 figuras dinámicas, se obtuvieron: {len(figures)}"
-    assert all(f["nota_color"] == "0000FF" for f in figures)
-    assert all(f["nota"].startswith("Guía para elaborar la figura:") for f in figures)
-    assert all(f["ruta_placeholder"] == "assets/placeholder_figura.png" for f in figures)
+    assert all(f["numbered"] is True and f["diagram_type"] for f in figures)
+    assert all("nota" not in f and "ruta_placeholder" not in f for f in figures)
 
     validator._validate_theoretical_bases_quality(content, section_id="sec-0010")
 
@@ -568,9 +554,8 @@ def test_chapter_two_bases_injects_dynamic_figures_for_any_domain() -> None:
     assert any("Seguridad" in f["titulo"] for f in figures)
     assert any("clasificacion" in f["titulo"] or "Algoritmos" in f["titulo"] for f in figures)
     assert any("Experiencia de usuario" in f["titulo"] or "usabilidad" in f["titulo"] for f in figures)
-    # Todas tienen nota azul instructiva
-    assert all(f["nota_color"] == "0000FF" for f in figures)
-    assert all(f["nota"].startswith("Guía para elaborar la figura:") for f in figures)
+    assert all(f["diagram_type"] == "concept_map" for f in figures)
+    assert all("nota" not in f and "ruta_placeholder" not in f for f in figures)
 
 
 def test_chapter_four_sections_drop_existing_figures_and_tables() -> None:

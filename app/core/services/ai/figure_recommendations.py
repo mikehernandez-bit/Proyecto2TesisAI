@@ -540,80 +540,29 @@ def _theoretical_bases_is_maintenance_case(content: Any, values: dict[str, Any] 
 
 
 def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str, Any]]:
-    notes = (
-        (
-            'Construye un diagrama de Pareto titulado "Diagrama de Pareto de modos de falla en flota '
-            'CAT 24M". Usa los registros reales de fallas del periodo de línea base disponible en el CMMS '
-            "o historial de mantenimiento. Coloca una tabla base con estas columnas obligatorias: sistema o "
-            "modo de falla, frecuencia de fallas, porcentaje individual, porcentaje acumulado y costo de "
-            "reparación si el dato existe. Agrupa nombres equivalentes antes de graficar; por ejemplo, no "
-            "separes una falla hidráulica repetida solo porque fue registrada con otra descripción. Ordena "
-            "las filas de mayor a menor frecuencia. Calcula el porcentaje individual como frecuencia del modo "
-            "de falla entre total de fallas por 100. Calcula el porcentaje acumulado sumando progresivamente "
-            "los porcentajes individuales. En el gráfico, coloca en el eje X los sistemas o modos de falla; "
-            "en el eje Y izquierdo, la frecuencia absoluta de fallas; en el eje Y derecho, el porcentaje "
-            "acumulado de 0 % a 100 %. Usa barras verticales para la frecuencia, una línea curva para el "
-            "porcentaje acumulado y una línea horizontal de referencia en 80 %. Marca con color distinto los "
-            "modos ubicados antes del cruce con el 80 % y agrega una lectura breve: esos son los pocos vitales "
-            "que deben priorizarse en el plan RCM."
-        ),
-        (
-            'Construye un diagrama de Ishikawa titulado "Análisis de Causa-Efecto de Baja Disponibilidad '
-            '(Ishikawa)". Coloca en la cabeza del diagrama el efecto exacto: "Baja disponibilidad inherente '
-            'de la flota CAT 24M". Dibuja una espina central horizontal y seis ramas principales con el '
-            "enfoque 6M: Método, Medición, Mano de obra, Medio ambiente, Maquinaria y Materiales. En Método, "
-            "coloca mantenimiento reactivo, rutinas preventivas insuficientes, ausencia de tareas RCM y "
-            "procedimientos de lubricación no estandarizados. En Medición, coloca registros incompletos, "
-            "MTBF/MTTR no depurados, ausencia de trazabilidad ISO 14224 y falta de control de tiempos de "
-            "parada. En Mano de obra, coloca brechas de capacitación, inspecciones variables, diagnóstico "
-            "lento y dependencia de experiencia individual. En Medio ambiente, coloca polvo, abrasividad, "
-            "pendientes dinámicas, altitud operativa y variación climática. En Maquinaria, coloca desgaste "
-            "del tren de fuerza, sistema hidráulico, sistema eléctrico y componentes de desgaste rápido. En "
-            "Materiales, coloca calidad de repuestos, compatibilidad de fluidos, stock crítico insuficiente "
-            "y repuestos no homologados. Cierra la figura con una lectura causal que indique qué ramas "
-            "explican la mayor parte de la baja disponibilidad y cómo el RCM atacará esas causas."
-        ),
-        (
-            'Construye una matriz titulada "Matriz de Relevancia para el filtrado de alternativas de '
-            'solución". Coloca las alternativas en filas: mantenimiento correctivo mejorado, mantenimiento '
-            "preventivo por horas, mantenimiento predictivo parcial, capacitación técnica focalizada y plan "
-            "de mantenimiento centrado en confiabilidad (RCM). Coloca estos criterios en columnas: reducción "
-            "esperada de fallas, viabilidad técnica, costo de implementación, tiempo de adaptación, "
-            "disponibilidad de datos y alineación con la causa raíz. Asigna a cada criterio un peso; por "
-            "ejemplo, reducción esperada de fallas 0.30, viabilidad técnica 0.20, costo 0.15, tiempo 0.10, "
-            "disponibilidad de datos 0.10 y alineación con causa raíz 0.15. Califica cada alternativa de 1 a "
-            "5, donde 1 significa baja relevancia y 5 alta relevancia. Multiplica cada calificación por su "
-            'peso y suma el total por alternativa. Agrega una columna final llamada "Decisión" con tres '
-            "opciones: descartada, condicionada o preseleccionada. Resalta el RCM como alternativa "
-            "preseleccionada porque interviene modos de falla, criticidad y tareas de mantenimiento, no solo "
-            "la reparación posterior a la falla."
-        ),
-        (
-            'Construye una matriz titulada "Matriz de Priorización de soluciones factibles". Coloca en las '
-            "filas solo las alternativas que pasaron la matriz de relevancia. Coloca en las columnas estos "
-            "criterios cuantitativos: impacto en disponibilidad inherente, reducción de fallas recurrentes, "
-            "factibilidad técnica, costo-beneficio, tiempo de implementación y sostenibilidad operativa. "
-            "Asigna un peso porcentual a cada criterio y verifica que la suma sea exactamente 100 %. Califica "
-            "cada alternativa de 1 a 10, donde 1 es desfavorable y 10 favorable. En cada celda coloca el "
-            "puntaje asignado; debajo o en una columna auxiliar calcula el puntaje ponderado multiplicando "
-            'peso por puntaje. Agrega una columna "Total ponderado" y suma los puntajes ponderados de cada '
-            "alternativa. Ordena las alternativas de mayor a menor total. Resalta en azul o sombreado la "
-            "alternativa ganadora: implementación de un plan de mantenimiento centrado en confiabilidad "
-            "(RCM). Debajo de la matriz coloca la escala: 1 (Desfavorable) a 10 (Favorable)."
-        ),
+    diagram_types = ("pareto_qualitative", "ishikawa", "relevance_matrix", "priority_matrix")
+    diagram_labels = (
+        ["Modos de falla", "Frecuencia", "Acumulado", "Datos por validar"],
+        ["Método", "Medición", "Mano de obra", "Entorno", "Maquinaria", "Materiales"],
+        ["Alternativas", "Viabilidad", "Pertinencia", "Disponibilidad de datos"],
+        ["Alternativas factibles", "Impacto", "Costo-beneficio", "Sostenibilidad"],
     )
     blocks: list[dict[str, Any]] = []
-    for index, (title, note) in enumerate(zip(_PROJECT_PROBLEM_FIGURE_TITLES, notes, strict=True), start=1):
+    for index, title in enumerate(_PROJECT_PROBLEM_FIGURE_TITLES, start=1):
         blocks.append(
             {
                 "tipo": "figura",
                 "id": f"{_slugify_figure_id(section_id, path)}_{index}",
                 "titulo": title,
                 "caption": title,
-                "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
+                "numbered": False,
+                "diagram_type": diagram_types[index - 1],
+                "diagram_data": {
+                    "labels": diagram_labels[index - 1],
+                    "qualitative": True,
+                    "disclaimer": "Esquema de análisis propuesto; completar con datos validados del proyecto.",
+                },
                 "fuente": "Elaboración propia.",
-                "nota": _augment_project_problem_figure_note(index, note),
-                "nota_color": _FIGURE_GUIDE_BLUE,
             }
         )
     return blocks
@@ -1011,67 +960,67 @@ def _ensure_chapter_two_theoretical_figures(
     section: dict[str, Any],
     values: dict[str, Any] | None = None,
 ) -> None:
-    """Inyecta una figura por cada subtítulo 2.2.x detectado en el contenido.
-
-    Funciona para cualquier tema (mantenimiento, software, salud, etc.) porque
-    detecta los encabezados reales que la IA generó en lugar de depender de
-    listas hardcodeadas de términos de mantenimiento.
-    """
+    """Inject exactly the four formal figures from the maintenance reference."""
     blocks = _content_to_blocks(section.get("content"))
-
-    # Eliminar figuras existentes del capítulo 2 (controladas o genéricas) para
-    # reconstruirlas desde cero con la lógica dinámica.
     content_blocks = [
         block
         for block in blocks
         if _normalize_token(block.get("tipo")) != "figura"
         or (not _is_chapter_two_figure(block) and not _is_generic_figure(block))
     ]
-
-    # Detectar todos los encabezados 2.2.x y sus posiciones en el contenido
     heading_indices = _chapter_two_heading_indices(content_blocks)
-
     if not heading_indices:
         section["content"] = content_blocks
         return
-
-    sorted_headings = sorted(heading_indices.items())  # [(1, idx), (2, idx), ...]
-
-    # Recopilar inserciones (anchor_index, figura) en orden normal
-    # y luego insertar en orden inverso para no desplazar índices.
+    if not _theoretical_bases_is_maintenance_case(content_blocks, values):
+        insertions: list[tuple[int, dict[str, Any]]] = []
+        for heading_num, heading_block_idx in sorted(heading_indices.items()):
+            title = _short_figure_caption(_extract_heading_title(content_blocks[heading_block_idx]))
+            next_indexes = [idx for number, idx in heading_indices.items() if number > heading_num]
+            upper_bound = min(next_indexes) if next_indexes else len(content_blocks)
+            paragraphs = [
+                idx for idx in range(heading_block_idx + 1, upper_bound)
+                if _normalize_token(content_blocks[idx].get("tipo")) == "parrafo"
+            ]
+            anchor = paragraphs[-1] if paragraphs else heading_block_idx
+            insertions.append((anchor, _build_recommended_figure(f"2_2_{heading_num}", str(section.get("path") or ""), title)))
+        for anchor, figure in reversed(insertions):
+            _insert_after_index(content_blocks, anchor, figure)
+        section["content"] = content_blocks
+        return
     insertions: list[tuple[int, dict[str, Any]]] = []
-
-    for i, (heading_num, heading_block_idx) in enumerate(sorted_headings):
-        raw_title = _short_figure_caption(_extract_heading_title(content_blocks[heading_block_idx]))
-        if not raw_title:
+    diagram_specs = (
+        (2, "rcm_flow", ["Funciones", "Fallas funcionales", "Modos de falla", "Efectos", "Consecuencias", "Tareas", "Acciones"]),
+        (3, "iso_taxonomy", ["Industria", "Instalación", "Clase de equipo", "Unidad", "Subunidad", "Componente"]),
+        (4, "amef_flow", ["Componente", "Función", "Modo de falla", "Efecto", "Criticidad", "Acción"]),
+        (8, "equipment_systems", ["Equipo", "Tren de potencia", "Hidráulico", "Estructura", "Control"]),
+    )
+    for figure_number, (heading_num, diagram_type, labels) in enumerate(diagram_specs, start=1):
+        heading_block_idx = heading_indices.get(heading_num)
+        if heading_block_idx is None:
             continue
-
-        # El caption identifica el concepto técnico; nunca repite el título del proyecto.
-        figure_title = raw_title
-
-        # Punto de inserción: el último párrafo antes del siguiente encabezado
-        next_heading_idxs = [idx for h, idx in sorted_headings if h > heading_num]
+        next_heading_idxs = [idx for number, idx in heading_indices.items() if number > heading_num]
         upper_bound = min(next_heading_idxs) if next_heading_idxs else len(content_blocks)
-
         paragraph_idxs = [
             idx
             for idx in range(heading_block_idx + 1, upper_bound)
             if _normalize_token(content_blocks[idx].get("tipo")) == "parrafo"
         ]
         anchor_index = paragraph_idxs[-1] if paragraph_idxs else heading_block_idx
-
-        section_id = f"2_{heading_num}_{_FIGURE_ID_RE.sub('_', _normalize_token(raw_title))[:30]}"
-        figure_block = _build_recommended_figure(
-            section_id,
-            str(section.get("path") or ""),
-            figure_title,
-        )
+        template = _CHAPTER_TWO_FIGURES[figure_number - 1]
+        figure_block = {
+            "tipo": "figura",
+            "id": str(template["id"]),
+            "titulo": str(template["titulo"]),
+            "caption": str(template["titulo"]),
+            "numbered": True,
+            "diagram_type": diagram_type,
+            "diagram_data": {"labels": labels, "qualitative": True},
+            "fuente": "Elaboración propia con base en el marco teórico.",
+        }
         insertions.append((anchor_index, figure_block))
-
-    # Insertar en orden inverso para preservar los índices correctamente
     for anchor_index, figure_block in reversed(insertions):
         _insert_after_index(content_blocks, anchor_index, figure_block)
-
     section["content"] = content_blocks
 
 
@@ -1104,24 +1053,10 @@ def _build_recommended_figure(section_id: str, path: str, title: str) -> dict[st
         "id": _slugify_figure_id(section_id, path),
         "titulo": title,
         "caption": title,
-        "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
-        "fuente": "Nota. Figura sugerida para validacion del autor.",
-        "nota": (
-            f'Guía para elaborar la figura: Diseña un esquema gráfico profesional titulado "{title}" '
-            "que sirva como soporte visual y académico del desarrollo de esta sección. El diagrama debe "
-            "estructurarse mediante bloques relacionales, diagramas de flujo o mapas conceptuales según "
-            "corresponda a la naturaleza del subtema. Define con claridad las variables clave, los procesos "
-            "involucrados o la arquitectura del sistema. Conecta los elementos conceptuales con líneas "
-            "y flechas direccionales que muestren la secuencia lógica y el sentido de las relaciones. "
-            "Utiliza formas geométricas consistentes (rectángulos, óvalos o círculos) y un esquema de colores "
-            "sobrio y contrastante para mejorar la legibilidad. Asegura que todos los textos, variables y "
-            "rótulos de la figura utilicen una fuente Arial de 10 puntos sin negritas ni marcadores adicionales. "
-            "En la parte inferior de la figura, incluye siempre la fuente correspondiente en formato APA "
-            "estándar (por ejemplo, 'Fuente: Elaboración propia' o la cita del autor correspondiente) "
-            "y una nota técnica descriptiva que explique brevemente el contenido de la figura y su "
-            "vinculación directa con el sustento analítico del proyecto."
-        ),
-        "nota_color": _FIGURE_GUIDE_BLUE,
+        "numbered": True,
+        "diagram_type": "concept_map",
+        "diagram_data": {"labels": [title], "qualitative": True},
+        "fuente": "Elaboración propia.",
     }
 
 

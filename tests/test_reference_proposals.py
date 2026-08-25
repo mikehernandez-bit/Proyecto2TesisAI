@@ -60,7 +60,7 @@ def test_replace_references_section_overrides_final_reference_content() -> None:
     assert "sin acceso a internet" in final_section["content"]
     assert "Ejemplo viejo del formato" not in final_section["content"]
     assert "[[SOURCE:SIM_" in final_section["content"]
-    assert "[[CITE:SIM_" in updated[0]["content"]
+    assert "[[CITE_NARRATIVE:SIM_" in updated[0]["content"]
 
 
 def test_replace_references_adds_citations_to_string_list_content() -> None:
@@ -81,7 +81,7 @@ def test_replace_references_adds_citations_to_string_list_content() -> None:
 
     updated = replace_references_section(sections)
 
-    assert "[[CITE:SIM_" in updated[0]["content"][0]
+    assert "[[CITE_NARRATIVE:SIM_" in updated[0]["content"][0]
     assert "[[SOURCE:SIM_" in updated[1]["content"]
 
 
@@ -116,7 +116,7 @@ def test_title_and_basic_information_never_creates_or_requires_sources() -> None
     introduction = next(item for item in updated if item["sectionId"] == "sec-0001")
     references = next(item for item in updated if item["sectionId"] == "sec-0027")
     assert "[[CITE:" not in special["content"]
-    assert "[[CITE:SIM_" in introduction["content"]
+    assert "[[CITE_NARRATIVE:SIM_" in introduction["content"]
     assert references["content"].count("[[SOURCE:SIM_") == 1
     assert "informacion basica" not in references["content"].lower()
 
@@ -177,7 +177,7 @@ def test_existing_author_year_citations_become_native_without_duplicate_sources(
 
     updated = replace_references_section(sections)
 
-    assert updated[0]["content"].count("[[CITE:") == 2
+    assert updated[0]["content"].count("[[CITE") == 2
     assert "Moubray (2020)" not in updated[0]["content"]
     assert "(Moubray, 2020)" not in updated[0]["content"]
     assert updated[1]["content"].count("[[SOURCE:SIM_") == 1
@@ -202,7 +202,7 @@ def test_mil_standard_is_preserved_as_a_technical_author() -> None:
 
     updated = replace_references_section(sections)
 
-    assert "[[CITE:SIM_01_MIL_STD_1629A_1980]]" in updated[0]["content"]
+    assert "[[CITE_NARRATIVE:SIM_01_MIL_STD_1629A_1980]]" in updated[0]["content"]
     assert "MIL-STD-1629A (1980)." in updated[1]["content"]
     assert "MIL-STD-1629A, M." not in updated[1]["content"]
 
@@ -295,7 +295,9 @@ def test_unac_semantic_minimums_and_structured_operationalization_are_audited() 
     result = consolidate_references(sections, values=values)
 
     assert result.failures == []
-    assert result.distinct_sources >= 29
+    assert result.distinct_sources == 29
+    total_mentions = sum(result.mentions_by_section.values())
+    assert 52 <= total_mentions <= 65
     assert result.mentions_by_section["rcm"] >= 3
     assert result.mentions_by_section["rcm_process"] >= 2
     assert result.mentions_by_section["reliability"] >= 3
@@ -354,5 +356,5 @@ def test_reference_consolidation_is_idempotent_and_keeps_repeated_mentions() -> 
     first = replace_references_section(sections)
     second = replace_references_section(first)
 
-    assert second[0]["content"].count("[[CITE:") == 3
+    assert second[0]["content"].count("[[CITE_NARRATIVE:") == 3
     assert second[1]["content"].count("[[SOURCE:") == 1

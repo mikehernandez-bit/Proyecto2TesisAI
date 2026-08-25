@@ -88,6 +88,28 @@ def test_plan_sections_filters_by_selection_and_merges_block_context():
     assert "Cabecera: Realidad problematica" in planned[1]["additional_context"]
 
 
+def test_additional_context_deduplicates_repeated_source_hints():
+    planner = ProjectGenerationPlanner()
+    repeated = (
+        "Búsqueda exhaustiva en bases de datos.\n"
+        "2.1.1 Antecedentes internacionales.\n"
+        "2.1.2 Antecedentes nacionales.\n"
+    ) * 4
+
+    context = planner._build_additional_context(
+        {
+            "section_path": "II. MARCO TEÓRICO/2.1 Antecedentes",
+            "section_title": "2.1 Antecedentes",
+            "section_level": 2,
+            "source_hints": repeated,
+        }
+    )
+
+    assert context.count("Búsqueda exhaustiva en bases de datos.") == 1
+    assert context.count("2.1.1 Antecedentes internacionales.") == 1
+    assert context.count("2.1.2 Antecedentes nacionales.") == 1
+
+
 def test_plan_sections_adds_text_only_guidance_for_diagram_blocks():
     definition = {
         "cuerpo": [

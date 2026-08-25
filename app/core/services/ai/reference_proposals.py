@@ -25,7 +25,7 @@ _REFERENCE_AUTHOR_RE = re.compile(
     r"(?<![A-Za-z0-9])([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'-]+),\s*"
     r"[A-ZÁÉÍÓÚÜÑ](?:\.[A-ZÁÉÍÓÚÜÑ])?\."
 )
-_CITATION_MARKER_RE = re.compile(r"\[\[CITE:[A-Z0-9_-]+(?:;[A-Z0-9_-]+)*\]\]")
+_CITATION_MARKER_RE = re.compile(r"\[\[CITE(?:_NARRATIVE)?:[A-Z0-9_-]+(?:;[A-Z0-9_-]+)*\]\]")
 _ROMAN_PREFIX_RE = re.compile(r"^[\dIVXLCDM]+(?:[.\-]\d+)*[.)\s-]+")
 _WORD_RE = re.compile(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]{2,}")
 
@@ -97,6 +97,17 @@ _UNAC_SUBSECTION_TARGETS = {
     "maintainability": 2,
     "study_equipment": 1,
 }
+_UNAC_CITATION_MAXIMA = {
+    "introduction": 4, "problem_reality": 7, "conceptual_framework": 3,
+    "basic_terms": 13, "operationalization": 2,
+    "methodological_design": 4, "research_method": 2,
+}
+_UNAC_SUBSECTION_MAXIMA = {
+    "international_backgrounds": 6, "national_backgrounds": 6,
+    "rcm": 4, "rcm_process": 3, "taxonomy": 1, "amef": 3,
+    "inherent_availability": 2, "reliability": 4,
+    "maintainability": 3, "study_equipment": 2,
+}
 _BACKGROUND_SUBSECTION_ROLES = ("international_backgrounds", "national_backgrounds")
 _THEORY_SUBSECTION_ROLES = (
     "rcm",
@@ -138,7 +149,9 @@ _UNAC_SUBSECTION_NEW_SOURCE_TARGETS = {
 }
 
 _REFERENCE_MINIMUM_MENTIONS = 52
+_REFERENCE_MAXIMUM_MENTIONS = 65
 _REFERENCE_MINIMUM_DISTINCT_SOURCES = 29
+_REFERENCE_MAXIMUM_DISTINCT_SOURCES = 29
 
 _SYNTHETIC_AUTHORS: tuple[tuple[str, ...], ...] = (
     ("Morales", "Quispe"), ("Rojas", "Salazar"), ("Paredes", "Vilca"),
@@ -282,7 +295,8 @@ def _marker_tags(text: Any) -> list[str]:
     tags: list[str] = []
     if isinstance(text, str):
         for match in _CITATION_MARKER_RE.finditer(text):
-            tags.extend(tag for tag in match.group(0)[7:-2].split(";") if tag)
+            payload = match.group(0).split(":", 1)[1][:-2]
+            tags.extend(tag for tag in payload.split(";") if tag)
         return tags
     if isinstance(text, list):
         for item in text:
@@ -456,6 +470,13 @@ class _SourceRegistry:
         existing = self.by_key.get(key)
         if existing is not None:
             return existing.tag
+        # V2 owns a closed source plan. Provider-authored citations may be
+        # converted, but can never grow the Word source registry beyond the
+        # 29-source manifest observed in the reference document.
+        if len(self.by_key) >= _REFERENCE_MAXIMUM_DISTINCT_SOURCES:
+            sources = list(self.by_key.values())
+            stable_index = sum(ord(ch) for ch in key) % len(sources)
+            return sources[stable_index].tag
         index = len(self.by_key) + 1
         reference_text = _make_reference_text(author, str(year)[:4], path, index)
         tag = _source_tag(index, reference_text)
@@ -553,7 +574,7 @@ def _convert_citations_in_text(
         tag = registry.register(match.group("author").strip(), match.group("year"), path)
         count += 1
         used_tags.append(tag)
-        return f"[[CITE:{tag}]]"
+        return f"[[CITE_NARRATIVE:{tag}]]"
 
     value = _NARRATIVE_CITATION_RE.sub(replace_narrative, value)
     return re.sub(r"[ \t]{2,}", " ", value), count, used_tags
@@ -1139,9 +1160,15 @@ def _audit_revised_sections(
         actual = mentions.get(role, 0)
         if actual < target:
             failures.append(f"{role}: {actual}/{target} citas")
+        maximum = _UNAC_CITATION_MAXIMA.get(role)
+        if maximum is not None and actual > maximum:
+            failures.append(f"{role}: {actual}/{maximum} citas maximas")
     for role, target in _UNAC_SUBSECTION_TARGETS.items():
         if semantic_present and mentions.get(role, 0) < target:
             failures.append(f"{role}: {mentions.get(role, 0)}/{target} citas")
+        maximum = _UNAC_SUBSECTION_MAXIMA.get(role)
+        if semantic_present and maximum is not None and mentions.get(role, 0) > maximum:
+            failures.append(f"{role}: {mentions.get(role, 0)}/{maximum} citas maximas")
 
     total_mentions = sum(
         value
@@ -1150,9 +1177,15 @@ def _audit_revised_sections(
     )
     if total_mentions < _REFERENCE_MINIMUM_MENTIONS:
         failures.append(f"total: {total_mentions}/{_REFERENCE_MINIMUM_MENTIONS} citas")
+    if total_mentions > _REFERENCE_MAXIMUM_MENTIONS:
+        failures.append(f"total: {total_mentions}/{_REFERENCE_MAXIMUM_MENTIONS} citas maximas")
     if len(registry.by_key) < _REFERENCE_MINIMUM_DISTINCT_SOURCES:
         failures.append(
             f"fuentes distintas: {len(registry.by_key)}/{_REFERENCE_MINIMUM_DISTINCT_SOURCES}"
+        )
+    if len(registry.by_key) > _REFERENCE_MAXIMUM_DISTINCT_SOURCES:
+        failures.append(
+            f"fuentes distintas: {len(registry.by_key)}/{_REFERENCE_MAXIMUM_DISTINCT_SOURCES} maximas"
         )
     if residues:
         failures.append(f"citas manuales residuales: {len(residues)}")

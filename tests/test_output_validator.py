@@ -244,8 +244,9 @@ class TestValidate:
                             "tipo": "figura",
                             "titulo": "Figura 1. Modelo",
                             "caption": "Figura 1. Modelo conceptual propuesto.",
-                            "nota": "Guía para elaborar la figura: usar datos reales.",
-                            "nota_color": "0000FF",
+                            "diagram_type": "concept_map",
+                            "diagram_data": {"labels": ["Variable independiente", "Variable dependiente"]},
+                            "numbered": True,
                         },
                     ],
                 }
@@ -259,9 +260,10 @@ class TestValidate:
         assert content[1]["tipo"] == "tabla"
         assert content[1]["filas"][0][1] == "[COMPLETAR]"
         assert content[2]["tipo"] == "figura"
-        assert content[2]["ruta_placeholder"] == "assets/placeholder_figura.png"
-        assert content[2]["nota"] == "Guía para elaborar la figura: usar datos reales."
-        assert content[2]["nota_color"] == "0000FF"
+        assert content[2]["diagram_type"] == "concept_map"
+        assert content[2]["diagram_data"]["labels"] == ["Variable independiente", "Variable dependiente"]
+        assert content[2]["numbered"] is True
+        assert "ruta_placeholder" not in content[2]
 
     def test_chapter_two_text_only_sections_drop_structured_blocks_and_generic_closure(self, validator):
         ai_result = {

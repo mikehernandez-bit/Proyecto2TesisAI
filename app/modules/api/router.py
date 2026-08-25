@@ -26,6 +26,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from app.core.config import settings
 from app.core.services.ai import AIService, QualityProfileValidationError, QuotaExceededError
 from app.core.services.ai.errors import GenerationCancelledError
+from app.core.services.ai.unac_quality_profile import load_unac_maintenance_profile
 from app.core.services.ai.token_usage import (
     empty_token_usage_report,
     normalize_token_usage_report,
@@ -2787,6 +2788,7 @@ async def _ai_generation_job(
                 partial_ai["tokenUsage"] = usage_report
                 partial_ai["generationCost"] = cost_report
                 partial_ai["inputFingerprint"] = checkpoint_input_fingerprint
+                partial_ai["qualityProfile"] = load_unac_maintenance_profile().id
                 projects.update_project(
                     project_id,
                     {
@@ -2814,6 +2816,7 @@ async def _ai_generation_job(
                     current_path=path,
                     input_fingerprint=checkpoint_input_fingerprint,
                     base_run_id=run_id,
+                    profile_version=load_unac_maintenance_profile().id,
                 )
 
         if stage == "provider_fallback":
@@ -2914,6 +2917,7 @@ async def _ai_generation_job(
         )
         partial_ai["tokenUsage"] = usage_report
         partial_ai["generationCost"] = cost_report
+        partial_ai["qualityProfile"] = load_unac_maintenance_profile().id
         latest_project = projects.get_project(project_id) or {}
         latest_progress_source = latest_project.get("progress")
         latest_progress: Dict[str, Any] = (
@@ -2944,6 +2948,7 @@ async def _ai_generation_job(
             reason=reason,
             base_run_id=run_id,
             input_fingerprint=checkpoint_input_fingerprint,
+            profile_version=load_unac_maintenance_profile().id,
             failed_section_id=(
                 quality_keys[0]
                 if failed_stage == "quality_validation" and quality_keys
@@ -3570,6 +3575,10 @@ async def trigger_generation(
     stored_fingerprint = str(
         stored_ai_result.get("inputFingerprint") or resume_state.get("input_fingerprint") or ""
     )
+    active_quality_profile = load_unac_maintenance_profile().id
+    stored_quality_profile = str(
+        stored_ai_result.get("qualityProfile") or resume_state.get("profile_version") or ""
+    )
     generation_status = str((project.get("generation_phase") or {}).get("status") or "").strip().lower()
     construction_status = str((project.get("construction_phase") or {}).get("status") or "").strip().lower()
     project_status = str(project.get("status") or "").strip().lower()
@@ -3583,6 +3592,14 @@ async def trigger_generation(
         and stored_ai_sections
         and stored_fingerprint
         and stored_fingerprint != current_input_fingerprint
+        and not validated_render_checkpoint
+    ):
+        raise HTTPException(status_code=409, detail="checkpoint_incompatible")
+    if (
+        requested_resume_mode != "restart"
+        and stored_ai_sections
+        and stored_quality_profile
+        and stored_quality_profile != active_quality_profile
         and not validated_render_checkpoint
     ):
         raise HTTPException(status_code=409, detail="checkpoint_incompatible")
