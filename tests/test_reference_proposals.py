@@ -304,6 +304,39 @@ def test_unac_semantic_minimums_and_structured_operationalization_are_audited() 
     assert "[[CITE:" in result.structured_values["operacionalizacion_vd"]["definicion_conceptual"]
 
 
+def test_theory_citations_follow_canonical_numbers_when_titles_are_paraphrased() -> None:
+    content: list[dict] = []
+    headings = (
+        "2.2.1 Mantenimiento Centrado en Confiabilidad (RCM)",
+        "2.2.2 Proceso del RCM",
+        "2.2.3 Taxonomía de equipos",
+        "2.2.4 AMEF",
+        "2.2.5 Disponibilidad inherente",
+        "2.2.6 Mantenibilidad y su relación con el RCM",
+        "2.2.7 Motoniveladoras CAT 24M",
+        "2.2.8 Impacto del RCM en la productividad minera",
+    )
+    for heading in headings:
+        content.append({"tipo": "parrafo", "texto": heading})
+        content.extend(
+            {
+                "tipo": "parrafo",
+                "texto": f"Desarrollo técnico sustantivo de {heading} con evidencia aplicable al proyecto {index}.",
+            }
+            for index in range(3)
+        )
+    sections = [
+        {"sectionId": "theory", "path": "II/2.2 Bases teóricas", "content": content},
+        {"sectionId": "refs", "path": "VII. REFERENCIAS BIBLIOGRÁFICAS", "content": "Anterior"},
+    ]
+
+    result = consolidate_references(sections)
+
+    assert result.mentions_by_section["reliability"] >= 3
+    assert result.mentions_by_section["maintainability"] >= 2
+    assert result.mentions_by_section["study_equipment"] >= 1
+
+
 def test_reference_consolidation_is_idempotent_and_keeps_repeated_mentions() -> None:
     sections = [
         {

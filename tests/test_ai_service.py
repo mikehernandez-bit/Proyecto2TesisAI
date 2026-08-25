@@ -10,7 +10,10 @@ import pytest
 from app.core.services.ai.ai_service import AIService
 from app.core.services.ai.errors import ProviderAuthError, QuotaExceededError
 from app.core.services.ai.resilience_router import LLMResult
-from app.core.services.ai.unac_quality_profile import requirements_for_section_path
+from app.core.services.ai.unac_quality_profile import (
+    audit_unac_maintenance_sections,
+    requirements_for_section_path,
+)
 
 
 def _settings(
@@ -118,11 +121,24 @@ def _figure_json_block(title: str) -> str:
 
 
 def test_unac_composite_section_is_generated_by_semantic_unit() -> None:
+    def _valid_unit(heading: str, prefix: str, minimum: int) -> str:
+        required = "problema objetivo metodo muestra resultados conclusion aporta "
+        unique = " ".join(f"{prefix}_{index}" for index in range(minimum))
+        return f"{heading}\n\n{required}{unique}"
+
     svc = AIService()
     svc._generate_with_provider_fallback = MagicMock(
         side_effect=[
-            LLMResult(content="2.1.1 Antecedentes internacionales\n\nDesarrollo internacional.", provider="mistral", status="ok"),
-            LLMResult(content="2.1.2 Antecedentes nacionales\n\nDesarrollo nacional.", provider="mistral", status="ok"),
+            LLMResult(
+                content=_valid_unit("2.1.1 Antecedentes internacionales", "internacional", 1700),
+                provider="mistral",
+                status="ok",
+            ),
+            LLMResult(
+                content=_valid_unit("2.1.2 Antecedentes nacionales", "nacional", 1720),
+                provider="mistral",
+                status="ok",
+            ),
         ]
     )
     requirements = requirements_for_section_path("II. MARCO TEÓRICO/2.1 Antecedentes")
@@ -146,6 +162,255 @@ def test_unac_composite_section_is_generated_by_semantic_unit() -> None:
     assert "1634 palabras" in second_prompt
     assert "2.1.1 Antecedentes internacionales" in result.content
     assert "2.1.2 Antecedentes nacionales" in result.content
+
+
+def test_full_resume_skips_global_ai_correction() -> None:
+    svc = AIService()
+    svc._clients["gemini"] = MagicMock()
+    svc._clients["gemini"].is_configured.return_value = True
+    project = {
+        "id": "proj-full-resume",
+        "title": "Contenido aprobado",
+        "variables": {"tema": "Reintento"},
+        "ai_result": {
+            "sections": [
+                {
+                    "sectionId": "sec-0001",
+                    "path": "Capitulo 1",
+                    "content": "Contenido previamente aprobado.",
+                }
+            ]
+        },
+    }
+    format_detail = {"definition": {"cuerpo": {"capitulos": [{"titulo": "Capitulo 1"}]}}}
+    trace_events: list[dict] = []
+    configured = _settings(primary="gemini", fallback=False)
+    configured.AI_CORRECTION_ENABLED = True
+
+    with (
+        patch("app.core.services.ai.ai_service.settings", configured),
+        patch.object(svc, "_correct_ai_result") as correction,
+    ):
+        result = svc.generate(
+            project,
+            format_detail,
+            None,
+            resume_from_partial=True,
+            trace_hook=trace_events.append,
+        )
+
+    correction.assert_not_called()
+    assert result["sections"][0]["content"] == "Contenido previamente aprobado."
+    assert any(event.get("title") == "Limpieza IA reutilizada" for event in trace_events)
+
+
+def test_semantic_unit_repair_crops_echoed_sibling_sections() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("I/1.4 Justificación")
+        if item.key == "1.4.1"
+    )
+    initial = (
+        "1.4.1 Justificación normativa\n\n"
+        "SAE JA1011 cumplimiento mantenimiento "
+        + " ".join(f"base_normativa_{index}" for index in range(154))
+        + "\n\n1.4.2 Justificación teórica\n\n"
+        + " ".join(f"contenido_inicial_ajeno_{index}" for index in range(180))
+    )
+    repair = (
+        "1.4.1 Justificación normativa\n\n"
+        + " ".join(f"ampliacion_normativa_{index}" for index in range(35))
+        + "\n\n1.4.2 Justificación teórica\n\n"
+        + " ".join(f"contenido_ajeno_{index}" for index in range(220))
+    )
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        side_effect=[
+            LLMResult(content=initial, provider="mistral", status="ok"),
+            LLMResult(content=repair, provider="mistral", status="ok"),
+        ]
+    )
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta la justificación.",
+        requirements=(requirement,),
+        preferred_provider="mistral",
+        section_current=6,
+        section_total=25,
+        section_path="I. PLANTEAMIENTO DEL PROBLEMA/1.4 Justificación",
+        section_id="sec-0006",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    audit = audit_unac_maintenance_sections(
+        [{"sectionId": "sec-0006", "path": "I/1.4 Justificación", "content": result.content}]
+    )[0]
+    assert svc._generate_with_provider_fallback.call_count == 2
+    assert audit.words >= audit.minimum
+    assert audit.missing_topics == ()
+    assert "contenido_inicial_ajeno_0" not in result.content
+    assert "contenido_ajeno_0" not in result.content
+
+
+def test_quality_repair_appends_only_the_word_deficit() -> None:
+    topics = (
+        "contexto internacional contexto nacional unidad minera brecha causas consecuencias solucion "
+    )
+    current = topics + " ".join(f"diagnostico_{index}" for index in range(1090))
+    supplement = " ".join(f"complemento_nuevo_{index}" for index in range(240))
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        return_value=LLMResult(content=supplement, provider="mistral", status="ok")
+    )
+    sections = [{"sectionId": "sec-0003", "path": "I/1.1 Descripción de la realidad problemática", "content": current}]
+
+    repaired, audits = svc._repair_unac_quality_profile_sections(
+        sections,
+        project_id="quality-deficit",
+        values={"title": "Plan de mantenimiento RCM", "variable_dependiente": "Disponibilidad"},
+        format_id="unac-proyecto-cuant",
+        selection={"provider": "mistral", "mode": "fixed"},
+    )
+
+    assert svc._generate_with_provider_fallback.call_count == 1
+    assert "diagnostico_0" in str(repaired[0]["content"])
+    assert "complemento_nuevo_0" in str(repaired[0]["content"])
+    assert next(item for item in audits if item.key == "1.1").words >= 1276
+
+
+def test_quality_repair_rewrites_repetitive_antecedents_with_varied_text() -> None:
+    repeated = " ".join(
+        [
+            "El objetivo fue aplicar el metodo a la muestra y los resultados mostraron una mejora cuya conclusion aporta valor"
+        ]
+        * 180
+    )
+    varied = (
+        "problema objetivo metodo muestra resultados conclusion aporta "
+        + " ".join(f"antecedente_nacional_unico_{index}" for index in range(1700))
+    )
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        return_value=LLMResult(content=varied, provider="mistral", status="ok")
+    )
+    sections = [{"sectionId": "sec-0009", "path": "II/2.1.2 Antecedentes nacionales", "content": repeated}]
+
+    repaired, audits = svc._repair_unac_quality_profile_sections(
+        sections,
+        project_id="quality-duplicate",
+        values={"title": "Plan de mantenimiento RCM", "variable_dependiente": "Disponibilidad"},
+        format_id="unac-proyecto-cuant",
+        selection={"provider": "mistral", "mode": "fixed"},
+    )
+
+    prompt = svc._generate_with_provider_fallback.call_args.args[0]
+    audit = next(item for item in audits if item.key == "2.1.2")
+    assert "por debajo de 20%" in prompt
+    assert "antecedente_nacional_unico_0" in str(repaired[0]["content"])
+    assert audit.duplicate_ratio <= 0.22
+    assert audit.status == "error"  # Las citas se consolidan despues de la reparacion narrativa.
+
+
+def test_duplicate_repair_keeps_short_improvement_then_completes_deficit() -> None:
+    repeated = " ".join(
+        [
+            "El objetivo fue aplicar el metodo a la muestra y los resultados mostraron una mejora cuya conclusion aporta valor"
+        ]
+        * 180
+    )
+    first_rewrite = (
+        "problema objetivo metodo muestra resultados conclusion aporta "
+        + " ".join(f"version_sin_repeticion_{index}" for index in range(1300))
+    )
+    supplement = " ".join(f"ampliacion_tecnica_{index}" for index in range(420))
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        side_effect=[
+            LLMResult(content=first_rewrite, provider="mistral", status="ok"),
+            LLMResult(content=supplement, provider="mistral", status="ok"),
+        ]
+    )
+    sections = [{"sectionId": "sec-0009", "path": "II/2.1.2 Antecedentes nacionales", "content": repeated}]
+
+    repaired, audits = svc._repair_unac_quality_profile_sections(
+        sections,
+        project_id="quality-progressive-duplicate",
+        values={"title": "Plan de mantenimiento RCM", "variable_dependiente": "Disponibilidad"},
+        format_id="unac-proyecto-cuant",
+        selection={"provider": "mistral", "mode": "fixed"},
+    )
+
+    audit = next(item for item in audits if item.key == "2.1.2")
+    assert svc._generate_with_provider_fallback.call_count == 2
+    assert "version_sin_repeticion_0" in str(repaired[0]["content"])
+    assert "ampliacion_tecnica_0" in str(repaired[0]["content"])
+    assert "El objetivo fue aplicar" not in str(repaired[0]["content"])
+    assert audit.words >= 1634
+    assert audit.duplicate_ratio <= 0.22
+
+
+def test_long_repetitive_antecedents_are_rewritten_in_two_paragraph_batches() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("II/2.1 Antecedentes")
+        if item.key == "2.1.2"
+    )
+    original = [
+        {"tipo": "parrafo", "texto": requirement.heading},
+        *[
+            {
+                "tipo": "parrafo",
+                "texto": " ".join(f"estudio_{study}_dato_{word}" for word in range(100)),
+            }
+            for study in range(4)
+        ],
+    ]
+    responses = [
+        LLMResult(
+            content="\n\n".join(
+                " ".join(f"reescrito_{batch}_{paragraph}_{word}" for word in range(90))
+                for paragraph in range(2)
+            ),
+            provider="mistral",
+            status="ok",
+        )
+        for batch in range(2)
+    ]
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(side_effect=responses)
+
+    rewritten = svc._rewrite_repetitive_antecedent_batches(
+        current_unit=original,
+        requirement=requirement,
+        path="II/2.1 Antecedentes",
+        selection={"provider": "mistral", "mode": "fixed"},
+    )
+
+    assert rewritten is not None
+    assert svc._generate_with_provider_fallback.call_count == 2
+    assert len(rewritten) == 5
+    assert "reescrito_0_0_0" in str(rewritten)
+    assert "reescrito_1_1_89" in str(rewritten)
+
+
+def test_cleanup_quality_guard_restores_a_worse_unac_unit() -> None:
+    topics = "contexto internacional contexto nacional unidad minera brecha causas consecuencias solucion "
+    original = topics + " ".join(f"contenido_valido_{index}" for index in range(1300))
+    shortened = topics + " ".join(f"resumen_{index}" for index in range(200))
+    before = [{"sectionId": "sec-0003", "path": "I/1.1 Descripción de la realidad problemática", "content": original}]
+    after = [{"sectionId": "sec-0003", "path": "I/1.1 Descripción de la realidad problemática", "content": shortened}]
+    svc = AIService()
+
+    protected = svc._preserve_unac_quality_regressions(
+        before=before,
+        after=after,
+        values={"title": "Plan de mantenimiento RCM", "variable_dependiente": "Disponibilidad"},
+        format_id="unac-proyecto-cuant",
+    )
+
+    assert "contenido_valido_1299" in str(protected[0]["content"])
+    assert "resumen_199" not in str(protected[0]["content"])
 
 
 def _valid_reality_problem_raw_response() -> str:

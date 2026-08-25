@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from app.core.services.ai.unac_quality_profile import (
     audit_unac_maintenance_sections,
+    canonical_formula_for_key,
+    canonicalize_duplicate_semantic_units,
     ensure_canonical_formulas,
     extract_semantic_unit_content,
     is_unac_maintenance_project,
@@ -93,6 +95,21 @@ def test_semantic_topic_aliases_do_not_require_literal_manifest_words() -> None:
     assert audit.status == "ok"
 
 
+def test_normative_justification_accepts_standards_as_semantic_evidence() -> None:
+    narrative = (
+        "El mantenimiento asegurará el cumplimiento de las obligaciones legales mediante SAE JA1011, ISO 14224 y el "
+        "Decreto Supremo 024-2016-EM. "
+        + " ".join(f"trazabilidad_{index}" for index in range(170))
+    )
+    audit = audit_unac_maintenance_sections(
+        [{"sectionId": "normative", "path": "I/1.4.1 Justificación normativa", "content": narrative}]
+    )[0]
+
+    assert audit.words >= audit.minimum
+    assert "normativa" not in audit.missing_topics
+    assert audit.status == "ok"
+
+
 def test_terms_glossary_recognizes_bold_term_period_definition_entries() -> None:
     entries = []
     for index in range(13):
@@ -123,6 +140,33 @@ def test_population_accepts_equivalent_equipment_unit_of_analysis() -> None:
     assert audit.status == "ok"
 
 
+def test_antecedent_accepts_aporta_as_contribution_signal() -> None:
+    narrative = (
+        "problema objetivo metodo muestra resultados conclusion este estudio aporta al proyecto "
+        + " ".join(f"evidencia_internacional_{index}" for index in range(1620))
+    )
+    audit = audit_unac_maintenance_sections(
+        [{"sectionId": "international", "path": "II/2.1.1 Antecedentes internacionales", "content": narrative}]
+    )[0]
+
+    assert "aporte" not in audit.missing_topics
+
+
+def test_conceptual_framework_accepts_dimension_labels() -> None:
+    narrative = (
+        "Variable independiente mantenimiento centrado en confiabilidad. "
+        "Dimensión análisis de criticidad. Dimensión AMEF. "
+        "Variable dependiente disponibilidad inherente. Dimensión confiabilidad y dimensión mantenibilidad. "
+        "La relación entre ambas variables explica el efecto técnico. "
+        + " ".join(f"desarrollo_conceptual_{index}" for index in range(590))
+    )
+    audit = audit_unac_maintenance_sections(
+        [{"sectionId": "concepts", "path": "II/2.3 Marco conceptual", "content": narrative}]
+    )[0]
+
+    assert audit.missing_topics == ()
+
+
 def test_replacing_one_semantic_unit_preserves_its_sibling() -> None:
     requirement = next(item for item in requirements_for_section_path("I/1.4 Justificación") if item.key == "1.4.2")
     original = (
@@ -141,6 +185,56 @@ def test_replacing_one_semantic_unit_preserves_its_sibling() -> None:
     assert "Nuevo aporte teórico sobre confiabilidad" in rendered
     assert "Texto teórico corto" not in rendered
     assert "Texto práctico que tampoco debe cambiar" in rendered
+
+
+def test_duplicate_composite_units_are_collapsed_without_losing_required_words() -> None:
+    topics = "problema objetivo metodo muestra resultados conclusion aporta "
+    content = [
+        {"tipo": "parrafo", "texto": "2.1.1 Antecedentes internacionales"},
+        {"tipo": "parrafo", "texto": topics + " ".join(f"internacional_a_{i}" for i in range(900))},
+        {"tipo": "parrafo", "texto": "2.1.2 Antecedentes nacionales"},
+        {"tipo": "parrafo", "texto": topics + " ".join(f"nacional_a_{i}" for i in range(1700))},
+        {"tipo": "parrafo", "texto": "2.1.1 Antecedentes internacionales"},
+        {"tipo": "parrafo", "texto": topics + " ".join(f"internacional_b_{i}" for i in range(800))},
+        {"tipo": "parrafo", "texto": "2.1.2 Antecedentes nacionales"},
+        {"tipo": "parrafo", "texto": topics + " ".join(f"nacional_b_{i}" for i in range(1700))},
+    ]
+    sections = [{"sectionId": "antecedents", "path": "II/2.1 Antecedentes", "content": content}]
+
+    canonicalize_duplicate_semantic_units(sections)
+
+    rendered = [str(block.get("texto") or "") for block in sections[0]["content"]]
+    assert sum(text.startswith("2.1.1 ") for text in rendered) == 1
+    assert sum(text.startswith("2.1.2 ") for text in rendered) == 1
+    audits = {item.key: item for item in audit_unac_maintenance_sections(sections)}
+    assert audits["2.1.1"].words >= audits["2.1.1"].minimum
+    assert audits["2.1.2"].words >= audits["2.1.2"].minimum
+    assert audits["2.1.1"].duplicate_ratio <= 0.22
+    assert audits["2.1.2"].duplicate_ratio <= 0.22
+
+
+def test_profile_headings_are_canonicalized_even_without_duplicates() -> None:
+    sections = [
+        {
+            "sectionId": "theory",
+            "path": "II/2.2 Bases teóricas",
+            "content": [
+                {"tipo": "parrafo", "texto": "2.2.6 Mantenibilidad y su relación con el RCM"},
+                {"tipo": "parrafo", "texto": "Desarrollo sobre confiabilidad y tasa de falla."},
+                {"tipo": "parrafo", "texto": "2.2.7 Motoniveladoras CAT 24M"},
+                {"tipo": "parrafo", "texto": "Desarrollo sobre mantenibilidad y MTTR."},
+                {"tipo": "parrafo", "texto": "2.2.8 Impacto del RCM en la productividad minera"},
+                {"tipo": "parrafo", "texto": "Descripción del equipo objeto de estudio."},
+            ],
+        }
+    ]
+
+    canonicalize_duplicate_semantic_units(sections)
+
+    headings = [str(block.get("texto") or "") for block in sections[0]["content"]]
+    assert "2.2.6 Confiabilidad" in headings
+    assert "2.2.7 Mantenibilidad" in headings
+    assert "2.2.8 Equipo u objeto de estudio" in headings
 
 
 def test_canonical_formulas_are_inserted_once_in_the_correct_units() -> None:
@@ -162,3 +256,34 @@ def test_canonical_formulas_are_inserted_once_in_the_correct_units() -> None:
         "mantenibilidad-mt",
     ]
     assert len(extract_semantic_unit_content(sections[0]["content"], "2.2.6")) >= 3
+
+
+def test_existing_formula_is_replaced_by_the_canonical_equation() -> None:
+    sections = [
+        {
+            "sectionId": "theory",
+            "path": "II/2.2 Bases teóricas",
+            "content": [
+                {"tipo": "parrafo", "texto": "2.2.5 Disponibilidad inherente"},
+                {"tipo": "parrafo", "texto": "Definición previa suficiente."},
+                {
+                    "tipo": "formula",
+                    "latex": r"A = \frac{MTBF}{MTBF + MTTR}",
+                    "texto": "A = MTBF / (MTBF + MTTR)",
+                    "numero": "(99)",
+                    "id": "formula-incorrecta",
+                },
+                {"tipo": "parrafo", "texto": "2.2.6 Confiabilidad"},
+                {"tipo": "parrafo", "texto": "Desarrollo."},
+                {"tipo": "parrafo", "texto": "2.2.7 Mantenibilidad"},
+                {"tipo": "parrafo", "texto": "Desarrollo."},
+                {"tipo": "parrafo", "texto": "2.2.8 Equipo u objeto de estudio"},
+            ],
+        }
+    ]
+
+    ensure_canonical_formulas(sections)
+
+    availability = extract_semantic_unit_content(sections[0]["content"], "2.2.5")
+    formulas = [block for block in availability if block.get("tipo") == "formula"]
+    assert formulas == [canonical_formula_for_key("2.2.5")]

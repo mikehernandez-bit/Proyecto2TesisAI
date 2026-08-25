@@ -27,8 +27,39 @@ _LABELS = {
 }
 
 _TOPIC_ALIASES: dict[str, tuple[str, ...]] = {
+    "normativa": (
+        "justificacion normativa",
+        "marco normativo",
+        "cumplimiento normativo",
+        "sustento normativo",
+        "regulacion aplicable",
+        "reglamentacion",
+        "disposiciones legales",
+        "obligaciones legales",
+        "estandares tecnicos",
+        "sae ja1011",
+        "iso 14224",
+        "decreto supremo 024-2016-em",
+        "d. s. n. 024-2016-em",
+    ),
     "organizacion": ("organizacion", "estructura del documento", "estructura del proyecto", "capitulos"),
-    "aporte": ("aporte", "contribucion", "valor teorico"),
+    "aporte": (
+        "aporte",
+        "aporta",
+        "aportan",
+        "contribucion",
+        "contribuye",
+        "relevancia para el presente",
+        "valor teorico",
+    ),
+    "dimensiones": (
+        "dimension",
+        "dimensiones",
+        "componentes de la variable",
+        "indicadores de la variable",
+        "mtbf",
+        "mttr",
+    ),
     "recursos": ("recursos", "presupuesto", "inversion", "financiamiento"),
     "impacto": ("impacto", "beneficio social", "repercusion", "efecto social"),
     "alcance teorico": ("alcance teorico", "alcance conceptual", "comprende teoricamente"),
@@ -62,6 +93,7 @@ _CANONICAL_FORMULAS: dict[str, dict[str, str]] = {
         "latex": r"A_i = \frac{MTBF}{MTBF + MTTR}",
         "texto": "A_i = MTBF / (MTBF + MTTR)",
         "alineacion": "center",
+        "numero": "(1)",
         "id": "disponibilidad-inherente-ai",
     },
     "2.2.6": {
@@ -69,6 +101,7 @@ _CANONICAL_FORMULAS: dict[str, dict[str, str]] = {
         "latex": r"R(t) = e^{-\lambda t}",
         "texto": "R(t) = e^(-lambda t)",
         "alineacion": "center",
+        "numero": "(2)",
         "id": "confiabilidad-rt",
     },
     "2.2.7": {
@@ -76,6 +109,7 @@ _CANONICAL_FORMULAS: dict[str, dict[str, str]] = {
         "latex": r"M(t) = 1 - e^{-\mu t}",
         "texto": "M(t) = 1 - e^(-mu t)",
         "alineacion": "center",
+        "numero": "(3)",
         "id": "mantenibilidad-mt",
     },
 }
@@ -267,6 +301,117 @@ def normalize_semantic_blocks(content: Any) -> list[dict[str, Any]]:
     return normalized
 
 
+def canonicalize_duplicate_semantic_units(
+    sections: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Keep one best occurrence of every profile unit in composite sections.
+
+    Repair providers can occasionally return the whole parent section instead
+    of the requested child.  Repeated headings must never be allowed to inflate
+    the quality audit or the Word table of contents.
+    """
+    profile = load_unac_maintenance_profile()
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        owner_key = _section_key_from_path(str(section.get("path") or ""))
+        if not owner_key:
+            continue
+        requirements = [
+            item for item in profile.requirements if item.key.startswith(owner_key + ".")
+        ]
+        if not requirements:
+            continue
+        blocks = normalize_semantic_blocks(section.get("content"))
+        requirement_by_key = {item.key: item for item in requirements}
+        # Normalize every recognized profile heading even when no duplicate is
+        # present.  The number is the semantic identity; the visible title must
+        # remain the exact institutional caption from the versioned profile.
+        recognized_profile_heading = False
+        for block in blocks:
+            key = _block_heading_key(block)
+            requirement = requirement_by_key.get(key or "")
+            if requirement is not None:
+                recognized_profile_heading = True
+                block["texto"] = requirement.heading
+        starts: list[tuple[int, str]] = []
+        for index, block in enumerate(blocks):
+            key = _block_heading_key(block)
+            if key in requirement_by_key:
+                starts.append((index, key))
+        counts = Counter(key for _, key in starts)
+        if not any(count > 1 for count in counts.values()):
+            if recognized_profile_heading:
+                section["content"] = blocks
+            continue
+
+        candidates: dict[str, list[tuple[int, list[dict[str, Any]]]]] = {
+            item.key: [] for item in requirements
+        }
+        for occurrence, (start, key) in enumerate(starts):
+            end = starts[occurrence + 1][0] if occurrence + 1 < len(starts) else len(blocks)
+            candidates[key].append((start, [dict(block) for block in blocks[start:end]]))
+
+        canonical = [dict(block) for block in blocks[: starts[0][0]]]
+        for requirement in requirements:
+            choices = candidates.get(requirement.key) or []
+            if not choices:
+                continue
+
+            def content_score(content: list[dict[str, Any]], start: int) -> tuple[float, ...]:
+                audit = audit_unac_maintenance_sections(
+                    [{"path": requirement.heading, "content": content}]
+                )[0]
+                hard_penalty = (
+                    len(audit.missing_topics) * 10000
+                    + max(0, requirement.min_formulas - audit.formulas) * 10000
+                    + max(0, requirement.min_words - audit.words)
+                    + max(0.0, audit.duplicate_ratio - 0.22) * 10000
+                )
+                return (
+                    hard_penalty,
+                    audit.duplicate_ratio,
+                    -min(audit.words, requirement.min_words * 2),
+                    -start,
+                )
+
+            def score(choice: tuple[int, list[dict[str, Any]]]) -> tuple[float, ...]:
+                return content_score(choice[1], choice[0])
+
+            best_start, best = min(choices, key=score)
+            selected = [dict(block) for block in best]
+            selected_score = content_score(selected, best_start)
+            seen_text = {
+                _norm(block.get("texto"))
+                for block in selected
+                if _norm(block.get("tipo")) == "parrafo" and _norm(block.get("texto"))
+            }
+            for alternative_start, alternative in sorted(choices, key=score):
+                if alternative_start == best_start:
+                    continue
+                for block in alternative[1:]:
+                    kind = _norm(block.get("tipo"))
+                    if kind not in {"parrafo", "lista", "list", "formula"}:
+                        continue
+                    text_token = _norm(block.get("texto")) if kind == "parrafo" else ""
+                    if text_token and text_token in seen_text:
+                        continue
+                    proposed = [*selected, dict(block)]
+                    proposed_score = content_score(proposed, best_start)
+                    if proposed_score < selected_score:
+                        selected = proposed
+                        selected_score = proposed_score
+                        if text_token:
+                            seen_text.add(text_token)
+                    if selected_score[0] <= 0:
+                        break
+                if selected_score[0] <= 0:
+                    break
+            canonical.extend(selected)
+        section["content"] = canonical
+    return sections
+
+
 def _block_heading_key(block: dict[str, Any]) -> str | None:
     if _norm(block.get("tipo")) != "parrafo":
         return None
@@ -355,9 +500,14 @@ def ensure_canonical_formulas(sections: list[dict[str, Any]]) -> list[dict[str, 
             if bounds is None:
                 continue
             start, end = bounds
-            if any(_norm(block.get("tipo")) == "formula" for block in blocks[start:end]):
-                continue
-            insertion = min(start + 2, end)
+            formula_indexes = [
+                index
+                for index in range(start, end)
+                if _norm(blocks[index].get("tipo")) == "formula"
+            ]
+            insertion = formula_indexes[0] if formula_indexes else min(start + 2, end)
+            for index in reversed(formula_indexes):
+                blocks.pop(index)
             blocks.insert(insertion, canonical_formula_for_key(key) or {})
         section["content"] = blocks
     return sections

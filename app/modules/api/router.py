@@ -3133,11 +3133,21 @@ async def _ai_generation_job(
         latest_values = latest_project.get("values") if isinstance(latest_project.get("values"), dict) else {}
         values = _values_with_title(latest_project, latest_values)
         if values != latest_values:
+            normalized_project = {
+                **latest_project,
+                "values": values,
+                "variables": values,
+            }
+            ai_result = {
+                **ai_result,
+                "inputFingerprint": _project_input_fingerprint(normalized_project),
+            }
             projects.update_project(
                 project_id,
                 {
                     "values": values,
                     "variables": values,
+                    "ai_result": ai_result,
                 },
             )
 
@@ -3326,11 +3336,21 @@ async def _render_saved_ai_job(project_id: str, run_id: str) -> None:
     values_source = project.get("values") if isinstance(project.get("values"), dict) else {}
     values = _values_with_title(project, values_source)
     if values != values_source:
+        normalized_project = {
+            **project,
+            "values": values,
+            "variables": values,
+        }
+        ai_result = {
+            **ai_result,
+            "inputFingerprint": _project_input_fingerprint(normalized_project),
+        }
         projects.update_project(
             project_id,
             {
                 "values": values,
                 "variables": values,
+                "ai_result": ai_result,
             },
         )
 
@@ -3550,17 +3570,23 @@ async def trigger_generation(
     stored_fingerprint = str(
         stored_ai_result.get("inputFingerprint") or resume_state.get("input_fingerprint") or ""
     )
+    generation_status = str((project.get("generation_phase") or {}).get("status") or "").strip().lower()
+    construction_status = str((project.get("construction_phase") or {}).get("status") or "").strip().lower()
+    project_status = str(project.get("status") or "").strip().lower()
+    validated_render_checkpoint = (
+        project_status == "render_failed"
+        and generation_status in {"completed", "done", "ok"}
+        and construction_status in {"error", "failed", "interrupted"}
+    )
     if (
         requested_resume_mode != "restart"
         and stored_ai_sections
         and stored_fingerprint
         and stored_fingerprint != current_input_fingerprint
+        and not validated_render_checkpoint
     ):
         raise HTTPException(status_code=409, detail="checkpoint_incompatible")
 
-    generation_status = str((project.get("generation_phase") or {}).get("status") or "").strip().lower()
-    construction_status = str((project.get("construction_phase") or {}).get("status") or "").strip().lower()
-    project_status = str(project.get("status") or "").strip().lower()
     can_retry_render_only = (
         requested_resume_mode != "restart"
         and bool(stored_ai_sections)
@@ -3830,6 +3856,7 @@ async def trigger_generation(
             projectId,
             {
                 "status": "generating",
+                "error": None,
                 "cancel_requested": False,
                 "run_id": run_id,
                 "progress": {
