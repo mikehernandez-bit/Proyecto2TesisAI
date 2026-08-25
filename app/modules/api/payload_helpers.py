@@ -19,6 +19,10 @@ from app.core.config import settings
 from app.core.services.ai.content_parser import parse_ai_content
 from app.core.services.ai.output_validator import OutputValidator
 from app.core.services.ai.reference_proposals import consolidate_references
+from app.core.services.ai.unac_quality_profile import (
+    canonicalize_duplicate_semantic_units,
+    ensure_canonical_formulas,
+)
 from app.core.services.ai.budget_table_builder import (
     build_budget_table_from_plan,
     build_synthetic_budget_plan,
@@ -50,6 +54,249 @@ _OPERATIONALIZATION_BRIDGE_TEXT = (
     "La operacionalizacion de variables se desarrolla con los datos estructurados del proyecto "
     "y se presenta en las Tablas 3.1 y 3.2 del formato institucional."
 )
+
+
+def _methodology_truth(values: dict[str, Any]) -> dict[str, Any]:
+    matrix = values.get("matriz_consistencia")
+    if not isinstance(matrix, dict):
+        matrix = values.get("matriz")
+    methodology = matrix.get("metodologia") if isinstance(matrix, dict) else None
+    return methodology if isinstance(methodology, dict) else {}
+
+
+def _canonical_preexperimental_paragraph(values: dict[str, Any], original: str = "") -> str:
+    """Build the design paragraph from project truth, never from LLM assumptions."""
+    methodology = _methodology_truth(values)
+    population = str(methodology.get("poblacion") or values.get("poblacion") or "").strip()
+    if not population:
+        population_match = re.search(
+            r"poblaci[oó]n\s+(?:est[aá]\s+(?:conformada|constituida)\s+por|corresponde\s+a)\s+"
+            r"(.+?)(?=,|\s+y\s+la\s+recolecci[oó]n|\.|$)",
+            original,
+            flags=re.IGNORECASE,
+        )
+        population = population_match.group(1).strip() if population_match else "la población registrada"
+    sample = str(methodology.get("muestra") or values.get("muestra") or "").strip().rstrip(" .;")
+    place = str(values.get("lugar_ejecucion") or values.get("lugar") or "el lugar de estudio registrado").strip().rstrip(" .;")
+    period = str(values.get("temporal") or values.get("anio") or "el periodo definido").strip().rstrip(" .;")
+    citation_markers = " ".join(dict.fromkeys(re.findall(r"\[\[CITE:[^\]]+\]\]", original)))
+    paragraph = (
+        "El diseño metodológico es preexperimental con preprueba y posprueba. "
+        "Primero se realizará una medición inicial de los indicadores de la variable dependiente; "
+        "después se aplicará la intervención definida por la variable independiente y, finalmente, "
+        "se efectuará una medición posterior bajo criterios equivalentes. "
+        f"La población está constituida por {population}. "
+    )
+    if sample:
+        if _normalize_token(sample).startswith("muestreo"):
+            paragraph += f"La muestra se determinó mediante {sample[0].lower() + sample[1:]}. "
+        else:
+            paragraph += f"La muestra corresponde a {sample}. "
+    paragraph += (
+        f"El estudio se ejecutará en {place} durante {period}. "
+        "La comparación de las mediciones antes y después de la intervención permitirá estimar su efecto "
+        "sobre la variable dependiente y contrastar la hipótesis, manteniendo control documental sobre "
+        "las condiciones de medición y la trazabilidad de los indicadores."
+    )
+    if citation_markers:
+        paragraph += f" {citation_markers}"
+    return paragraph
+
+
+def _replace_contradictory_design_paragraphs(text: str, *, values: dict[str, Any]) -> str:
+    parts = re.split(r"(\n\s*\n)", text)
+    contradiction_markers = (
+        "no experimental",
+        "transversal",
+        "sin manipulacion",
+        "sin intervencion experimental",
+        "sin intervencion deliberada",
+        "contexto natural",
+        "un unico momento",
+        "un solo momento",
+        "un solo periodo",
+    )
+    for index in range(0, len(parts), 2):
+        paragraph = parts[index]
+        normalized = _normalize_token(paragraph)
+        declares_design = "diseno metodologico" in normalized or "diseno de investigacion" in normalized
+        if declares_design and any(marker in normalized for marker in contradiction_markers):
+            design_match = re.search(
+                r"\b(?:el\s+)?dise[nñ]o\s+(?:metodol[oó]gico|de\s+investigaci[oó]n)",
+                paragraph,
+                flags=re.IGNORECASE,
+            )
+            prefix = paragraph[: design_match.start()] if design_match else ""
+            contradictory_design = paragraph[design_match.start() :] if design_match else paragraph
+            parts[index] = prefix + _canonical_preexperimental_paragraph(values, contradictory_design)
+    return "".join(parts)
+
+
+def _reconcile_unac_methodology(
+    sections: list[dict[str, Any]],
+    *,
+    values: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Make 4.1 obey the structured matrix before rendering.
+
+    The LLM occasionally emits a correlational/non-experimental design even
+    when the matrix explicitly defines an explanatory pretest/posttest design.
+    Safe, known contradictions are corrected deterministically; any remaining
+    contradiction is rejected instead of reaching Word silently.
+    """
+    methodology = _methodology_truth(values)
+    expected_level = _normalize_token(methodology.get("nivel") or values.get("nivel_investigacion"))
+    expected_design = _normalize_token(
+        methodology.get("diseno")
+        or methodology.get("diseño")
+        or values.get("diseno_investigacion")
+    )
+    expects_preexperimental = "pre experimental" in expected_design or "preexperimental" in expected_design
+    expects_explanatory = "explicativ" in expected_level
+    if not expects_preexperimental and not expects_explanatory:
+        return sections
+
+    residual_failures: list[str] = []
+    for section in sections:
+        if not isinstance(section, dict) or "4.1" not in _normalize_token(section.get("path")):
+            continue
+        content = section.get("content")
+        if isinstance(content, str):
+            text = content
+            if expects_explanatory:
+                # Generated prose varies considerably (for example,
+                # "descriptivo-correlacional" instead of the older exact
+                # phrase "enfoque correlacional").  Reconcile the declared
+                # level first and then remove statements which would still
+                # describe an association-only study.
+                text = re.sub(
+                    r"\b(?:nivel|alcance)\s+(?:de\s+la\s+investigaci[oó]n\s+es\s+)?"
+                    r"(?:descriptiv[oa](?:\s*[-–/]\s*|\s+y\s+)?correlacional|correlacional)\b",
+                    "nivel de la investigación es explicativo",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(
+                    r"\bdescriptiv[oa]\s*[-–/]\s*correlacional\b",
+                    "explicativo",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(r"\benfoque\s+correlacional\b", "nivel explicativo", text, flags=re.IGNORECASE)
+                text = re.sub(
+                    r"identificar\s+el\s+grado\s+de\s+asociaci[oó]n\s+entre\s+ambas\s+variables\s+sin\s+manipulaci[oó]n\s+experimental",
+                    "explicar el efecto de la variable independiente sobre la variable dependiente mediante una intervención controlada",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(
+                    r"permite\s+identificar\s+patrones\s+y\s+asociaciones\s+entre\s+las\s+variables\s+sin\s+manipularlas\s+directamente",
+                    "permite explicar el efecto de la intervención sobre la variable dependiente mediante mediciones antes y después",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+            if expects_preexperimental:
+                # Prefer a canonical paragraph whenever the generated design
+                # contradicts the matrix. This covers arbitrary wording such
+                # as "de tipo transversal" instead of chasing every phrase.
+                text = _replace_contradictory_design_paragraphs(text, values=values)
+                text = re.sub(
+                    r"\bno\s+experimental\s+de\s+corte\s+transversal\b",
+                    "preexperimental con preprueba y posprueba",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(
+                    r"corresponde\s+a\s+un\s+estudio\s+no\s+experimental\s+de\s+corte\s+transversal,\s*"
+                    r"donde\s+las\s+variables\s+se\s+analizan\s+en\s+un\s+momento\s+espec[ií]fico\s*"
+                    r"\(([^)]+)\)\s+sin\s+intervenci[oó]n\s+directa\s+sobre\s+las\s+unidades\s+de\s+estudio",
+                    r"corresponde a un estudio preexperimental con preprueba y posprueba, en el que los indicadores se miden antes y después de implementar el plan durante \1",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(
+                    r"sin\s+intervenci[oó]n\s+deliberada\s+sobre\s+(?:ellas|las\s+variables)",
+                    "con intervención deliberada mediante la aplicación del plan de mantenimiento",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(
+                    r"evaluar\s+la\s+relaci[oó]n\s+entre\s+las\s+variables\s+en\s+su\s+contexto\s+natural",
+                    "evaluar el efecto de la intervención sobre la disponibilidad inherente",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(
+                    r"(?:en\s+)?un\s+solo\s+per[ií]odo\s+temporal",
+                    "en dos momentos, antes y después de la intervención",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                text = re.sub(
+                    r"\benfoque\s+transversal\b",
+                    "diseño preexperimental con preprueba y posprueba",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+            section["content"] = text
+            normalized_content = _normalize_token(text)
+        else:
+            normalized_content = _normalize_token(json.dumps(content, ensure_ascii=False))
+
+        if expects_preexperimental and any(
+            marker in normalized_content
+            for marker in (
+                "no experimental",
+                "corte transversal",
+                "enfoque transversal",
+                "sin intervencion deliberada",
+                "sin manipulacion deliberada",
+                "sin intervencion experimental",
+                "sin manipularlas directamente",
+            )
+        ):
+            residual_failures.append("4.1 contradice el diseño preexperimental de la matriz")
+        if expects_explanatory and any(
+            marker in normalized_content
+            for marker in ("correlacional", "alcance descriptivo", "nivel descriptivo")
+        ):
+            residual_failures.append("4.1 contradice el nivel explicativo de la matriz")
+
+    if residual_failures:
+        raise RenderPayloadValidationError(
+            [
+                {
+                    "loc": ["body", "aiResult", "methodology", "4.1"],
+                    "msg": " | ".join(dict.fromkeys(residual_failures)),
+                    "type": "value_error.unac_methodology_alignment",
+                }
+            ]
+        )
+    return sections
+
+
+def _strip_redundant_introduction_heading(
+    sections: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        path = _normalize_token(section.get("path"))
+        if path.split("/")[-1].strip() != "introduccion":
+            continue
+        content = section.get("content")
+        if isinstance(content, str):
+            lines = content.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+            if lines and _normalize_token(lines[0]) == "introduccion":
+                section["content"] = "\n".join(lines[1:]).lstrip()
+        elif isinstance(content, list) and content:
+            first = content[0]
+            if (
+                isinstance(first, dict)
+                and _normalize_token(first.get("texto") or first.get("text")) == "introduccion"
+            ):
+                section["content"] = content[1:]
+    return sections
 
 
 def _normalize_token(value: Any) -> str:
@@ -810,16 +1057,9 @@ def build_render_payload(
     ai_with_fallback = _build_generation_phase_fallback(ai_result_raw, generation_phase)
     adapted_ai_result = adapt_ai_result_for_gicatesis(ai_with_fallback, values=values)
     sections = adapted_ai_result.get("sections")
-    has_reference_section = isinstance(sections, list) and any(
-        isinstance(section, dict)
-        and ("referencias" in _normalize_token(section.get("path")) or "bibliograf" in _normalize_token(section.get("path")))
-        for section in sections
-    )
-    if isinstance(sections, list) and has_reference_section:
-        consolidation = consolidate_references(sections, values=render_values)
-        adapted_ai_result = {**adapted_ai_result, "sections": consolidation.sections}
-        render_values = consolidation.structured_values
-
+    if isinstance(sections, list):
+        sections = canonicalize_duplicate_semantic_units(sections)
+        sections = _strip_redundant_introduction_heading(sections)
         format_token = _normalize_token(format_id)
         domain_text = _normalize_token(
             " ".join(
@@ -835,10 +1075,25 @@ def build_render_payload(
                 )
             )
         )
-        strict_unac_references = format_token.startswith("unac-proyecto") and any(
+        strict_unac_maintenance = format_token.startswith("unac-proyecto") and any(
             marker in domain_text
             for marker in ("mantenimiento", "confiabilidad", "disponibilidad", "rcm", "motoniveladora")
         )
+        if strict_unac_maintenance:
+            sections = _reconcile_unac_methodology(sections, values=render_values)
+            sections = ensure_canonical_formulas(sections)
+        adapted_ai_result = {**adapted_ai_result, "sections": sections}
+    has_reference_section = isinstance(sections, list) and any(
+        isinstance(section, dict)
+        and ("referencias" in _normalize_token(section.get("path")) or "bibliograf" in _normalize_token(section.get("path")))
+        for section in sections
+    )
+    if isinstance(sections, list) and has_reference_section:
+        consolidation = consolidate_references(sections, values=render_values)
+        adapted_ai_result = {**adapted_ai_result, "sections": consolidation.sections}
+        render_values = consolidation.structured_values
+
+        strict_unac_references = strict_unac_maintenance
         if strict_unac_references and consolidation.failures:
             raise RenderPayloadValidationError(
                 [

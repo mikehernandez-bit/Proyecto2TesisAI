@@ -240,6 +240,26 @@ def _citation_role(path: str) -> str | None:
 
 def _subsection_role(text: str) -> str | None:
     normalized = _norm_upper(str(text or "").strip().splitlines()[0])
+    # The institutional number is the stable identity of a semantic unit.
+    # Providers occasionally paraphrase a heading (or shift the following
+    # topic into it) even when the prompt requests the exact caption.  Citation
+    # ownership must therefore follow the canonical number, while the quality
+    # canonicalizer restores the visible heading before render.
+    numbered_roles = {
+        "2.1.1": "international_backgrounds",
+        "2.1.2": "national_backgrounds",
+        "2.2.1": "rcm",
+        "2.2.2": "rcm_process",
+        "2.2.3": "taxonomy",
+        "2.2.4": "amef",
+        "2.2.5": "inherent_availability",
+        "2.2.6": "reliability",
+        "2.2.7": "maintainability",
+        "2.2.8": "study_equipment",
+    }
+    number_match = re.match(r"^(2\.(?:1\.[12]|2\.[1-8]))(?:\s|$)", normalized)
+    if number_match:
+        return numbered_roles.get(number_match.group(1))
     patterns = (
         (r"^2\.1\.1(?:\s|$).*(?:INTERNACIONAL)", "international_backgrounds"),
         (r"^2\.1\.2(?:\s|$).*(?:NACIONAL)", "national_backgrounds"),

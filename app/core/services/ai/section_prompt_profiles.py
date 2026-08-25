@@ -658,6 +658,9 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
             "Leyenda textual del esquema: M, O\u2081, X y O\u2082, adaptada a la muestra, medicion e intervencion reales.",
         ),
         quality_rules=(
+            "Los hechos estructurados Tipo, Nivel y Diseno son obligatorios y prevalecen sobre cualquier supuesto del modelo.",
+            "No declares un nivel correlacional o descriptivo si el Nivel registrado es explicativo.",
+            "No declares un diseno no experimental o transversal si el Diseno registrado es preexperimental con preprueba y posprueba.",
             "No desarrolles el enfoque cuantitativo aqui; reserva su explicacion central para 4.2.",
             "No generes Tabla 4.1, matriz metodologica, FIGURE_JSON ni figura numerada.",
             "El esquema M O\u2081 X O\u2082 debe quedar como texto o FORMULA_JSON, nunca como figura.",

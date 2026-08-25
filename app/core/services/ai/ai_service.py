@@ -8,8 +8,10 @@ Uses provider selection with resilience routing, retries and fallback.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Set
@@ -63,11 +65,13 @@ from app.core.services.ai.unac_quality_profile import (
     SectionQualityAudit,
     SectionQualityRequirement,
     audit_unac_maintenance_sections,
+    canonicalize_duplicate_semantic_units,
     ensure_canonical_formulas,
     extract_semantic_unit_content,
     content_quality_failures,
     is_unac_maintenance_project,
     load_unac_maintenance_profile,
+    normalize_semantic_blocks,
     quality_failures,
     replace_semantic_unit_content,
     requirements_for_section_path,
@@ -889,7 +893,13 @@ class AIService:
         )
 
         # --- Post-processing correction pass ---
-        if settings.AI_CORRECTION_ENABLED:
+        full_content_resume = bool(
+            resume_from_partial
+            and len(seeded_sections) >= len(section_index)
+            and all(bool(item.get("semanticComplete", True)) for item in seeded_sections)
+        )
+        if settings.AI_CORRECTION_ENABLED and not full_content_resume:
+            pre_correction_sections = copy.deepcopy(sections)
             self._emit_trace(
                 step="ai.correction",
                 status="running",
@@ -902,12 +912,33 @@ class AIService:
                 project_id=project_id,
                 selection=active_selection,
             )
+            sections = self._preserve_unac_quality_regressions(
+                before=pre_correction_sections,
+                after=sections,
+                values=project_values,
+                format_id=format_id,
+            )
             self._emit_trace(
                 step="ai.correction",
                 status="done",
                 title="Limpieza y correccion completadas",
                 meta={"sections": len(sections)},
             )
+        elif settings.AI_CORRECTION_ENABLED and full_content_resume:
+            self._emit_trace(
+                step="ai.correction",
+                status="done",
+                title="Limpieza IA reutilizada",
+                detail=(
+                    "Todas las secciones ya estaban guardadas; se omite una nueva llamada de correccion "
+                    "y se conserva el contenido aprobado."
+                ),
+                meta={"sections": len(sections), "resumePostprocessingOnly": True},
+            )
+
+        # Normalize profile headings before any specialized quality repair so
+        # a provider-paraphrased title does not trigger another AI call.
+        sections = canonicalize_duplicate_semantic_units(sections)
 
         # --- Completeness check: detect and repair placeholders ---
         sections = self._ensure_completeness(
@@ -948,6 +979,7 @@ class AIService:
             format_id=format_id,
             selection=active_selection,
         )
+        sections = canonicalize_duplicate_semantic_units(sections)
         sections = ensure_canonical_formulas(sections)
         sections, quality_audit = self._repair_unac_quality_profile_sections(
             sections,
@@ -956,6 +988,9 @@ class AIService:
             format_id=format_id,
             selection=active_selection,
         )
+        # Repairs can echo a provider-paraphrased heading. Canonicalize once
+        # more before assigning citations and building the render payload.
+        sections = canonicalize_duplicate_semantic_units(sections)
         self._emit_trace(
             step="ai.figures",
             status="done",
@@ -1300,6 +1335,7 @@ class AIService:
             "CONTRATO OBLIGATORIO DE LA UNIDAD UNAC:",
             f"- Encabezado exacto: {requirement.heading}",
             f"- Minimo narrativo auditable: {requirement.min_words} palabras; redacta al menos {target} palabras.",
+            "- Este minimo reemplaza cualquier rango previo del bloque padre; para esta unidad no existe un maximo academico.",
             "- El conteo no incluye el encabezado, citas, formulas, tablas, figuras ni captions.",
             f"- Temas que deben desarrollarse expresamente: {', '.join(requirement.topics) or 'los propios del encabezado'}.",
             f"- Incluye al menos {requirement.min_citations} citas academicas autor-ano pertinentes; no uses paginas web.",
@@ -1385,12 +1421,172 @@ class AIService:
                 disabled_for_job=disabled_for_job,
             )
             effective_provider = result.provider or effective_provider
-            outputs.append(str(result.content or "").strip())
-            completed.add(requirement.key)
             attempts.extend(result.attempts)
             incidents.extend(result.incidents)
             if result.status != "ok":
                 status = result.status
+            unit_blocks = normalize_semantic_blocks(
+                self.validator.sanitize_content(
+                    parse_ai_content(str(result.content or "")),
+                    path=unit_path,
+                )
+            )
+            unit_blocks = self._isolate_blocks_for_requirement(unit_blocks, requirement)
+
+            def _unit_audit(candidate_content: Any) -> SectionQualityAudit:
+                audits = audit_unac_maintenance_sections(
+                    [
+                        {
+                            "sectionId": f"{section_id}:{requirement.key}",
+                            "path": unit_path,
+                            "content": candidate_content,
+                        }
+                    ]
+                )
+                return next(item for item in audits if item.key == requirement.key)
+
+            unit_audit = _unit_audit(unit_blocks)
+            for repair_attempt in range(1, 3):
+                prose_failed = (
+                    unit_audit.words < unit_audit.minimum
+                    or bool(unit_audit.missing_topics)
+                    or unit_audit.duplicate_ratio > 0.22
+                )
+                if not prose_failed:
+                    break
+                completion_mode = (
+                    unit_audit.duplicate_ratio <= 0.22
+                    and (
+                        unit_audit.words < unit_audit.minimum
+                        or bool(unit_audit.missing_topics)
+                    )
+                )
+                word_deficit = max(0, unit_audit.minimum - unit_audit.words)
+                supplemental_target = max(
+                    80,
+                    (word_deficit * 115 + 99) // 100,
+                    120 if unit_audit.missing_topics else 0,
+                )
+                repair_instruction = (
+                    "Devuelve SOLO parrafos complementarios nuevos, sin encabezado y sin repetir ni resumir "
+                    f"el contenido valido. Escribe al menos {supplemental_target} palabras narrativas nuevas."
+                    if completion_mode
+                    else (
+                        "Reescribe la unidad completa con variedad real entre parrafos. Conserva los hechos, "
+                        "pero no reutilices una plantilla fija: cambia aperturas, orden argumental y cierres; "
+                        "la repeticion de secuencias debe quedar por debajo de 20%."
+                    )
+                )
+                repair_prompt = "\n".join(
+                    [
+                        repair_instruction,
+                        f"Unidad: {requirement.heading}",
+                        f"Reparacion inmediata {repair_attempt}/2.",
+                        "Incumplimientos exactos: "
+                        + self._quality_failure_detail([unit_audit], include_citations=False),
+                        (
+                            "Incluye expresamente estas ideas pendientes mediante redaccion academica natural: "
+                            + ", ".join(unit_audit.missing_topics)
+                            + "."
+                            if unit_audit.missing_topics
+                            else ""
+                        ),
+                        self._unac_requirement_contract(requirement),
+                        "Contenido valido actual:",
+                        json.dumps(unit_blocks, ensure_ascii=False),
+                        (
+                            "Devuelve solo el complemento."
+                            if completion_mode
+                            else "Devuelve solo la unidad completa corregida."
+                        ),
+                    ]
+                )
+                repair_result = self._generate_with_provider_fallback(
+                    repair_prompt,
+                    preferred_provider=effective_provider,
+                    section_current=section_current,
+                    section_total=section_total,
+                    section_path=unit_path,
+                    section_id=f"{section_id}:{requirement.key}",
+                    phase="quality_profile_repair",
+                    selection=selection,
+                    disabled_for_job=disabled_for_job,
+                )
+                effective_provider = repair_result.provider or effective_provider
+                attempts.extend(repair_result.attempts)
+                incidents.extend(repair_result.incidents)
+                repaired_blocks = normalize_semantic_blocks(
+                    self.validator.sanitize_content(
+                        parse_ai_content(str(repair_result.content or "")),
+                        path=unit_path,
+                    )
+                )
+                usable_supplement = (
+                    self._supplement_blocks_for_requirement(repaired_blocks, requirement)
+                    if completion_mode
+                    else []
+                )
+                proposed_blocks = (
+                    normalize_semantic_blocks(unit_blocks) + usable_supplement
+                    if completion_mode
+                    else repaired_blocks
+                )
+                proposed_audit = _unit_audit(proposed_blocks)
+                self._emit_trace(
+                    step="ai.generate.semantic_unit.repair",
+                    status=(
+                        "done"
+                        if self._quality_content_score(proposed_audit)
+                        < self._quality_content_score(unit_audit)
+                        else "warn"
+                    ),
+                    title=f"Reparacion {repair_attempt}/2 evaluada: {requirement.heading}",
+                    detail=(
+                        f"Unidad {unit_audit.words}->{proposed_audit.words} palabras; "
+                        f"bloques recibidos={len(repaired_blocks)}, "
+                        f"bloques utilizables={len(usable_supplement) if completion_mode else len(repaired_blocks)}."
+                    ),
+                    meta={
+                        "sectionId": section_id,
+                        "sectionPath": section_path,
+                        "unitKey": requirement.key,
+                        "repairAttempt": repair_attempt,
+                        "completionMode": completion_mode,
+                        "rawCharacters": len(str(repair_result.content or "")),
+                        "parsedBlocks": len(repaired_blocks),
+                        "usableBlocks": len(usable_supplement) if completion_mode else len(repaired_blocks),
+                        "wordsBefore": unit_audit.words,
+                        "wordsProposed": proposed_audit.words,
+                        "missingTopicsProposed": list(proposed_audit.missing_topics),
+                        "duplicateRatioProposed": proposed_audit.duplicate_ratio,
+                    },
+                )
+                if self._quality_content_score(proposed_audit) < self._quality_content_score(unit_audit):
+                    unit_blocks = proposed_blocks
+                    unit_audit = proposed_audit
+
+            if (
+                unit_audit.words < unit_audit.minimum
+                or unit_audit.missing_topics
+                or unit_audit.duplicate_ratio > 0.22
+            ):
+                raise QualityProfileValidationError(
+                    "Perfil UNAC detenido en la unidad generada: "
+                    + self._quality_failure_detail([unit_audit], include_citations=False),
+                    failed_quality_keys=[requirement.key],
+                )
+
+            first_is_target = bool(
+                unit_blocks
+                and str(unit_blocks[0].get("tipo") or "").lower() == "parrafo"
+                and section_key_from_path(str(unit_blocks[0].get("texto") or "")) == requirement.key
+            )
+            if first_is_target:
+                unit_blocks[0] = {**unit_blocks[0], "texto": requirement.heading}
+            else:
+                unit_blocks.insert(0, {"tipo": "parrafo", "texto": requirement.heading})
+            outputs.append(self._semantic_blocks_as_generation_text(unit_blocks))
+            completed.add(requirement.key)
             self._emit_trace(
                 step="ai.generate.semantic_unit",
                 status="done",
@@ -1877,6 +2073,124 @@ class AIService:
         return sections
 
     @staticmethod
+    def _quality_content_score(audit: SectionQualityAudit) -> tuple[int, int, int, int]:
+        failed_dimensions = (
+            int(audit.words < audit.minimum)
+            + int(audit.formulas < audit.formula_minimum)
+            + len(audit.missing_topics)
+            + int(audit.duplicate_ratio > 0.22)
+        )
+        return (
+            failed_dimensions,
+            max(0, audit.minimum - audit.words),
+            len(audit.missing_topics),
+            int(round(audit.duplicate_ratio * 1000)),
+        )
+
+    @staticmethod
+    def _semantic_blocks_as_generation_text(content: Any) -> str:
+        rendered: list[str] = []
+        for block in normalize_semantic_blocks(content):
+            kind = str(block.get("tipo") or "parrafo").strip().lower()
+            if kind == "parrafo":
+                text = str(block.get("texto") or "").strip()
+                if text:
+                    rendered.append(text)
+                continue
+            if kind in {"lista", "list"}:
+                rendered.extend(str(item).strip() for item in block.get("items", []) if str(item).strip())
+                continue
+            marker = {
+                "formula": "FORMULA_JSON",
+                "tabla": "TABLE_JSON",
+                "figura": "FIGURE_JSON",
+            }.get(kind)
+            if marker:
+                rendered.append(
+                    f"<<<{marker}\n{json.dumps(block, ensure_ascii=False)}\n{marker}>>>"
+                )
+        return "\n\n".join(rendered)
+
+    @staticmethod
+    def _strict_semantic_heading_key(block: Dict[str, Any]) -> Optional[str]:
+        if str(block.get("tipo") or "").lower() != "parrafo":
+            return None
+        match = re.match(
+            r"^\s*(\d+(?:\.\d+){1,2})\.?\s+\S",
+            str(block.get("texto") or "").strip("#* "),
+        )
+        return match.group(1) if match else None
+
+    @staticmethod
+    def _isolate_blocks_for_requirement(
+        content: Any,
+        requirement: SectionQualityRequirement,
+    ) -> list[Dict[str, Any]]:
+        """Crop a provider response to the one requested semantic unit."""
+        blocks = normalize_semantic_blocks(content)
+        heading_positions = [
+            (index, AIService._strict_semantic_heading_key(block))
+            for index, block in enumerate(blocks)
+            if AIService._strict_semantic_heading_key(block)
+        ]
+        target_positions = [index for index, key in heading_positions if key == requirement.key]
+        if target_positions:
+            start = target_positions[0]
+            end = next((index for index, _ in heading_positions if index > start), len(blocks))
+            return [dict(block) for block in blocks[start:end]]
+        if heading_positions:
+            return [dict(block) for block in blocks[: heading_positions[0][0]]]
+        return [dict(block) for block in blocks]
+
+    @staticmethod
+    def _supplement_blocks_for_requirement(
+        content: Any,
+        requirement: SectionQualityRequirement,
+    ) -> list[Dict[str, Any]]:
+        """Keep only prose that belongs to the requested supplemental unit.
+
+        Some providers ignore the supplemental contract and return the complete
+        parent section.  Appending that response verbatim makes the first
+        heading switch ownership to a sibling, so the requested unit remains
+        short even though useful prose was returned.  Crop an echoed composite
+        response at the next semantic heading and never append sibling content.
+        """
+        original = normalize_semantic_blocks(content)
+        target_present = any(
+            AIService._strict_semantic_heading_key(block) == requirement.key
+            for block in original
+        )
+        blocks = AIService._isolate_blocks_for_requirement(original, requirement)
+        if not target_present and any(
+            AIService._strict_semantic_heading_key(block) for block in original
+        ):
+            # A response containing only another numbered unit cannot be used.
+            blocks = original[: next(
+                index
+                for index, block in enumerate(original)
+                if AIService._strict_semantic_heading_key(block)
+            )]
+
+        return [
+            dict(block)
+            for block in blocks
+            if not AIService._strict_semantic_heading_key(block)
+        ]
+
+    @staticmethod
+    def _without_repeated_unit_heading(
+        content: Any,
+        requirement: SectionQualityRequirement,
+    ) -> list[Dict[str, Any]]:
+        """Remove only an echoed target heading from a complete rewrite."""
+        blocks = normalize_semantic_blocks(content)
+        if blocks:
+            key = AIService._strict_semantic_heading_key(blocks[0])
+            if key == requirement.key:
+                return [dict(block) for block in blocks[1:]]
+        return [dict(block) for block in blocks]
+
+    @staticmethod
     def _quality_failure_detail(
         failures: List[SectionQualityAudit], *, include_citations: bool = True
     ) -> str:
@@ -1909,6 +2223,149 @@ class AIService:
                 candidates.append((len(key), section))
         return max(candidates, key=lambda item: item[0])[1] if candidates else None
 
+    def _preserve_unac_quality_regressions(
+        self,
+        *,
+        before: List[Dict[str, Any]],
+        after: List[Dict[str, Any]],
+        values: Dict[str, Any],
+        format_id: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """Restore semantic units that a broad cleanup pass made worse."""
+        if not is_unac_maintenance_project(format_id, values):
+            return after
+
+        before_audits = {item.key: item for item in audit_unac_maintenance_sections(before)}
+        after_audits = {item.key: item for item in audit_unac_maintenance_sections(after)}
+        restored: list[str] = []
+        requirements = {item.key: item for item in load_unac_maintenance_profile().requirements}
+        for key, original_audit in before_audits.items():
+            corrected_audit = after_audits.get(key)
+            requirement = requirements.get(key)
+            if corrected_audit is None or requirement is None:
+                continue
+            if self._quality_content_score(corrected_audit) <= self._quality_content_score(original_audit):
+                continue
+            original_owner = self._quality_owner_section(before, key)
+            corrected_owner = self._quality_owner_section(after, key)
+            if original_owner is None or corrected_owner is None:
+                continue
+            original_owner_key = section_key_from_path(str(original_owner.get("path") or ""))
+            corrected_owner_key = section_key_from_path(str(corrected_owner.get("path") or ""))
+            original_unit: Any = original_owner.get("content")
+            if original_owner_key != key:
+                extracted = extract_semantic_unit_content(original_unit, key)
+                if extracted:
+                    original_unit = extracted
+            if corrected_owner_key == key:
+                corrected_owner["content"] = copy.deepcopy(original_unit)
+            else:
+                corrected_owner["content"] = replace_semantic_unit_content(
+                    corrected_owner.get("content"),
+                    requirement=requirement,
+                    replacement=copy.deepcopy(original_unit),
+                )
+            restored.append(key)
+
+        if restored:
+            self._emit_trace(
+                step="ai.correction.quality_guard",
+                status="warn",
+                title="La limpieza intento degradar unidades UNAC",
+                detail="Se restauraron las mejores versiones antes de continuar: " + ", ".join(restored),
+                meta={"restoredQualityKeys": restored},
+            )
+        return after
+
+    def _rewrite_repetitive_antecedent_batches(
+        self,
+        *,
+        current_unit: Any,
+        requirement: SectionQualityRequirement,
+        path: str,
+        selection: Optional[Dict[str, Any]],
+    ) -> list[Dict[str, Any]] | None:
+        """Rewrite antecedents in small batches so a long section is never truncated."""
+        blocks = normalize_semantic_blocks(current_unit)
+        paragraphs = [
+            block
+            for block in blocks
+            if str(block.get("tipo") or "").lower() == "parrafo"
+            and section_key_from_path(str(block.get("texto") or "")) != requirement.key
+        ]
+        if len(paragraphs) < 2:
+            return None
+
+        style_routes = (
+            "abre desde el problema y enlaza el objetivo sin usar rotulos mecanicos",
+            "abre desde el resultado cuantitativo y reconstruye despues metodo y alcance",
+            "abre desde la muestra y el diseno, luego explica problema, hallazgos y aporte",
+            "abre desde la contribucion al proyecto y contrasta despues objetivo y resultados",
+        )
+        rewritten: list[Dict[str, Any]] = [
+            {"tipo": "parrafo", "texto": requirement.heading}
+        ]
+        for batch_index in range(0, len(paragraphs), 2):
+            batch = paragraphs[batch_index : batch_index + 2]
+            route = style_routes[(batch_index // 2) % len(style_routes)]
+            output_contract = "\n".join(
+                f"<<<ANTECEDENTE_{index + 1}>>>\n[texto reescrito]\n<<<FIN_ANTECEDENTE_{index + 1}>>>"
+                for index in range(len(batch))
+            )
+            prompt = "\n".join(
+                [
+                    "Reescribe SOLO los antecedentes incluidos en este lote, uno por parrafo y en el mismo orden.",
+                    "Conserva sin inventar autor, ano, pais, titulo, problema, objetivo, metodo, muestra, resultados, conclusion y aporte.",
+                    "No resumas ni elimines estudios. Mantiene una extension equivalente, con tolerancia de +/- 10% por parrafo.",
+                    f"Ruta de estilo obligatoria para este lote: {route}.",
+                    "Prohibido repetir inicios o plantillas como 'el objetivo fue', 'la metodologia utilizada', "
+                    "'los resultados mostraron', 'la conclusion principal' y 'el aporte de este estudio'.",
+                    "No agregues encabezados, listas, Markdown, citas nuevas ni comentarios.",
+                    "Usa obligatoriamente estos delimitadores, sin fusionar los estudios:",
+                    output_contract,
+                    "Lote original:",
+                    json.dumps(batch, ensure_ascii=False),
+                    "Devuelve exactamente el mismo numero de parrafos que contiene el lote.",
+                ]
+            )
+            result = self._generate_with_provider_fallback(
+                prompt,
+                preferred_provider=self._last_used_provider,
+                section_current=0,
+                section_total=0,
+                section_path=f"{path}/{requirement.heading}/lote-{batch_index // 2 + 1}",
+                section_id=f"antecedent-batch:{requirement.key}:{batch_index // 2 + 1}",
+                phase="quality_profile_repair",
+                selection=selection,
+            )
+            delimited = re.findall(
+                r"<<<ANTECEDENTE_\d+>>>\s*(.*?)\s*<<<FIN_ANTECEDENTE_\d+>>>",
+                result.content,
+                flags=re.DOTALL | re.IGNORECASE,
+            )
+            if len(delimited) == len(batch):
+                candidate_paragraphs = [
+                    {"tipo": "parrafo", "texto": " ".join(text.strip().split())}
+                    for text in delimited
+                    if text.strip()
+                ]
+            else:
+                candidate = normalize_semantic_blocks(
+                    self.validator.sanitize_content(parse_ai_content(result.content), path=path)
+                )
+                candidate = self._without_repeated_unit_heading(candidate, requirement)
+                candidate_paragraphs = [
+                    block for block in candidate if str(block.get("tipo") or "").lower() == "parrafo"
+                ]
+            if len(candidate_paragraphs) != len(batch):
+                return None
+            original_words = sum(len(str(block.get("texto") or "").split()) for block in batch)
+            candidate_words = sum(len(str(block.get("texto") or "").split()) for block in candidate_paragraphs)
+            if candidate_words < int(original_words * 0.50):
+                return None
+            rewritten.extend(candidate_paragraphs)
+        return rewritten
+
     def _repair_unac_quality_profile_sections(
         self,
         sections: List[Dict[str, Any]],
@@ -1924,20 +2381,6 @@ class AIService:
 
         profile = load_unac_maintenance_profile()
         requirements = {item.key: item for item in profile.requirements}
-
-        def _score(audit: SectionQualityAudit) -> tuple[int, int, int, int]:
-            failed_dimensions = (
-                int(audit.words < audit.minimum)
-                + int(audit.formulas < audit.formula_minimum)
-                + len(audit.missing_topics)
-                + int(audit.duplicate_ratio > 0.22)
-            )
-            return (
-                failed_dimensions,
-                max(0, audit.minimum - audit.words),
-                len(audit.missing_topics),
-                int(round(audit.duplicate_ratio * 1000)),
-            )
 
         for attempt in range(1, 3):
             audits = audit_unac_maintenance_sections(sections)
@@ -1960,9 +2403,32 @@ class AIService:
                     if extracted:
                         current_unit = extracted
                 deficit_detail = self._quality_failure_detail([audit], include_citations=False)
+                completion_mode = (
+                    audit.duplicate_ratio <= 0.22
+                    and (audit.words < audit.minimum or bool(audit.missing_topics))
+                )
+                word_deficit = max(0, audit.minimum - audit.words)
+                supplemental_target = max(
+                    80,
+                    (word_deficit * 115 + 99) // 100,
+                    120 if audit.missing_topics else 0,
+                )
+                repair_instruction = (
+                    "Completa la unidad sin reescribir ni resumir el contenido valido. "
+                    f"Devuelve SOLO parrafos complementarios nuevos con al menos {supplemental_target} palabras "
+                    "narrativas; no repitas el encabezado ni el texto existente."
+                    if completion_mode
+                    else (
+                        "Reescribe COMPLETA y unicamente la unidad. Conserva sus hechos utiles, pero cambia "
+                        "la arquitectura verbal para eliminar repeticion. Cada estudio debe usar una apertura, "
+                        "orden de ideas y cierre diferentes; no repitas plantillas como 'el objetivo fue', "
+                        "'la metodologia utilizada', 'los resultados mostraron' o 'la conclusion principal'. "
+                        "La proporcion de secuencias repetidas debe quedar por debajo de 20%."
+                    )
+                )
                 prompt = "\n".join(
                     [
-                        "Reescribe COMPLETA y unicamente la unidad semantica indicada de un proyecto de tesis UNAC.",
+                        repair_instruction,
                         f"Ruta institucional: {path}",
                         f"Unidad: {requirement.heading}",
                         f"Perfil: {profile.id}. Intento de reparacion {attempt}/2.",
@@ -1970,9 +2436,13 @@ class AIService:
                         self._unac_requirement_contract(requirement),
                         "No copies frases del documento guia, no rellenes con repeticiones y no incluyas comentarios.",
                         "Las formulas canonicas se conservan o insertan por el sistema; no emitas FORMULA_JSON.",
-                        "Contenido actual de esta unidad:",
+                        "Contenido valido actual de esta unidad:",
                         json.dumps(current_unit, ensure_ascii=False),
-                        "Devuelve solo esta unidad completa corregida.",
+                        (
+                            "Devuelve solo los parrafos adicionales solicitados."
+                            if completion_mode
+                            else "Devuelve solo la unidad completa corregida."
+                        ),
                     ]
                 )
                 self._emit_trace(
@@ -1987,33 +2457,59 @@ class AIService:
                         "profile": profile.id,
                     },
                 )
-                result = self._generate_with_provider_fallback(
-                    prompt,
-                    preferred_provider=self._last_used_provider,
-                    section_current=0,
-                    section_total=0,
-                    section_path=f"{path}/{requirement.heading}",
-                    section_id=f"{owner_id}:{audit.key}",
-                    phase="quality_profile_repair",
-                    selection=selection,
-                )
-                candidate = parse_ai_content(result.content)
-                candidate = self.validator.sanitize_content(candidate, path=path)
+                provider_used = self._last_used_provider or ""
+                proposed_unit: Any = None
+                if audit.duplicate_ratio > 0.22 and audit.key in {"2.1.1", "2.1.2"}:
+                    proposed_unit = self._rewrite_repetitive_antecedent_batches(
+                        current_unit=current_unit,
+                        requirement=requirement,
+                        path=path,
+                        selection=selection,
+                    )
+                    provider_used = self._last_used_provider or provider_used
+
+                if proposed_unit is None:
+                    result = self._generate_with_provider_fallback(
+                        prompt,
+                        preferred_provider=self._last_used_provider,
+                        section_current=0,
+                        section_total=0,
+                        section_path=f"{path}/{requirement.heading}",
+                        section_id=f"{owner_id}:{audit.key}",
+                        phase="quality_profile_repair",
+                        selection=selection,
+                    )
+                    provider_used = result.provider or self._last_used_provider or provider_used
+                    candidate = parse_ai_content(result.content)
+                    candidate = self.validator.sanitize_content(candidate, path=path)
+                    proposed_unit = (
+                        normalize_semantic_blocks(current_unit)
+                        + self._supplement_blocks_for_requirement(candidate, requirement)
+                        if completion_mode
+                        else candidate
+                    )
                 previous_content = section.get("content")
                 if owner_key == audit.key:
-                    section["content"] = candidate
+                    section["content"] = proposed_unit
                 else:
                     section["content"] = replace_semantic_unit_content(
                         previous_content,
                         requirement=requirement,
-                        replacement=candidate,
+                        replacement=proposed_unit,
                     )
                 ensure_canonical_formulas([section])
                 updated_audit = next(
                     (item for item in audit_unac_maintenance_sections(sections) if item.key == audit.key),
                     audit,
                 )
-                accepted = _score(updated_audit) < _score(audit)
+                accepted = self._quality_content_score(updated_audit) < self._quality_content_score(audit)
+                progressive_duplicate_repair = (
+                    audit.duplicate_ratio > 0.22
+                    and updated_audit.duplicate_ratio <= 0.22
+                    and updated_audit.words >= int(requirement.min_words * 0.75)
+                    and updated_audit.formulas >= requirement.min_formulas
+                )
+                accepted = accepted or progressive_duplicate_repair
                 if accepted:
                     repaired_any = True
                     self._partial_sections = [dict(item) for item in sections]
@@ -2021,7 +2517,7 @@ class AIService:
                         len(sections),
                         len(sections),
                         f"{path}/{requirement.heading}",
-                        result.provider or self._last_used_provider or "",
+                        provider_used,
                         stage="quality_unit_done",
                         payload={
                             "section_id": f"{owner_id}:{audit.key}",
@@ -2570,6 +3066,13 @@ class AIService:
                 continue
 
             section_id = str(section.get("sectionId") or "")
+            original_content = copy.deepcopy(section.get("content"))
+            protect_unac_quality = is_unac_maintenance_project(format_id, values)
+            original_quality = {
+                audit.key: audit
+                for audit in audit_unac_maintenance_sections([section])
+                if audit.key.startswith("2.2.")
+            }
             try:
                 self.validator._validate_theoretical_bases_quality(section.get("content"), section_id=section_id)
                 continue
@@ -2606,6 +3109,29 @@ class AIService:
                 }
                 apply_figure_recommendations([candidate], values=values, format_id=format_id)
                 self.validator._validate_theoretical_bases_quality(candidate.get("content"), section_id=section_id)
+                if protect_unac_quality:
+                    candidate_quality = {
+                        audit.key: audit
+                        for audit in audit_unac_maintenance_sections([candidate])
+                        if audit.key.startswith("2.2.")
+                    }
+                    regressions = [
+                        key
+                        for key, original_audit in original_quality.items()
+                        if key not in candidate_quality
+                        or self._quality_content_score(candidate_quality[key])
+                        > self._quality_content_score(original_audit)
+                    ]
+                    if regressions:
+                        section["content"] = original_content
+                        self._emit_trace(
+                            step="ai.bases_repair",
+                            status="warn",
+                            title="Reparacion visual de 2.2 descartada por degradar contenido",
+                            detail="Unidades preservadas: " + ", ".join(regressions),
+                            meta={"sectionId": section_id, "sectionPath": path, "regressions": regressions},
+                        )
+                        continue
             except Exception as repair_exc:
                 self._emit_trace(
                     step="ai.bases_repair",
@@ -2614,6 +3140,9 @@ class AIService:
                     detail=str(repair_exc),
                     meta={"sectionId": section_id, "sectionPath": path},
                 )
+                if protect_unac_quality:
+                    section["content"] = original_content
+                    continue
                 fallback = {
                     **section,
                     "content": self._fallback_theoretical_bases_content(values),

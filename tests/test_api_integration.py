@@ -1032,6 +1032,7 @@ class TestGenerationEndpoint:
                     "reason": "Error transitorio",
                     "updated_at": "2026-02-24T10:00:00",
                 },
+                "error": "Error previo que debe limpiarse al reintentar.",
             },
         )
 
@@ -1055,6 +1056,7 @@ class TestGenerationEndpoint:
         assert project["generation_snapshot"]["saved_sections_count"] == 1
         assert project["generation_snapshot"]["completed_sections"][0]["path"] == "Introduccion"
         assert project["progress"]["tokenUsage"]["total_tokens"] == 70
+        assert project["error"] is None
 
     def test_generate_restart_mode_ignores_saved_progress(self, client):
         from app.modules.api import router as router_module
@@ -1168,6 +1170,48 @@ class TestGenerationEndpoint:
 
         project = client.get(f"/api/projects/{project_id}").json()
         assert project["status"] == "rendering"
+
+    def test_render_failed_checkpoint_ignores_internal_post_render_fingerprint_normalization(self, client):
+        from app.modules.api import router as router_module
+        from app.modules.api.payload_helpers import project_input_fingerprint
+
+        response = client.post(
+            "/api/projects/draft",
+            json={
+                "title": "Render fingerprint normalization",
+                "formatId": "demo",
+                "promptId": "prompt_tesis_estandar",
+                "values": {"tema": "Original"},
+            },
+        )
+        project_id = response.json()["id"]
+        project = router_module.projects.get_project(project_id)
+        fingerprint = project_input_fingerprint(project)
+        router_module.projects.update_project(
+            project_id,
+            {
+                "status": "render_failed",
+                "ai_result": {
+                    "inputFingerprint": fingerprint,
+                    "sections": [{"sectionId": "sec-1", "path": "Introduccion", "content": "Validado"}],
+                },
+                "values": {"tema": "Original", "title": "Render fingerprint normalization"},
+                "variables": {"tema": "Original", "title": "Render fingerprint normalization"},
+                "generation_phase": {"status": "completed"},
+                "construction_phase": {"status": "error"},
+            },
+        )
+
+        with (
+            patch("app.modules.api.router._render_saved_ai_job", new=AsyncMock(return_value=None)) as render_mock,
+            patch("app.modules.api.router._ai_generation_job", new=AsyncMock(return_value=None)) as ai_mock,
+        ):
+            retry = client.post(f"/api/projects/{project_id}/generate", json={"resumeMode": "auto"})
+
+        assert retry.status_code == 202
+        assert retry.json()["mode"] == "render_only"
+        assert render_mock.call_count == 1
+        assert ai_mock.call_count == 0
 
     def test_generate_render_failed_restart_forces_new_ai_run(self, client):
         from app.modules.api import router as router_module

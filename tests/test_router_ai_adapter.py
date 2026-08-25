@@ -766,6 +766,186 @@ def test_build_render_payload_accepts_formula_blocks():
     assert content[0]["numero"] == "(1)"
 
 
+def test_build_render_payload_recovers_canonical_maintenance_formula():
+    payload = _build_render_payload(
+        format_id="unac-proyecto-cuant",
+        values={"title": "Plan de mantenimiento para mejorar la disponibilidad"},
+        ai_result_raw={
+            "sections": [
+                {
+                    "sectionId": "sec-bases",
+                    "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+                    "content": [
+                        {"tipo": "parrafo", "texto": "2.2.5 Disponibilidad inherente"},
+                        {"tipo": "parrafo", "texto": "Definición previa suficiente."},
+                        {
+                            "tipo": "formula",
+                            "latex": r"A = \frac{MTBF}{MTBF + MTTR}",
+                            "texto": "A = MTBF / (MTBF + MTTR)",
+                            "id": "incorrecta",
+                        },
+                        {"tipo": "parrafo", "texto": "2.2.6 Confiabilidad"},
+                        {"tipo": "parrafo", "texto": "Desarrollo."},
+                        {"tipo": "parrafo", "texto": "2.2.7 Mantenibilidad"},
+                        {"tipo": "parrafo", "texto": "Desarrollo."},
+                        {"tipo": "parrafo", "texto": "2.2.8 Equipo u objeto de estudio"},
+                    ],
+                }
+            ]
+        },
+    )
+
+    formulas = [
+        item
+        for item in payload["aiResult"]["sections"][0]["content"]
+        if item.get("tipo") == "formula"
+    ]
+    assert formulas[0]["latex"] == r"A_i = \frac{MTBF}{MTBF + MTTR}"
+    assert formulas[0]["numero"] == "(1)"
+
+
+def test_build_render_payload_aligns_methodology_with_matrix_truth():
+    payload = _build_render_payload(
+        format_id="unac-proyecto-cuant",
+        values={
+            "title": "Plan de mantenimiento para mejorar la disponibilidad",
+            "matriz_consistencia": {
+                "metodologia": {
+                    "nivel": "Explicativa",
+                    "diseno": "Pre experimental (Pre test y Post Test)",
+                }
+            },
+        },
+        ai_result_raw={
+            "sections": [
+                {
+                    "sectionId": "sec-method",
+                    "path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico",
+                    "content": (
+                        "El estudio adopta un enfoque correlacional. "
+                        "Este nivel permite identificar el grado de asociación entre ambas variables sin manipulación experimental. "
+                        "El diseño metodológico corresponde a un estudio no experimental de corte transversal, donde las variables "
+                        "se analizan en un momento específico (2025) sin intervención directa sobre las unidades de estudio. "
+                        "Este diseño permite evaluar la relación entre las variables en su contexto natural."
+                    ),
+                }
+            ]
+        },
+    )
+
+    content = payload["aiResult"]["sections"][0]["content"]
+    normalized = content.lower()
+    assert "nivel explicativo" in normalized
+    assert "preexperimental con preprueba y posprueba" in normalized
+    assert "no experimental" not in normalized
+    assert "correlacional" not in normalized
+
+
+def test_build_render_payload_aligns_real_generated_methodology_variants():
+    payload = _build_render_payload(
+        format_id="unac-proyecto-cuant",
+        values={
+            "title": "Plan de mantenimiento para mejorar la disponibilidad",
+            "matriz_consistencia": {
+                "metodologia": {
+                    "nivel": "Explicativa",
+                    "diseno": "Pre experimental (Pre test y Post Test)",
+                }
+            },
+        },
+        ai_result_raw={
+            "sections": [
+                {
+                    "sectionId": "sec-method-real",
+                    "path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico",
+                    "content": (
+                        "El nivel de la investigación es descriptivo-correlacional, puesto que permite identificar "
+                        "patrones y asociaciones entre las variables sin manipularlas directamente.\n\n"
+                        "El diseño de investigación es no experimental de corte transversal, dado que las variables "
+                        "se observarán en 2025 sin intervención deliberada sobre ellas. La población corresponde a "
+                        "cinco motoniveladoras CAT 24M y la recolección se realizará en un solo período temporal.\n\n"
+                        "El esquema M O₁ X O₂ refleja el enfoque transversal del estudio."
+                    ),
+                }
+            ]
+        },
+    )
+
+    content = payload["aiResult"]["sections"][0]["content"]
+    normalized = content.lower()
+    assert "nivel de la investigación es explicativo" in normalized
+    assert "preexperimental con preprueba y posprueba" in normalized
+    assert "antes y después de la intervención" in normalized
+    assert "cinco motoniveladoras cat 24m" in normalized
+    assert "no experimental" not in normalized
+    assert "transversal" not in normalized
+    assert "correlacional" not in normalized
+
+
+def test_build_render_payload_rebuilds_contradictory_design_paragraph_from_project_truth():
+    payload = _build_render_payload(
+        format_id="unac-proyecto-cuant",
+        values={
+            "title": "Plan de mantenimiento para mejorar la disponibilidad",
+            "anio": "2025",
+            "lugar_ejecucion": "Sierra Central",
+            "matriz_consistencia": {
+                "metodologia": {
+                    "nivel": "Explicativa",
+                    "diseno": "Pre experimental (Pre test y Post Test)",
+                    "poblacion": "cinco motoniveladoras CAT 24M",
+                    "muestra": "una muestra censal de cinco equipos",
+                }
+            },
+        },
+        ai_result_raw={
+            "sections": [
+                {
+                    "sectionId": "sec-method-current-failure",
+                    "path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico",
+                    "content": (
+                        "El nivel de investigación es explicativo.\n\n"
+                        "El diseño metodológico es no experimental de tipo transversal, pues los datos se recopilan "
+                        "en un único momento sin manipulación deliberada de las variables y sin intervención experimental. "
+                        "Se estudia la relación en su contexto natural. [[CITE:SIM_TEST]]\n\n"
+                        "El esquema metodológico sigue la estructura M O₁ X O₂."
+                    ),
+                }
+            ]
+        },
+    )
+
+    normalized = payload["aiResult"]["sections"][0]["content"].lower()
+    assert "preexperimental con preprueba y posprueba" in normalized
+    assert "cinco motoniveladoras cat 24m" in normalized
+    assert "muestra censal de cinco equipos" in normalized
+    assert "sierra central" in normalized
+    assert "2025" in normalized
+    assert "[[cite:sim_test]]" in normalized
+    assert "no experimental" not in normalized
+    assert "transversal" not in normalized
+    assert "sin manipulación" not in normalized
+    assert "sin intervención experimental" not in normalized
+
+
+def test_build_render_payload_removes_redundant_introduction_heading():
+    payload = _build_render_payload(
+        format_id="unac-proyecto-cuant",
+        values={"title": "Proyecto académico"},
+        ai_result_raw={
+            "sections": [
+                {
+                    "sectionId": "sec-intro",
+                    "path": "INTRODUCCIÓN",
+                    "content": "Introducción\n\nPrimer párrafo académico.",
+                }
+            ]
+        },
+    )
+
+    assert payload["aiResult"]["sections"][0]["content"] == "Primer párrafo académico."
+
+
 def test_adapter_preserves_reality_problem_figures():
     ai_result = {
         "sections": [
