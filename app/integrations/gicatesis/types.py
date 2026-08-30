@@ -158,6 +158,8 @@ class FigureBlock(BaseModel):
     diagram_type: Optional[str] = None
     diagram_data: Optional[dict[str, Any]] = None
     numbered: bool = True
+    show_caption: Optional[bool] = None
+    include_in_index: Optional[bool] = None
 
     @field_validator("caption")
     @classmethod

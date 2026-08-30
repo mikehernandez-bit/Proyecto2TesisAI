@@ -569,12 +569,12 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
         context_mode="conceptual_frame",
     ),
     "ii. marco teorico/2.4 definicion de terminos basicos": SectionPromptProfile(
-        word_range="450 a 600 palabras",
+        word_range="434 a 500 palabras; exactamente trece definiciones",
         purpose="Definir terminos tecnicos basicos directamente utiles para entender el proyecto.",
         structure=(
             "Lista textual con formato exacto 'Termino. Definicion...'.",
             (
-                "Incluye 10 a 15 terminos derivados del area, variable independiente, dimensiones de la variable "
+            "Incluye exactamente trece terminos derivados del area, variable independiente, dimensiones de la variable "
                 "independiente, variable dependiente, dimensiones de la variable dependiente e indicadores principales."
             ),
             "Ordena los terminos desde conceptos base del area hasta variables, dimensiones e indicadores.",

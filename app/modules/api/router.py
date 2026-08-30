@@ -188,7 +188,7 @@ class RenderStageError(RuntimeError):
         if isinstance(detail, str):
             return detail
         try:
-            return json.dumps(detail, ensure_ascii=False)
+            return json.dumps(detail, ensure_ascii=False, default=str)
         except Exception:
             return str(detail)
 
@@ -690,6 +690,16 @@ def _empty_generation_phase(*, total_sections: int = 0) -> Dict[str, Any]:
         "planned_sections": [],
         "sections": [],
         "cost_summary": generation_cost_snapshot(empty_generation_cost_report()),
+        "metrics": {
+            "total_ms": 0,
+            "provider_ms": 0,
+            "internal_ms": 0,
+            "persistence_ms": 0,
+            "initial_calls": 0,
+            "repair_calls": 0,
+            "units_reused": 0,
+            "units_regenerated": 0,
+        },
         "started_at": "",
         "updated_at": "",
         "finished_at": "",
@@ -733,6 +743,12 @@ def _normalize_generation_phase_state(raw: Any) -> Dict[str, Any]:
             "total_sections": max(0, int(raw.get("total_sections") or 0)),
             "completed_sections": max(0, int(raw.get("completed_sections") or 0)),
             "cost_summary": normalize_generation_cost_snapshot(raw.get("cost_summary")),
+            "metrics": {
+                key: max(0, int(value or 0))
+                for key, value in (raw.get("metrics") or {}).items()
+            }
+            if isinstance(raw.get("metrics"), dict)
+            else dict(base["metrics"]),
             "started_at": str(raw.get("started_at") or ""),
             "updated_at": str(raw.get("updated_at") or ""),
             "finished_at": str(raw.get("finished_at") or ""),
@@ -781,6 +797,48 @@ def _normalize_construction_phase_state(raw: Any) -> Dict[str, Any]:
             tasks_by_id[task_id] = current
     base["tasks"] = list(tasks_by_id.values())
     return base
+
+
+def _generation_timing_metrics(project: Dict[str, Any], phase: Dict[str, Any]) -> Dict[str, int]:
+    attempts = (project.get("token_usage") or {}).get("attempts")
+    attempts = [item for item in attempts or [] if isinstance(item, dict)]
+    provider_ms = sum(max(0, int(item.get("duration_ms") or 0)) for item in attempts)
+    repair_calls = sum(
+        1
+        for item in attempts
+        if any(marker in str(item.get("phase") or "").lower() for marker in ("repair", "cleanup", "correction"))
+    )
+    initial_calls = max(0, len(attempts) - repair_calls)
+
+    def parse_timestamp(value: Any) -> Optional[dt.datetime]:
+        raw = str(value or "").strip()
+        if not raw:
+            return None
+        try:
+            parsed = dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            return None
+
+    started = parse_timestamp(phase.get("started_at"))
+    finished = parse_timestamp(phase.get("finished_at")) or dt.datetime.now(dt.timezone.utc)
+    total_ms = max(0, int((finished - started).total_seconds() * 1000)) if started else provider_ms
+    resume = project.get("resume") if isinstance(project.get("resume"), dict) else {}
+    previous = phase.get("metrics") if isinstance(phase.get("metrics"), dict) else {}
+    return {
+        "total_ms": total_ms,
+        "provider_ms": provider_ms,
+        "internal_ms": max(0, total_ms - provider_ms),
+        "persistence_ms": max(0, int(previous.get("persistence_ms") or 0)),
+        "initial_calls": initial_calls,
+        "repair_calls": repair_calls,
+        "units_reused": max(0, int(resume.get("saved_sections_count") or 0)),
+        "units_regenerated": sum(
+            1
+            for item in phase.get("sections") or []
+            if isinstance(item, dict) and str(item.get("status") or "").lower() in {"ok", "done", "completed"}
+        ),
+    }
 
 
 def _construction_resume_stage(raw: Any) -> str:
@@ -1204,7 +1262,7 @@ def _render_project_outputs_sync(
             step="gicatesis.payload",
             status="error",
             title="Payload invalido antes de enviar a GicaTesis",
-            detail=json.dumps(exc.errors, ensure_ascii=False),
+            detail=json.dumps(exc.errors, ensure_ascii=False, default=str),
             meta={"stage": "failed", "statusCode": 422},
         )
         raise RenderStageError(exc.errors, status_code=422) from exc
@@ -3096,6 +3154,10 @@ async def _ai_generation_job(
         generation_phase["finished_at"] = _utc_now_z()
         generation_phase["updated_at"] = _utc_now_z()
         generation_phase = _apply_generation_costs_to_phase(generation_phase, cost_report)
+        generation_phase["metrics"] = _generation_timing_metrics(
+            current_project_after_ai,
+            generation_phase,
+        )
         projects.update_project(project_id, {"generation_phase": generation_phase})
         _set_construction_task(
             project_id,
@@ -3319,7 +3381,7 @@ async def _ai_generation_job(
             detail=str(exc),
             meta={"runId": run_id, "stage": "failed"},
         )
-        _logger.error("AI generation failed for project %s: %s", project_id, exc)
+        _logger.exception("AI generation failed for project %s: %s", project_id, exc)
 
 
 async def _render_saved_ai_job(project_id: str, run_id: str) -> None:

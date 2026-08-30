@@ -11,6 +11,7 @@ from app.core.services.ai.unac_quality_profile import (
     minimum_for_section_path,
     replace_semantic_unit_content,
     requirements_for_section_path,
+    section_key_from_path,
 )
 
 
@@ -35,6 +36,12 @@ def test_aggregate_floor_uses_all_reference_subsections() -> None:
     assert minimum_for_section_path("II. MARCO TEÓRICO/2.1 Antecedentes") == 3245
     assert minimum_for_section_path("II. MARCO TEÓRICO/2.2 Bases teóricas") == 1839
     assert minimum_for_section_path("I. PLANTEAMIENTO/1.4 Justificación") == 864
+
+
+def test_section_key_ignores_years_and_standard_numbers_in_the_heading() -> None:
+    heading = "2.2.3 Taxonomía de equipos según ISO 14224:2016"
+    assert section_key_from_path(heading) == "2.2.3"
+    assert requirements_for_section_path(heading)[0].key == "2.2.3"
 
 
 def test_profile_applies_only_to_unac_maintenance_domain() -> None:

@@ -25,6 +25,10 @@ skills-lock.json
 data/provider_selection.json
 data/projects.json.bak
 data/projects.json
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/backups/
 
 # Logs y archivos temporales
 *.log
@@ -52,5 +56,6 @@ scratch/
 /test_*.py
 /reproduce_*.py
 .worktree-main/
+.codex_tmp/
 app/static/CSS/tailwind.generated.css
 test_template.xlsx

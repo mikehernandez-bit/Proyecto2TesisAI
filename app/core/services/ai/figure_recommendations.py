@@ -173,6 +173,29 @@ _PROJECT_PROBLEM_FIGURE_LEADS = (
         "justificar la selección de la solución desarrollada."
     ),
 )
+_PROJECT_PROBLEM_FIGURE_GUIDES = (
+    (
+        "construye un diagrama de Pareto con los sistemas o modos de falla en el eje horizontal, "
+        "la frecuencia de eventos en el eje vertical izquierdo y el porcentaje acumulado en el eje "
+        "vertical derecho. Utiliza únicamente el historial de fallas validado del proyecto y destaca "
+        "visualmente los pocos vitales que concentran la indisponibilidad."
+    ),
+    (
+        "construye un diagrama de causa-efecto cuyo problema central sea la baja disponibilidad del "
+        "equipo. Organiza las causas verificables en las seis ramas Método, Medición, Mano de obra, "
+        "Medio ambiente, Maquinaria y Materiales, sin inventar mediciones ni resultados."
+    ),
+    (
+        "construye una matriz de relevancia que compare las alternativas registradas para resolver la "
+        "baja disponibilidad. Incluye criterios de viabilidad técnica, viabilidad económica, pertinencia "
+        "operativa y disponibilidad de datos, e identifica cuáles alternativas pasan a priorización."
+    ),
+    (
+        "construye una matriz de priorización de las alternativas factibles con criterios ponderados de "
+        "impacto en la disponibilidad, costo-beneficio y sostenibilidad. Utiliza solo pesos y puntajes "
+        "validados por el proyecto y muestra el total ponderado que sustenta la solución seleccionada."
+    ),
+)
 _PROJECT_PROBLEM_ORDERED_ANCHORS = (
     (
         "diagnostico local",
@@ -262,8 +285,8 @@ _CHAPTER_TWO_FIGURES = (
     {
         "tipo": "figura",
         "id": "fig_2_2_niveles_taxonomicos",
-        "titulo": "Niveles taxonomicos",
-        "caption": "Figura 2.2 Niveles taxonomicos",
+        "titulo": "Niveles taxonómicos",
+        "caption": "Figura 2.2 Niveles taxonómicos",
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": "Nota. La taxonomia de activos fisicos como fundamento. Reliability CONNECT.",
         "nota": (
@@ -286,8 +309,8 @@ _CHAPTER_TWO_FIGURES = (
     {
         "tipo": "figura",
         "id": "fig_2_3_amef",
-        "titulo": "Analisis de Modo y Efecto de Falla",
-        "caption": "Figura 2.3 Analisis de Modo y Efecto de Falla",
+        "titulo": "Análisis de Modo y Efecto de Falla",
+        "caption": "Figura 2.3 Análisis de Modo y Efecto de Falla",
         "ruta_placeholder": _CANONICAL_PLACEHOLDER_PATH,
         "fuente": (
             "Nota. Representacion del analisis de modos y efectos de falla aplicado al mantenimiento "
@@ -554,8 +577,13 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
                 "tipo": "figura",
                 "id": f"{_slugify_figure_id(section_id, path)}_{index}",
                 "titulo": title,
-                "caption": title,
+                # The engineer reference shows these four diagnostic supports
+                # with an explicit Figure 1.x caption, but excludes them from
+                # the formal figure index. Keep those two concerns separate.
+                "caption": f"Figura 1.{index} {title}",
                 "numbered": False,
+                "show_caption": True,
+                "include_in_index": False,
                 "diagram_type": diagram_types[index - 1],
                 "diagram_data": {
                     "labels": diagram_labels[index - 1],
@@ -563,6 +591,11 @@ def _project_problem_figure_blocks(section_id: str, path: str) -> list[dict[str,
                     "disclaimer": "Esquema de análisis propuesto; completar con datos validados del proyecto.",
                 },
                 "fuente": "Elaboración propia.",
+                "nota": _augment_project_problem_figure_note(
+                    index,
+                    _PROJECT_PROBLEM_FIGURE_GUIDES[index - 1],
+                ),
+                "nota_color": _FIGURE_GUIDE_BLUE,
             }
         )
     return blocks
@@ -1012,11 +1045,17 @@ def _ensure_chapter_two_theoretical_figures(
             "tipo": "figura",
             "id": str(template["id"]),
             "titulo": str(template["titulo"]),
-            "caption": str(template["titulo"]),
+            "caption": str(template["caption"]),
             "numbered": True,
+            "show_caption": True,
+            "include_in_index": True,
             "diagram_type": diagram_type,
             "diagram_data": {"labels": labels, "qualitative": True},
             "fuente": "Elaboración propia con base en el marco teórico.",
+            # Preserve the authoring prompt instead of silently dropping it
+            # while rebuilding the deterministic figure block.
+            "nota": str(template["nota"]),
+            "nota_color": str(template["nota_color"]),
         }
         insertions.append((anchor_index, figure_block))
     for anchor_index, figure_block in reversed(insertions):

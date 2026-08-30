@@ -374,6 +374,12 @@ export function createTraceView({
     setText("gen-queue-count", String(Math.max(0, phase.totalSections - phase.completedSections)));
     setText("gen-done-count", String(Math.max(0, phase.completedSections)));
     toggleHidden("gen-final-badge", !(phase.totalSections > 0 && phase.completedSections >= phase.totalSections));
+    const providerMs = Math.max(0, Number(phase.metrics?.provider_ms || 0));
+    const internalMs = Math.max(0, Number(phase.metrics?.internal_ms || 0));
+    setText("gen-provider-time-value", `${formatInt(Math.round(providerMs / 1000))}s`);
+    setText("gen-internal-time-value", `${formatInt(Math.round(internalMs / 1000))}s`);
+    toggleHidden("gen-provider-time", providerMs <= 0);
+    toggleHidden("gen-internal-time", internalMs <= 0);
 
     if (!phase.sections.length) {
       setHtml(

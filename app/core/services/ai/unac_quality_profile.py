@@ -82,9 +82,39 @@ _TOPIC_ALIASES: dict[str, tuple[str, ...]] = {
         "n =",
     ),
     "priorizacion": ("priorizacion", "priorizar", "jerarquizacion", "orden de criticidad"),
+    "evaluacion": (
+        "evaluacion",
+        "evaluar",
+        "se evaluara",
+        "comparacion temporal",
+        "comparacion",
+        "analisis",
+        "medicion",
+        "verificacion",
+        "seguimiento",
+    ),
     "diagnostico internacional": ("diagnostico internacional", "contexto internacional", "ambito internacional"),
-    "diagnostico nacional": ("diagnostico nacional", "contexto nacional", "ambito nacional", "en el peru"),
+    "diagnostico nacional": (
+        "diagnostico nacional",
+        "contexto nacional",
+        "ambito nacional",
+        "en el peru",
+        "realidad peruana",
+        "sector minero peruano",
+        "a nivel nacional",
+        "industria minera peruana",
+    ),
     "diagnostico local": ("diagnostico local", "contexto local", "unidad minera", "sierra central"),
+    "operacion": ("operacion", "operativa", "funcionamiento", "actividad productiva"),
+    "entorno": ("entorno", "condiciones ambientales", "condiciones geograficas", "contexto operativo"),
+    "procesamiento": ("procesamiento", "procesar", "depuracion", "organizacion de datos", "tabulacion"),
+    "analisis": ("analisis", "analizar", "interpretacion", "evaluacion de datos"),
+    "indicadores": ("indicadores", "metricas", "mtbf", "mttr", "disponibilidad"),
+    "resultados": ("resultados", "hallazgos", "salidas del analisis", "presentacion de datos"),
+    "etica": ("etica", "principios eticos", "conducta responsable"),
+    "confidencialidad": ("confidencialidad", "reserva de la informacion", "proteccion de datos"),
+    "integridad": ("integridad", "honestidad cientifica", "sin manipulacion", "registro fiel"),
+    "consentimiento": ("consentimiento", "consentimiento informado", "participacion voluntaria"),
 }
 
 _CANONICAL_FORMULAS: dict[str, dict[str, str]] = {
@@ -266,7 +296,16 @@ def _section_key_from_path(path: str) -> str | None:
     if normalized.endswith("introduccion") or normalized == "introduccion":
         return "introduccion"
     matches = re.findall(r"(?<!\d)(\d+(?:\.\d+){0,2})(?!\d)", str(path or ""))
-    return matches[-1] if matches else None
+    if not matches:
+        return None
+    # Academic headings may contain years or standard identifiers after the
+    # real section number (for example ``2.2.3 ... ISO 14224:2016``).  Taking
+    # the last number classified that heading as section ``2016`` and silently
+    # skipped all quality checks for the actual unit.  Structural subsection
+    # identifiers contain dots, so prefer the last dotted match; for a plain
+    # chapter identifier use the first number instead of a trailing year.
+    dotted = [match for match in matches if "." in match]
+    return dotted[-1] if dotted else matches[0]
 
 
 def section_key_from_path(path: str) -> str | None:
@@ -546,7 +585,14 @@ def ensure_canonical_formulas(sections: list[dict[str, Any]]) -> list[dict[str, 
 
 
 def _topic_is_covered(topic: str, normalized: str) -> bool:
-    aliases = _TOPIC_ALIASES.get(_norm(topic), (topic,))
+    # An alias catalogue extends the accepted vocabulary; it must never make
+    # the canonical topic itself invalid.  Previously, a requirement such as
+    # ``normativa`` was reported as missing when the prose literally used
+    # "normativa", because only longer aliases ("marco normativo", etc.) were
+    # checked.  Keep the canonical label in every check so the rule behaves
+    # consistently for all current and future profile topics.
+    configured = _TOPIC_ALIASES.get(_norm(topic), ())
+    aliases = (*configured, topic)
     return any(_norm(alias) in normalized for alias in aliases if _norm(alias))
 
 

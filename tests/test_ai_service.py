@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.core.services.ai.ai_service import AIService
+from app.core.services.ai.content_parser import parse_ai_content
 from app.core.services.ai.errors import ProviderAuthError, QualityProfileValidationError, QuotaExceededError
 from app.core.services.ai.resilience_router import LLMResult
 from app.core.services.ai.unac_quality_profile import (
@@ -182,12 +183,18 @@ def test_semantic_unit_completes_a_structured_short_unit_without_rewriting_it() 
         if item.key == "2.1.2"
     )
     initial_short = _five_study_paragraphs("base_nacional", 115)
-    final_deficit = " ".join(f"complemento_final_{index}" for index in range(1060))
+    completions = [
+        " ".join(f"complemento_final_{study}_{index}" for index in range(230))
+        for study in range(5)
+    ]
     svc = AIService()
     svc._generate_with_provider_fallback = MagicMock(
         side_effect=[
             LLMResult(content=initial_short, provider="mistral", status="ok"),
-            LLMResult(content=final_deficit, provider="mistral", status="ok"),
+            *[
+                LLMResult(content=completion, provider="mistral", status="ok")
+                for completion in completions
+            ],
         ]
     )
 
@@ -210,9 +217,9 @@ def test_semantic_unit_completes_a_structured_short_unit_without_rewriting_it() 
         )
         if item.key == requirement.key
     )
-    assert svc._generate_with_provider_fallback.call_count == 2
+    assert svc._generate_with_provider_fallback.call_count == 6
     assert "base_nacional_0_0" in result.content
-    assert "complemento_final_0" in result.content
+    assert "complemento_final_0_0" in result.content
     assert audit.words >= requirement.min_words
     assert audit.duplicate_ratio <= 0.15
 
@@ -260,6 +267,346 @@ def test_semantic_unit_compresses_small_excess_without_another_provider_call() -
     assert svc._generate_with_provider_fallback.call_count == 1
     assert requirement.min_words <= audit.words <= requirement.max_words
     assert "comentario_complementario_0" not in result.content
+
+
+def test_semantic_unit_compresses_large_normative_excess_with_complete_sentences() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("I/1.4 Justificación")
+        if item.key == "1.4.1"
+    )
+    sentences = [
+        "El marco normativo de mantenimiento establece el cumplimiento normativo del proyecto "
+        + " ".join(f"norma_{index}" for index in range(25))
+        + ".",
+        "La gestión documentada conserva la trazabilidad de las decisiones operativas "
+        + " ".join(f"traza_{index}" for index in range(25))
+        + ".",
+        "El mantenimiento planificado articula responsabilidades institucionales "
+        + " ".join(f"plan_{index}" for index in range(25))
+        + ".",
+        *[
+            "Esta consideración complementaria desarrolla el contexto administrativo "
+            + " ".join(f"extra_{sentence}_{index}" for index in range(25))
+            + "."
+            for sentence in range(7)
+        ],
+    ]
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        return_value=LLMResult(
+            content=" ".join(sentences),
+            provider="mistral",
+            status="ok",
+        )
+    )
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta la justificación normativa.",
+        requirements=(requirement,),
+        preferred_provider="mistral",
+        section_current=5,
+        section_total=25,
+        section_path="I/1.4 Justificación",
+        section_id="sec-0006",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    audit = next(
+        item
+        for item in audit_unac_maintenance_sections(
+            [{"sectionId": "sec-0006", "path": "I/1.4 Justificación", "content": result.content}]
+        )
+        if item.key == requirement.key
+    )
+    assert svc._generate_with_provider_fallback.call_count == 1
+    assert requirement.min_words <= audit.words <= requirement.max_words
+    assert audit.paragraphs == 1
+    assert audit.missing_topics == ()
+    assert len(result.content.split()) < 230
+
+
+def test_temporal_delimitation_inserts_missing_evaluation_without_regeneration() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("I/1.5 Delimitaciones")
+        if item.key == "1.5.2"
+    )
+    sentences = [
+        "El periodo del proyecto corresponde al año definido en los datos institucionales "
+        + " ".join(f"periodo_{index}" for index in range(18))
+        + ".",
+        "Los datos se organizarán siguiendo la secuencia temporal prevista "
+        + " ".join(f"datos_{index}" for index in range(18))
+        + ".",
+        "La delimitación evita extender el estudio hacia otros horizontes "
+        + " ".join(f"alcance_{index}" for index in range(18))
+        + ".",
+        "Este comentario secundario amplía innecesariamente la explicación "
+        + " ".join(f"secundario_{index}" for index in range(18))
+        + ".",
+    ]
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        return_value=LLMResult(content=" ".join(sentences), provider="mistral", status="ok")
+    )
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta la delimitación temporal.",
+        requirements=(requirement,),
+        preferred_provider="mistral",
+        section_current=6,
+        section_total=25,
+        section_path="I/1.5 Delimitaciones",
+        section_id="sec-0007",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    audit = next(
+        item
+        for item in audit_unac_maintenance_sections(
+            [{"sectionId": "sec-0007", "path": "I/1.5 Delimitaciones", "content": result.content}]
+        )
+        if item.key == requirement.key
+    )
+    assert svc._generate_with_provider_fallback.call_count == 1
+    assert requirement.min_words <= audit.words <= requirement.max_words
+    assert audit.missing_topics == ()
+    assert "La evaluación se realizará" in result.content
+
+
+def test_near_maximum_missing_topic_uses_replacement_not_oversized_append() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("I/1.5 Delimitaciones")
+        if item.key == "1.5.2"
+    )
+    initial = (
+        "El periodo y la evaluación delimitan el desarrollo temporal. "
+        + " ".join(f"contenido_{index}" for index in range(91))
+    )
+    corrected = (
+        "El periodo, los datos y la evaluación delimitan el desarrollo temporal. "
+        + " ".join(f"corregido_{index}" for index in range(89))
+    )
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        side_effect=[
+            LLMResult(content=initial, provider="mistral", status="ok"),
+            LLMResult(content=corrected, provider="mistral", status="ok"),
+        ]
+    )
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta la delimitación temporal.",
+        requirements=(requirement,),
+        preferred_provider="mistral",
+        section_current=6,
+        section_total=25,
+        section_path="I/1.5 Delimitaciones",
+        section_id="sec-0007",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    assert svc._generate_with_provider_fallback.call_count == 1
+    assert "datos" in result.content
+
+
+def test_social_justification_rejects_huge_completion_and_bounds_it_to_range() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("I/1.4 Justificación")
+        if item.key == "1.4.6"
+    )
+    initial = (
+        "La seguridad de los trabajadores orienta la justificación social. "
+        + " ".join(f"base_social_{index}" for index in range(107))
+        + "."
+    )
+    first_rewrite = (
+        "La seguridad de los trabajadores sustenta el componente social. "
+        + " ".join(f"primer_intento_{index}" for index in range(106))
+        + "."
+    )
+    second_rewrite = (
+        "La seguridad de los trabajadores y el impacto social sustentan el proyecto. "
+        + " ".join(f"segundo_intento_{index}" for index in range(111))
+        + "."
+    )
+    oversized_supplement = (
+        "La aplicación fortalecerá la prevención dentro de las actividades previstas "
+        + " ".join(f"prevencion_{index}" for index in range(16))
+        + ". "
+        + "El seguimiento permitirá mantener la orientación social de la propuesta "
+        + " ".join(f"seguimiento_{index}" for index in range(16))
+        + "."
+    )
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        side_effect=[
+            LLMResult(content=initial, provider="mistral", status="ok"),
+            LLMResult(content=first_rewrite, provider="mistral", status="ok"),
+            LLMResult(content=second_rewrite, provider="mistral", status="ok"),
+            LLMResult(content=oversized_supplement, provider="mistral", status="ok"),
+        ]
+    )
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta la justificación social.",
+        requirements=(requirement,),
+        preferred_provider="mistral",
+        section_current=5,
+        section_total=25,
+        section_path="I/1.4 Justificación",
+        section_id="sec-0006",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    audit = next(
+        item
+        for item in audit_unac_maintenance_sections(
+            [{"sectionId": "sec-0006", "path": "I/1.4 Justificación", "content": result.content}]
+        )
+        if item.key == requirement.key
+    )
+    assert svc._generate_with_provider_fallback.call_count == 1
+    assert requirement.min_words <= audit.words <= requirement.max_words
+    assert audit.missing_topics == ()
+    assert audit.words < 200
+
+
+def test_theory_completion_selects_sentence_subset_and_keeps_paragraph_limit() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("II/2.2 Bases teóricas")
+        if item.key == "2.2.1"
+    )
+    first = (
+        "La definicion del RCM integra funciones, fallas y tareas de mantenimiento "
+        + " ".join(f"fundamento_rcm_{index}" for index in range(88))
+        + "."
+    )
+    second = (
+        "El enfoque organiza decisiones técnicas para los activos del proyecto "
+        + " ".join(f"desarrollo_rcm_{index}" for index in range(90))
+        + "."
+    )
+    supplemental_sentences = [
+        "La lógica funcional relaciona cada condición operativa con decisiones verificables "
+        + " ".join(f"suplemento_{sentence}_{index}" for index in range(20))
+        + "."
+        for sentence in range(4)
+    ]
+    oversized_supplement = (
+        " ".join(supplemental_sentences[:2])
+        + "\n\n"
+        + " ".join(supplemental_sentences[2:])
+    )
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        side_effect=[
+            LLMResult(content=first + "\n\n" + second, provider="mistral", status="ok"),
+            LLMResult(content=oversized_supplement, provider="mistral", status="ok"),
+        ]
+    )
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta las bases del RCM.",
+        requirements=(requirement,),
+        preferred_provider="mistral",
+        section_current=8,
+        section_total=25,
+        section_path="II/2.2 Bases teóricas",
+        section_id="sec-0010",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    audit = next(
+        item
+        for item in audit_unac_maintenance_sections(
+            [
+                {
+                    "sectionId": "sec-0010",
+                    "path": "II/2.2 Bases teóricas",
+                    "content": parse_ai_content(result.content),
+                }
+            ]
+        )
+        if item.key == requirement.key
+    )
+    assert svc._generate_with_provider_fallback.call_count == 1
+    assert requirement.min_words <= audit.words <= requirement.max_words
+    assert requirement.min_paragraphs <= audit.paragraphs <= requirement.max_paragraphs
+    assert audit.missing_topics == ()
+
+
+@pytest.mark.parametrize(
+    ("unit_key", "topic_words"),
+    [
+        ("2.2.5", "disponibilidad MTBF MTTR interpretacion"),
+        ("2.2.6", "confiabilidad tasa de falla tiempo interpretacion"),
+        ("2.2.7", "mantenibilidad reparacion MTTR interpretacion"),
+    ],
+)
+def test_formula_theory_units_are_audited_with_canonical_formula_from_start(
+    unit_key: str,
+    topic_words: str,
+) -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("II/2.2 Bases teóricas")
+        if item.key == unit_key
+    )
+    target = requirement.target_words
+    safe_key = unit_key.replace(".", "_")
+    first_count = target // 2 - len(topic_words.split())
+    second_count = target - (target // 2)
+    content = (
+        topic_words
+        + " "
+        + " ".join(f"fundamento_{safe_key}_{index}" for index in range(first_count))
+        + ".\n\n"
+        + " ".join(f"aplicacion_{safe_key}_{index}" for index in range(second_count))
+        + "."
+    )
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(
+        return_value=LLMResult(content=content, provider="mistral", status="ok")
+    )
+
+    result = svc._generate_unac_semantic_units(
+        section_prompt="Redacta la base teórica.",
+        requirements=(requirement,),
+        preferred_provider="mistral",
+        section_current=8,
+        section_total=25,
+        section_path="II/2.2 Bases teóricas",
+        section_id="sec-0010",
+        selection={"provider": "mistral", "mode": "fixed"},
+        disabled_for_job=set(),
+    )
+
+    audit = next(
+        item
+        for item in audit_unac_maintenance_sections(
+            [
+                {
+                    "sectionId": "sec-0010",
+                    "path": "II/2.2 Bases teóricas",
+                    "content": parse_ai_content(result.content),
+                }
+            ]
+        )
+        if item.key == unit_key
+    )
+    assert svc._generate_with_provider_fallback.call_count == 1
+    assert audit.formulas == 1
+    assert requirement.min_words <= audit.words <= requirement.max_words
 
 
 def test_full_resume_skips_global_ai_correction() -> None:
@@ -344,7 +691,7 @@ def test_semantic_unit_repair_crops_echoed_sibling_sections() -> None:
     audit = audit_unac_maintenance_sections(
         [{"sectionId": "sec-0006", "path": "I/1.4 Justificación", "content": result.content}]
     )[0]
-    assert svc._generate_with_provider_fallback.call_count == 2
+    assert svc._generate_with_provider_fallback.call_count == 1
     assert audit.words >= audit.minimum
     assert audit.missing_topics == ()
     assert "contenido_inicial_ajeno_0" not in result.content
@@ -412,9 +759,9 @@ def test_quality_repair_appends_only_the_word_deficit() -> None:
         selection={"provider": "mistral", "mode": "fixed"},
     )
 
-    assert svc._generate_with_provider_fallback.call_count == 1
+    assert svc._generate_with_provider_fallback.call_count == 0
     assert "diagnostico_0" in str(repaired[0]["content"])
-    assert "complemento_nuevo_0" in str(repaired[0]["content"])
+    assert "complemento_nuevo_0" not in str(repaired[0]["content"])
     assert next(item for item in audits if item.key == "1.1").words >= 1276
 
 
@@ -456,12 +803,18 @@ def test_duplicate_repair_keeps_short_improvement_then_completes_deficit() -> No
         * 180
     )
     first_rewrite = _five_study_paragraphs("version_sin_repeticion", 250)
-    supplement = " ".join(f"ampliacion_tecnica_{index}" for index in range(420))
+    supplements = [
+        " ".join(f"ampliacion_tecnica_{study}_{index}" for index in range(100))
+        for study in range(5)
+    ]
     svc = AIService()
     svc._generate_with_provider_fallback = MagicMock(
         side_effect=[
             LLMResult(content=first_rewrite, provider="mistral", status="ok"),
-            LLMResult(content=supplement, provider="mistral", status="ok"),
+            *[
+                LLMResult(content=supplement, provider="mistral", status="ok")
+                for supplement in supplements
+            ],
         ]
     )
     sections = [{"sectionId": "sec-0009", "path": "II/2.1.2 Antecedentes nacionales", "content": repeated}]
@@ -475,9 +828,9 @@ def test_duplicate_repair_keeps_short_improvement_then_completes_deficit() -> No
     )
 
     audit = next(item for item in audits if item.key == "2.1.2")
-    assert svc._generate_with_provider_fallback.call_count == 2
+    assert svc._generate_with_provider_fallback.call_count == 6
     assert "version_sin_repeticion_0_0" in str(repaired[0]["content"])
-    assert "ampliacion_tecnica_0" in str(repaired[0]["content"])
+    assert "ampliacion_tecnica_0_0" in str(repaired[0]["content"])
     assert "El objetivo fue aplicar" not in str(repaired[0]["content"])
     assert audit.words >= 1634
     assert audit.duplicate_ratio <= 0.15
@@ -496,7 +849,7 @@ def test_long_repetitive_antecedents_are_rewritten_one_study_per_call() -> None:
                 "tipo": "parrafo",
                 "texto": " ".join(f"estudio_{study}_dato_{word}" for word in range(100)),
             }
-            for study in range(4)
+            for study in range(5)
         ],
     ]
     responses = [
@@ -509,7 +862,7 @@ def test_long_repetitive_antecedents_are_rewritten_one_study_per_call() -> None:
             provider="mistral",
             status="ok",
         )
-        for study in range(4)
+        for study in range(5)
     ]
     svc = AIService()
     svc._generate_with_provider_fallback = MagicMock(side_effect=responses)
@@ -522,10 +875,56 @@ def test_long_repetitive_antecedents_are_rewritten_one_study_per_call() -> None:
     )
 
     assert rewritten is not None
-    assert svc._generate_with_provider_fallback.call_count == 4
-    assert len(rewritten) == 5
+    assert svc._generate_with_provider_fallback.call_count == 5
+    assert len(rewritten) == 6
     assert "reescrito_0_0_0" in str(rewritten)
-    assert "reescrito_3_0_359" in str(rewritten)
+    assert "reescrito_4_0_359" in str(rewritten)
+
+
+def test_antecedent_completion_continues_after_a_provider_response_without_progress() -> None:
+    requirement = next(
+        item
+        for item in requirements_for_section_path("II/2.1 Antecedentes")
+        if item.key == "2.1.1"
+    )
+    original = parse_ai_content(_five_study_paragraphs("internacional_base", 115))
+    responses: list[LLMResult] = []
+    for study in range(5):
+        responses.extend(
+            [
+                LLMResult(content="", provider="mistral", status="ok"),
+                LLMResult(
+                    content=" ".join(
+                        f"ampliacion_internacional_{study}_{word}" for word in range(240)
+                    ),
+                    provider="mistral",
+                    status="ok",
+                ),
+            ]
+        )
+    svc = AIService()
+    svc._generate_with_provider_fallback = MagicMock(side_effect=responses)
+
+    repaired = svc._rewrite_repetitive_antecedent_batches(
+        current_unit=original,
+        requirement=requirement,
+        path="II/2.1 Antecedentes",
+        selection={"provider": "mistral", "mode": "fixed"},
+        rewrite_existing=False,
+    )
+
+    assert repaired is not None
+    assert svc._generate_with_provider_fallback.call_count == 10
+    audit = next(
+        item
+        for item in audit_unac_maintenance_sections(
+            [{"sectionId": "sec-0009", "path": "II/2.1 Antecedentes", "content": repaired}]
+        )
+        if item.key == requirement.key
+    )
+    assert requirement.min_words <= audit.words <= requirement.max_words
+    assert audit.paragraphs == 5
+    assert audit.duplicate_ratio <= 0.15
 
 
 def test_cleanup_quality_guard_restores_a_worse_unac_unit() -> None:
@@ -2173,9 +2572,9 @@ class TestProviderStatus:
         assert presupuesto["orientacion"] == "portrait"
         assert len(presupuesto["encabezados"]) == 5
         assert len(presupuesto["filas"]) == 14
-        assert mistral.generate.call_count == 3
+        assert mistral.generate.call_count == 0
 
-    def test_schedule_repair_prompt_requests_semantic_blueprint(self, ai_svc):
+    def test_schedule_is_built_deterministically_without_repair_prompt(self, ai_svc):
         svc, gemini, mistral = ai_svc
         _set_selection(svc, "mistral", mode="fixed")
         gemini.is_configured.return_value = False
@@ -2213,14 +2612,7 @@ class TestProviderStatus:
                 planned_sections=planned_sections,
             )
 
-        repair_prompt = mistral.generate.call_args_list[1].args[0]
-        assert "Errores detectados por el validador:" in repair_prompt
-        assert "- encabezados_invalidos" in repair_prompt
-        assert "- fila_0_invalida" in repair_prompt
-        assert "- fila_con_longitud_invalida" in repair_prompt
-        assert "Devuelve un blueprint semantico con tipo='tabla' y subtipo='cronograma_plan'." in repair_prompt
-        assert "No generes la tabla institucional final del cronograma." in repair_prompt
-        assert "No uses fences markdown tipo ```json ni ```." in repair_prompt
+        assert mistral.generate.call_count == 0
         assert result["sections"][0]["content"][0]["subtipo"] == "cronograma_actividades"
 
     def test_schedule_repair_uses_synthetic_fallback_when_second_pass_remains_invalid(self, ai_svc):

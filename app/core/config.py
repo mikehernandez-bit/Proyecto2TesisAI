@@ -22,6 +22,12 @@ class Settings:
     APP_NAME: str = _get("APP_NAME", "TesisAI Gen")
     APP_ENV: str = _get("APP_ENV", "dev")
 
+    # Project persistence. JSON remains an explicit rollback backend; Docker
+    # selects SQLite so active writes do not touch the large OneDrive file.
+    PROJECT_STORE_BACKEND: str = _get("PROJECT_STORE_BACKEND", "sqlite").strip().lower()
+    GICAGEN_DB_PATH: str = _get("GICAGEN_DB_PATH", "data/gicagen.db")
+    PROJECT_STORE_JSON_PATH: str = _get("PROJECT_STORE_JSON_PATH", "data/projects.json")
+
     # GicaTesis integration
     GICATESIS_BASE_URL: str = _get("GICATESIS_BASE_URL", "http://localhost:8000/api/v1")
     GICATESIS_API_KEY: str = _get("GICATESIS_API_KEY", "")

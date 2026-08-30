@@ -96,9 +96,24 @@ def test_project_reality_problem_gets_four_required_figures() -> None:
     assert figures[3]["titulo"] == "Matriz de Priorización de soluciones factibles"
     assert all("ruta_placeholder" not in figure for figure in figures)
     assert all(figure["numbered"] is False and figure["diagram_type"] for figure in figures)
+    assert [figure["caption"] for figure in figures] == [
+        f"Figura 1.{index} {title}"
+        for index, title in enumerate(
+            [
+                "Diagrama de Pareto de modos de falla en flota CAT 24M",
+                "Análisis de Causa-Efecto de Baja Disponibilidad (Ishikawa)",
+                "Matriz de Relevancia para el filtrado de alternativas de solución",
+                "Matriz de Priorización de soluciones factibles",
+            ],
+            start=1,
+        )
+    ]
+    assert all(figure["show_caption"] is True for figure in figures)
+    assert all(figure["include_in_index"] is False for figure in figures)
     assert all("placeholder_text" not in figure for figure in figures)
     assert all(figure["fuente"] == "Elaboración propia." for figure in figures)
-    assert all("nota" not in figure and "nota_color" not in figure for figure in figures)
+    assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
+    assert all(figure["nota_color"] == "0000FF" for figure in figures)
     assert all(figure["diagram_data"]["qualitative"] is True for figure in figures)
 
 
@@ -200,7 +215,8 @@ def test_project_reality_problem_removes_old_markdown_figure_blocks_inside_text(
     assert "*Guía técnica:" not in paragraphs
     assert "Diagrama de Ishikawa para fallas en sistema hidráulico" not in paragraphs
     assert "Matriz de Relevancia para alternativas de mejora de disponibilidad" not in paragraphs
-    assert all("nota" not in figure for figure in figures)
+    assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
+    assert all(figure["nota_color"] == "0000FF" for figure in figures)
 
 
 def test_project_reality_problem_removes_loose_guide_blocks_without_asterisks() -> None:
@@ -437,11 +453,13 @@ def test_chapter_two_bases_gets_four_formal_figures_from_canonical_headings() ->
 
     assert len(figures) == 4
     assert [figure["titulo"] for figure in figures] == [
-        "Proceso del RCM", "Niveles taxonomicos",
-        "Analisis de Modo y Efecto de Falla", "Motoniveladora CAT 24M",
+        "Proceso del RCM", "Niveles taxonómicos",
+        "Análisis de Modo y Efecto de Falla", "Motoniveladora CAT 24M",
     ]
     assert all(figure["numbered"] is True and figure["diagram_type"] for figure in figures)
-    assert all("ruta_placeholder" not in figure and "nota" not in figure for figure in figures)
+    assert all("ruta_placeholder" not in figure for figure in figures)
+    assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
+    assert all(figure["nota_color"] == "0000FF" for figure in figures)
     assert figure_positions == sorted(figure_positions)
 
 
@@ -510,7 +528,9 @@ def test_chapter_two_bases_keeps_paragraphs_and_passes_validator() -> None:
     figures = [block for block in content if block.get("tipo") == "figura"]
     assert len(figures) >= 4, f"Esperaba al menos 4 figuras dinámicas, se obtuvieron: {len(figures)}"
     assert all(f["numbered"] is True and f["diagram_type"] for f in figures)
-    assert all("nota" not in f and "ruta_placeholder" not in f for f in figures)
+    assert all("ruta_placeholder" not in f for f in figures)
+    assert all(f["nota"].startswith("Guía para elaborar la figura:") for f in figures)
+    assert all(f["nota_color"] == "0000FF" for f in figures)
 
     validator._validate_theoretical_bases_quality(content, section_id="sec-0010")
 

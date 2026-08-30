@@ -102,6 +102,10 @@ _UNAC_CITATION_MAXIMA = {
     "basic_terms": 13, "operationalization": 2,
     "methodological_design": 4, "research_method": 2,
 }
+_UNAC_PARENT_CITATION_MAXIMA = {
+    "antecedents": 12,
+    "theoretical_bases": 22,
+}
 _UNAC_SUBSECTION_MAXIMA = {
     "international_backgrounds": 6, "national_backgrounds": 6,
     "rcm": 4, "rcm_process": 3, "taxonomy": 1, "amef": 3,
@@ -522,6 +526,23 @@ class _SourceRegistry:
     def tags_for_category(self, category: str) -> list[str]:
         return [source.tag for source in self.by_key.values() if source.category == category]
 
+    def all_tags(self) -> list[str]:
+        return [source.tag for source in self.by_key.values()]
+
+    def narrative_author(self, tag: str) -> str:
+        """Return a readable author when an excess narrative citation is removed."""
+        source = next((item for item in self.by_key.values() if item.tag == tag), None)
+        if source is None:
+            return ""
+        match = _REFERENCE_AUTHOR_YEAR_RE.match(source.reference_text)
+        if match is None:
+            return ""
+        author_text = match.group(1).strip(" ,")
+        surnames = _REFERENCE_AUTHOR_RE.findall(author_text)
+        if surnames:
+            return " y ".join(surnames)
+        return re.sub(r",\s*[A-ZÁÉÍÓÚÜÑ](?:\.[A-ZÁÉÍÓÚÜÑ])?\.?", "", author_text).strip(" ,")
+
     def prune_to_tags(self, cited_tags: set[str]) -> None:
         self.by_key = OrderedDict(
             (key, source)
@@ -578,6 +599,107 @@ def _convert_citations_in_text(
 
     value = _NARRATIVE_CITATION_RE.sub(replace_narrative, value)
     return re.sub(r"[ \t]{2,}", " ", value), count, used_tags
+
+
+def _cap_citation_markers(
+    content: Any,
+    *,
+    maximum: int,
+    registry: _SourceRegistry,
+) -> tuple[Any, int, list[str]]:
+    """Keep at most ``maximum`` native citations without damaging prose.
+
+    Provider-authored citations are converted before this step.  A profile
+    section whose maximum is zero must not fail later merely because the model
+    included author-year evidence.  Parenthetical excess markers disappear;
+    narrative markers retain their readable author name but no longer count as
+    citations.  The same operation also makes repeated render consolidation
+    idempotent.
+    """
+    remaining = max(0, int(maximum))
+
+    def mapper(text: str) -> tuple[str, int, list[str]]:
+        nonlocal remaining
+        kept_tags: list[str] = []
+
+        def replace(match: re.Match[str]) -> str:
+            nonlocal remaining
+            marker = match.group(0)
+            narrative = marker.startswith("[[CITE_NARRATIVE:")
+            tags = [tag for tag in marker.split(":", 1)[1][:-2].split(";") if tag]
+            keep = tags[:remaining]
+            removed = tags[len(keep):]
+            remaining -= len(keep)
+            kept_tags.extend(keep)
+            if keep:
+                prefix = "CITE_NARRATIVE" if narrative else "CITE"
+                return f"[[{prefix}:{';'.join(keep)}]]"
+            if narrative and removed:
+                authors = [registry.narrative_author(tag) for tag in removed]
+                return " y ".join(dict.fromkeys(author for author in authors if author))
+            return ""
+
+        revised = _CITATION_MARKER_RE.sub(replace, str(text or ""))
+        revised = re.sub(r"[ \t]+([,.;:])", r"\1", revised)
+        revised = re.sub(r"[ \t]{2,}", " ", revised)
+        revised = re.sub(
+            r"\b(?:seg[uú]n|de acuerdo con)\s+(?=[,.;:])",
+            "",
+            revised,
+            flags=re.IGNORECASE,
+        )
+        return revised, len(kept_tags), kept_tags
+
+    return _map_text_content(content, mapper)
+
+
+def _cap_semantic_citation_markers(
+    content: Any,
+    *,
+    parent_role: str,
+    registry: _SourceRegistry,
+) -> tuple[Any, dict[str, int]]:
+    """Enforce every 2.1.x/2.2.x citation maximum independently."""
+    target_roles = (
+        _BACKGROUND_SUBSECTION_ROLES
+        if parent_role == "antecedents"
+        else _THEORY_SUBSECTION_ROLES
+    )
+    revised = content
+    counts: dict[str, int] = {}
+    for role in target_roles:
+        maximum = _UNAC_SUBSECTION_MAXIMA[role]
+        if isinstance(revised, str):
+            segment = _string_semantic_segment(revised, role)
+            if segment is None:
+                counts[role] = 0
+                continue
+            start, end = segment
+            body, kept, _ = _cap_citation_markers(
+                revised[start:end], maximum=maximum, registry=registry
+            )
+            revised = revised[:start] + body + revised[end:]
+            counts[role] = kept
+            continue
+        if not isinstance(revised, list):
+            counts[role] = 0
+            continue
+        segment = _semantic_segment(revised, role)
+        if segment is None:
+            counts[role] = 0
+            continue
+        indices, _ = segment
+        budget = maximum
+        kept_total = 0
+        for index in indices:
+            item, kept, _ = _cap_citation_markers(
+                revised[index], maximum=budget, registry=registry
+            )
+            revised[index] = item
+            budget -= kept
+            kept_total += kept
+        counts[role] = kept_total
+    return revised, counts
 
 
 def _map_text_content(content: Any, mapper: Any) -> tuple[Any, int, list[str]]:
@@ -724,6 +846,76 @@ def _semantic_segment(content: list[Any], role: str) -> tuple[list[int], int] | 
     return indices, insertion_index
 
 
+def _ensure_semantic_citation_positions(
+    content: list[Any],
+    *,
+    role: str,
+    required_unmarked: int,
+) -> tuple[list[int], int] | None:
+    """Create natural citation positions without adding narrative words.
+
+    A theoretical unit may legitimately contain two long paragraphs while its
+    citation policy requires three mentions.  The former fallback appended a
+    new explanatory paragraph, which changed an already approved word count
+    (225 -> 254 in 2.2.6).  Split existing prose at sentence boundaries until
+    enough unmarked paragraphs exist.  Every word, fact and existing marker is
+    preserved.
+    """
+    for _ in range(4):
+        segment = _semantic_segment(content, role)
+        if segment is None:
+            return None
+        indices, insertion_index = segment
+        unmarked = [
+            index
+            for index in indices
+            if isinstance(content[index], dict)
+            and _norm_upper(str(content[index].get("tipo") or "")) == "PARRAFO"
+            and len(str(content[index].get("texto") or "").split()) >= 6
+            and not _marker_tags(content[index])
+        ]
+        if len(unmarked) >= required_unmarked:
+            return indices, insertion_index
+
+        splittable: list[tuple[int, int, list[str]]] = []
+        for index in indices:
+            item = content[index]
+            if not isinstance(item, dict) or _norm_upper(str(item.get("tipo") or "")) != "PARRAFO":
+                continue
+            text = str(item.get("texto") or "").strip()
+            sentences = [
+                sentence.strip()
+                for sentence in re.split(r"(?<=[.!?])\s+", text)
+                if sentence.strip()
+            ]
+            if len(sentences) >= 2:
+                splittable.append((len(text.split()), index, sentences))
+        if not splittable:
+            return indices, insertion_index
+
+        _, index, sentences = max(splittable, key=lambda item: item[0])
+        sizes = [len(sentence.split()) for sentence in sentences]
+        total = sum(sizes)
+        running = 0
+        split_at = 1
+        best_distance = total
+        for sentence_index, size in enumerate(sizes[:-1], 1):
+            running += size
+            distance = abs(total - 2 * running)
+            if distance < best_distance:
+                split_at = sentence_index
+                best_distance = distance
+        original = dict(content[index])
+        left = " ".join(sentences[:split_at]).strip()
+        right = " ".join(sentences[split_at:]).strip()
+        if not left or not right:
+            return indices, insertion_index
+        content[index] = {**original, "texto": left}
+        content.insert(index + 1, {"tipo": "parrafo", "texto": right})
+
+    return _semantic_segment(content, role)
+
+
 _STRING_SUBSECTION_HEADING_RE = re.compile(
     r"(?m)^\s*2\.(?:1\.[12]|2\.[1-8])(?:\s|$)[^\r\n]*"
 )
@@ -752,10 +944,17 @@ def _ensure_role_citation_tags(
         return []
     role_tags = list(dict.fromkeys(existing_tags))
     desired_new = min(_UNAC_SUBSECTION_NEW_SOURCE_TARGETS.get(role, 1), max(1, target))
-    while len(role_tags) < desired_new:
+    attempts = 0
+    while len(role_tags) < desired_new and attempts < _REFERENCE_MAXIMUM_DISTINCT_SOURCES:
+        attempts += 1
         tag = registry.register_synthetic(f"{path}/{role}")
         if tag not in role_tags:
             role_tags.append(tag)
+            continue
+        alternative = next((item for item in registry.all_tags() if item not in role_tags), None)
+        if alternative is None:
+            break
+        role_tags.append(alternative)
     if not role_tags:
         role_tags.append(registry.register_synthetic(f"{path}/{role}"))
     return [role_tags[index % len(role_tags)] for index in range(shortage)]
@@ -800,12 +999,14 @@ def _apply_string_semantic_targets(
             parts[index] = f"{parts[index].rstrip()} [[CITE:{tag}]]"
             inserted += 1
         if inserted < len(citation_tags):
-            additions = "\n\n".join(
-                f"{_SUPPLEMENTAL_ROLE_TEXT.get(role, 'Sustento académico complementario del subtema.')} [[CITE:{tag}]]"
-                for tag in citation_tags[inserted:]
-            )
-            parts.append(("\n\n" if "".join(parts).strip() else "") + additions)
-            inserted = len(citation_tags)
+            # Never manufacture prose merely to host a citation. Reuse the
+            # existing substantive paragraphs; grouped/repeated support is
+            # preferable to changing the approved narrative word count.
+            remaining = citation_tags[inserted:]
+            fallback_positions = _spread_indices(_candidate_positions(parts), len(remaining))
+            for index, tag in zip(fallback_positions, remaining):
+                parts[index] = f"{parts[index].rstrip()} [[CITE:{tag}]]"
+                inserted += 1
         new_body = "".join(parts)
         revised_content = revised_content[:start] + new_body + revised_content[end:]
         counts[role] += inserted
@@ -861,6 +1062,14 @@ def _apply_semantic_subsection_targets(
             path=path,
         )
 
+        repositioned = _ensure_semantic_citation_positions(
+            content,
+            role=role,
+            required_unmarked=len(citation_tags),
+        )
+        if repositioned is not None:
+            indices, insertion_index = repositioned
+
         candidates = [
             index
             for index in indices
@@ -876,17 +1085,20 @@ def _apply_semantic_subsection_targets(
             content[index] = revised
             inserted += 1
 
-        for tag in citation_tags[inserted:]:
-            text = _SUPPLEMENTAL_ROLE_TEXT.get(
-                role,
-                "Este sustento complementario aporta evidencia académica pertinente para el subtema desarrollado.",
-            )
-            content.insert(
-                insertion_index,
-                {"tipo": "parrafo", "texto": f"{text} [[CITE:{tag}]]"},
-            )
-            insertion_index += 1
-            inserted += 1
+        if inserted < len(citation_tags):
+            remaining = citation_tags[inserted:]
+            fallback_positions = [
+                index
+                for index in indices
+                if isinstance(content[index], dict)
+                and _norm_upper(str(content[index].get("tipo") or "")) == "PARRAFO"
+                and len(str(content[index].get("texto") or "").split()) >= 6
+            ]
+            for index, tag in zip(_spread_indices(fallback_positions, len(remaining)), remaining):
+                revised = dict(content[index])
+                revised["texto"] = f"{str(revised.get('texto') or '').rstrip()} [[CITE:{tag}]]"
+                content[index] = revised
+                inserted += 1
         counts[role] += inserted
 
     entry["content"] = content
@@ -941,13 +1153,31 @@ def _consolidate_structured_values(
         structured[key] = revised
         total += count
 
+    # The operationalization profile allows exactly two mentions across all
+    # structured tables. Keep one in each table when both variable tables are
+    # present instead of consuming the whole budget in the first table.
+    budget = _UNAC_CITATION_MAXIMA["operationalization"]
+    total = 0
+    for key in found_keys:
+        allowance = min(1 if len(found_keys) > 1 else budget, budget)
+        revised, kept, _ = _cap_citation_markers(
+            structured[key], maximum=allowance, registry=registry
+        )
+        structured[key] = revised
+        budget -= kept
+        total += kept
+
     shortage = max(0, _UNAC_CITATION_TARGETS["operationalization"] - total)
     if shortage and found_keys:
         reusable = registry.tags_for_category("theory")
         if not reusable:
             reusable = [registry.register_synthetic("3.2 Operacionalizacion de variable")]
         targets: list[tuple[str, str]] = []
-        for key in found_keys:
+        ordered_keys = sorted(
+            found_keys,
+            key=lambda key: len(_marker_tags(structured.get(key))),
+        )
+        for key in ordered_keys:
             value = structured.get(key)
             if not isinstance(value, dict):
                 continue
@@ -1024,11 +1254,22 @@ def _build_revised_sections(
         role_tags = list(dict.fromkeys(tags_by_role.get(role, [])))
         new_tags: list[str] = []
         desired_new = _UNAC_NEW_SOURCE_TARGETS.get(canonical_role or "", 0) if unac_layout else 1
-        while len(role_tags) < min(desired_new, target):
+        desired_role_sources = min(desired_new, target)
+        attempts = 0
+        while (
+            len(role_tags) < desired_role_sources
+            and attempts < _REFERENCE_MAXIMUM_DISTINCT_SOURCES
+        ):
+            attempts += 1
             tag = registry.register_synthetic(path)
             if tag not in role_tags:
                 role_tags.append(tag)
                 new_tags.append(tag)
+                continue
+            alternative = next((item for item in registry.all_tags() if item not in role_tags), None)
+            if alternative is None:
+                break
+            role_tags.append(alternative)
         reusable = role_tags + [
             tag for tag in registry.tags_for_category(category) if tag not in role_tags
         ]
@@ -1049,6 +1290,60 @@ def _build_revised_sections(
         subsection_counts = _apply_semantic_subsection_targets(entry, registry=registry)
         counts_by_role.update(subsection_counts)
 
+    if unac_layout:
+        # Citation conversion and minimum filling must never make a profile
+        # unit fail its maximum. Apply the V2 maxima to every section, even
+        # those with a zero allowance, before pruning/building the source
+        # registry. This protects generation, retry and render-only passes.
+        for entry in updated:
+            if not isinstance(entry, dict):
+                continue
+            path = str(entry.get("path") or "")
+            if _should_skip_path(path):
+                continue
+            role = _citation_role(path)
+            content = entry.get("content")
+            if _has_semantic_subsections(content, role):
+                revised, semantic_counts = _cap_semantic_citation_markers(
+                    content,
+                    parent_role=str(role),
+                    registry=registry,
+                )
+                entry["content"] = revised
+                counts_by_role.update(semantic_counts)
+                for semantic_role in semantic_counts:
+                    segment = (
+                        _string_semantic_segment(revised, semantic_role)
+                        if isinstance(revised, str)
+                        else _semantic_segment(revised, semantic_role)
+                    )
+                    if segment is None:
+                        tags_by_role[semantic_role] = []
+                    elif isinstance(revised, str):
+                        tags_by_role[semantic_role] = _marker_tags(
+                            revised[segment[0]:segment[1]]
+                        )
+                    else:
+                        tags_by_role[semantic_role] = [
+                            tag
+                            for index in segment[0]
+                            for tag in _marker_tags(revised[index])
+                        ]
+                continue
+            maximum = _UNAC_CITATION_MAXIMA.get(
+                str(role),
+                _UNAC_PARENT_CITATION_MAXIMA.get(str(role), 0),
+            )
+            revised, kept, tags = _cap_citation_markers(
+                content,
+                maximum=maximum,
+                registry=registry,
+            )
+            entry["content"] = revised
+            count_role = role or f"path:{_norm_upper(path)}"
+            counts_by_role[count_role] = kept
+            tags_by_role[count_role] = tags
+
     structured_values, structured_mentions = _consolidate_structured_values(values, registry=registry)
     if structured_mentions:
         counts_by_role["operationalization"] = max(
@@ -1060,23 +1355,53 @@ def _build_revised_sections(
     registry.prune_to_tags(cited_tags)
 
     if unac_layout:
-        while len(registry.by_key) < _REFERENCE_MINIMUM_DISTINCT_SOURCES:
-            tag = registry.register_synthetic("VII. REFERENCIAS BIBLIOGRAFICAS")
-            introduction = next(
-                (
-                    item for item in updated
-                    if isinstance(item, dict) and _citation_role(str(item.get("path") or "")) == "introduction"
-                ),
-                None,
-            )
-            if introduction is None:
+        source_fill_attempts = 0
+        while (
+            len(registry.by_key) < _REFERENCE_MINIMUM_DISTINCT_SOURCES
+            and source_fill_attempts < _REFERENCE_MINIMUM_DISTINCT_SOURCES * 2
+        ):
+            source_fill_attempts += 1
+            # A second, idempotent consolidation can lose a source used only
+            # in structured values and need one replacement.  Do not always
+            # attach it to Introduction: that section may already be at its
+            # maximum of four citations. Pick a flat section with real
+            # remaining capacity, preferring 1.1 (5-7 citations).
+            host: tuple[dict[str, Any], str] | None = None
+            for host_role in (
+                "problem_reality",
+                "introduction",
+                "conceptual_framework",
+                "methodological_design",
+                "research_method",
+            ):
+                maximum = _UNAC_CITATION_MAXIMA.get(host_role)
+                if maximum is None or counts_by_role.get(host_role, 0) >= maximum:
+                    continue
+                entry = next(
+                    (
+                        item
+                        for item in updated
+                        if isinstance(item, dict)
+                        and _citation_role(str(item.get("path") or "")) == host_role
+                    ),
+                    None,
+                )
+                if entry is not None:
+                    host = (entry, host_role)
+                    break
+            if host is None:
                 break
-            revised, inserted = _append_citation_markers(introduction.get("content"), [tag])
+            entry, host_role = host
+            previous_source_count = len(registry.by_key)
+            tag = registry.register_synthetic("VII. REFERENCIAS BIBLIOGRAFICAS")
+            if len(registry.by_key) <= previous_source_count:
+                break
+            revised, inserted = _append_citation_markers(entry.get("content"), [tag])
             if inserted <= 0:
                 break
-            introduction["content"] = revised
-            counts_by_role["introduction"] = counts_by_role.get("introduction", 0) + inserted
-            tags_by_role.setdefault("introduction", []).append(tag)
+            entry["content"] = revised
+            counts_by_role[host_role] = counts_by_role.get(host_role, 0) + inserted
+            tags_by_role.setdefault(host_role, []).append(tag)
 
     references_content = registry.references_content()
     for entry in updated:

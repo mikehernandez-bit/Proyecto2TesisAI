@@ -736,6 +736,56 @@ def test_build_render_payload_canonicalizes_figure_placeholder():
     assert content[0]["nota_color"] == "0000FF"
 
 
+def test_render_retry_restores_controlled_figure_captions_and_blue_guides():
+    payload = _build_render_payload(
+        format_id="unac-proyecto-cuant",
+        values={
+            "title": "Plan RCM para mejorar la disponibilidad de motoniveladoras CAT 24M",
+            "variable_independiente": "Mantenimiento centrado en confiabilidad",
+            "variable_dependiente": "Disponibilidad inherente",
+            "objeto_estudio": "Flota de motoniveladoras CAT 24M",
+        },
+        ai_result_raw={
+            "sections": [
+                {
+                    "sectionId": "sec-0003",
+                    "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
+                    "content": [
+                        {
+                            "tipo": "parrafo",
+                            "texto": (
+                                "El diagnóstico local organiza los modos de falla mediante Pareto, analiza sus "
+                                "causas raíz con Ishikawa y compara alternativas mediante matrices de relevancia "
+                                "y priorización para sustentar la solución técnica."
+                            ),
+                        },
+                        {
+                            "tipo": "figura",
+                            "id": "legacy-pareto",
+                            "titulo": "Diagrama de Pareto de modos de falla en flota CAT 24M",
+                            "caption": "Diagrama de Pareto de modos de falla en flota CAT 24M",
+                            "numbered": False,
+                            "diagram_type": "pareto_qualitative",
+                            "diagram_data": {"labels": ["Modo", "Frecuencia"]},
+                            "fuente": "Elaboración propia.",
+                        },
+                    ],
+                }
+            ]
+        },
+    )
+
+    content = payload["aiResult"]["sections"][0]["content"]
+    figures = [block for block in content if block.get("tipo") == "figura"]
+
+    assert len(figures) == 4
+    assert figures[0]["caption"].startswith("Figura 1.1 ")
+    assert all(figure["show_caption"] is True for figure in figures)
+    assert all(figure["include_in_index"] is False for figure in figures)
+    assert all(figure["nota"].startswith("Guía para elaborar la figura:") for figure in figures)
+    assert all(figure["nota_color"] == "0000FF" for figure in figures)
+
+
 def test_build_render_payload_accepts_formula_blocks():
     payload = _build_render_payload(
         format_id="unac-proyecto-cuant",
@@ -764,6 +814,47 @@ def test_build_render_payload_accepts_formula_blocks():
     assert isinstance(content, list)
     assert content[0]["tipo"] == "formula"
     assert content[0]["numero"] == "(1)"
+
+
+def test_render_adapter_drops_saved_caption_only_figure_without_regeneration():
+    paragraph = (
+        "El fundamento teórico desarrolla el concepto, su funcionamiento, la aplicación y la interpretación "
+        "técnica antes de presentar el esquema, manteniendo coherencia con las variables, dimensiones, "
+        "indicadores y alcance operativo definido para el proyecto de mantenimiento."
+    )
+    adapted = _adapt_ai_result_for_gicatesis(
+        {
+            "sections": [
+                {
+                    "sectionId": "sec-bases",
+                    "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+                    "content": [
+                        {"tipo": "parrafo", "texto": paragraph},
+                        {
+                            "tipo": "figura",
+                            "id": "provider-caption-only",
+                            "caption": "Figura genérica sin recurso renderizable",
+                        },
+                        {"tipo": "parrafo", "texto": paragraph},
+                        {
+                            "tipo": "figura",
+                            "id": "formal-diagram",
+                            "caption": "Sistemas del equipo",
+                            "diagram_type": "equipment_systems",
+                            "diagram_data": {"labels": ["Equipo", "Sistema"]},
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+
+    figures = [
+        block
+        for block in adapted["sections"][0]["content"]
+        if block.get("tipo") == "figura"
+    ]
+    assert [figure["id"] for figure in figures] == ["formal-diagram"]
 
 
 def test_build_render_payload_recovers_canonical_maintenance_formula():
@@ -1126,7 +1217,12 @@ def test_adapter_keeps_structured_content_for_allowed_sections():
                             "despues del concepto."
                         ),
                     },
-                    {"tipo": "figura", "caption": "Figura 1. Modelo conceptual."},
+                    {
+                        "tipo": "figura",
+                        "caption": "Figura 1. Modelo conceptual.",
+                        "diagram_type": "concept_map",
+                        "diagram_data": {"labels": ["Variable A", "Variable B"]},
+                    },
                 ],
             }
         ]
@@ -1243,7 +1339,12 @@ def test_adapter_keeps_structured_content_for_discussion_sections():
                 "path": "VI. DISCUSION DE RESULTADOS/6.1 Discusion",
                 "content": [
                     {"tipo": "parrafo", "texto": "La discusion contrasta hallazgos con antecedentes relevantes."},
-                    {"tipo": "figura", "caption": "Relacion entre hallazgos y antecedentes."},
+                    {
+                        "tipo": "figura",
+                        "caption": "Relacion entre hallazgos y antecedentes.",
+                        "diagram_type": "concept_map",
+                        "diagram_data": {"labels": ["Hallazgos", "Antecedentes"]},
+                    },
                 ],
             }
         ]
