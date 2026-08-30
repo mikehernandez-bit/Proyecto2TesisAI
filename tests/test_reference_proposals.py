@@ -5,6 +5,11 @@ from app.core.services.ai.reference_proposals import (
     consolidate_references,
     replace_references_section,
 )
+from app.core.services.ai.unac_quality_profile import (
+    audit_unac_maintenance_sections,
+    canonical_formula_for_key,
+    extract_semantic_unit_content,
+)
 
 
 def test_build_reference_section_content_is_simulated_and_contextual() -> None:
@@ -40,6 +45,66 @@ def test_build_reference_section_content_is_simulated_and_contextual() -> None:
     assert content.count("[[SOURCE:SIM_") == 2
 
 
+def test_reliability_citations_split_prose_without_increasing_approved_word_count() -> None:
+    first = (
+        "La confiabilidad, la tasa de falla, el tiempo y su interpretación organizan el análisis técnico. "
+        + " ".join(f"fundamento_unico_{index}" for index in range(98))
+        + "."
+    )
+    second = (
+        "La evaluación relaciona el comportamiento del equipo con los indicadores definidos para el proyecto. "
+        + " ".join(f"aplicacion_unica_{index}" for index in range(98))
+        + "."
+    )
+    sections = [
+        {
+            "sectionId": "theory",
+            "path": "II. MARCO TEÓRICO/2.2 Bases teóricas",
+            "content": [
+                {"tipo": "parrafo", "texto": "2.2.6 Confiabilidad"},
+                {"tipo": "parrafo", "texto": first},
+                canonical_formula_for_key("2.2.6"),
+                {"tipo": "parrafo", "texto": second},
+                {"tipo": "parrafo", "texto": "2.2.7 Mantenibilidad"},
+                {
+                    "tipo": "parrafo",
+                    "texto": "La mantenibilidad, la reparación, el MTTR y la interpretación sustentan el análisis.",
+                },
+            ],
+        },
+        {
+            "sectionId": "refs",
+            "path": "VII. REFERENCIAS BIBLIOGRÁFICAS",
+            "content": "Anterior",
+        },
+    ]
+    before_unit = extract_semantic_unit_content(sections[0]["content"], "2.2.6")
+    before = next(
+        audit
+        for audit in audit_unac_maintenance_sections(
+            [{"path": "2.2.6 Confiabilidad", "content": before_unit}]
+        )
+        if audit.key == "2.2.6"
+    )
+    assert before.words == 225
+    assert before.paragraphs == 2
+
+    updated = replace_references_section(sections)
+    after_unit = extract_semantic_unit_content(updated[0]["content"], "2.2.6")
+    after = next(
+        audit
+        for audit in audit_unac_maintenance_sections(
+            [{"path": "2.2.6 Confiabilidad", "content": after_unit}]
+        )
+        if audit.key == "2.2.6"
+    )
+
+    assert after.words == before.words
+    assert after.paragraphs == 3
+    assert after.citations == 3
+    assert after.minimum <= after.words <= after.maximum
+
+
 def test_replace_references_section_overrides_final_reference_content() -> None:
     sections = [
         {
@@ -60,7 +125,7 @@ def test_replace_references_section_overrides_final_reference_content() -> None:
     assert "sin acceso a internet" in final_section["content"]
     assert "Ejemplo viejo del formato" not in final_section["content"]
     assert "[[SOURCE:SIM_" in final_section["content"]
-    assert "[[CITE:SIM_" in updated[0]["content"]
+    assert "[[CITE_NARRATIVE:SIM_" in updated[0]["content"]
 
 
 def test_replace_references_adds_citations_to_string_list_content() -> None:
@@ -81,7 +146,7 @@ def test_replace_references_adds_citations_to_string_list_content() -> None:
 
     updated = replace_references_section(sections)
 
-    assert "[[CITE:SIM_" in updated[0]["content"][0]
+    assert "[[CITE_NARRATIVE:SIM_" in updated[0]["content"][0]
     assert "[[SOURCE:SIM_" in updated[1]["content"]
 
 
@@ -116,7 +181,7 @@ def test_title_and_basic_information_never_creates_or_requires_sources() -> None
     introduction = next(item for item in updated if item["sectionId"] == "sec-0001")
     references = next(item for item in updated if item["sectionId"] == "sec-0027")
     assert "[[CITE:" not in special["content"]
-    assert "[[CITE:SIM_" in introduction["content"]
+    assert "[[CITE_NARRATIVE:SIM_" in introduction["content"]
     assert references["content"].count("[[SOURCE:SIM_") == 1
     assert "informacion basica" not in references["content"].lower()
 
@@ -177,7 +242,7 @@ def test_existing_author_year_citations_become_native_without_duplicate_sources(
 
     updated = replace_references_section(sections)
 
-    assert updated[0]["content"].count("[[CITE:") == 2
+    assert updated[0]["content"].count("[[CITE") == 2
     assert "Moubray (2020)" not in updated[0]["content"]
     assert "(Moubray, 2020)" not in updated[0]["content"]
     assert updated[1]["content"].count("[[SOURCE:SIM_") == 1
@@ -202,7 +267,7 @@ def test_mil_standard_is_preserved_as_a_technical_author() -> None:
 
     updated = replace_references_section(sections)
 
-    assert "[[CITE:SIM_01_MIL_STD_1629A_1980]]" in updated[0]["content"]
+    assert "[[CITE_NARRATIVE:SIM_01_MIL_STD_1629A_1980]]" in updated[0]["content"]
     assert "MIL-STD-1629A (1980)." in updated[1]["content"]
     assert "MIL-STD-1629A, M." not in updated[1]["content"]
 
@@ -259,6 +324,12 @@ def test_unac_semantic_minimums_and_structured_operationalization_are_audited() 
     for heading, count in theory_specs:
         theory.append(paragraph(heading))
         theory.extend(paragraph(f"Desarrollo {heading} {index}") for index in range(1, count + 1))
+    taxonomy_rows = [
+        item for item in theory
+        if "Desarrollo 2.2.3" in str(item.get("texto") or "")
+    ]
+    taxonomy_rows[0]["texto"] += " ISO (2016) organiza la primera evidencia. SAE (2021) aporta otra clasificación."
+    taxonomy_rows[1]["texto"] += " Smith (2020) presenta un tercer sustento."
 
     def plain_paragraphs(count: int) -> str:
         return "\n\n".join(
@@ -266,8 +337,12 @@ def test_unac_semantic_minimums_and_structured_operationalization_are_audited() 
             for index in range(1, count + 1)
         )
 
+    introduction = plain_paragraphs(3) + (
+        "\n\nMoubray (2020), Smith (2021), Garcia (2022), Blanchard (2019), "
+        "Kelly (2018) y Nowlan (2017) presentan evidencia adicional."
+    )
     sections = [
-        {"sectionId": "intro", "path": "INTRODUCCIÓN", "content": plain_paragraphs(3)},
+        {"sectionId": "intro", "path": "INTRODUCCIÓN", "content": introduction},
         {
             "sectionId": "problem",
             "path": "I. PLANTEAMIENTO DEL PROBLEMA/1.1 Descripción de la realidad problemática",
@@ -280,28 +355,60 @@ def test_unac_semantic_minimums_and_structured_operationalization_are_audited() 
         {"sectionId": "op", "path": "III. HIPÓTESIS Y VARIABLES/3.2 Operacionalización de variable", "content": "Tablas estructuradas."},
         {"sectionId": "design", "path": "IV. METODOLOGÍA DEL PROYECTO/4.1 Diseño metodológico", "content": plain_paragraphs(2)},
         {"sectionId": "method", "path": "IV. METODOLOGÍA DEL PROYECTO/4.2 Método de investigación", "content": plain_paragraphs(1)},
+        {
+            "sectionId": "instruments",
+            "path": "IV. METODOLOGÍA DEL PROYECTO/4.5 Técnicas e instrumentos para la recolección de la información",
+            "content": (
+                "La técnica documental se organiza tal como lo señalan Moubray (1997) y Smith (2005), "
+                "con fichas e instrumentos coherentes con los datos y su validación."
+            ),
+        },
         {"sectionId": "refs", "path": "VII. REFERENCIAS BIBLIOGRÁFICAS", "content": "Anterior"},
     ]
     values = {
         "titulo": "Plan de mantenimiento centrado en confiabilidad para motoniveladoras",
         "operacionalizacion_vi": {
-            "definicion_conceptual": "Definición conceptual de la estrategia RCM.",
+            "definicion_conceptual": (
+                "Moubray (2020) y Smith (2021) definen conceptualmente la estrategia RCM."
+            ),
         },
         "operacionalizacion_vd": {
-            "definicion_conceptual": "Definición conceptual de la disponibilidad inherente.",
+            "definicion_conceptual": (
+                "Blanchard (2019) define conceptualmente la disponibilidad inherente."
+            ),
         },
     }
 
     result = consolidate_references(sections, values=values)
 
     assert result.failures == []
-    assert result.distinct_sources >= 29
+    assert result.distinct_sources == 29
+    total_mentions = sum(result.mentions_by_section.values())
+    assert 52 <= total_mentions <= 65
     assert result.mentions_by_section["rcm"] >= 3
     assert result.mentions_by_section["rcm_process"] >= 2
     assert result.mentions_by_section["reliability"] >= 3
-    assert result.mentions_by_section["operationalization"] >= 2
-    assert "[[CITE:" in result.structured_values["operacionalizacion_vi"]["definicion_conceptual"]
-    assert "[[CITE:" in result.structured_values["operacionalizacion_vd"]["definicion_conceptual"]
+    assert result.mentions_by_section["taxonomy"] <= 1
+    assert result.mentions_by_section["introduction"] <= 4
+    assert result.mentions_by_section["operationalization"] == 2
+    assert "[[CITE" in result.structured_values["operacionalizacion_vi"]["definicion_conceptual"]
+    assert "[[CITE" in result.structured_values["operacionalizacion_vd"]["definicion_conceptual"]
+    instruments = next(item for item in result.sections if item["sectionId"] == "instruments")
+    assert "[[CITE" not in instruments["content"]
+    assert "Moubray y Smith" in instruments["content"]
+    assert "1997" not in instruments["content"]
+    assert "2005" not in instruments["content"]
+
+    # Render retries rebuild references from the saved sections and original
+    # project values. The second pass must remain inside every section maximum
+    # instead of attaching a fifth source to Introduction.
+    second = consolidate_references(result.sections, values=values)
+    assert second.failures == []
+    assert second.distinct_sources == 29
+    assert second.mentions_by_section["introduction"] <= 4
+    assert second.mentions_by_section["problem_reality"] <= 7
+    second_instruments = next(item for item in second.sections if item["sectionId"] == "instruments")
+    assert "[[CITE" not in second_instruments["content"]
 
 
 def test_theory_citations_follow_canonical_numbers_when_titles_are_paraphrased() -> None:
@@ -354,5 +461,5 @@ def test_reference_consolidation_is_idempotent_and_keeps_repeated_mentions() -> 
     first = replace_references_section(sections)
     second = replace_references_section(first)
 
-    assert second[0]["content"].count("[[CITE:") == 3
+    assert second[0]["content"].count("[[CITE_NARRATIVE:") == 3
     assert second[1]["content"].count("[[SOURCE:") == 1

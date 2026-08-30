@@ -12,10 +12,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-_PROFILE_PATH = Path(__file__).with_name("profiles") / "unac_maintenance_v1.json"
+_PROFILE_PATH = Path(__file__).with_name("profiles") / "unac_maintenance_v2.json"
 _WORD_RE = re.compile(r"\b[\wÁÉÍÓÚÜÑáéíóúüñ]+(?:[-'][\wÁÉÍÓÚÜÑáéíóúüñ]+)?\b", re.UNICODE)
 _HEADING_RE = re.compile(r"^\s*(\d+(?:\.\d+){0,2})\.?\s+(.+?)\s*$")
-_CITATION_RE = re.compile(r"\[\[CITE:([A-Z0-9_-]+(?:;[A-Z0-9_-]+)*)\]\]")
+_CITATION_RE = re.compile(r"\[\[CITE(?:_NARRATIVE)?:([A-Z0-9_-]+(?:;[A-Z0-9_-]+)*)\]\]")
 _SOURCE_RE = re.compile(r"\[\[SOURCE:[\s\S]*?\]\]")
 _LABELS = {
     "problema general",
@@ -82,9 +82,39 @@ _TOPIC_ALIASES: dict[str, tuple[str, ...]] = {
         "n =",
     ),
     "priorizacion": ("priorizacion", "priorizar", "jerarquizacion", "orden de criticidad"),
+    "evaluacion": (
+        "evaluacion",
+        "evaluar",
+        "se evaluara",
+        "comparacion temporal",
+        "comparacion",
+        "analisis",
+        "medicion",
+        "verificacion",
+        "seguimiento",
+    ),
     "diagnostico internacional": ("diagnostico internacional", "contexto internacional", "ambito internacional"),
-    "diagnostico nacional": ("diagnostico nacional", "contexto nacional", "ambito nacional", "en el peru"),
+    "diagnostico nacional": (
+        "diagnostico nacional",
+        "contexto nacional",
+        "ambito nacional",
+        "en el peru",
+        "realidad peruana",
+        "sector minero peruano",
+        "a nivel nacional",
+        "industria minera peruana",
+    ),
     "diagnostico local": ("diagnostico local", "contexto local", "unidad minera", "sierra central"),
+    "operacion": ("operacion", "operativa", "funcionamiento", "actividad productiva"),
+    "entorno": ("entorno", "condiciones ambientales", "condiciones geograficas", "contexto operativo"),
+    "procesamiento": ("procesamiento", "procesar", "depuracion", "organizacion de datos", "tabulacion"),
+    "analisis": ("analisis", "analizar", "interpretacion", "evaluacion de datos"),
+    "indicadores": ("indicadores", "metricas", "mtbf", "mttr", "disponibilidad"),
+    "resultados": ("resultados", "hallazgos", "salidas del analisis", "presentacion de datos"),
+    "etica": ("etica", "principios eticos", "conducta responsable"),
+    "confidencialidad": ("confidencialidad", "reserva de la informacion", "proteccion de datos"),
+    "integridad": ("integridad", "honestidad cientifica", "sin manipulacion", "registro fiel"),
+    "consentimiento": ("consentimiento", "consentimiento informado", "participacion voluntaria"),
 }
 
 _CANONICAL_FORMULAS: dict[str, dict[str, str]] = {
@@ -120,8 +150,14 @@ class SectionQualityRequirement:
     key: str
     heading: str
     min_words: int
+    target_words: int
+    max_words: int
     min_citations: int = 0
+    max_citations: int = 0
     min_formulas: int = 0
+    min_paragraphs: int = 0
+    max_paragraphs: int = 0
+    expected_items: int = 0
     topics: tuple[str, ...] = ()
 
 
@@ -129,9 +165,13 @@ class SectionQualityRequirement:
 class UnacQualityProfile:
     id: str
     source_sha256: str
-    generation_buffer_percent: int
+    target_percent: int
+    maximum_percent: int
     global_citation_mentions_min: int
+    global_citation_mentions_max: int
     distinct_sources_min: int
+    distinct_sources_max: int
+    duplicate_ratio_max: float
     requirements: tuple[SectionQualityRequirement, ...]
 
 
@@ -141,9 +181,18 @@ class SectionQualityAudit:
     heading: str
     words: int
     minimum: int
+    target: int
+    maximum: int
     difference: int
+    excess: int
+    paragraphs: int
+    paragraph_minimum: int
+    paragraph_maximum: int
+    items: int
+    expected_items: int
     citations: int
     citation_minimum: int
+    citation_maximum: int
     formulas: int
     formula_minimum: int
     missing_topics: tuple[str, ...]
@@ -163,13 +212,21 @@ def _norm(value: Any) -> str:
 @lru_cache(maxsize=1)
 def load_unac_maintenance_profile() -> UnacQualityProfile:
     raw = json.loads(_PROFILE_PATH.read_text(encoding="utf-8"))
+    target_percent = int(raw.get("target_percent") or 108)
+    maximum_percent = int(raw.get("maximum_percent") or 115)
     requirements = tuple(
         SectionQualityRequirement(
             key=str(item["key"]),
             heading=str(item["heading"]),
             min_words=int(item["min_words"]),
+            target_words=int(item.get("target_words") or round(int(item["min_words"]) * target_percent / 100)),
+            max_words=int(item.get("max_words") or -(-int(item["min_words"]) * maximum_percent // 100)),
             min_citations=int(item.get("min_citations") or 0),
+            max_citations=int(item.get("max_citations", item.get("min_citations") or 0)),
             min_formulas=int(item.get("min_formulas") or 0),
+            min_paragraphs=int(item.get("min_paragraphs") or 0),
+            max_paragraphs=int(item.get("max_paragraphs") or 0),
+            expected_items=int(item.get("expected_items") or 0),
             topics=tuple(str(topic) for topic in item.get("topics", [])),
         )
         for item in raw["requirements"]
@@ -177,9 +234,13 @@ def load_unac_maintenance_profile() -> UnacQualityProfile:
     return UnacQualityProfile(
         id=str(raw["id"]),
         source_sha256=str(raw["source_sha256"]),
-        generation_buffer_percent=int(raw["generation_buffer_percent"]),
+        target_percent=target_percent,
+        maximum_percent=maximum_percent,
         global_citation_mentions_min=int(raw["global_citation_mentions_min"]),
+        global_citation_mentions_max=int(raw["global_citation_mentions_max"]),
         distinct_sources_min=int(raw["distinct_sources_min"]),
+        distinct_sources_max=int(raw["distinct_sources_max"]),
+        duplicate_ratio_max=float(raw.get("duplicate_ratio_max") or 0.15),
         requirements=requirements,
     )
 
@@ -235,7 +296,16 @@ def _section_key_from_path(path: str) -> str | None:
     if normalized.endswith("introduccion") or normalized == "introduccion":
         return "introduccion"
     matches = re.findall(r"(?<!\d)(\d+(?:\.\d+){0,2})(?!\d)", str(path or ""))
-    return matches[-1] if matches else None
+    if not matches:
+        return None
+    # Academic headings may contain years or standard identifiers after the
+    # real section number (for example ``2.2.3 ... ISO 14224:2016``).  Taking
+    # the last number classified that heading as section ``2016`` and silently
+    # skipped all quality checks for the actual unit.  Structural subsection
+    # identifiers contain dots, so prefer the last dotted match; for a plain
+    # chapter identifier use the first number instead of a trailing year.
+    dotted = [match for match in matches if "." in match]
+    return dotted[-1] if dotted else matches[0]
 
 
 def section_key_from_path(path: str) -> str | None:
@@ -366,7 +436,8 @@ def canonicalize_duplicate_semantic_units(
                     len(audit.missing_topics) * 10000
                     + max(0, requirement.min_formulas - audit.formulas) * 10000
                     + max(0, requirement.min_words - audit.words)
-                    + max(0.0, audit.duplicate_ratio - 0.22) * 10000
+                    + max(0.0, audit.duplicate_ratio - profile.duplicate_ratio_max) * 10000
+                    + max(0, audit.words - requirement.max_words) * 2
                 )
                 return (
                     hard_penalty,
@@ -514,7 +585,14 @@ def ensure_canonical_formulas(sections: list[dict[str, Any]]) -> list[dict[str, 
 
 
 def _topic_is_covered(topic: str, normalized: str) -> bool:
-    aliases = _TOPIC_ALIASES.get(_norm(topic), (topic,))
+    # An alias catalogue extends the accepted vocabulary; it must never make
+    # the canonical topic itself invalid.  Previously, a requirement such as
+    # ``normativa`` was reported as missing when the prose literally used
+    # "normativa", because only longer aliases ("marco normativo", etc.) were
+    # checked.  Keep the canonical label in every check so the rule behaves
+    # consistently for all current and future profile topics.
+    configured = _TOPIC_ALIASES.get(_norm(topic), ())
+    aliases = (*configured, topic)
     return any(_norm(alias) in normalized for alias in aliases if _norm(alias))
 
 
@@ -592,6 +670,8 @@ def audit_unac_maintenance_sections(sections: list[dict[str, Any]]) -> list[Sect
 
     for requirement in active_requirements:
         paragraphs = units.get(requirement.key, [])
+        paragraph_count = len(paragraphs)
+        item_count = paragraph_count if requirement.expected_items else 0
         narrative = " ".join(paragraphs)
         words = len(_WORD_RE.findall(narrative))
         normalized = _norm(narrative)
@@ -618,12 +698,21 @@ def audit_unac_maintenance_sections(sections: list[dict[str, Any]]) -> list[Sect
         else:
             missing_topics = tuple(topic for topic in requirement.topics if not _topic_is_covered(topic, normalized))
         duplicate_ratio = _duplicate_ratio(paragraphs)
+        paragraphs_ok = (
+            (not requirement.min_paragraphs or paragraph_count >= requirement.min_paragraphs)
+            and (not requirement.max_paragraphs or paragraph_count <= requirement.max_paragraphs)
+        )
+        items_ok = not requirement.expected_items or item_count == requirement.expected_items
         ok = (
             words >= requirement.min_words
+            and words <= requirement.max_words
             and citations[requirement.key] >= requirement.min_citations
+            and citations[requirement.key] <= requirement.max_citations
             and formulas[requirement.key] >= requirement.min_formulas
             and not missing_topics
-            and duplicate_ratio <= 0.22
+            and duplicate_ratio <= profile.duplicate_ratio_max
+            and paragraphs_ok
+            and items_ok
         )
         audits.append(
             SectionQualityAudit(
@@ -631,9 +720,18 @@ def audit_unac_maintenance_sections(sections: list[dict[str, Any]]) -> list[Sect
                 heading=requirement.heading,
                 words=words,
                 minimum=requirement.min_words,
+                target=requirement.target_words,
+                maximum=requirement.max_words,
                 difference=words - requirement.min_words,
+                excess=max(0, words - requirement.max_words),
+                paragraphs=paragraph_count,
+                paragraph_minimum=requirement.min_paragraphs,
+                paragraph_maximum=requirement.max_paragraphs,
+                items=item_count,
+                expected_items=requirement.expected_items,
                 citations=citations[requirement.key],
                 citation_minimum=requirement.min_citations,
+                citation_maximum=requirement.max_citations,
                 formulas=formulas[requirement.key],
                 formula_minimum=requirement.min_formulas,
                 missing_topics=missing_topics,
@@ -654,9 +752,19 @@ def content_quality_failures(audits: Iterable[SectionQualityAudit]) -> list[Sect
         audit
         for audit in audits
         if audit.words < audit.minimum
+        or audit.words > audit.maximum
         or audit.formulas < audit.formula_minimum
         or audit.missing_topics
-        or audit.duplicate_ratio > 0.22
+        or audit.duplicate_ratio > load_unac_maintenance_profile().duplicate_ratio_max
+        or (
+            audit.paragraph_minimum
+            and audit.paragraphs < audit.paragraph_minimum
+        )
+        or (
+            audit.paragraph_maximum
+            and audit.paragraphs > audit.paragraph_maximum
+        )
+        or (audit.expected_items and audit.items != audit.expected_items)
     ]
 
 

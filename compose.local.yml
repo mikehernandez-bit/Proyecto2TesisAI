@@ -44,12 +44,16 @@ services:
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       AI_PRIMARY_PROVIDER: ${AI_PRIMARY_PROVIDER:-mistral}
+      PROJECT_STORE_BACKEND: sqlite
+      GICAGEN_DB_PATH: /workspace/runtime-data/gicagen.db
+      PROJECT_STORE_JSON_PATH: /workspace/data/projects.json
     ports:
       - "8001:8001"
     volumes:
       - ./app:/workspace/app
       - ./data:/workspace/data
       - ./outputs:/workspace/outputs
+      - gicagen_runtime:/workspace/runtime-data
     healthcheck:
       test:
         - CMD
@@ -60,3 +64,6 @@ services:
       timeout: 4s
       retries: 12
       start_period: 10s
+
+volumes:
+  gicagen_runtime:

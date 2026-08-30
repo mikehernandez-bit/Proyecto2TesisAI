@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import threading
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from app.core.config import settings
 from app.core.services.ai.token_usage import (
     empty_token_usage_report,
     empty_token_usage_summary,
@@ -16,7 +19,7 @@ from app.core.services.pricing import (
     normalize_generation_cost_report,
     normalize_generation_cost_snapshot,
 )
-from app.core.storage.json_store import JsonStore
+from app.core.storage.project_repository import JsonProjectRepository, ProjectRepository, SQLiteProjectRepository
 from app.core.utils.id import new_id
 
 _TRACE_MAX_EVENTS = 200
@@ -25,8 +28,26 @@ _TRACE_MAX_EVENTS = 200
 class ProjectService:
     """Stores generation projects (history + status)."""
 
-    def __init__(self, path: str = "data/projects.json"):
-        self.store = JsonStore(path)
+    def __init__(self, path: Optional[str] = None, *, backend: Optional[str] = None):
+        self._mutation_lock = threading.RLock()
+        explicit_path = str(path or "").strip()
+        resolved_backend = str(backend or "").strip().lower()
+        if not resolved_backend:
+            if explicit_path:
+                resolved_backend = "sqlite" if Path(explicit_path).suffix.lower() in {".db", ".sqlite", ".sqlite3"} else "json"
+            else:
+                resolved_backend = str(settings.PROJECT_STORE_BACKEND or "json").strip().lower()
+        if resolved_backend == "sqlite":
+            db_path = explicit_path or settings.GICAGEN_DB_PATH
+            if not explicit_path:
+                SQLiteProjectRepository.backup_legacy_json(settings.PROJECT_STORE_JSON_PATH)
+            self.repository: ProjectRepository = SQLiteProjectRepository(db_path)
+            self.store = self.repository
+        else:
+            json_path = explicit_path or settings.PROJECT_STORE_JSON_PATH
+            json_repository = JsonProjectRepository(json_path)
+            self.repository = json_repository
+            self.store = json_repository.store
 
     @staticmethod
     def _default_progress(*, provider: str = "") -> Dict[str, Any]:
@@ -66,6 +87,16 @@ class ProjectService:
             "planned_sections": [],
             "sections": [],
             "cost_summary": empty_generation_cost_snapshot(),
+            "metrics": {
+                "total_ms": 0,
+                "provider_ms": 0,
+                "internal_ms": 0,
+                "persistence_ms": 0,
+                "initial_calls": 0,
+                "repair_calls": 0,
+                "units_reused": 0,
+                "units_regenerated": 0,
+            },
             "started_at": "",
             "updated_at": "",
             "finished_at": "",
@@ -94,6 +125,7 @@ class ProjectService:
             "retry_count": 0,
             "reason": "",
             "input_fingerprint": "",
+            "profile_version": "",
             "failed_section_id": "",
             "failed_section_index": 0,
             "completed_sections_count": 0,
@@ -146,6 +178,7 @@ class ProjectService:
                 "retry_count": max(0, int(resume_raw.get("retry_count") or 0)),
                 "reason": str(resume_raw.get("reason") or ""),
                 "input_fingerprint": str(resume_raw.get("input_fingerprint") or ""),
+                "profile_version": str(resume_raw.get("profile_version") or ""),
                 "failed_section_id": str(resume_raw.get("failed_section_id") or ""),
                 "failed_section_index": max(0, int(resume_raw.get("failed_section_index") or 0)),
                 "completed_sections_count": max(
@@ -421,6 +454,18 @@ class ProjectService:
                 "planned_sections": planned_sections,
                 "sections": normalized_sections,
                 "cost_summary": normalize_generation_cost_snapshot(raw.get("cost_summary")),
+                "metrics": {
+                    "total_ms": max(0, int((raw.get("metrics") or {}).get("total_ms") or 0)),
+                    "provider_ms": max(0, int((raw.get("metrics") or {}).get("provider_ms") or 0)),
+                    "internal_ms": max(0, int((raw.get("metrics") or {}).get("internal_ms") or 0)),
+                    "persistence_ms": max(0, int((raw.get("metrics") or {}).get("persistence_ms") or 0)),
+                    "initial_calls": max(0, int((raw.get("metrics") or {}).get("initial_calls") or 0)),
+                    "repair_calls": max(0, int((raw.get("metrics") or {}).get("repair_calls") or 0)),
+                    "units_reused": max(0, int((raw.get("metrics") or {}).get("units_reused") or 0)),
+                    "units_regenerated": max(0, int((raw.get("metrics") or {}).get("units_regenerated") or 0)),
+                }
+                if isinstance(raw.get("metrics"), dict)
+                else cls._empty_generation_phase()["metrics"],
                 "started_at": str(raw.get("started_at") or ""),
                 "updated_at": str(raw.get("updated_at") or ""),
                 "finished_at": str(raw.get("finished_at") or ""),
@@ -600,10 +645,15 @@ class ProjectService:
         return compact
 
     def _write_projects(self, items: List[Dict[str, Any]]) -> None:
-        self.store.write_list([self._compact_project_for_storage(item) for item in items])
+        existing = {str(item.get("id") or "") for item in self.repository.list(include_events=False)}
+        incoming = {str(item.get("id") or "") for item in items}
+        for project_id in existing - incoming:
+            self.repository.delete(project_id)
+        for item in items:
+            self.repository.upsert(self._compact_project_for_storage(item))
 
     def list_projects(self) -> List[Dict[str, Any]]:
-        normalized = [self._normalize_project(item) for item in self.store.read_list()]
+        normalized = [self._normalize_project(item) for item in self.repository.list(include_events=False)]
 
         def _dt_key(project: Dict[str, Any]) -> dt.datetime:
             raw = (
@@ -639,10 +689,8 @@ class ProjectService:
         return normalized
 
     def get_project(self, project_id: str) -> Optional[Dict[str, Any]]:
-        for p in self.store.read_list():
-            if p.get("id") == project_id:
-                return self._normalize_project(p)
-        return None
+        project = self.repository.get(project_id)
+        return self._normalize_project(project) if project is not None else None
 
     def _mutate_project(
         self,
@@ -650,19 +698,19 @@ class ProjectService:
         mutator: Callable[[Dict[str, Any]], None],
         *,
         touch_updated_at: bool = True,
+        sync_derived: bool = True,
     ) -> Optional[Dict[str, Any]]:
-        items = self.store.read_list()
-        for i, p in enumerate(items):
-            if p.get("id") != project_id:
-                continue
-            p = self._normalize_project(p)
-            mutator(p)
+        with self._mutation_lock:
+            current = self.repository.get(project_id, hydrate=sync_derived)
+            if current is None:
+                return None
+            project = self._normalize_project(current)
+            mutator(project)
             if touch_updated_at:
-                p["updated_at"] = dt.datetime.now().isoformat(timespec="seconds")
-            items[i] = p
-            self._write_projects(items)
-            return p
-        return None
+                project["updated_at"] = dt.datetime.now().isoformat(timespec="seconds")
+            compact = self._compact_project_for_storage(project)
+            self.repository.upsert(compact, sync_derived=sync_derived)
+            return project
 
     @staticmethod
     def _ensure_trace_list(project: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -675,7 +723,6 @@ class ProjectService:
         return []
 
     def create_project(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        items = self.store.read_list()
         now = dt.datetime.now().isoformat(timespec="seconds")
         values = payload.get("variables")
         if values is None:
@@ -730,8 +777,7 @@ class ProjectService:
                 payload.get("wizard_state"),
             ),
         }
-        items.insert(0, project)
-        self._write_projects(items)
+        self.repository.insert(self._compact_project_for_storage(project))
         return self._normalize_project(project)
 
     def update_project(
@@ -864,26 +910,20 @@ class ProjectService:
         return self._mutate_project(project_id, _mutate, touch_updated_at=touch_updated_at)
 
     def delete_project(self, project_id: str) -> bool:
-        items = self.store.read_list()
-        remaining = [item for item in items if item.get("id") != project_id]
-        if len(remaining) == len(items):
-            return False
-        self._write_projects(remaining)
-        return True
+        return self.repository.delete(project_id)
 
     def clear_trace(self, project_id: str) -> Optional[Dict[str, Any]]:
-        def _mutate(p: Dict[str, Any]) -> None:
-            p["events"] = []
-            p["trace"] = []
-
-        return self._mutate_project(project_id, _mutate)
+        with self._mutation_lock:
+            if not self.repository.replace_events(project_id, [], limit=_TRACE_MAX_EVENTS):
+                return None
+            return self._mutate_project(project_id, lambda _project: None, sync_derived=False)
 
     def clear_incidents(self, project_id: str) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
             p["incidents"] = []
             p["warnings_count"] = 0
 
-        return self._mutate_project(project_id, _mutate)
+        return self._mutate_project(project_id, _mutate, sync_derived=False)
 
     def clear_resume(self, project_id: str) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
@@ -918,6 +958,7 @@ class ProjectService:
         failed_quality_keys: Optional[list[str]] = None,
         validated_sections_count: int = 0,
         quality_attempts_by_key: Optional[Dict[str, int]] = None,
+        profile_version: str = "",
     ) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
             current_resume = self._normalize_resume(
@@ -935,6 +976,7 @@ class ProjectService:
                 "retry_count": current_retry_count + 1,
                 "reason": str(reason or ""),
                 "input_fingerprint": str(input_fingerprint or current_resume.get("input_fingerprint") or ""),
+                "profile_version": str(profile_version or current_resume.get("profile_version") or ""),
                 "failed_section_id": str(failed_section_id or ""),
                 "failed_section_index": max(0, int(failed_section_index or saved_sections_count)),
                 "completed_sections_count": max(0, int(saved_sections_count)),
@@ -961,6 +1003,7 @@ class ProjectService:
         current_path: str,
         input_fingerprint: str,
         base_run_id: str = "",
+        profile_version: str = "",
     ) -> Optional[Dict[str, Any]]:
         """Persist normal per-section progress without incrementing retry_count."""
 
@@ -976,6 +1019,7 @@ class ProjectService:
                 "failed_section_id": "",
                 "failed_section_index": 0,
                 "input_fingerprint": str(input_fingerprint or ""),
+                "profile_version": str(profile_version or current.get("profile_version") or ""),
                 "base_run_id": str(base_run_id or current.get("base_run_id") or ""),
                 "reason": "checkpoint por seccion completada",
                 "checkpoint_status": "checkpoint_ready",
@@ -1002,7 +1046,7 @@ class ProjectService:
                 current_warnings += 1
             p["warnings_count"] = max(0, current_warnings)
 
-        return self._mutate_project(project_id, _mutate)
+        return self._mutate_project(project_id, _mutate, sync_derived=False)
 
     def list_trace(self, project_id: str) -> List[Dict[str, Any]]:
         project = self.get_project(project_id)
@@ -1011,16 +1055,13 @@ class ProjectService:
         return self._ensure_trace_list(project)
 
     def append_event(self, project_id: str, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        def _mutate(p: Dict[str, Any]) -> None:
-            trace = self._ensure_trace_list(p)
-            item = dict(event)
-            trace.append(item)
-            if len(trace) > _TRACE_MAX_EVENTS:
-                trace = trace[-_TRACE_MAX_EVENTS:]
-            p["events"] = trace
-            p["trace"] = trace
-
-        return self._mutate_project(project_id, _mutate)
+        with self._mutation_lock:
+            if not self.repository.append_event(project_id, dict(event), limit=_TRACE_MAX_EVENTS):
+                return None
+            # Touch only the project row. Events remain normalized in their
+            # table under SQLite and are reconstructed on detail reads.
+            touched = self._mutate_project(project_id, lambda _project: None, sync_derived=False)
+            return self.get_project(project_id) if touched is not None else None
 
     def update_progress(
         self,
@@ -1059,7 +1100,7 @@ class ProjectService:
             progress["updatedAt"] = dt.datetime.now().isoformat(timespec="seconds")
             p["progress"] = progress
 
-        return self._mutate_project(project_id, _mutate)
+        return self._mutate_project(project_id, _mutate, sync_derived=False)
 
     def request_cancel(self, project_id: str) -> Optional[Dict[str, Any]]:
         def _mutate(p: Dict[str, Any]) -> None:
@@ -1068,7 +1109,7 @@ class ProjectService:
             if current_status in {"generating", "processing", "sending"}:
                 p["status"] = "cancel_requested"
 
-        return self._mutate_project(project_id, _mutate)
+        return self._mutate_project(project_id, _mutate, sync_derived=False)
 
     def is_cancel_requested(self, project_id: str) -> bool:
         project = self.get_project(project_id)

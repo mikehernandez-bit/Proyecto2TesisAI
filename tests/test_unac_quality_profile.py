@@ -11,12 +11,13 @@ from app.core.services.ai.unac_quality_profile import (
     minimum_for_section_path,
     replace_semantic_unit_content,
     requirements_for_section_path,
+    section_key_from_path,
 )
 
 
 def test_profile_is_versioned_from_engineer_deliverable() -> None:
     profile = load_unac_maintenance_profile()
-    assert profile.id == "UNAC_MAINTENANCE_V1"
+    assert profile.id == "UNAC_MAINTENANCE_V2"
     assert profile.source_sha256 == "4712AD32B8B84C352995A1326A67BFE2385C15999890891D76B1AAD68377A92F"
     floors = {item.key: item.min_words for item in profile.requirements}
     assert floors["introduccion"] == 643
@@ -24,12 +25,23 @@ def test_profile_is_versioned_from_engineer_deliverable() -> None:
     assert floors["2.1.1"] == 1611
     assert floors["2.1.2"] == 1634
     assert floors["2.2.8"] == 287
+    introduction = next(item for item in profile.requirements if item.key == "introduccion")
+    assert (introduction.target_words, introduction.max_words) == (694, 739)
+    assert (introduction.min_paragraphs, introduction.max_paragraphs) == (5, 5)
+    assert profile.global_citation_mentions_max == 65
+    assert profile.distinct_sources_max == 29
 
 
 def test_aggregate_floor_uses_all_reference_subsections() -> None:
     assert minimum_for_section_path("II. MARCO TEÓRICO/2.1 Antecedentes") == 3245
     assert minimum_for_section_path("II. MARCO TEÓRICO/2.2 Bases teóricas") == 1839
     assert minimum_for_section_path("I. PLANTEAMIENTO/1.4 Justificación") == 864
+
+
+def test_section_key_ignores_years_and_standard_numbers_in_the_heading() -> None:
+    heading = "2.2.3 Taxonomía de equipos según ISO 14224:2016"
+    assert section_key_from_path(heading) == "2.2.3"
+    assert requirements_for_section_path(heading)[0].key == "2.2.3"
 
 
 def test_profile_applies_only_to_unac_maintenance_domain() -> None:
@@ -44,16 +56,20 @@ def test_profile_applies_only_to_unac_maintenance_domain() -> None:
 
 def test_narrative_audit_excludes_caption_table_formula_and_citation_markers() -> None:
     core = "contexto problema propuesta metodo organizacion "
-    unique = " ".join(f"contenido{i}" for i in range(638))
+    unique = [" ".join(f"contenido{part}_{i}" for i in range(127 if part < 4 else 130)) for part in range(5)]
     sections = [
         {
             "sectionId": "intro",
             "path": "INTRODUCCIÓN",
             "content": [
-                {
-                    "tipo": "parrafo",
-                    "texto": core + unique + " [[CITE:S1]] [[CITE:S2;S3]]",
-                },
+                *[
+                    {
+                        "tipo": "parrafo",
+                        "texto": (core if index == 0 else "") + paragraph
+                        + (" [[CITE:S1]] [[CITE:S2;S3]]" if index == 0 else ""),
+                    }
+                    for index, paragraph in enumerate(unique)
+                ],
                 {"tipo": "figura", "caption": "Figura con cien palabras que no cuentan"},
                 {"tipo": "tabla", "filas": [["texto auxiliar que no cuenta"]]},
                 {"tipo": "formula", "latex": r"x=\frac{a}{b}", "texto": "x=a/b"},
@@ -129,7 +145,7 @@ def test_population_accepts_equivalent_equipment_unit_of_analysis() -> None:
     narrative = (
         "La población está conformada por cinco motoniveladoras CAT 24M de la flota de equipos. "
         "La muestra censal coincide con toda la población, n = 5, e incluye cada equipo evaluado. "
-        + " ".join(f"criterio_{index}" for index in range(35))
+        + " ".join(f"criterio_{index}" for index in range(28))
     )
     audit = audit_unac_maintenance_sections(
         [{"sectionId": "population", "path": "IV/4.3 Población y muestra", "content": narrative}]

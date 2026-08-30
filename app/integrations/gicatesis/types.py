@@ -149,12 +149,17 @@ class TableBlock(BaseModel):
 class FigureBlock(BaseModel):
     tipo: Literal["figura"]
     caption: str
-    ruta_placeholder: str = Field(default=_CANONICAL_PLACEHOLDER_PATH)
+    ruta_placeholder: Optional[str] = None
     id: Optional[str] = None
     titulo: Optional[str] = None
     fuente: Optional[str] = None
     nota: Optional[str] = None
     nota_color: Optional[str] = None
+    diagram_type: Optional[str] = None
+    diagram_data: Optional[dict[str, Any]] = None
+    numbered: bool = True
+    show_caption: Optional[bool] = None
+    include_in_index: Optional[bool] = None
 
     @field_validator("caption")
     @classmethod
@@ -166,11 +171,19 @@ class FigureBlock(BaseModel):
 
     @field_validator("ruta_placeholder", mode="before")
     @classmethod
-    def _normalize_placeholder_path(cls, value: Any) -> str:
+    def _normalize_placeholder_path(cls, value: Any) -> Optional[str]:
         text = str(value or "").strip()
-        if not text or text.lower() == "placeholder":
+        if not text:
+            return None
+        if text.lower() == "placeholder":
             return _CANONICAL_PLACEHOLDER_PATH
         return text
+
+    @model_validator(mode="after")
+    def _validate_visual_source(self) -> "FigureBlock":
+        if not self.ruta_placeholder and not self.diagram_type:
+            raise ValueError("Figure must define an image path or a deterministic diagram")
+        return self
 
 
 class FormulaBlock(BaseModel):

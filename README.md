@@ -4,7 +4,7 @@ GicaGen es un generador de documentos academicos con FastAPI + SPA.
 El flujo principal es **code-first**: GicaGen genera con IA y luego envia a
 GicaTesis para render DOCX/PDF.
 
-## Estado actual (February 19, 2026)
+## Estado actual (26 de agosto de 2026)
 
 - `POST /api/projects/{id}/generate` ahora responde rapido con **202 Accepted**.
 - La generacion corre en segundo plano y registra progreso en `project.progress`
@@ -56,9 +56,30 @@ Para detener los servicios:
 docker compose -f compose.local.yml down
 ```
 
-Los directorios `app`, `data` y `outputs` se montan localmente. Uvicorn usa
+Los directorios `app`, `data` y `outputs` se montan localmente. La base SQLite
+activa se guarda en el volumen nombrado `gicagen_runtime`, fuera de la carpeta
+sincronizada por OneDrive. Uvicorn usa
 recarga automatica, por lo que los cambios de codigo no requieren reconstruir
 la imagen salvo que cambien las dependencias o el Dockerfile.
+
+### Almacenamiento de proyectos
+
+SQLite es la fuente de verdad de los proyectos nuevos. Al iniciar por primera
+vez, GicaGen valida `data/projects.json`, crea una copia en `data/backups/` y
+guarda su SHA-256. El historial JSON no se importa: la base comienza vacía y el
+respaldo permanece intacto para una recuperación manual.
+
+- Base local: `data/gicagen.db`.
+- Base Docker: `/workspace/runtime-data/gicagen.db` en `gicagen_runtime`.
+- Rollback temporal: `PROJECT_STORE_BACKEND=json`.
+- No existe escritura dual entre SQLite y JSON.
+- Los archivos `projects.json` y `data/backups/` pueden eliminarse manualmente
+  únicamente después de validar el prototipo y conservar otra copia segura.
+
+SQLite usa WAL, `synchronous=NORMAL`, claves foráneas, espera ocupada de cinco
+segundos y transacciones por actualización. Los eventos, llamadas IA,
+checkpoints, tareas de construcción y artefactos se almacenan por separado; el
+listado no carga prompts ni respuestas completos.
 
 ## Variables clave
 
@@ -66,6 +87,9 @@ Fuente: `app/core/config.py` y `.env.example`.
 
 | Variable | Default | Uso |
 |---|---|---|
+| `PROJECT_STORE_BACKEND` | `sqlite` | Backend activo (`sqlite` o rollback `json`) |
+| `GICAGEN_DB_PATH` | `data/gicagen.db` | Ruta de la base SQLite |
+| `PROJECT_STORE_JSON_PATH` | `data/projects.json` | JSON legado que se respalda, sin importar |
 | `GEMINI_API_KEY` | `""` | Autenticacion Gemini |
 | `GEMINI_MODEL` | `gemini-2.0-flash` | Modelo Gemini |
 | `MISTRAL_API_KEY` | `""` | Autenticacion Mistral |

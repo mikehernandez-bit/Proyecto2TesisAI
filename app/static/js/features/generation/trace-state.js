@@ -345,6 +345,7 @@ export function resolveGenerationPhase(projectSnapshot) {
     completedSections,
     currentPath,
     sections: mergedSections,
+    metrics: asObject(phase.metrics),
   };
 }
 

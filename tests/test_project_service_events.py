@@ -173,6 +173,7 @@ def test_resume_checkpoint_is_saved_and_cleared_on_complete(tmp_path):
         failed_quality_keys=["2.1.1", "2.2.6"],
         validated_sections_count=25,
         quality_attempts_by_key={"2.1.1": 2, "2.2.6": 1},
+        profile_version="UNAC_MAINTENANCE_V2",
     )
     assert updated is not None
     assert updated["resume"]["eligible"] is True
@@ -184,6 +185,7 @@ def test_resume_checkpoint_is_saved_and_cleared_on_complete(tmp_path):
     assert updated["resume"]["failed_quality_keys"] == ["2.1.1", "2.2.6"]
     assert updated["resume"]["validated_sections_count"] == 25
     assert updated["resume"]["quality_attempts_by_key"]["2.1.1"] == 2
+    assert updated["resume"]["profile_version"] == "UNAC_MAINTENANCE_V2"
 
     completed = service.mark_completed(project_id, output_file="outputs/final.docx")
     assert completed is not None
@@ -201,6 +203,7 @@ def test_normal_section_checkpoint_is_durable_without_counting_as_retry(tmp_path
         current_path="2.1 Antecedentes",
         input_fingerprint="abc123",
         base_run_id="run-1",
+        profile_version="UNAC_MAINTENANCE_V2",
     )
 
     assert updated is not None
@@ -208,6 +211,7 @@ def test_normal_section_checkpoint_is_durable_without_counting_as_retry(tmp_path
     assert updated["resume"]["saved_sections_count"] == 2
     assert updated["resume"]["input_fingerprint"] == "abc123"
     assert updated["resume"]["retry_count"] == 0
+    assert updated["resume"]["profile_version"] == "UNAC_MAINTENANCE_V2"
 
 
 def test_list_projects_orders_by_recent_activity_and_status(tmp_path):

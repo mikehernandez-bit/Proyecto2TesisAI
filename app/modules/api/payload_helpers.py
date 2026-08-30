@@ -17,6 +17,7 @@ import httpx
 
 from app.core.config import settings
 from app.core.services.ai.content_parser import parse_ai_content
+from app.core.services.ai.figure_recommendations import apply_figure_recommendations
 from app.core.services.ai.output_validator import OutputValidator
 from app.core.services.ai.reference_proposals import consolidate_references
 from app.core.services.ai.unac_quality_profile import (
@@ -731,6 +732,32 @@ def _strip_raw_structured_string(content: str) -> str:
     return "\n".join(kept_lines).strip()
 
 
+def _drop_nonrenderable_figures(path: str, content: list[Any]) -> list[Any]:
+    """Remove provider-only captions while preserving all other saved blocks."""
+    theoretical_bases = "2.2" in _normalize_token(path) and "bases teoricas" in _normalize_token(path)
+    figure_limit = OutputValidator.MAX_THEORETICAL_BASES_FIGURE_BLOCKS if theoretical_bases else None
+    figure_count = 0
+    cleaned: list[Any] = []
+    for item in content:
+        if not isinstance(item, dict) or _normalize_token(item.get("tipo")) != "figura":
+            cleaned.append(item)
+            continue
+        image_path = str(
+            item.get("ruta")
+            or item.get("ruta_placeholder")
+            or item.get("image_path")
+            or ""
+        ).strip()
+        diagram_type = str(item.get("diagram_type") or "").strip()
+        if not image_path and not diagram_type:
+            continue
+        if figure_limit is not None and figure_count >= figure_limit:
+            continue
+        cleaned.append(item)
+        figure_count += 1
+    return cleaned
+
+
 def _apply_section_content_policy(path: str, content: Any) -> Any:
     if isinstance(content, str):
         return _strip_raw_structured_string(content)
@@ -750,7 +777,10 @@ def _apply_section_content_policy(path: str, content: Any) -> Any:
             return _flatten_structured_to_text(kept_blocks)
         return kept_blocks
     if allows_structured_content(path):
-        return content
+        # Recheck the one render-critical invariant on every render attempt.
+        # Avoid a full sanitation pass here because formulas and tables have
+        # already been approved and must not be degraded on retry.
+        return _drop_nonrenderable_figures(path, content)
     return _flatten_structured_to_text(content)
 
 
@@ -1080,6 +1110,15 @@ def build_render_payload(
             for marker in ("mantenimiento", "confiabilidad", "disponibilidad", "rcm", "motoniveladora")
         )
         if strict_unac_maintenance:
+            # This final, idempotent pass also upgrades saved projects created
+            # before the figure-guide contract was fixed. A render retry can
+            # therefore restore captions and blue authoring prompts without
+            # calling the AI provider again.
+            sections = apply_figure_recommendations(
+                sections,
+                values=render_values,
+                format_id=format_id,
+            )
             sections = _reconcile_unac_methodology(sections, values=render_values)
             sections = ensure_canonical_formulas(sections)
         adapted_ai_result = {**adapted_ai_result, "sections": sections}

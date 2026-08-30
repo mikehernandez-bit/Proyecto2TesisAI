@@ -5,9 +5,13 @@
 __pycache__
 *.py[cod]
 .pytest_cache
+.codex_tmp
 pytest-cache-files-*
 node_modules
 outputs
 artifacts
+data/projects.json
+data/backups
+data/*.db*
 .env
 *.log

@@ -201,9 +201,6 @@ def parse_ai_content(raw_content: str) -> Union[str, List[Dict[str, Any]]]:
         if figure_match:
             obj = _parse_json_block(figure_match.group(1), "figura")
             if obj:
-                # Set placeholder path
-                if "ruta_placeholder" not in obj:
-                    obj["ruta_placeholder"] = "assets/placeholder_figura.png"
                 result.append(obj)
             continue
 

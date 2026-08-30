@@ -43,7 +43,7 @@ class OutputValidator:
     MAX_THEORETICAL_BASES_TABLE_BLOCKS = 0
     MAX_FIGURE_BLOCKS = 1
     MAX_PROBLEM_FIGURE_BLOCKS = 4
-    MAX_THEORETICAL_BASES_FIGURE_BLOCKS = 5
+    MAX_THEORETICAL_BASES_FIGURE_BLOCKS = 4
     MAX_FORMULA_BLOCKS = 0
     MAX_THEORETICAL_BASES_FORMULA_BLOCKS = 4
     MAX_METHODOLOGICAL_DESIGN_FORMULA_BLOCKS = 1
@@ -819,9 +819,24 @@ class OutputValidator:
         normalized: dict[str, Any] = {
             "tipo": "figura",
             "caption": caption,
-            "ruta_placeholder": str(item.get("ruta_placeholder") or "assets/placeholder_figura.png").strip()
-            or "assets/placeholder_figura.png",
         }
+        image_path = str(item.get("ruta_placeholder") or item.get("image_path") or "").strip()
+        if image_path:
+            normalized["ruta_placeholder"] = image_path
+        diagram_type = str(item.get("diagram_type") or "").strip()
+        if diagram_type:
+            normalized["diagram_type"] = diagram_type
+            normalized["diagram_data"] = item.get("diagram_data") if isinstance(item.get("diagram_data"), dict) else {}
+            normalized["numbered"] = bool(item.get("numbered", True))
+            if "show_caption" in item:
+                normalized["show_caption"] = bool(item.get("show_caption"))
+            if "include_in_index" in item:
+                normalized["include_in_index"] = bool(item.get("include_in_index"))
+        if not image_path and not diagram_type:
+            # A caption alone is not a renderable figure. Provider repairs can
+            # echo figure prose as a block; keeping it here only postpones the
+            # failure until GicaTesis validates the payload.
+            return None
 
         identifier = str(item.get("id") or "").strip()
         if identifier:

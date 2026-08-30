@@ -66,7 +66,7 @@ def test_formulacion_context_enforces_dimension_order():
         values=_sample_values(),
     )
 
-    assert "Rango de palabras aceptable: minimo obligatorio 89 palabras narrativas" in context
+    assert "mínimo obligatorio 89, objetivo 96 y máximo estricto 103 palabras narrativas" in context
     assert "Orden obligatorio de dimensiones especificas: Confiabilidad; Mantenibilidad" in context
     assert "confiabilidad -> mantenibilidad" in context
     assert "No agregues ningun parrafo final despues de las preguntas." in context
@@ -80,12 +80,11 @@ def test_problem_detail_context_requires_professor_style_narrative_between_figur
         values=_sample_values(),
     )
 
-    assert "el ejemplo guia del profesor" in context
-    assert "no redactes guias manuales" in context
-    assert "Parrafo 7 (130 a 170 palabras): interpreta Figura 1.1" in context
-    assert "Parrafo 13 (170 a 220 palabras): interpreta Figura 1.4 cuantitativamente" in context
-    assert "No cuentes la guia azul como desarrollo academico" in context
-    assert "Antes de cada figura debe existir un parrafo largo y especifico" in context
+    assert "Párrafo 7: interpretación del apoyo visual de Pareto sin inventar frecuencias" in context
+    assert "Párrafo 13: interpretación de la priorización sin fabricar resultados" in context
+    assert "cuatro apoyos visuales no numerados" in context
+    assert "No redactes títulos, fuentes, instrucciones de dibujo ni valores" in context
+    assert "Monte Carlo" in context
 
 
 def test_objetivos_context_preserves_general_objective_and_order():
@@ -144,12 +143,10 @@ def test_chapter_two_backgrounds_context_requires_five_dense_antecedents():
         values=_sample_values(),
     )
 
-    assert "minimo obligatorio 3245 palabras narrativas" in context
-    assert "Antecedentes internacionales: cinco antecedentes" in context
-    assert "titulo exacto, problema abordado, pregunta o proposito, objetivo" in context
-    assert "No insertes figuras, tablas, mapas conceptuales ni formulas" in context
-    assert "Evita antecedentes vagos" in context
-    assert "Cada antecedente debe cerrar con el aporte concreto al titulo" in context
+    assert "mínimo obligatorio 3245, objetivo 3505 y máximo estricto 3732 palabras narrativas" in context
+    assert "exactamente cinco estudios, uno por párrafo" in context
+    assert "autor, título, problema, objetivo, método, muestra, resultado, conclusión y aporte" in context
+    assert "No uses libros, normas, manuales, figuras, tablas o fórmulas" in context
 
 
 def test_chapter_two_theoretical_bases_context_places_figures_and_formulas():
@@ -161,16 +158,16 @@ def test_chapter_two_theoretical_bases_context_places_figures_and_formulas():
     )
 
     assert "Subtema teorico principal de la variable independiente" in context
-    assert "Cada subtitulo debe ir como linea independiente con patron 2.2.x" in context
+    assert "exactamente los ocho subtítulos canónicos 2.2.1 a 2.2.8" in context
     assert "No arrastres nombres, autores, normas, indicadores o equipos del ejemplo guia" in context
-    assert "Figuras: usa 0 a 4 segun necesidad" in context
-    assert "Formulas: usa FORMULA_JSON solo si el tema requiere indicadores" in context
+    assert "el sistema inserta cuatro figuras reales y tres ecuaciones canónicas" in context
+    assert "No emitas FIGURE_JSON ni FORMULA_JSON" in context
     assert "No insertes matriz de consistencia ni matriz de operacionalizacion" in context
     assert "Las figuras nunca deben abrir la seccion ni un subtema" in context
     assert "Prohibido hardcodear elementos del ejemplo guia" in context
-    assert "ocho subtitulos de tercer nivel en este orden exacto" in context
-    assert "Figura 2.1 despues del subtema 2.2.2" in context
-    assert "2.2.5 Disponibilidad inherente, 2.2.6 Confiabilidad y 2.2.7 Mantenibilidad" in context
+    assert "exactamente los ocho subtítulos canónicos 2.2.1 a 2.2.8" in context
+    assert "cuatro figuras reales y tres ecuaciones canónicas" in context
+    assert "2.2.5, 2.2.6 y 2.2.7" in context
 
 
 def test_chapter_two_theoretical_bases_context_applies_to_literature_review_name():
@@ -182,7 +179,7 @@ def test_chapter_two_theoretical_bases_context_applies_to_literature_review_name
     )
 
     assert "Subtema teorico principal de la variable independiente" in context
-    assert "Figuras: usa 0 a 4 segun necesidad" in context
+    assert "el sistema inserta cuatro figuras reales y tres ecuaciones canónicas" in context
     assert "No generes TABLE_JSON, matriz de consistencia" in context
 
 
@@ -203,9 +200,9 @@ def test_chapter_two_conceptual_and_terms_are_text_only():
     assert "No generes tabla, figura, mapa conceptual ni formula en 2.3" in conceptual
     assert "Variable independiente: usar el nombre exacto registrado en el proyecto" in conceptual
     assert "Dimensiones de la variable dependiente" in conceptual
-    assert "Lista textual con formato exacto 'Termino. Definicion...'" in terms
+    assert "exactamente trece entradas con formato 'Término. Definición'" in terms
     assert "No insertes figura, tabla, formula ni cierre final en 2.4" in terms
-    assert "Incluye 10 a 15 terminos derivados del area" in terms
+    assert "Una definición sustantiva y una cita asignada por cada término" in terms
     assert "No hardcodees terminos de mantenimiento" in terms
 
 

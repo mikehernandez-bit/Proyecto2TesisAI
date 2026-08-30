@@ -244,8 +244,9 @@ class TestValidate:
                             "tipo": "figura",
                             "titulo": "Figura 1. Modelo",
                             "caption": "Figura 1. Modelo conceptual propuesto.",
-                            "nota": "Guía para elaborar la figura: usar datos reales.",
-                            "nota_color": "0000FF",
+                            "diagram_type": "concept_map",
+                            "diagram_data": {"labels": ["Variable independiente", "Variable dependiente"]},
+                            "numbered": True,
                         },
                     ],
                 }
@@ -259,9 +260,10 @@ class TestValidate:
         assert content[1]["tipo"] == "tabla"
         assert content[1]["filas"][0][1] == "[COMPLETAR]"
         assert content[2]["tipo"] == "figura"
-        assert content[2]["ruta_placeholder"] == "assets/placeholder_figura.png"
-        assert content[2]["nota"] == "Guía para elaborar la figura: usar datos reales."
-        assert content[2]["nota_color"] == "0000FF"
+        assert content[2]["diagram_type"] == "concept_map"
+        assert content[2]["diagram_data"]["labels"] == ["Variable independiente", "Variable dependiente"]
+        assert content[2]["numbered"] is True
+        assert "ruta_placeholder" not in content[2]
 
     def test_chapter_two_text_only_sections_drop_structured_blocks_and_generic_closure(self, validator):
         ai_result = {
@@ -330,7 +332,9 @@ class TestValidate:
                         {
                             "tipo": "figura",
                             "caption": "Figura 2.1 Proceso teorico del estudio",
-                            "fuente": "Placeholder tecnico controlado. Reemplazar por la figura validada por el autor.",
+                            "diagram_type": "concept_map",
+                            "diagram_data": {"labels": ["Entrada", "Proceso", "Salida"]},
+                            "fuente": "Elaboración propia.",
                         },
                         {"tipo": "figura", "caption": "Figura 2.2 Figura consecutiva que debe caer"},
                         {
@@ -362,6 +366,70 @@ class TestValidate:
         assert block_types == ["parrafo", "figura", "parrafo", "formula", "parrafo"]
         assert content[3]["texto"] == "Disponibilidad = TO / (TO + TIM)"
         assert all("Placeholder tecnico" not in str(block) for block in content)
+
+    def test_chapter_two_drops_caption_only_figure_and_keeps_four_renderable_diagrams(self, validator):
+        paragraph = (
+            "El desarrollo teórico explica previamente el concepto, su funcionamiento, su aplicación en el "
+            "proyecto y la interpretación técnica necesaria para justificar el apoyo visual controlado. "
+            "También mantiene coherencia con las variables, dimensiones e indicadores registrados, explica "
+            "el alcance operativo y establece la lectura académica correspondiente antes del esquema."
+        )
+        content: list[dict] = []
+        for index in range(1, 4):
+            content.extend(
+                [
+                    {"tipo": "parrafo", "texto": paragraph},
+                    {
+                        "tipo": "figura",
+                        "id": f"formal-{index}",
+                        "caption": f"Figura formal {index}",
+                        "diagram_type": "concept_map",
+                        "diagram_data": {"labels": ["A", "B"]},
+                    },
+                ]
+            )
+        content.extend(
+            [
+                {"tipo": "parrafo", "texto": paragraph},
+                {
+                    "tipo": "figura",
+                    "id": "provider-caption-only",
+                    "caption": "Figura genérica introducida por una reparación del proveedor",
+                },
+                {"tipo": "parrafo", "texto": paragraph},
+                {
+                    "tipo": "figura",
+                    "id": "formal-4",
+                    "caption": "Figura formal 4",
+                    "diagram_type": "equipment_systems",
+                    "diagram_data": {"labels": ["Equipo", "Sistema"]},
+                },
+            ]
+        )
+
+        result = validator.validate(
+            {
+                "sections": [
+                    {
+                        "sectionId": "sec-bases",
+                        "path": "II. MARCO TEORICO/2.2 Bases teoricas",
+                        "content": content,
+                    }
+                ]
+            }
+        )
+
+        figures = [
+            block
+            for block in result["sections"][0]["content"]
+            if block.get("tipo") == "figura"
+        ]
+        assert [figure["id"] for figure in figures] == [
+            "formal-1",
+            "formal-2",
+            "formal-3",
+            "formal-4",
+        ]
 
     def test_chapter_three_hypotheses_drop_visual_blocks(self, validator):
         ai_result = {
@@ -676,6 +744,8 @@ class TestValidate:
                         {
                             "tipo": "figura",
                             "caption": "Figura 2. Modelo predictivo de mantenimiento.",
+                            "diagram_type": "concept_map",
+                            "diagram_data": {"labels": ["Modelo", "Resultado"]},
                         }
                     ],
                 }

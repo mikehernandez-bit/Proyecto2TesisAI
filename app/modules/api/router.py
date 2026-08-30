@@ -26,6 +26,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from app.core.config import settings
 from app.core.services.ai import AIService, QualityProfileValidationError, QuotaExceededError
 from app.core.services.ai.errors import GenerationCancelledError
+from app.core.services.ai.unac_quality_profile import load_unac_maintenance_profile
 from app.core.services.ai.token_usage import (
     empty_token_usage_report,
     normalize_token_usage_report,
@@ -187,7 +188,7 @@ class RenderStageError(RuntimeError):
         if isinstance(detail, str):
             return detail
         try:
-            return json.dumps(detail, ensure_ascii=False)
+            return json.dumps(detail, ensure_ascii=False, default=str)
         except Exception:
             return str(detail)
 
@@ -689,6 +690,16 @@ def _empty_generation_phase(*, total_sections: int = 0) -> Dict[str, Any]:
         "planned_sections": [],
         "sections": [],
         "cost_summary": generation_cost_snapshot(empty_generation_cost_report()),
+        "metrics": {
+            "total_ms": 0,
+            "provider_ms": 0,
+            "internal_ms": 0,
+            "persistence_ms": 0,
+            "initial_calls": 0,
+            "repair_calls": 0,
+            "units_reused": 0,
+            "units_regenerated": 0,
+        },
         "started_at": "",
         "updated_at": "",
         "finished_at": "",
@@ -732,6 +743,12 @@ def _normalize_generation_phase_state(raw: Any) -> Dict[str, Any]:
             "total_sections": max(0, int(raw.get("total_sections") or 0)),
             "completed_sections": max(0, int(raw.get("completed_sections") or 0)),
             "cost_summary": normalize_generation_cost_snapshot(raw.get("cost_summary")),
+            "metrics": {
+                key: max(0, int(value or 0))
+                for key, value in (raw.get("metrics") or {}).items()
+            }
+            if isinstance(raw.get("metrics"), dict)
+            else dict(base["metrics"]),
             "started_at": str(raw.get("started_at") or ""),
             "updated_at": str(raw.get("updated_at") or ""),
             "finished_at": str(raw.get("finished_at") or ""),
@@ -780,6 +797,48 @@ def _normalize_construction_phase_state(raw: Any) -> Dict[str, Any]:
             tasks_by_id[task_id] = current
     base["tasks"] = list(tasks_by_id.values())
     return base
+
+
+def _generation_timing_metrics(project: Dict[str, Any], phase: Dict[str, Any]) -> Dict[str, int]:
+    attempts = (project.get("token_usage") or {}).get("attempts")
+    attempts = [item for item in attempts or [] if isinstance(item, dict)]
+    provider_ms = sum(max(0, int(item.get("duration_ms") or 0)) for item in attempts)
+    repair_calls = sum(
+        1
+        for item in attempts
+        if any(marker in str(item.get("phase") or "").lower() for marker in ("repair", "cleanup", "correction"))
+    )
+    initial_calls = max(0, len(attempts) - repair_calls)
+
+    def parse_timestamp(value: Any) -> Optional[dt.datetime]:
+        raw = str(value or "").strip()
+        if not raw:
+            return None
+        try:
+            parsed = dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            return None
+
+    started = parse_timestamp(phase.get("started_at"))
+    finished = parse_timestamp(phase.get("finished_at")) or dt.datetime.now(dt.timezone.utc)
+    total_ms = max(0, int((finished - started).total_seconds() * 1000)) if started else provider_ms
+    resume = project.get("resume") if isinstance(project.get("resume"), dict) else {}
+    previous = phase.get("metrics") if isinstance(phase.get("metrics"), dict) else {}
+    return {
+        "total_ms": total_ms,
+        "provider_ms": provider_ms,
+        "internal_ms": max(0, total_ms - provider_ms),
+        "persistence_ms": max(0, int(previous.get("persistence_ms") or 0)),
+        "initial_calls": initial_calls,
+        "repair_calls": repair_calls,
+        "units_reused": max(0, int(resume.get("saved_sections_count") or 0)),
+        "units_regenerated": sum(
+            1
+            for item in phase.get("sections") or []
+            if isinstance(item, dict) and str(item.get("status") or "").lower() in {"ok", "done", "completed"}
+        ),
+    }
 
 
 def _construction_resume_stage(raw: Any) -> str:
@@ -1203,7 +1262,7 @@ def _render_project_outputs_sync(
             step="gicatesis.payload",
             status="error",
             title="Payload invalido antes de enviar a GicaTesis",
-            detail=json.dumps(exc.errors, ensure_ascii=False),
+            detail=json.dumps(exc.errors, ensure_ascii=False, default=str),
             meta={"stage": "failed", "statusCode": 422},
         )
         raise RenderStageError(exc.errors, status_code=422) from exc
@@ -2787,6 +2846,7 @@ async def _ai_generation_job(
                 partial_ai["tokenUsage"] = usage_report
                 partial_ai["generationCost"] = cost_report
                 partial_ai["inputFingerprint"] = checkpoint_input_fingerprint
+                partial_ai["qualityProfile"] = load_unac_maintenance_profile().id
                 projects.update_project(
                     project_id,
                     {
@@ -2814,6 +2874,7 @@ async def _ai_generation_job(
                     current_path=path,
                     input_fingerprint=checkpoint_input_fingerprint,
                     base_run_id=run_id,
+                    profile_version=load_unac_maintenance_profile().id,
                 )
 
         if stage == "provider_fallback":
@@ -2914,6 +2975,7 @@ async def _ai_generation_job(
         )
         partial_ai["tokenUsage"] = usage_report
         partial_ai["generationCost"] = cost_report
+        partial_ai["qualityProfile"] = load_unac_maintenance_profile().id
         latest_project = projects.get_project(project_id) or {}
         latest_progress_source = latest_project.get("progress")
         latest_progress: Dict[str, Any] = (
@@ -2944,6 +3006,7 @@ async def _ai_generation_job(
             reason=reason,
             base_run_id=run_id,
             input_fingerprint=checkpoint_input_fingerprint,
+            profile_version=load_unac_maintenance_profile().id,
             failed_section_id=(
                 quality_keys[0]
                 if failed_stage == "quality_validation" and quality_keys
@@ -3091,6 +3154,10 @@ async def _ai_generation_job(
         generation_phase["finished_at"] = _utc_now_z()
         generation_phase["updated_at"] = _utc_now_z()
         generation_phase = _apply_generation_costs_to_phase(generation_phase, cost_report)
+        generation_phase["metrics"] = _generation_timing_metrics(
+            current_project_after_ai,
+            generation_phase,
+        )
         projects.update_project(project_id, {"generation_phase": generation_phase})
         _set_construction_task(
             project_id,
@@ -3314,7 +3381,7 @@ async def _ai_generation_job(
             detail=str(exc),
             meta={"runId": run_id, "stage": "failed"},
         )
-        _logger.error("AI generation failed for project %s: %s", project_id, exc)
+        _logger.exception("AI generation failed for project %s: %s", project_id, exc)
 
 
 async def _render_saved_ai_job(project_id: str, run_id: str) -> None:
@@ -3570,6 +3637,10 @@ async def trigger_generation(
     stored_fingerprint = str(
         stored_ai_result.get("inputFingerprint") or resume_state.get("input_fingerprint") or ""
     )
+    active_quality_profile = load_unac_maintenance_profile().id
+    stored_quality_profile = str(
+        stored_ai_result.get("qualityProfile") or resume_state.get("profile_version") or ""
+    )
     generation_status = str((project.get("generation_phase") or {}).get("status") or "").strip().lower()
     construction_status = str((project.get("construction_phase") or {}).get("status") or "").strip().lower()
     project_status = str(project.get("status") or "").strip().lower()
@@ -3583,6 +3654,14 @@ async def trigger_generation(
         and stored_ai_sections
         and stored_fingerprint
         and stored_fingerprint != current_input_fingerprint
+        and not validated_render_checkpoint
+    ):
+        raise HTTPException(status_code=409, detail="checkpoint_incompatible")
+    if (
+        requested_resume_mode != "restart"
+        and stored_ai_sections
+        and stored_quality_profile
+        and stored_quality_profile != active_quality_profile
         and not validated_render_checkpoint
     ):
         raise HTTPException(status_code=409, detail="checkpoint_incompatible")

@@ -6,10 +6,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Sequence
 
 from app.core.services.maestria_payload_mapper import normalize_maestria_details
+from app.core.services.ai.project_fact_registry import build_project_fact_registry
 from app.core.services.ai.unac_quality_profile import (
     is_unac_maintenance_project,
     load_unac_maintenance_profile,
-    minimum_for_section_path,
+    requirements_for_section_path,
 )
 
 _TARGET_FORMATS = {
@@ -568,12 +569,12 @@ _SECTION_PROFILES: dict[str, SectionPromptProfile] = {
         context_mode="conceptual_frame",
     ),
     "ii. marco teorico/2.4 definicion de terminos basicos": SectionPromptProfile(
-        word_range="450 a 600 palabras",
+        word_range="434 a 500 palabras; exactamente trece definiciones",
         purpose="Definir terminos tecnicos basicos directamente utiles para entender el proyecto.",
         structure=(
             "Lista textual con formato exacto 'Termino. Definicion...'.",
             (
-                "Incluye 10 a 15 terminos derivados del area, variable independiente, dimensiones de la variable "
+            "Incluye exactamente trece terminos derivados del area, variable independiente, dimensiones de la variable "
                 "independiente, variable dependiente, dimensiones de la variable dependiente e indicadores principales."
             ),
             "Ordena los terminos desde conceptos base del area hasta variables, dimensiones e indicadores.",
@@ -1731,18 +1732,67 @@ def build_section_editorial_context(
         return ""
 
     details = normalize_maestria_details(values or {})
-    maintenance_minimum = None
+    maintenance_requirements = ()
     if is_unac_maintenance_project(format_id, values or {}):
-        maintenance_minimum = minimum_for_section_path(section_path)
-    if maintenance_minimum:
-        buffer_percent = load_unac_maintenance_profile().generation_buffer_percent
-        target_words = (maintenance_minimum * (100 + buffer_percent) + 99) // 100
+        maintenance_requirements = requirements_for_section_path(section_path)
+    if maintenance_requirements:
+        minimum_words = sum(item.min_words for item in maintenance_requirements)
+        target_words = sum(item.target_words for item in maintenance_requirements)
+        maximum_words = sum(item.max_words for item in maintenance_requirements)
         word_contract = (
-            f"minimo obligatorio {maintenance_minimum} palabras narrativas; objetivo de generacion "
-            f"{target_words} o mas. No existe maximo academico para este perfil"
+            f"mínimo obligatorio {minimum_words}, objetivo {target_words} y máximo estricto "
+            f"{maximum_words} palabras narrativas"
         )
     else:
         word_contract = profile.word_range
+
+    profile_key = _profile_key(section_id, section_path)
+    structure = profile.structure
+    quality_rules = profile.quality_rules
+    if maintenance_requirements:
+        if profile_key.endswith("/1.1 descripcion de la realidad problematica"):
+            structure = tuple(
+                [
+                    "Párrafo 1: contexto operativo internacional del problema.",
+                    "Párrafo 2: diagnóstico internacional sustentado, sin trasladar datos al proyecto.",
+                    "Párrafo 3: diagnóstico nacional y brecha de conocimiento.",
+                    "Párrafo 4: contexto local usando únicamente hechos registrados.",
+                    "Párrafo 5: brecha, causas y consecuencias operativas.",
+                    "Párrafo 6: explicación previa del análisis de Pareto cualitativo.",
+                    "Párrafo 7: interpretación del apoyo visual de Pareto sin inventar frecuencias.",
+                    "Párrafo 8: transición causal hacia el esquema de Ishikawa.",
+                    "Párrafo 9: interpretación técnica de causas, limitada a hechos disponibles.",
+                    "Párrafo 10: presentación cualitativa de alternativas de solución.",
+                    "Párrafo 11: comparación de pertinencia sin puntajes inventados.",
+                    "Párrafo 12: criterios de priorización de alternativas.",
+                    "Párrafo 13: interpretación de la priorización sin fabricar resultados.",
+                    "Párrafo 14: cierre con brecha, variables y solución propuesta.",
+                ]
+            )
+            quality_rules = (
+                "Redacta entre 12 y 14 párrafos narrativos; el sistema insertará cuatro apoyos visuales no numerados.",
+                "No escribas FIGURE_JSON, guías de elaboración, porcentajes, puntajes, autores ni datos no registrados.",
+                "Los apoyos visuales son esquemas cualitativos; no se cuentan como narración ni aparecen en el índice.",
+                "Mantén progresión internacional, nacional y local, seguida de brecha, causas, consecuencias y solución.",
+            )
+        elif profile_key.endswith("/2.1 antecedentes"):
+            structure = (
+                "2.1.1 Antecedentes internacionales: exactamente cinco estudios, uno por párrafo.",
+                "2.1.2 Antecedentes nacionales: exactamente cinco estudios, uno por párrafo.",
+                "Cada párrafo contiene autor, título, problema, objetivo, método, muestra, resultado, conclusión y aporte.",
+            )
+            quality_rules = (
+                "No agregues introducciones ni cierres colectivos; entrega diez estudios y dos encabezados.",
+                "No uses libros, normas, manuales, figuras, tablas o fórmulas como antecedentes empíricos.",
+                "No inventes cifras del proyecto ni repitas plantillas de apertura y cierre.",
+            )
+        elif profile_key.endswith("/2.4 definicion de terminos basicos"):
+            structure = ("Redacta exactamente trece entradas con formato 'Término. Definición'.",)
+            quality_rules = (
+                "Una definición sustantiva y una cita asignada por cada término.",
+                "No insertes figura, tabla, formula ni cierre final en 2.4.",
+                "No hardcodees terminos de mantenimiento que no correspondan a las variables o dimensiones registradas.",
+            )
 
     lines: List[str] = [
         "Contrato editorial especifico de esta seccion:",
@@ -1750,9 +1800,11 @@ def build_section_editorial_context(
         f"- Proposito: {profile.purpose}",
         "- Estructura interna esperada:",
     ]
-    lines.extend(f"  {index}. {item}" for index, item in enumerate(profile.structure, start=1))
+    if maintenance_requirements:
+        lines.append(build_project_fact_registry(values or {}).prompt_contract())
+    lines.extend(f"  {index}. {item}" for index, item in enumerate(structure, start=1))
     lines.append("- Criterios de calidad:")
-    lines.extend(f"  - {item}" for item in profile.quality_rules)
+    lines.extend(f"  - {item}" for item in quality_rules)
 
     context_lines = _structured_context_lines(profile.context_mode, details)
     if context_lines:
@@ -1760,12 +1812,33 @@ def build_section_editorial_context(
         lines.extend(context_lines)
 
     if (
-        _profile_key(section_id, section_path)
+        profile_key
         == "i. planteamiento del problema/1.1 descripcion de la realidad problematica"
     ):
-        lines.extend(_problem_figure_contract(details))
-    if _is_theoretical_bases_key(_profile_key(section_id, section_path)):
-        lines.extend(_chapter_two_bases_contract(details))
+        lines.extend(
+            [
+                "Apoyos visuales controlados por el sistema: Pareto cualitativo, Ishikawa, matriz de relevancia y matriz de priorización.",
+                "No redactes títulos, fuentes, instrucciones de dibujo ni valores para esos apoyos.",
+            ]
+        )
+    if _is_theoretical_bases_key(profile_key):
+        if maintenance_requirements:
+            lines.extend(
+                [
+                    "Contrato V2 para 2.2 Bases teóricas:",
+                    "- Usa exactamente los ocho subtítulos canónicos 2.2.1 a 2.2.8 del perfil de mantenimiento.",
+                    "- Desarrolla de dos a tres párrafos por subtítulo y respeta el intervalo individual indicado.",
+                    "- No emitas FIGURE_JSON ni FORMULA_JSON: el sistema inserta cuatro figuras reales y tres ecuaciones canónicas.",
+                    "- Las figuras formales se ubican después de 2.2.2, 2.2.3, 2.2.4 y 2.2.8.",
+                    "- Las figuras nunca deben abrir la seccion ni un subtema.",
+                    "- No generes TABLE_JSON, matriz de consistencia ni matriz de operacionalización.",
+                    "- Las ecuaciones se ubican en 2.2.5, 2.2.6 y 2.2.7 entre definición e interpretación.",
+                    "- No arrastres autores, cifras, equipos o resultados del documento guía.",
+                    "- Prohibido hardcodear elementos del ejemplo guia que no estén en el registro de hechos.",
+                ]
+            )
+        else:
+            lines.extend(_chapter_two_bases_contract(details))
 
     return "\n".join(lines)
 
